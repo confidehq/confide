@@ -185,6 +185,7 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *h
 			WrappedMasterKey:      req.WrappedMasterKey,
 			RecoveryWrappedMaster: req.RecoveryWrappedMaster,
 			RecoveryVerifier:      req.RecoveryVerifier,
+			BackupEligible:        cred.Flags.BackupEligible,
 		}); err != nil {
 			return fmt.Errorf("UpdateAccountCredential: %w", err)
 		}

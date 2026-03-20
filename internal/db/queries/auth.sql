@@ -1,9 +1,9 @@
 -- name: CreateAccount :one
 INSERT INTO accounts (
     id, created_at, credential_id, public_key, prf_salt,
-    wrapped_master_key, recovery_wrapped_master, recovery_verifier
+    wrapped_master_key, recovery_wrapped_master, recovery_verifier, backup_eligible
 ) VALUES (
-    $1, CURRENT_DATE, $2, $3, $4, $5, $6, $7
+    $1, CURRENT_DATE, $2, $3, $4, $5, $6, $7, $8
 ) RETURNING *;
 
 -- name: GetAccountByCredentialID :one
@@ -50,7 +50,14 @@ SELECT COUNT(*) FROM recovery_codes WHERE account_id = $1 AND used = FALSE;
 
 -- name: UpdateAccountCredential :exec
 UPDATE accounts SET credential_id=$2, public_key=$3, prf_salt=$4,
-    wrapped_master_key=$5, recovery_wrapped_master=$6, recovery_verifier=$7 WHERE id=$1;
+    wrapped_master_key=$5, recovery_wrapped_master=$6, recovery_verifier=$7,
+    backup_eligible=$8 WHERE id=$1;
 
 -- name: DeleteRecoveryCodesByAccount :exec
 DELETE FROM recovery_codes WHERE account_id=$1;
+
+-- name: UpdateAccountBackupEligible :exec
+UPDATE accounts SET backup_eligible=$2 WHERE credential_id=$1;
+
+-- name: ListCredentials :many
+SELECT credential_id, prf_salt FROM accounts;

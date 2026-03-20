@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -19,13 +20,13 @@ import (
 
 const sessionCookieName = "session"
 
-func Handler(svc *Service, recoveryHMACKey []byte) http.Handler {
+func Handler(svc *Service, recoveryHMACKey []byte, dev bool) http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/register/begin", registerBegin(svc))
 	r.Post("/register/finish", registerFinish(svc))
 	r.Post("/login/begin", loginBegin(svc))
-	r.Post("/login/finish", loginFinish(svc))
+	r.Post("/login/finish", loginFinish(svc, dev))
 	r.With(mw.RecoveryRateLimit(recoveryHMACKey)).Post("/recover", recover_(svc))
 	r.Post("/recover/rekey/begin", rekeyBegin(svc))
 	r.Post("/recover/rekey/finish", rekeyFinish(svc))
@@ -155,17 +156,18 @@ func registerFinish(svc *Service) http.HandlerFunc {
 func loginBegin(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			CredentialIDBase64 string `json:"credentialIdBase64"`
+			CredentialIDBase64 string `json:"credentialIdBase64"` // optional
 		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CredentialIDBase64 == "" {
-			writeError(w, http.StatusBadRequest, "invalid_request", "credentialIdBase64 required")
-			return
-		}
+		json.NewDecoder(r.Body).Decode(&req) //nolint:errcheck — optional body
 
-		credID, err := base64.StdEncoding.DecodeString(req.CredentialIDBase64)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_field", "credentialIdBase64 must be base64")
-			return
+		var credID []byte
+		if req.CredentialIDBase64 != "" {
+			var err error
+			credID, err = base64.StdEncoding.DecodeString(req.CredentialIDBase64)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_field", "credentialIdBase64 must be base64")
+				return
+			}
 		}
 
 		res, err := svc.LoginBegin(r.Context(), credID)
@@ -179,13 +181,13 @@ func loginBegin(svc *Service) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
-			"credentialIdBase64": req.CredentialIDBase64,
-			"options":            res.Assertion,
+			"challengeKey": res.ChallengeKey,
+			"options":      res.Assertion,
 		})
 	}
 }
 
-func loginFinish(svc *Service) http.HandlerFunc {
+func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -194,18 +196,21 @@ func loginFinish(svc *Service) http.HandlerFunc {
 		}
 
 		var envelope struct {
-			CredentialIDBase64 string          `json:"credentialIdBase64"`
-			Credential         json.RawMessage `json:"credential"`
+			ChallengeKey string          `json:"challengeKey"`
+			Credential   json.RawMessage `json:"credential"`
 		}
-		if err := json.Unmarshal(body, &envelope); err != nil {
+		if err := json.Unmarshal(body, &envelope); err != nil || envelope.ChallengeKey == "" {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
 
-		credID, err := base64.StdEncoding.DecodeString(envelope.CredentialIDBase64)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_field", "credentialIdBase64 must be base64")
-			return
+		// Pre-sync the BackupEligible flag so FinishDiscoverableLogin's consistency
+		// check passes. Extract credential ID from the assertion JSON itself since
+		// credentialIdBase64 is no longer sent by the client.
+		if credID, err := extractCredentialID(envelope.Credential); err == nil {
+			if be, err := extractBackupEligible(envelope.Credential); err == nil {
+				svc.SyncBackupEligible(r.Context(), credID, be)
+			}
 		}
 
 		// Reconstruct request containing only the credential payload.
@@ -217,8 +222,9 @@ func loginFinish(svc *Service) http.HandlerFunc {
 		}
 		newReq.Header.Set("Content-Type", "application/json")
 
-		res, err := svc.LoginFinish(r.Context(), credID, newReq)
+		res, err := svc.LoginFinish(r.Context(), envelope.ChallengeKey, newReq)
 		if err != nil {
+			log.Printf("login_finish_failed: %v", err)
 			status := http.StatusInternalServerError
 			if err == ErrNotFound {
 				status = http.StatusUnauthorized
@@ -227,7 +233,7 @@ func loginFinish(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		setSessionCookie(w, res.Token)
+		setSessionCookie(w, res.Token, dev)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"accountId":        res.AccountID,
 			"wrappedMasterKey": base64.StdEncoding.EncodeToString(res.WrappedMasterKey),
@@ -450,16 +456,50 @@ func safeErr(err error) string {
 	return "internal server error"
 }
 
-func setSessionCookie(w http.ResponseWriter, token string) {
+func setSessionCookie(w http.ResponseWriter, token string, dev bool) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   2592000, // 30 days
 		HttpOnly: true,
-		Secure:   true,
+		Secure:   !dev, // Secure requires HTTPS; disable for local HTTP dev
 		SameSite: http.SameSiteStrictMode,
 	})
+}
+
+// extractBackupEligible reads the BackupEligible flag (bit 3 of the authenticator
+// flags byte) from a raw WebAuthn assertion JSON without consuming an http.Request.
+// extractCredentialID parses the rawId field from a WebAuthn assertion JSON.
+func extractCredentialID(credJSON []byte) ([]byte, error) {
+	var parsed struct {
+		RawID string `json:"rawId"`
+	}
+	if err := json.Unmarshal(credJSON, &parsed); err != nil {
+		return nil, err
+	}
+	return base64.RawURLEncoding.DecodeString(parsed.RawID)
+}
+
+func extractBackupEligible(credJSON []byte) (bool, error) {
+	var parsed struct {
+		Response struct {
+			AuthenticatorData string `json:"authenticatorData"`
+		} `json:"response"`
+	}
+	if err := json.Unmarshal(credJSON, &parsed); err != nil {
+		return false, err
+	}
+	// authenticatorData is base64url-encoded; flags byte is at offset 32.
+	authData, err := base64.RawURLEncoding.DecodeString(parsed.Response.AuthenticatorData)
+	if err != nil {
+		return false, err
+	}
+	if len(authData) < 33 {
+		return false, nil
+	}
+	// Bit 3 (0x08) is the BE (BackupEligible) flag per the WebAuthn spec.
+	return authData[32]&0x08 != 0, nil
 }
 
 func clearSessionCookie(w http.ResponseWriter) {

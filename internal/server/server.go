@@ -30,7 +30,7 @@ func New(cfg *config.Config, pool *pgxpool.Pool, wa *webauthn.WebAuthn) http.Han
 	// All /auth/* routes share a general rate limiter.
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(mw.RateLimit(cfg.HMACKey))
-		r.Mount("/", auth.Handler(svc, cfg.HMACKey))
+		r.Mount("/", auth.Handler(svc, cfg.HMACKey, cfg.Env == "development"))
 	})
 
 	return r

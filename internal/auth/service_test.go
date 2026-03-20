@@ -144,7 +144,27 @@ func (m *mockDB) UpdateAccountCredential(_ context.Context, arg queries.UpdateAc
 	a.WrappedMasterKey = arg.WrappedMasterKey
 	a.RecoveryWrappedMaster = arg.RecoveryWrappedMaster
 	a.RecoveryVerifier = arg.RecoveryVerifier
+	a.BackupEligible = arg.BackupEligible
 	m.accounts[arg.ID] = a
+	return nil
+}
+
+func (m *mockDB) ListCredentials(_ context.Context) ([]queries.ListCredentialsRow, error) {
+	rows := make([]queries.ListCredentialsRow, 0, len(m.accounts))
+	for _, a := range m.accounts {
+		rows = append(rows, queries.ListCredentialsRow{CredentialID: a.CredentialID, PrfSalt: a.PrfSalt})
+	}
+	return rows, nil
+}
+
+func (m *mockDB) UpdateAccountBackupEligible(_ context.Context, arg queries.UpdateAccountBackupEligibleParams) error {
+	for id, a := range m.accounts {
+		if string(a.CredentialID) == string(arg.CredentialID) {
+			a.BackupEligible = arg.BackupEligible
+			m.accounts[id] = a
+			return nil
+		}
+	}
 	return nil
 }
 

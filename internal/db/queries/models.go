@@ -17,6 +17,7 @@ type Account struct {
 	WrappedMasterKey      []byte
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
+	BackupEligible        bool
 }
 
 type RecoveryCode struct {

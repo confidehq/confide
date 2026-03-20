@@ -11,7 +11,7 @@ export interface RegisterFinishResponse {
 }
 
 export interface LoginBeginResponse {
-	credentialIdBase64: string;
+	challengeKey: string;
 	options: unknown; // PublicKeyCredentialRequestOptionsJSON
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -45,6 +46,8 @@ type DB interface {
 	BurnRecoveryCode(ctx context.Context, id string) error
 	CountUnusedRecoveryCodes(ctx context.Context, accountID string) (int64, error)
 	DeleteRecoveryCodesByAccount(ctx context.Context, accountID string) error
+	UpdateAccountBackupEligible(ctx context.Context, arg queries.UpdateAccountBackupEligibleParams) error
+	ListCredentials(ctx context.Context) ([]queries.ListCredentialsRow, error)
 }
 
 // challengeEntry holds WebAuthn session data with an expiry.
@@ -167,12 +170,12 @@ func (s *Service) RegisterBegin(ctx context.Context) (*RegisterBeginResult, erro
 }
 
 type RegisterFinishRequest struct {
-	AccountID              string `json:"accountId"`
-	WrappedMasterKey       []byte `json:"wrappedMasterKey"`       // base64 in JSON
-	RecoveryWrappedMaster  []byte `json:"recoveryWrappedMasterKey"` // base64 in JSON
-	RecoveryVerifier       []byte `json:"recoveryVerifier"`       // base64 in JSON
-	RecoveryCodes          [][]byte `json:"recoveryCodes"`        // 12 × SHA-256 hashes
-	PRFSalt                []byte `json:"prfSalt"`
+	AccountID             string   `json:"accountId"`
+	WrappedMasterKey      []byte   `json:"wrappedMasterKey"`         // base64 in JSON
+	RecoveryWrappedMaster []byte   `json:"recoveryWrappedMasterKey"` // base64 in JSON
+	RecoveryVerifier      []byte   `json:"recoveryVerifier"`         // base64 in JSON
+	RecoveryCodes         [][]byte `json:"recoveryCodes"`            // 12 × SHA-256 hashes
+	PRFSalt               []byte   `json:"prfSalt"`
 }
 
 func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest, r *http.Request) (string, error) {
@@ -203,6 +206,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 			WrappedMasterKey:      req.WrappedMasterKey,
 			RecoveryWrappedMaster: req.RecoveryWrappedMaster,
 			RecoveryVerifier:      req.RecoveryVerifier,
+			BackupEligible:        cred.Flags.BackupEligible,
 		})
 		if err != nil {
 			if isDuplicateKey(err) {
@@ -240,17 +244,35 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 // ─── Login ────────────────────────────────────────────────────────────────────
 
 type LoginBeginResult struct {
-	Assertion *protocol.CredentialAssertion
+	Assertion    *protocol.CredentialAssertion
+	ChallengeKey string // must be echoed back in LoginFinish
 }
 
+// LoginBegin starts a WebAuthn assertion ceremony.
+//
+// If credentialID is non-nil, targeted mode: embeds the account's PRF salt via
+// prf.eval.first (Chrome 116+). The challenge is keyed by base64url(credentialID).
+//
+// If credentialID is nil, discoverable mode: queries all credentials and embeds
+// their PRF salts via prf.evalByCredential (Chrome 132+, 1Password). The
+// challenge is keyed by a random nonce returned as ChallengeKey.
 func (s *Service) LoginBegin(ctx context.Context, credentialID []byte) (*LoginBeginResult, error) {
+	if len(credentialID) > 0 {
+		slog.Info("Begin target")
+		return s.loginBeginTargeted(ctx, credentialID)
+	}
+	slog.Info("Begin discoverable")
+	return s.loginBeginDiscoverable(ctx)
+}
+
+// loginBeginTargeted uses prf.eval.first with the known credential's PRF salt.
+// Requires Chrome 116+. Used when credentialId is stored in localStorage.
+func (s *Service) loginBeginTargeted(ctx context.Context, credentialID []byte) (*LoginBeginResult, error) {
 	account, err := s.db.GetAccountByCredentialID(ctx, credentialID)
 	if err != nil {
 		return nil, ErrNotFound
 	}
-
-	user := accountToWAUser(account)
-	assertion, sd, err := s.wa.BeginLogin(user,
+	assertion, sd, err := s.wa.BeginDiscoverableLogin(
 		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
 				"eval": map[string]any{
@@ -260,13 +282,42 @@ func (s *Service) LoginBegin(ctx context.Context, credentialID []byte) (*LoginBe
 		}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("BeginLogin: %w", err)
+		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
 	}
+	challengeKey := base64.RawURLEncoding.EncodeToString(credentialID)
+	s.challenges.set(challengeKey, sd)
+	return &LoginBeginResult{Assertion: assertion, ChallengeKey: challengeKey}, nil
+}
 
-	// Key the challenge by base64url(credentialID) so finish can retrieve it.
-	key := base64.RawURLEncoding.EncodeToString(credentialID)
-	s.challenges.set(key, sd)
-	return &LoginBeginResult{Assertion: assertion}, nil
+// loginBeginDiscoverable uses prf.eval.first for discoverable login (empty allowCredentials).
+// evalByCredential is forbidden by the spec when allowCredentials is empty — only eval.first
+// is valid in discoverable mode. Uses the first registered credential's PRF salt.
+func (s *Service) loginBeginDiscoverable(ctx context.Context) (*LoginBeginResult, error) {
+	creds, err := s.db.ListCredentials(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("ListCredentials: %w", err)
+	}
+	if len(creds) == 0 {
+		return nil, fmt.Errorf("no registered accounts: please sign up first")
+	}
+	assertion, sd, err := s.wa.BeginDiscoverableLogin(
+		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
+			"prf": map[string]any{
+				"eval": map[string]any{
+					"first": protocol.URLEncodedBase64(creds[0].PrfSalt),
+				},
+			},
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
+	}
+	challengeKey, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+	s.challenges.set(challengeKey, sd)
+	return &LoginBeginResult{Assertion: assertion, ChallengeKey: challengeKey}, nil
 }
 
 type LoginFinishResult struct {
@@ -275,21 +326,44 @@ type LoginFinishResult struct {
 	Token            string // raw session token (caller sets cookie)
 }
 
-func (s *Service) LoginFinish(ctx context.Context, credentialID []byte, r *http.Request) (*LoginFinishResult, error) {
-	key := base64.RawURLEncoding.EncodeToString(credentialID)
-	sd, ok := s.challenges.take(key)
+func (s *Service) LoginFinish(ctx context.Context, challengeKey string, r *http.Request) (*LoginFinishResult, error) {
+	sd, ok := s.challenges.take(challengeKey)
 	if !ok {
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
-	account, err := s.db.GetAccountByCredentialID(ctx, credentialID)
-	if err != nil {
-		return nil, ErrNotFound
+	// FinishDiscoverableLogin looks up the account via the userHandle (account ID
+	// set during registration) which is the authoritative identifier for discoverable
+	// login. Falls back to rawID lookup for backward compatibility.
+	var account queries.Account
+	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+		if len(userHandle) > 0 {
+			acc, err := s.db.GetAccountByID(ctx, string(userHandle))
+			if err == nil {
+				account = acc
+				return accountToWAUser(acc), nil
+			}
+		}
+		acc, err := s.db.GetAccountByCredentialID(ctx, rawID)
+		if err != nil {
+			return nil, ErrNotFound
+		}
+		account = acc
+		return accountToWAUser(acc), nil
 	}
 
-	user := accountToWAUser(account)
-	if _, err := s.wa.FinishLogin(user, *sd, r); err != nil {
-		return nil, fmt.Errorf("FinishLogin: %w", err)
+	cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
+	if err != nil {
+		return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+	}
+
+	// Sync BackupEligible if the stored value is stale (accounts created before
+	// the field was tracked default to false).
+	if account.BackupEligible != cred.Flags.BackupEligible {
+		_ = s.db.UpdateAccountBackupEligible(ctx, queries.UpdateAccountBackupEligibleParams{
+			CredentialID:   account.CredentialID,
+			BackupEligible: cred.Flags.BackupEligible,
+		})
 	}
 
 	token, tokenHash, err := newSessionToken()
@@ -351,6 +425,20 @@ func (s *Service) Recover(ctx context.Context, accountID, code string) (*Recover
 	}
 
 	return &RecoverResult{RecoveryWrappedMaster: account.RecoveryWrappedMaster, RekeyToken: rekeyToken}, nil
+}
+
+// SyncBackupEligible updates the stored BackupEligible flag when it differs
+// from the value observed in the authenticator. Called before FinishDiscoverableLogin
+// so the consistency check inside go-webauthn sees a matching value.
+func (s *Service) SyncBackupEligible(ctx context.Context, credentialID []byte, be bool) {
+	acc, err := s.db.GetAccountByCredentialID(ctx, credentialID)
+	if err != nil || acc.BackupEligible == be {
+		return
+	}
+	_ = s.db.UpdateAccountBackupEligible(ctx, queries.UpdateAccountBackupEligibleParams{
+		CredentialID:   credentialID,
+		BackupEligible: be,
+	})
 }
 
 // ─── Session management ───────────────────────────────────────────────────────
@@ -468,7 +556,13 @@ func accountToWAUser(a queries.Account) *waUser {
 		name:        a.ID,
 		displayName: a.ID,
 		credentials: []webauthn.Credential{
-			{ID: a.CredentialID, PublicKey: a.PublicKey},
+			{
+				ID:        a.CredentialID,
+				PublicKey: a.PublicKey,
+				Flags: webauthn.CredentialFlags{
+					BackupEligible: a.BackupEligible,
+				},
+			},
 		},
 	}
 }

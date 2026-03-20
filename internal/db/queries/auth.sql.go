@@ -34,10 +34,10 @@ func (q *Queries) CountUnusedRecoveryCodes(ctx context.Context, accountID string
 const createAccount = `-- name: CreateAccount :one
 INSERT INTO accounts (
     id, created_at, credential_id, public_key, prf_salt,
-    wrapped_master_key, recovery_wrapped_master, recovery_verifier
+    wrapped_master_key, recovery_wrapped_master, recovery_verifier, backup_eligible
 ) VALUES (
-    $1, CURRENT_DATE, $2, $3, $4, $5, $6, $7
-) RETURNING id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier
+    $1, CURRENT_DATE, $2, $3, $4, $5, $6, $7, $8
+) RETURNING id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier, backup_eligible
 `
 
 type CreateAccountParams struct {
@@ -48,6 +48,7 @@ type CreateAccountParams struct {
 	WrappedMasterKey      []byte
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
+	BackupEligible        bool
 }
 
 func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (Account, error) {
@@ -59,6 +60,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		arg.WrappedMasterKey,
 		arg.RecoveryWrappedMaster,
 		arg.RecoveryVerifier,
+		arg.BackupEligible,
 	)
 	var i Account
 	err := row.Scan(
@@ -70,6 +72,7 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 		&i.WrappedMasterKey,
 		&i.RecoveryWrappedMaster,
 		&i.RecoveryVerifier,
+		&i.BackupEligible,
 	)
 	return i, err
 }
@@ -126,7 +129,7 @@ func (q *Queries) DeleteSession(ctx context.Context, id string) error {
 }
 
 const getAccountByCredentialID = `-- name: GetAccountByCredentialID :one
-SELECT id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier FROM accounts WHERE credential_id = $1
+SELECT id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier, backup_eligible FROM accounts WHERE credential_id = $1
 `
 
 func (q *Queries) GetAccountByCredentialID(ctx context.Context, credentialID []byte) (Account, error) {
@@ -141,12 +144,13 @@ func (q *Queries) GetAccountByCredentialID(ctx context.Context, credentialID []b
 		&i.WrappedMasterKey,
 		&i.RecoveryWrappedMaster,
 		&i.RecoveryVerifier,
+		&i.BackupEligible,
 	)
 	return i, err
 }
 
 const getAccountByID = `-- name: GetAccountByID :one
-SELECT id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier FROM accounts WHERE id = $1
+SELECT id, created_at, credential_id, public_key, prf_salt, wrapped_master_key, recovery_wrapped_master, recovery_verifier, backup_eligible FROM accounts WHERE id = $1
 `
 
 func (q *Queries) GetAccountByID(ctx context.Context, id string) (Account, error) {
@@ -161,6 +165,7 @@ func (q *Queries) GetAccountByID(ctx context.Context, id string) (Account, error
 		&i.WrappedMasterKey,
 		&i.RecoveryWrappedMaster,
 		&i.RecoveryVerifier,
+		&i.BackupEligible,
 	)
 	return i, err
 }
@@ -220,6 +225,35 @@ func (q *Queries) GetUnusedRecoveryCode(ctx context.Context, arg GetUnusedRecove
 	return i, err
 }
 
+const listCredentials = `-- name: ListCredentials :many
+SELECT credential_id, prf_salt FROM accounts
+`
+
+type ListCredentialsRow struct {
+	CredentialID []byte
+	PrfSalt      []byte
+}
+
+func (q *Queries) ListCredentials(ctx context.Context) ([]ListCredentialsRow, error) {
+	rows, err := q.db.Query(ctx, listCredentials)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListCredentialsRow
+	for rows.Next() {
+		var i ListCredentialsRow
+		if err := rows.Scan(&i.CredentialID, &i.PrfSalt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSessionsByAccount = `-- name: ListSessionsByAccount :many
 SELECT id, created_at, last_seen FROM sessions WHERE account_id = $1
 `
@@ -259,9 +293,24 @@ func (q *Queries) TouchSession(ctx context.Context, id string) error {
 	return err
 }
 
+const updateAccountBackupEligible = `-- name: UpdateAccountBackupEligible :exec
+UPDATE accounts SET backup_eligible=$2 WHERE credential_id=$1
+`
+
+type UpdateAccountBackupEligibleParams struct {
+	CredentialID   []byte
+	BackupEligible bool
+}
+
+func (q *Queries) UpdateAccountBackupEligible(ctx context.Context, arg UpdateAccountBackupEligibleParams) error {
+	_, err := q.db.Exec(ctx, updateAccountBackupEligible, arg.CredentialID, arg.BackupEligible)
+	return err
+}
+
 const updateAccountCredential = `-- name: UpdateAccountCredential :exec
 UPDATE accounts SET credential_id=$2, public_key=$3, prf_salt=$4,
-    wrapped_master_key=$5, recovery_wrapped_master=$6, recovery_verifier=$7 WHERE id=$1
+    wrapped_master_key=$5, recovery_wrapped_master=$6, recovery_verifier=$7,
+    backup_eligible=$8 WHERE id=$1
 `
 
 type UpdateAccountCredentialParams struct {
@@ -272,6 +321,7 @@ type UpdateAccountCredentialParams struct {
 	WrappedMasterKey      []byte
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
+	BackupEligible        bool
 }
 
 func (q *Queries) UpdateAccountCredential(ctx context.Context, arg UpdateAccountCredentialParams) error {
@@ -283,6 +333,7 @@ func (q *Queries) UpdateAccountCredential(ctx context.Context, arg UpdateAccount
 		arg.WrappedMasterKey,
 		arg.RecoveryWrappedMaster,
 		arg.RecoveryVerifier,
+		arg.BackupEligible,
 	)
 	return err
 }

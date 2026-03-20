@@ -259,6 +259,7 @@ export async function register(): Promise<RegisterResult> {
 export interface LoginResult {
 	masterKey: CryptoKey;
 	accountId: string;
+	credentialId: string; // Base64URLString from assertion (use to repopulate localStorage)
 }
 
 /**
@@ -270,20 +271,42 @@ export interface LoginResult {
  *   3. POST /api/auth/login/finish → wrappedMasterKey + session cookie set
  *   4. PRF → KEK; unwrap master key
  */
-export async function login(credentialId: string): Promise<LoginResult> {
-	const credentialIdBase64 = credentialIdToBase64Std(credentialId);
+/**
+ * Complete the login ceremony.
+ *
+ * credentialId is optional:
+ *   - Provided (stored in localStorage): targeted mode using prf.eval.first (Chrome 116+).
+ *   - Absent (new device / password manager): discoverable mode using prf.evalByCredential
+ *     (Chrome 132+ / 1Password). The server embeds all registered credentials' PRF salts.
+ *
+ * Always returns credentialId from the assertion so the caller can repopulate localStorage.
+ */
+export async function login(credentialId?: string | null): Promise<LoginResult> {
+	// Step 1: begin — send credential ID only if known
+	const body = credentialId
+		? { credentialIdBase64: credentialIdToBase64Std(credentialId) }
+		: {};
+	const begin = await apiPost<LoginBeginResponse>('/api/auth/login/begin', body);
 
-	// Step 1: begin
-	const begin = await apiPost<LoginBeginResponse>('/api/auth/login/begin', { credentialIdBase64 });
+	// Step 2: WebAuthn ceremony — convert PRF salt strings → ArrayBuffer
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown }; evalByCredential?: Record<string, { first?: unknown }> } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		// Targeted mode: convert eval.first
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	} else if (prf?.evalByCredential) {
+		// Discoverable mode: convert each entry in evalByCredential
+		for (const entry of Object.values(prf.evalByCredential)) {
+			if (entry?.first && typeof entry.first === 'string') {
+				(entry as { first: ArrayBuffer }).first = base64urlToBytes(entry.first as string).buffer as ArrayBuffer;
+			}
+		}
+	}
+	const credential = await startAuthentication({ optionsJSON });
 
-	// Step 2: WebAuthn ceremony
-	const credential = await startAuthentication({
-		optionsJSON: unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options)
-	});
-
-	// Step 3: finish — sends credential, receives wrappedMasterKey + sets cookie
+	// Step 3: finish — challengeKey replaces credentialIdBase64
 	const finish = await apiPost<LoginFinishResponse>('/api/auth/login/finish', {
-		credentialIdBase64,
+		challengeKey: begin.challengeKey,
 		credential: JSON.parse(JSON.stringify(credential))
 	});
 
@@ -291,7 +314,7 @@ export async function login(credentialId: string): Promise<LoginResult> {
 	const kek = await extractAuthenticationKek(credential);
 	const masterKey = await unwrapKey(base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer, kek);
 
-	return { masterKey, accountId: finish.accountId };
+	return { masterKey, accountId: finish.accountId, credentialId: credential.id };
 }
 
 // ─── Recovery ─────────────────────────────────────────────────────────────────
