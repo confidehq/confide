@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listSessions, revokeSession, logout } from '$lib/auth.ts';
-	import { auth } from '$lib/stores/auth.svelte.ts';
-	import type { SessionInfo } from '$lib/auth.ts';
+	import { listSessions, revokeSession, logout } from '$lib/auth';
+	import { auth } from '$lib/stores/auth.svelte';
+	import type { SessionInfo } from '$lib/auth';
 
 	let sessions = $state<SessionInfo[]>([]);
 	let loading = $state(true);

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { listForms, updateFormStatus, deleteForm, ApiError, type FormSummary } from '$lib/forms.ts';
+	import { goto } from '$app/navigation';
+	import { listForms, updateFormStatus, deleteForm, ApiError, type FormSummary } from '$lib/forms';
 
 	let forms = $state<FormSummary[]>([]);
 	let loading = $state(true);
@@ -47,7 +48,7 @@
 		<div style="display: flex; gap: 12px;">
 			<a href="/dashboard" style="color: #9ca3af; font-size: 0.85rem; text-decoration: none;">← Dashboard</a>
 			<button
-				onclick={() => alert('Form builder coming in Phase 5')}
+				onclick={() => goto('/forms/new')}
 				style="
 					padding: 8px 16px;
 					background: #1d4ed8;
@@ -115,6 +116,21 @@
 						</td>
 						<td style="padding: 12px; white-space: nowrap;">
 							<div style="display: flex; gap: 8px; justify-content: flex-end;">
+								<button
+									onclick={() => goto(`/forms/${form.formId}/edit`)}
+									style="
+										padding: 4px 10px;
+										background: transparent;
+										color: #93c5fd;
+										border: 1px solid #374151;
+										border-radius: 4px;
+										cursor: pointer;
+										font-family: monospace;
+										font-size: 0.75rem;
+									"
+								>
+									Edit
+								</button>
 								<button
 									onclick={() => toggleStatus(form)}
 									style="

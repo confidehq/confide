@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -20,6 +21,7 @@ func Handler(svc *Service) http.Handler {
 	r.Put("/{id}", updateFormSchema(svc))
 	r.Put("/{id}/status", updateFormStatus(svc))
 	r.Delete("/{id}", deleteForm(svc))
+	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc))
 	return r
 }
 
@@ -228,6 +230,35 @@ func deleteForm(svc *Service) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func getSchemaVersion(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "id")
+		versionStr := chi.URLParam(r, "version")
+
+		version64, err := strconv.ParseInt(versionStr, 10, 32)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_param", "version must be an integer")
+			return
+		}
+
+		blob, err := svc.GetSchemaVersion(r.Context(), accountID, formID, int32(version64))
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "form or version not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get schema version")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"encryptedSchema": base64.StdEncoding.EncodeToString(blob),
+			"version":         int32(version64),
+		})
 	}
 }
 

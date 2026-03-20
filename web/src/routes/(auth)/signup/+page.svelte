@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { detectPRFSupport } from '$lib/prf-detection.ts';
-	import { register } from '$lib/auth.ts';
-	import { auth } from '$lib/stores/auth.svelte.ts';
+	import { detectPRFSupport } from '$lib/prf-detection';
+	import { register } from '$lib/auth';
+	import { auth } from '$lib/stores/auth.svelte';
 
 	type Step = 'checking' | 'briefing' | 'creating' | 'recovery' | 'success';
 

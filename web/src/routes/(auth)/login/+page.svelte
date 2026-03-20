@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte.ts';
-	import { login } from '$lib/auth.ts';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { login } from '$lib/auth';
 
 	let error = $state<string | null>(null);
 	let loading = $state(false);

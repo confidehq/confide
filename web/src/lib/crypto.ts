@@ -77,7 +77,7 @@ async function importHkdfIkm(ikm: BufferSource): Promise<CryptoKey> {
  */
 async function hkdfDeriveAesKey(
 	hkdfKey: CryptoKey,
-	info: Uint8Array,
+	info: Uint8Array<ArrayBuffer>,
 	usages: KeyUsage[],
 	extractable: boolean
 ): Promise<CryptoKey> {
@@ -85,7 +85,7 @@ async function hkdfDeriveAesKey(
 		{
 			name: 'HKDF',
 			hash: HKDF_HASH,
-			salt: new Uint8Array(0),
+			salt: new ArrayBuffer(0),
 			info
 		},
 		hkdfKey,
@@ -98,12 +98,12 @@ async function hkdfDeriveAesKey(
 /**
  * Derive raw bits via HKDF from an HKDF IKM key.
  */
-async function hkdfDeriveBits(hkdfKey: CryptoKey, info: Uint8Array, bits: number): Promise<ArrayBuffer> {
+async function hkdfDeriveBits(hkdfKey: CryptoKey, info: Uint8Array<ArrayBuffer>, bits: number): Promise<ArrayBuffer> {
 	return crypto.subtle.deriveBits(
 		{
 			name: 'HKDF',
 			hash: HKDF_HASH,
-			salt: new Uint8Array(0),
+			salt: new ArrayBuffer(0),
 			info
 		},
 		hkdfKey,
@@ -334,11 +334,11 @@ export async function encryptResponse(
 	recipientPublicKey: CryptoKey
 ): Promise<EncryptedResponse> {
 	// Step 1: ephemeral keypair
-	const ephemeral = await crypto.subtle.generateKey(
+	const ephemeral = (await crypto.subtle.generateKey(
 		{ name: 'X25519' },
 		true, // extractable so we can export the public key
 		['deriveKey', 'deriveBits']
-	);
+	)) as CryptoKeyPair;
 
 	// Step 2: ECDH shared secret
 	// NOTE: X25519 uses { name: "X25519" }, NOT "ECDH" — "ECDH" is only for

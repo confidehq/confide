@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte.ts';
-	import { login } from '$lib/auth.ts';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { login } from '$lib/auth';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();

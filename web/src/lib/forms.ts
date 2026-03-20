@@ -12,8 +12,9 @@ import {
 	decryptSchema,
 	encryptResponse,
 	decryptResponse
-} from './crypto.ts';
-import type { FormSchema, ResponsePayload } from './types/crypto.ts';
+} from './crypto';
+import type { FormSchema, ResponsePayload } from './types/crypto';
+import type { BuilderSchema } from './types/builder';
 
 export type { FormSchema, ResponsePayload };
 
@@ -282,6 +283,66 @@ export async function submitResponse(
 		if (res.ok) return;
 		if (attempt === 2) throw new Error(`Submission failed after 3 attempts (${res.status})`);
 	}
+}
+
+/**
+ * Publish (or re-publish) a form: generates a fresh renderKey, re-encrypts
+ * the schema for respondents, and PUTs both encrypted schemas + publicFormKey.
+ * Returns the share URL and the renderKey (embed in share URL as #rk=<base64url>).
+ */
+export async function publishForm(
+	masterKey: CryptoKey,
+	formId: string,
+	schema: BuilderSchema
+): Promise<{ shareUrl: string; renderKey: CryptoKey }> {
+	const formKey = await deriveFormKey(masterKey, formId);
+
+	// Encrypt schema for the owner.
+	const encryptedSchema = await encryptSchema(schema as FormSchema, formKey);
+
+	// Generate fresh renderKey and encrypt for respondents.
+	const renderKey = await crypto.subtle.generateKey(
+		{ name: 'AES-GCM', length: 256 },
+		true,
+		['encrypt', 'decrypt']
+	);
+	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey);
+
+	const res = await fetch(`/api/forms/${formId}`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			encryptedSchema: arrayBufferToBase64(encryptedSchema),
+			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema)
+		})
+	});
+
+	if (!res.ok) throw new ApiError(res.status, await res.json());
+
+	// Export renderKey as base64url for the URL fragment.
+	const renderKeyRaw = await crypto.subtle.exportKey('raw', renderKey);
+	const renderKeyB64url = arrayBufferToBase64url(renderKeyRaw);
+	const shareUrl = `${window.location.origin}/f/${formId}#rk=${renderKeyB64url}`;
+
+	return { shareUrl, renderKey };
+}
+
+/**
+ * Fetch a specific versioned schema snapshot and decrypt it with formKey.
+ * Used by the response viewer (Phase 6).
+ */
+export async function getSchemaVersion(
+	masterKey: CryptoKey,
+	formId: string,
+	version: number
+): Promise<BuilderSchema> {
+	const res = await fetch(`/api/forms/${formId}/schema-versions/${version}`);
+	if (!res.ok) throw new ApiError(res.status, await res.json());
+
+	const body = await res.json();
+	const formKey = await deriveFormKey(masterKey, formId);
+	const schema = await decryptSchema(base64ToArrayBuffer(body.encryptedSchema), formKey);
+	return schema as BuilderSchema;
 }
 
 /**

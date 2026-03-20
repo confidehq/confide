@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { auth } from '$lib/stores/auth.svelte.ts';
-	import { logout } from '$lib/auth.ts';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
 
 	async function handleLogout() {

@@ -33,6 +33,13 @@ type Form struct {
 	PublicFormKey         []byte
 }
 
+type FormSchemaVersion struct {
+	FormID          string
+	Version         int32
+	EncryptedSchema []byte
+	CreatedAt       pgtype.Date
+}
+
 type RecoveryCode struct {
 	ID        string
 	AccountID string

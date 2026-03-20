@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
-	import { getPublicSchema, importRenderKey, ApiError } from '$lib/forms.ts';
+	import { getPublicSchema, importRenderKey, ApiError } from '$lib/forms';
 
 	type State = 'loading' | 'ready' | 'closed' | 'invalid' | 'error';
 

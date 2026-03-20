@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte.ts';
-	import { recover, rekey } from '$lib/auth.ts';
+	import { auth } from '$lib/stores/auth.svelte';
+	import { recover, rekey } from '$lib/auth';
 
 	type Step = 'enter-code' | 'rekey' | 'success';
 

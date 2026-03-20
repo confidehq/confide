@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { detectPRFSupport, surfacePrfError } from '$lib/prf-detection.ts';
+	import { detectPRFSupport, surfacePrfError } from '$lib/prf-detection';
 	import {
 		deriveFormKey,
 		deriveFormKeypair,
@@ -12,8 +12,8 @@
 		encryptResponse,
 		decryptResponse,
 		hashForVerification
-	} from '$lib/crypto.ts';
-	import type { FormSchema, ResponsePayload } from '$lib/types/crypto.ts';
+	} from '$lib/crypto';
+	import type { FormSchema, ResponsePayload } from '$lib/types/crypto';
 
 	// ---------------------------------------------------------------------------
 	// Types & state
@@ -42,7 +42,7 @@
 	let overallResult = $state<'pending' | 'pass' | 'fail'>('pending');
 
 	// State shared between step 2 and step 3
-	let simulatedPrfOutput: Uint8Array | null = null;
+	let simulatedPrfOutput: Uint8Array<ArrayBuffer> | null = null;
 	let wrappedMasterKeyBytes: ArrayBuffer | null = null;
 
 	// ---------------------------------------------------------------------------
@@ -96,7 +96,7 @@
 
 	async function step2(): Promise<string> {
 		// Simulate PRF output (32 random bytes — stands in for real PRF output)
-		simulatedPrfOutput = crypto.getRandomValues(new Uint8Array(32));
+		simulatedPrfOutput = crypto.getRandomValues(new Uint8Array(32)) as Uint8Array<ArrayBuffer>;
 
 		// Derive a master key
 		const masterKey = await crypto.subtle.generateKey(
@@ -201,8 +201,14 @@
 			defaultLocale: 'en',
 			locales: ['en'],
 			layout: 'scroll',
-			fields: [{ id: 'q1', type: 'text', config: { label: 'Name' } }],
-			translations: { en: { q1: 'What is your name?' } }
+			fields: [{ id: 'q1', type: 'short_text', required: false, order: 0, config: {} }],
+			translations: {
+				en: {
+					formTitle: 'Test',
+					formDescription: '',
+					fields: { q1: { label: 'What is your name?' } }
+				}
+			}
 		};
 
 		const schemaBlob = await encryptSchema(sampleSchema, formKey);

@@ -119,6 +119,23 @@ func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRo
 	return i, err
 }
 
+const getSchemaVersion = `-- name: GetSchemaVersion :one
+SELECT encrypted_schema FROM form_schema_versions
+WHERE form_id = $1 AND version = $2
+`
+
+type GetSchemaVersionParams struct {
+	FormID  string
+	Version int32
+}
+
+func (q *Queries) GetSchemaVersion(ctx context.Context, arg GetSchemaVersionParams) ([]byte, error) {
+	row := q.db.QueryRow(ctx, getSchemaVersion, arg.FormID, arg.Version)
+	var encrypted_schema []byte
+	err := row.Scan(&encrypted_schema)
+	return encrypted_schema, err
+}
+
 const incrementResponseCount = `-- name: IncrementResponseCount :exec
 UPDATE forms SET response_count = response_count + $2 WHERE id = $1
 `
@@ -130,6 +147,22 @@ type IncrementResponseCountParams struct {
 
 func (q *Queries) IncrementResponseCount(ctx context.Context, arg IncrementResponseCountParams) error {
 	_, err := q.db.Exec(ctx, incrementResponseCount, arg.ID, arg.ResponseCount)
+	return err
+}
+
+const insertSchemaVersion = `-- name: InsertSchemaVersion :exec
+INSERT INTO form_schema_versions (form_id, version, encrypted_schema, created_at)
+VALUES ($1, $2, $3, CURRENT_DATE)
+`
+
+type InsertSchemaVersionParams struct {
+	FormID          string
+	Version         int32
+	EncryptedSchema []byte
+}
+
+func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersionParams) error {
+	_, err := q.db.Exec(ctx, insertSchemaVersion, arg.FormID, arg.Version, arg.EncryptedSchema)
 	return err
 }
 
@@ -164,6 +197,36 @@ func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]L
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listSchemaVersions = `-- name: ListSchemaVersions :many
+SELECT version, created_at FROM form_schema_versions
+WHERE form_id = $1 ORDER BY version DESC
+`
+
+type ListSchemaVersionsRow struct {
+	Version   int32
+	CreatedAt pgtype.Date
+}
+
+func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]ListSchemaVersionsRow, error) {
+	rows, err := q.db.Query(ctx, listSchemaVersions, formID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListSchemaVersionsRow
+	for rows.Next() {
+		var i ListSchemaVersionsRow
+		if err := rows.Scan(&i.Version, &i.CreatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

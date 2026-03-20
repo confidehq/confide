@@ -24,6 +24,8 @@ type DB interface {
 	UpdateFormSchema(ctx context.Context, arg queries.UpdateFormSchemaParams) (int32, error)
 	UpdateFormStatus(ctx context.Context, arg queries.UpdateFormStatusParams) error
 	DeleteForm(ctx context.Context, arg queries.DeleteFormParams) error
+	InsertSchemaVersion(ctx context.Context, arg queries.InsertSchemaVersionParams) error
+	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
 }
 
 // Service handles form CRUD operations.
@@ -71,6 +73,7 @@ type PublicFormRecord struct {
 // CreateForm stores a new form and returns its ID.
 // If clientID is non-empty it is used as the form ID (client-proposed, for key derivation);
 // otherwise a random ID is generated server-side.
+// Both the form row and version 1 snapshot are inserted in a single transaction.
 func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey []byte) (string, error) {
 	id := clientID
 	if id == "" {
@@ -80,7 +83,16 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 			return "", err
 		}
 	}
-	_, err := s.db.CreateForm(ctx, queries.CreateFormParams{
+
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return "", err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	qtx := queries.New(tx)
+
+	_, err = qtx.CreateForm(ctx, queries.CreateFormParams{
 		ID:                    id,
 		AccountID:             accountID,
 		EncryptedSchema:       encryptedSchema,
@@ -88,6 +100,18 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 		PublicFormKey:         publicFormKey,
 	})
 	if err != nil {
+		return "", err
+	}
+
+	if err := qtx.InsertSchemaVersion(ctx, queries.InsertSchemaVersionParams{
+		FormID:          id,
+		Version:         1,
+		EncryptedSchema: encryptedSchema,
+	}); err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
 		return "", err
 	}
 	return id, nil
@@ -130,9 +154,18 @@ func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummar
 }
 
 // UpdateFormSchema replaces the encrypted schema blobs and bumps schema_version.
+// Both the forms row update and the new schema version snapshot are done in a transaction.
 // Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
 func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string, encryptedSchema, renderEncryptedSchema []byte) (int32, error) {
-	version, err := s.db.UpdateFormSchema(ctx, queries.UpdateFormSchemaParams{
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	qtx := queries.New(tx)
+
+	newVersion, err := qtx.UpdateFormSchema(ctx, queries.UpdateFormSchemaParams{
 		ID:                    formID,
 		AccountID:             accountID,
 		EncryptedSchema:       encryptedSchema,
@@ -144,7 +177,19 @@ func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string
 		}
 		return 0, err
 	}
-	return version, nil
+
+	if err := qtx.InsertSchemaVersion(ctx, queries.InsertSchemaVersionParams{
+		FormID:          formID,
+		Version:         newVersion,
+		EncryptedSchema: encryptedSchema,
+	}); err != nil {
+		return 0, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return newVersion, nil
 }
 
 // UpdateFormStatus sets status to "open" or "closed".
@@ -186,6 +231,35 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		RenderEncryptedSchema: row.RenderEncryptedSchema,
 		PublicFormKey:         row.PublicFormKey,
 	}, nil
+}
+
+// GetSchemaVersion returns the owner-encrypted schema for a specific version snapshot.
+// Verifies ownership via GetFormByOwner before fetching the snapshot.
+// Returns ErrNotFound if the form or version doesn't exist or isn't owned by accountID.
+func (s *Service) GetSchemaVersion(ctx context.Context, accountID, formID string, version int32) ([]byte, error) {
+	// Verify ownership first.
+	_, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
+		ID:        formID,
+		AccountID: accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+
+	blob, err := s.db.GetSchemaVersion(ctx, queries.GetSchemaVersionParams{
+		FormID:  formID,
+		Version: version,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	return blob, nil
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

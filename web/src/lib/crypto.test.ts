@@ -34,12 +34,26 @@ const SAMPLE_SCHEMA: FormSchema = {
 	locales: ['en', 'es'],
 	layout: 'scroll',
 	fields: [
-		{ id: 'q1', type: 'text', config: { label: 'Name' } },
-		{ id: 'q2', type: 'choice', config: { label: 'Color', options: ['red', 'blue'] } }
+		{ id: 'q1', type: 'short_text', required: false, order: 0, config: {} },
+		{ id: 'q2', type: 'multiple_choice', required: false, order: 1, config: { options: [{ id: 'opt1', order: 0 }, { id: 'opt2', order: 1 }] } }
 	],
 	translations: {
-		en: { q1: 'What is your name?', q2: 'Favorite color?' },
-		es: { q1: '¿Cómo te llamas?', q2: '¿Color favorito?' }
+		en: {
+			formTitle: 'Test Form',
+			formDescription: '',
+			fields: {
+				q1: { label: 'What is your name?' },
+				q2: { label: 'Favorite color?', options: ['red', 'blue'] }
+			}
+		},
+		es: {
+			formTitle: 'Formulario de prueba',
+			formDescription: '',
+			fields: {
+				q1: { label: '¿Cómo te llamas?' },
+				q2: { label: '¿Color favorito?', options: ['rojo', 'azul'] }
+			}
+		}
 	}
 };
 
@@ -208,11 +222,11 @@ describe('deriveFormKeypair', () => {
 	it('ECDH with derived keypair produces usable shared secret', async () => {
 		const kp = await deriveFormKeypair(formKey);
 		// Generate a second keypair to do ECDH with
-		const ephemeral = await crypto.subtle.generateKey(
+		const ephemeral = (await crypto.subtle.generateKey(
 			{ name: 'X25519' },
 			true,
 			['deriveKey', 'deriveBits']
-		);
+		)) as CryptoKeyPair;
 		// Both directions should yield the same bits
 		const bits1 = await crypto.subtle.deriveBits(
 			{ name: 'X25519', public: kp.publicKey },
@@ -433,11 +447,11 @@ describe('encryptResponse / decryptResponse', () => {
 	it('wrong private key causes decryptResponse to throw', async () => {
 		const encrypted = await encryptResponse(SAMPLE_RESPONSE, keypair.publicKey);
 		// Generate a completely different keypair
-		const wrongKeypair = await crypto.subtle.generateKey(
+		const wrongKeypair = (await crypto.subtle.generateKey(
 			{ name: 'X25519' },
 			true,
 			['deriveKey', 'deriveBits']
-		);
+		)) as CryptoKeyPair;
 		await expect(
 			decryptResponse(
 				encrypted.encryptedData,

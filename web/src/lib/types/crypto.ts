@@ -1,25 +1,17 @@
 /**
  * GhostForm crypto layer — type definitions.
  *
- * FieldConfig is intentionally Record<string, unknown>.
  * The crypto layer treats form content as opaque bytes and must not be
- * coupled to the domain model.
+ * coupled to the domain model. BuilderSchema is re-exported as FormSchema
+ * so callers use the strongly-typed form; the crypto functions remain agnostic.
  */
+
+export type { BuilderSchema as FormSchema } from './builder';
 
 export interface Field {
 	id: string;
 	type: string;
 	config: Record<string, unknown>;
-}
-
-export interface FormSchema {
-	version: number;
-	defaultLocale: string;
-	locales: string[];
-	layout: 'scroll' | 'steps' | 'convo';
-	convoAllowEdit?: boolean;
-	fields: Field[];
-	translations: Record<string, Record<string, unknown>>;
 }
 
 export interface ResponsePayload {

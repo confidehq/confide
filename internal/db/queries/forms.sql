@@ -35,3 +35,15 @@ DELETE FROM forms WHERE id = $1 AND account_id = $2;
 
 -- name: IncrementResponseCount :exec
 UPDATE forms SET response_count = response_count + $2 WHERE id = $1;
+
+-- name: InsertSchemaVersion :exec
+INSERT INTO form_schema_versions (form_id, version, encrypted_schema, created_at)
+VALUES ($1, $2, $3, CURRENT_DATE);
+
+-- name: GetSchemaVersion :one
+SELECT encrypted_schema FROM form_schema_versions
+WHERE form_id = $1 AND version = $2;
+
+-- name: ListSchemaVersions :many
+SELECT version, created_at FROM form_schema_versions
+WHERE form_id = $1 ORDER BY version DESC;
