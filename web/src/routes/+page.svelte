@@ -1,2 +1,13 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import { goto } from '$app/navigation';
+	import { auth } from '$lib/stores/auth.svelte.ts';
+
+	// Redirect on mount: has stored credential → dashboard, else → login
+	if (typeof window !== 'undefined') {
+		if (auth.accountId) {
+			goto('/dashboard');
+		} else {
+			goto('/login');
+		}
+	}
+</script>

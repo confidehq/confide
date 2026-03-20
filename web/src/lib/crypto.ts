@@ -467,9 +467,26 @@ function generateCodeSegment(length: number): string {
 }
 
 /**
- * Generate a recovery code in XXXX-XXXX format.
+ * Generate a single recovery code string in GHRK-XXXX-XXXX-...-XXXX format.
+ *
+ * Structure: fixed prefix "GHRK" + 12 random 4-character segments, dash-separated.
+ * The 12 random segments together form the key material for recovery key derivation.
  * Not part of the core crypto interface; exported for use in auth flows.
  */
 export function generateRecoveryCode(): string {
-	return `${generateCodeSegment(4)}-${generateCodeSegment(4)}`;
+	const segments = Array.from({ length: 12 }, () => generateCodeSegment(4));
+	return `GHRK-${segments.join('-')}`;
+}
+
+/**
+ * Parse a recovery code string into its 12 key segments.
+ * Strips whitespace, uppercases, then splits on '-' and drops the 'GHRK' prefix.
+ * Throws if the format is invalid.
+ */
+export function parseRecoveryCode(code: string): string[] {
+	const parts = code.toUpperCase().replace(/\s/g, '').split('-');
+	if (parts[0] !== 'GHRK' || parts.length !== 13) {
+		throw new Error('Invalid recovery code — expected GHRK-XXXX-XXXX-...-XXXX (12 segments)');
+	}
+	return parts.slice(1);
 }
