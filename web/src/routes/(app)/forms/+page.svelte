@@ -132,6 +132,21 @@
 									Edit
 								</button>
 								<button
+									onclick={() => goto(`/forms/${form.formId}/responses`)}
+									style="
+										padding: 4px 10px;
+										background: transparent;
+										color: #a3e635;
+										border: 1px solid #374151;
+										border-radius: 4px;
+										cursor: pointer;
+										font-family: monospace;
+										font-size: 0.75rem;
+									"
+								>
+									Responses ({form.responseCount})
+								</button>
+								<button
 									onclick={() => toggleStatus(form)}
 									style="
 										padding: 4px 10px;

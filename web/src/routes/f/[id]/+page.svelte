@@ -1,18 +1,24 @@
 <script lang="ts">
 	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { getPublicSchema, importRenderKey, ApiError } from '$lib/forms';
+	import type { FormSchema } from '$lib/forms';
+	import ScrollRenderer from '$lib/components/form/ScrollRenderer.svelte';
+	import StepsRenderer from '$lib/components/form/StepsRenderer.svelte';
 
-	type State = 'loading' | 'ready' | 'closed' | 'invalid' | 'error';
+	type State = 'loading' | 'ready' | 'submitted' | 'closed' | 'invalid' | 'error';
 
 	const state = writable<State>('loading');
-	const schemaInfo = writable({ layout: '', fieldCount: 0 });
 	const errorMessage = writable('');
 
+	let schema: FormSchema | null = null;
+	let publicFormKey: ArrayBuffer | null = null;
+	let schemaVersion = 0;
+	let locale = 'en';
+
 	onMount(async () => {
-		// Extract formId from path: /f/<formId>
-		const pathParts = window.location.pathname.split('/');
-		const formId = pathParts[pathParts.length - 1] ?? '';
+		const formId = $page.params.id ?? '';
 
 		// Parse #rk=<base64url> from the URL fragment.
 		// The fragment is never sent to the server by the browser.
@@ -25,6 +31,9 @@
 			return;
 		}
 
+		// Parse ?locale= from query string, fallback applied after schema loads
+		const queryLocale = new URLSearchParams(window.location.search).get('locale');
+
 		try {
 			const renderKey = await importRenderKey(rkParam);
 			const result = await getPublicSchema(formId, renderKey);
@@ -34,7 +43,16 @@
 				return;
 			}
 
-			schemaInfo.set({ layout: result.schema.layout, fieldCount: result.schema.fields.length });
+			schema = result.schema;
+			publicFormKey = result.publicFormKey;
+			schemaVersion = result.schemaVersion;
+
+			// Use requested locale if the form supports it, else default
+			const supported = result.schema.locales ?? [result.schema.defaultLocale];
+			locale = queryLocale && supported.includes(queryLocale)
+				? queryLocale
+				: result.schema.defaultLocale;
+
 			state.set('ready');
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 404) {
@@ -45,6 +63,10 @@
 			}
 		}
 	});
+
+	function handleSubmitted() {
+		state.set('submitted');
+	}
 </script>
 
 <svelte:head>
@@ -68,12 +90,30 @@
 		<p class="muted">Something went wrong. Please try again later.</p>
 		{#if $errorMessage}<p class="muted small">{$errorMessage}</p>{/if}
 	</div>
-{:else if $state === 'ready'}
+{:else if $state === 'submitted'}
 	<div class="shell">
-		<!-- Phase 6 will render the full form. For now confirm the schema loaded. -->
-		<p class="muted">Form loaded. Renderer coming in Phase 6.</p>
-		<p class="muted small">Layout: {$schemaInfo.layout} · Fields: {$schemaInfo.fieldCount}</p>
+		<p class="muted">{schema?.translations?.[locale]?.convoCompletionMessage ?? 'Your response has been submitted.'}</p>
 	</div>
+{:else if $state === 'ready' && schema && publicFormKey}
+	{#if schema.layout === 'steps'}
+		<StepsRenderer
+			{schema}
+			formId={$page.params.id}
+			{publicFormKey}
+			{schemaVersion}
+			{locale}
+			onsubmitted={handleSubmitted}
+		/>
+	{:else}
+		<ScrollRenderer
+			{schema}
+			formId={$page.params.id}
+			{publicFormKey}
+			{schemaVersion}
+			{locale}
+			onsubmitted={handleSubmitted}
+		/>
+	{/if}
 {/if}
 
 <style>

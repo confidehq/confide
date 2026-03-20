@@ -236,14 +236,15 @@ export async function deleteResponse(formId: string, responseId: string): Promis
 export async function getPublicSchema(
 	formId: string,
 	renderKey: CryptoKey
-): Promise<{ schema: FormSchema; status: string; schemaVersion: number }> {
+): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer }> {
 	const res = await fetch(`/api/f/${formId}/schema`, { credentials: 'omit' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
 	const schema = await decryptSchema(base64ToArrayBuffer(body.renderEncryptedSchema), renderKey);
+	const publicFormKey = base64ToArrayBuffer(body.publicFormKey);
 
-	return { schema, status: body.status, schemaVersion: body.schemaVersion };
+	return { schema, status: body.status, schemaVersion: body.schemaVersion, publicFormKey };
 }
 
 /**
@@ -253,7 +254,8 @@ export async function getPublicSchema(
 export async function submitResponse(
 	formId: string,
 	publicFormKeyBytes: ArrayBuffer,
-	payload: ResponsePayload
+	payload: ResponsePayload,
+	schemaVersion: number
 ): Promise<void> {
 	const publicFormKey = await crypto.subtle.importKey(
 		'raw',
@@ -269,7 +271,7 @@ export async function submitResponse(
 		formId,
 		encryptedData: arrayBufferToBase64(encryptedData),
 		ephemeralPublicKey: arrayBufferToBase64(ephemeralPublicKey),
-		schemaVersion: 1
+		schemaVersion
 	});
 
 	for (let attempt = 0; attempt < 3; attempt++) {
