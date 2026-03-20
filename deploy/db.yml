@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ghostform-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ghostform
+      POSTGRES_PASSWORD: ghostform
+      POSTGRES_DB: ghostform
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghostform -d ghostform"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - ghost-net
+
+volumes:
+  pgdata:
+
+networks:
+  ghost-net:
+    driver: bridge

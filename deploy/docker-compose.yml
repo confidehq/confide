@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ghostform
+      POSTGRES_PASSWORD: ghostform 
+      POSTGRES_DB: ghostform
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ghostform"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [internal]
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    # environment:
+    #   GHOSTFORM_DATABASE_URL: postgresql://ghostform:ghostform@db:5432/ghostform?sslmode=disable
+    #   GHOSTFORM_BIND_ADDR: :8080
+    #   GHOSTFORM_CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    #   GHOSTFORM_HMAC_KEY: ${HMAC_KEY}
+    #   GHOSTFORM_RP_ID: ${RP_ID:-localhost}
+    #   GHOSTFORM_RP_ORIGIN: ${RP_ORIGIN:-http://localhost:3000}
+    #   GHOSTFORM_RP_DISPLAY_NAME: ${RP_DISPLAY_NAME:-GhostForm}
+    #   GHOSTFORM_ENV: ${ENV:-development}
+    ports:
+      - "8080:8080"
+    networks: [internal, external]
+    env_file: ../.env
+
+  relay:
+    image: busybox
+    command: ["sh", "-c", "echo 'relay: Phase 4' && sleep infinity"]
+    networks: [external]
+
+  web:
+    image: busybox
+    command: ["sh", "-c", "echo 'web: Phase 3' && sleep infinity"]
+    networks: [external]
+
+volumes:
+  pgdata:
+
+networks:
+  internal:
+    internal: true
+  external:
