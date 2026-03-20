@@ -83,6 +83,40 @@ func RateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
 	return limiter.Handler
 }
 
+// PublicSchemaRateLimit limits unauthenticated schema fetches: 100 req/min per IP.
+func PublicSchemaRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
+	rk := newRotatingHMACKey(hmacSeed)
+
+	limiter := httprate.NewRateLimiter(100, time.Minute,
+		httprate.WithKeyFuncs(func(r *http.Request) (string, error) {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				ip = r.RemoteAddr
+			}
+			return rk.IPKey(ip), nil
+		}),
+	)
+
+	return limiter.Handler
+}
+
+// RelayRateLimit limits anonymous submissions: 20 per 10 minutes per IP.
+func RelayRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
+	rk := newRotatingHMACKey(hmacSeed)
+
+	limiter := httprate.NewRateLimiter(20, 10*time.Minute,
+		httprate.WithKeyFuncs(func(r *http.Request) (string, error) {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				ip = r.RemoteAddr
+			}
+			return rk.IPKey(ip), nil
+		}),
+	)
+
+	return limiter.Handler
+}
+
 // RecoveryRateLimit is a stricter limiter: 5 requests per 5 minutes.
 func RecoveryRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
 	rk := newRotatingHMACKey(hmacSeed)

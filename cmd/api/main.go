@@ -14,6 +14,7 @@ import (
 
 	"github.com/phantompunk/wisp/internal/config"
 	"github.com/phantompunk/wisp/internal/db"
+	"github.com/phantompunk/wisp/internal/relay"
 	"github.com/phantompunk/wisp/internal/server"
 	"github.com/phantompunk/wisp/migrations"
 )
@@ -48,7 +49,14 @@ func main() {
 		log.Fatalf("webauthn: %v", err)
 	}
 
-	h := server.New(cfg, pool, wa)
+	svc := server.NewServices(pool, wa)
+
+	// Start relay flusher — runs until ctx is cancelled on shutdown.
+	runCtx, runCancel := context.WithCancel(context.Background())
+	defer runCancel()
+	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
+
+	h := server.New(cfg, svc)
 
 	srv := &http.Server{
 		Addr:         cfg.BindAddr,
@@ -70,6 +78,10 @@ func main() {
 
 	<-quit
 	log.Println("shutting down…")
+
+	// Cancel relay flusher — triggers final flush before exit.
+	runCancel()
+
 	shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutCancel()
 	if err := srv.Shutdown(shutCtx); err != nil {

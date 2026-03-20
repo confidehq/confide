@@ -20,12 +20,34 @@ type Account struct {
 	BackupEligible        bool
 }
 
+type Form struct {
+	ID                    string
+	AccountID             string
+	CreatedAt             pgtype.Date
+	UpdatedAt             pgtype.Date
+	Status                string
+	SchemaVersion         int32
+	ResponseCount         int32
+	EncryptedSchema       []byte
+	RenderEncryptedSchema []byte
+	PublicFormKey         []byte
+}
+
 type RecoveryCode struct {
 	ID        string
 	AccountID string
 	CodeHash  []byte
 	Used      bool
 	CreatedAt pgtype.Date
+}
+
+type Response struct {
+	ID                 string
+	FormID             string
+	ReceivedAt         pgtype.Date
+	SchemaVersion      int32
+	EncryptedData      []byte
+	EphemeralPublicKey []byte
 }
 
 type Session struct {

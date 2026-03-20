@@ -11,12 +11,31 @@ import (
 
 	"github.com/phantompunk/wisp/internal/auth"
 	"github.com/phantompunk/wisp/internal/config"
+	"github.com/phantompunk/wisp/internal/forms"
 	mw "github.com/phantompunk/wisp/internal/middleware"
+	"github.com/phantompunk/wisp/internal/relay"
+	"github.com/phantompunk/wisp/internal/responses"
 )
 
-func New(cfg *config.Config, pool *pgxpool.Pool, wa *webauthn.WebAuthn) http.Handler {
-	svc := auth.NewService(pool, wa)
+// Services groups the application services passed into the server.
+type Services struct {
+	Auth      *auth.Service
+	Forms     *forms.Service
+	Responses *responses.Service
+	RelayQ    *relay.Queue
+}
 
+// NewServices constructs all application services from the pool and webauthn instance.
+func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
+	return &Services{
+		Auth:      auth.NewService(pool, wa),
+		Forms:     forms.NewService(pool),
+		Responses: responses.NewService(pool),
+		RelayQ:    &relay.Queue{},
+	}
+}
+
+func New(cfg *config.Config, svc *Services) http.Handler {
 	r := chi.NewRouter()
 	r.Use(mw.SecurityHeaders)
 	r.Use(chimw.RealIP)
@@ -27,11 +46,28 @@ func New(cfg *config.Config, pool *pgxpool.Pool, wa *webauthn.WebAuthn) http.Han
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// All /auth/* routes share a general rate limiter.
+	// Auth routes — general rate limit.
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Use(mw.RateLimit(cfg.HMACKey))
-		r.Mount("/", auth.Handler(svc, cfg.HMACKey, cfg.Env == "development"))
+		r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development"))
 	})
+
+	// Authenticated form + response routes.
+	r.Group(func(r chi.Router) {
+		r.Use(mw.Authenticator(svc.Auth))
+		r.Mount("/api/forms", forms.Handler(svc.Forms))
+		r.Route("/api/forms/{formId}/responses", func(r chi.Router) {
+			r.Mount("/", responses.Handler(svc.Responses))
+		})
+	})
+
+	// Public unauthenticated schema endpoint — no cookies, cache-control set in handler.
+	r.With(mw.PublicSchemaRateLimit(cfg.HMACKey)).
+		Get("/api/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms))
+
+	// Relay submit — no auth, no Chi logger, rate limited.
+	r.With(mw.RelayRateLimit(cfg.HMACKey)).
+		Post("/relay/submit", relay.SubmitHandler(svc.RelayQ))
 
 	return r
 }

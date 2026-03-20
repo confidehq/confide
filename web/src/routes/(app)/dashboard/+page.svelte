@@ -44,7 +44,17 @@
 		text-align: center;
 		color: #6b7280;
 	">
-		<p style="font-size: 0.9rem; margin: 0 0 8px;">Form builder — Phase 4</p>
-		<p style="font-size: 0.8rem; margin: 0;">Account: {auth.accountId ?? '—'}</p>
+		<p style="font-size: 0.9rem; margin: 0 0 16px;">Account: {auth.accountId ?? '—'}</p>
+		<a href="/forms" style="
+			display: inline-block;
+			padding: 8px 20px;
+			background: transparent;
+			color: #60a5fa;
+			border: 1px solid #374151;
+			border-radius: 4px;
+			font-family: monospace;
+			font-size: 0.85rem;
+			text-decoration: none;
+		">View forms →</a>
 	</div>
 </div>

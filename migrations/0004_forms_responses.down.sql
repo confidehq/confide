@@ -1,2 +1,2 @@
--- Phase 4 placeholder — nothing to drop.
-SELECT 1;
+DROP TABLE IF EXISTS responses;
+DROP TABLE IF EXISTS forms;
