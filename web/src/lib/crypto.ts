@@ -42,7 +42,8 @@ const INFO = {
 	formKey: (formId: string) => encode(`wisp-form-key-v1:${formId}`),
 	keypairSeed: () => encode('wisp-form-keypair-seed-v1'),
 	recoveryKey: () => encode('wisp-recovery-key-v1'),
-	responseEncKey: () => encode('wisp-response-enc-key-v1')
+	responseEncKey: () => encode('wisp-response-enc-key-v1'),
+	renderKey: () => encode('wisp-render-key-v1')
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -139,6 +140,30 @@ export async function deriveFormKey(masterKey: CryptoKey, formId: string): Promi
 		INFO.formKey(formId),
 		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'],
 		true // SECURITY NOTE: extractable required for deriveFormKeypair — see above
+	);
+}
+
+/**
+ * Derive the render key for a form from the form key and a server-stored salt.
+ *
+ * renderKey = HKDF(formKey, salt=renderKeySalt, info="wisp-render-key-v1")
+ *
+ * The derived key is extractable so it can be exported for the share URL fragment.
+ * Changing renderKeySalt produces a completely different key (key rotation).
+ */
+export async function deriveRenderKey(formKey: CryptoKey, renderKeySalt: ArrayBuffer): Promise<CryptoKey> {
+	const hkdfKey = await toHkdfIkm(formKey);
+	return crypto.subtle.deriveKey(
+		{
+			name: 'HKDF',
+			hash: HKDF_HASH,
+			salt: renderKeySalt,
+			info: INFO.renderKey()
+		},
+		hkdfKey,
+		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
+		true, // extractable — needed to export for the share URL fragment
+		['encrypt', 'decrypt']
 	);
 }
 

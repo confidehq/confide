@@ -31,6 +31,7 @@ type Form struct {
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
+	RenderKeySalt         []byte
 }
 
 type FormSchemaVersion struct {

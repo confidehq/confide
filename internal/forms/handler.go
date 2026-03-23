@@ -60,6 +60,7 @@ func createForm(svc *Service) http.HandlerFunc {
 			EncryptedSchema       string `json:"encryptedSchema"`
 			RenderEncryptedSchema string `json:"renderEncryptedSchema"`
 			PublicFormKey         string `json:"publicFormKey"`
+			RenderKeySalt         string `json:"renderKeySalt"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -81,8 +82,16 @@ func createForm(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_field", "publicFormKey must be base64")
 			return
 		}
+		var renderKeySalt []byte
+		if req.RenderKeySalt != "" {
+			renderKeySalt, err = base64.StdEncoding.DecodeString(req.RenderKeySalt)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_field", "renderKeySalt must be base64")
+				return
+			}
+		}
 
-		formID, err := svc.CreateForm(r.Context(), accountID, req.FormID, encSchema, renderSchema, pubKey)
+		formID, err := svc.CreateForm(r.Context(), accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create form")
 			return
@@ -140,7 +149,7 @@ func getForm(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{
+		resp := map[string]any{
 			"formId":                form.ID,
 			"status":                form.Status,
 			"schemaVersion":         form.SchemaVersion,
@@ -150,7 +159,11 @@ func getForm(svc *Service) http.HandlerFunc {
 			"encryptedSchema":       base64.StdEncoding.EncodeToString(form.EncryptedSchema),
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(form.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(form.PublicFormKey),
-		})
+		}
+		if len(form.RenderKeySalt) > 0 {
+			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
+		}
+		writeJSON(w, http.StatusOK, resp)
 	}
 }
 
@@ -162,6 +175,7 @@ func updateFormSchema(svc *Service) http.HandlerFunc {
 		var req struct {
 			EncryptedSchema       string `json:"encryptedSchema"`
 			RenderEncryptedSchema string `json:"renderEncryptedSchema"`
+			RenderKeySalt         string `json:"renderKeySalt"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -178,8 +192,16 @@ func updateFormSchema(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_field", "renderEncryptedSchema must be base64")
 			return
 		}
+		var renderKeySalt []byte
+		if req.RenderKeySalt != "" {
+			renderKeySalt, err = base64.StdEncoding.DecodeString(req.RenderKeySalt)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_field", "renderKeySalt must be base64")
+				return
+			}
+		}
 
-		version, err := svc.UpdateFormSchema(r.Context(), accountID, formID, encSchema, renderSchema)
+		version, err := svc.UpdateFormSchema(r.Context(), accountID, formID, encSchema, renderSchema, renderKeySalt)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form not found")

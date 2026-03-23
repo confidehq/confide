@@ -49,6 +49,7 @@ type FormRecord struct {
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
+	RenderKeySalt         []byte // nil if never published
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -74,7 +75,7 @@ type PublicFormRecord struct {
 // If clientID is non-empty it is used as the form ID (client-proposed, for key derivation);
 // otherwise a random ID is generated server-side.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey []byte) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -98,6 +99,7 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 		EncryptedSchema:       encryptedSchema,
 		RenderEncryptedSchema: renderEncryptedSchema,
 		PublicFormKey:         publicFormKey,
+		RenderKeySalt:         renderKeySalt,
 	})
 	if err != nil {
 		return "", err
@@ -154,9 +156,10 @@ func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummar
 }
 
 // UpdateFormSchema replaces the encrypted schema blobs and bumps schema_version.
+// renderKeySalt may be unchanged (regular edit) or new (key rotation) — always stored.
 // Both the forms row update and the new schema version snapshot are done in a transaction.
 // Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string, encryptedSchema, renderEncryptedSchema []byte) (int32, error) {
+func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string, encryptedSchema, renderEncryptedSchema, renderKeySalt []byte) (int32, error) {
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return 0, err
@@ -170,6 +173,7 @@ func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string
 		AccountID:             accountID,
 		EncryptedSchema:       encryptedSchema,
 		RenderEncryptedSchema: renderEncryptedSchema,
+		RenderKeySalt:         renderKeySalt,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -283,5 +287,6 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		EncryptedSchema:       f.EncryptedSchema,
 		RenderEncryptedSchema: f.RenderEncryptedSchema,
 		PublicFormKey:         f.PublicFormKey,
+		RenderKeySalt:         f.RenderKeySalt,
 	}
 }

@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
-	import { publishForm } from '$lib/forms';
+	import { publishForm, rotateRenderKey } from '$lib/forms';
 	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
@@ -23,7 +23,6 @@
 	// Publish modal state
 	let publishModalOpen = $state(false);
 	let shareUrl = $state('');
-	let publishedRenderKey: CryptoKey | null = null;
 	let publishing = $state(false);
 	let publishError = $state('');
 
@@ -51,8 +50,10 @@
 		publishError = '';
 		try {
 			await store.flushSave();
-			const result = await publishForm(auth.masterKey, formId, store.schema);
-			publishedRenderKey = result.renderKey;
+			// Pass existing salt so the share URL stays stable across publishes.
+			// On first publish renderKeySalt is null and a new salt is generated.
+			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt);
+			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 			publishModalOpen = true;
 		} catch (err) {
@@ -67,8 +68,8 @@
 		publishing = true;
 		publishError = '';
 		try {
-			const result = await publishForm(auth.masterKey, formId, store.schema);
-			publishedRenderKey = result.renderKey;
+			const result = await rotateRenderKey(auth.masterKey, formId, store.schema);
+			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 		} catch (err) {
 			publishError = err instanceof Error ? err.message : 'Key rotation failed';

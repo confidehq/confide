@@ -19,12 +19,14 @@ export interface BuilderStore {
 	readonly activeLocale: string;
 	readonly selectedFieldId: string | null;
 	readonly mode: BuilderMode;
+	readonly renderKeySalt: Uint8Array | null;
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
 	readonly activeTranslation: TranslationMap;
 
 	// Actions
+	setRenderKeySalt(salt: Uint8Array): void;
 	addField(type: FieldType): void;
 	removeField(id: string): void;
 	reorderFields(newOrder: BuilderField[]): void;
@@ -92,8 +94,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-	// Stored renderKey from when the form was last published
-	let currentRenderKey: CryptoKey | null = null;
+	// Stable salt for the render key (loaded from server or generated on first save)
+	let currentRenderKeySalt: Uint8Array | null = null;
 
 	// Computed via getters in the returned object — no $derived needed.
 	// Svelte tracks these reactively because they read $state variables.
@@ -315,27 +317,32 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	}
 
 	async function load(): Promise<void> {
-		const { schema: loaded } = await getForm(masterKey, formId);
+		const { schema: loaded, record } = await getForm(masterKey, formId);
 		schema = loaded as BuilderSchema;
 		activeLocale = schema.defaultLocale;
+		if (record.renderKeySalt) {
+			const raw = atob(record.renderKeySalt);
+			const bytes = new Uint8Array(raw.length);
+			for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+			currentRenderKeySalt = bytes;
+		}
 		dirty = false;
+	}
+
+	function setRenderKeySalt(salt: Uint8Array): void {
+		currentRenderKeySalt = salt;
 	}
 
 	async function save(): Promise<void> {
 		if (saving) return;
 		saving = true;
 		try {
-			// For auto-save we need a renderKey. If we don't have one yet (never published),
-			// generate a temporary one. The actual publish flow sets a canonical renderKey.
-			let rk = currentRenderKey;
-			if (!rk) {
-				rk = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
-					'encrypt',
-					'decrypt'
-				]);
-				currentRenderKey = rk;
+			// Generate a salt on first save (form never published). Once set, the salt
+			// never changes unless the user explicitly rotates the key.
+			if (!currentRenderKeySalt) {
+				currentRenderKeySalt = crypto.getRandomValues(new Uint8Array(16));
 			}
-			await updateFormSchema(masterKey, formId, schema, rk);
+			await updateFormSchema(masterKey, formId, schema, currentRenderKeySalt);
 			lastSaved = new Date();
 			dirty = false;
 		} finally {
@@ -375,6 +382,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get mode() {
 			return mode;
 		},
+		get renderKeySalt() {
+			return currentRenderKeySalt;
+		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 		},
@@ -394,6 +404,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setSelectedField,
 		setMode,
 		setConvoAllowEdit,
+		setRenderKeySalt,
 		load,
 		save,
 		flushSave

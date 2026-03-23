@@ -14,10 +14,11 @@ import (
 const createForm = `-- name: CreateForm :one
 INSERT INTO forms (
     id, account_id, created_at, updated_at, status, schema_version,
-    response_count, encrypted_schema, render_encrypted_schema, public_form_key
+    response_count, encrypted_schema, render_encrypted_schema, public_form_key,
+    render_key_salt
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5
-) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key
+    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6
+) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt
 `
 
 type CreateFormParams struct {
@@ -26,6 +27,7 @@ type CreateFormParams struct {
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
+	RenderKeySalt         []byte
 }
 
 func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, error) {
@@ -35,6 +37,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		arg.EncryptedSchema,
 		arg.RenderEncryptedSchema,
 		arg.PublicFormKey,
+		arg.RenderKeySalt,
 	)
 	var i Form
 	err := row.Scan(
@@ -48,6 +51,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.EncryptedSchema,
 		&i.RenderEncryptedSchema,
 		&i.PublicFormKey,
+		&i.RenderKeySalt,
 	)
 	return i, err
 }
@@ -67,7 +71,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByOwner = `-- name: GetFormByOwner :one
-SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key FROM forms WHERE id = $1 AND account_id = $2
+SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt FROM forms WHERE id = $1 AND account_id = $2
 `
 
 type GetFormByOwnerParams struct {
@@ -89,6 +93,7 @@ func (q *Queries) GetFormByOwner(ctx context.Context, arg GetFormByOwnerParams) 
 		&i.EncryptedSchema,
 		&i.RenderEncryptedSchema,
 		&i.PublicFormKey,
+		&i.RenderKeySalt,
 	)
 	return i, err
 }
@@ -241,6 +246,7 @@ const updateFormSchema = `-- name: UpdateFormSchema :one
 UPDATE forms
 SET encrypted_schema = $3,
     render_encrypted_schema = $4,
+    render_key_salt = $5,
     schema_version = schema_version + 1,
     updated_at = CURRENT_DATE
 WHERE id = $1 AND account_id = $2
@@ -252,6 +258,7 @@ type UpdateFormSchemaParams struct {
 	AccountID             string
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
+	RenderKeySalt         []byte
 }
 
 func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaParams) (int32, error) {
@@ -260,6 +267,7 @@ func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaPara
 		arg.AccountID,
 		arg.EncryptedSchema,
 		arg.RenderEncryptedSchema,
+		arg.RenderKeySalt,
 	)
 	var schema_version int32
 	err := row.Scan(&schema_version)

@@ -7,6 +7,7 @@
 
 import {
 	deriveFormKey,
+	deriveRenderKey,
 	deriveFormKeypair,
 	encryptSchema,
 	decryptSchema,
@@ -33,6 +34,7 @@ export interface FormRecord extends FormSummary {
 	encryptedSchema: string;
 	renderEncryptedSchema: string;
 	publicFormKey: string;
+	renderKeySalt: string | null; // base64, null if never published
 }
 
 export interface EncryptedResponseRecord {
@@ -51,16 +53,16 @@ export interface ListResponsesResult {
 // ─── Form management (authenticated) ─────────────────────────────────────────
 
 /**
- * Create a new form. Derives the formKey, encrypts the schema twice
- * (once with formKey for the owner, once with a random renderKey for respondents),
- * derives the X25519 keypair, and uploads everything.
+ * Create a new form. Derives the formKey, generates a renderKeySalt,
+ * derives a stable renderKey from it, encrypts the schema twice, and uploads everything.
  *
- * Returns the formId and the renderKey (embed in share URL as #rk=<base64url>).
+ * Returns the formId, derived renderKey, and renderKeySalt.
+ * The renderKeySalt is stored on the server; the renderKey is embedded in share URLs.
  */
 export async function createForm(
 	masterKey: CryptoKey,
 	schema: FormSchema
-): Promise<{ formId: string; renderKey: CryptoKey }> {
+): Promise<{ formId: string; renderKey: CryptoKey; renderKeySalt: Uint8Array }> {
 	// Generate a stable form ID client-side so we can derive the formKey.
 	const formId = randomBase64url(16);
 
@@ -70,12 +72,9 @@ export async function createForm(
 	// Encrypt schema for the owner (with formKey).
 	const encryptedSchema = await encryptSchema(schema, formKey);
 
-	// Generate a random renderKey and encrypt schema for respondents.
-	const renderKey = await crypto.subtle.generateKey(
-		{ name: 'AES-GCM', length: 256 },
-		true,
-		['encrypt', 'decrypt']
-	);
+	// Generate a random salt and derive a stable renderKey from it.
+	const renderKeySalt = crypto.getRandomValues(new Uint8Array(16));
+	const renderKey = await deriveRenderKey(formKey, renderKeySalt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema, renderKey);
 
 	// Export public key as raw bytes (32 bytes for X25519).
@@ -88,13 +87,14 @@ export async function createForm(
 			formId,
 			encryptedSchema: arrayBufferToBase64(encryptedSchema),
 			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
-			publicFormKey: arrayBufferToBase64(publicFormKeyBytes)
+			publicFormKey: arrayBufferToBase64(publicFormKeyBytes),
+			renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
 		})
 	});
 
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
-	return { formId, renderKey };
+	return { formId, renderKey, renderKeySalt };
 }
 
 /**
@@ -126,16 +126,18 @@ export async function listForms(): Promise<FormSummary[]> {
 
 /**
  * Replace a form's encrypted schema. Bumps schema_version server-side.
- * The renderKey must be the currently active one (used when the form was published).
+ * The renderKeySalt must be the currently active one — the renderKey is derived from it.
+ * Pass the same salt on every edit to keep share URLs stable; pass a new salt to rotate.
  */
 export async function updateFormSchema(
 	masterKey: CryptoKey,
 	formId: string,
 	schema: FormSchema,
-	renderKey: CryptoKey
+	renderKeySalt: Uint8Array
 ): Promise<{ schemaVersion: number }> {
 	const formKey = await deriveFormKey(masterKey, formId);
 	const encryptedSchema = await encryptSchema(schema, formKey);
+	const renderKey = await deriveRenderKey(formKey, renderKeySalt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema, renderKey);
 
 	const res = await fetch(`/api/forms/${formId}`, {
@@ -143,7 +145,8 @@ export async function updateFormSchema(
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
 			encryptedSchema: arrayBufferToBase64(encryptedSchema),
-			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema)
+			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
+			renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
 		})
 	});
 
@@ -288,26 +291,24 @@ export async function submitResponse(
 }
 
 /**
- * Publish (or re-publish) a form: generates a fresh renderKey, re-encrypts
- * the schema for respondents, and PUTs both encrypted schemas + publicFormKey.
- * Returns the share URL and the renderKey (embed in share URL as #rk=<base64url>).
+ * Publish a form using the existing renderKeySalt (stable URL) or a new one (first publish).
+ *
+ * Pass existingRenderKeySalt=null on first publish to generate a new salt.
+ * Pass the existing salt on subsequent publishes — the share URL will be identical.
+ *
+ * Returns the share URL and the renderKeySalt (store it so future publishes stay stable).
  */
 export async function publishForm(
 	masterKey: CryptoKey,
 	formId: string,
-	schema: BuilderSchema
-): Promise<{ shareUrl: string; renderKey: CryptoKey }> {
+	schema: BuilderSchema,
+	existingRenderKeySalt: Uint8Array | null
+): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
+	const salt = existingRenderKeySalt ?? crypto.getRandomValues(new Uint8Array(16));
 	const formKey = await deriveFormKey(masterKey, formId);
 
-	// Encrypt schema for the owner.
 	const encryptedSchema = await encryptSchema(schema as FormSchema, formKey);
-
-	// Generate fresh renderKey and encrypt for respondents.
-	const renderKey = await crypto.subtle.generateKey(
-		{ name: 'AES-GCM', length: 256 },
-		true,
-		['encrypt', 'decrypt']
-	);
+	const renderKey = await deriveRenderKey(formKey, salt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey);
 
 	const res = await fetch(`/api/forms/${formId}`, {
@@ -315,18 +316,29 @@ export async function publishForm(
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
 			encryptedSchema: arrayBufferToBase64(encryptedSchema),
-			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema)
+			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
+			renderKeySalt: arrayBufferToBase64(salt.buffer as ArrayBuffer)
 		})
 	});
 
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
-	// Export renderKey as base64url for the URL fragment.
 	const renderKeyRaw = await crypto.subtle.exportKey('raw', renderKey);
-	const renderKeyB64url = arrayBufferToBase64url(renderKeyRaw);
-	const shareUrl = `${window.location.origin}/f/${formId}#rk=${renderKeyB64url}`;
+	const shareUrl = `${window.location.origin}/f/${formId}#rk=${arrayBufferToBase64url(renderKeyRaw)}`;
 
-	return { shareUrl, renderKey };
+	return { shareUrl, renderKeySalt: salt };
+}
+
+/**
+ * Rotate the render key — generates a new salt and a new share URL.
+ * All previously shared links are immediately invalidated.
+ */
+export async function rotateRenderKey(
+	masterKey: CryptoKey,
+	formId: string,
+	schema: BuilderSchema
+): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
+	return publishForm(masterKey, formId, schema, null);
 }
 
 /**

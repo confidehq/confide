@@ -1,9 +1,10 @@
 -- name: CreateForm :one
 INSERT INTO forms (
     id, account_id, created_at, updated_at, status, schema_version,
-    response_count, encrypted_schema, render_encrypted_schema, public_form_key
+    response_count, encrypted_schema, render_encrypted_schema, public_form_key,
+    render_key_salt
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5
+    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetFormByOwner :one
@@ -21,6 +22,7 @@ FROM forms WHERE account_id = $1 ORDER BY created_at DESC;
 UPDATE forms
 SET encrypted_schema = $3,
     render_encrypted_schema = $4,
+    render_key_salt = $5,
     schema_version = schema_version + 1,
     updated_at = CURRENT_DATE
 WHERE id = $1 AND account_id = $2
