@@ -2,6 +2,8 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { login } from '$lib/auth';
+	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -33,6 +35,12 @@
 		}
 	}
 </script>
+
+<svelte:head>
+	<style>
+		html, body { margin: 0; padding: 0; background: #111827; }
+	</style>
+</svelte:head>
 
 {#if showReauth}
 	<!-- Re-auth overlay: shown when masterKey is gone (tab refresh) but credential exists -->
@@ -103,4 +111,29 @@
 	</div>
 {/if}
 
-{@render children()}
+<Sidebar />
+
+<!-- Canvas wrapper: fills viewport, provides inset for the floating sheet -->
+<div style="
+	margin-left: {sidebar.width}px;
+	transition: margin-left 200ms ease;
+	height: 100vh;
+	overflow: hidden;
+	padding: 12px;
+	box-sizing: border-box;
+	display: flex;
+">
+	<!-- Elevated sheet: floats above the canvas layer -->
+	<div style="
+		flex: 1;
+		min-height: 0;
+		background: #1a2332;
+		border-radius: 12px;
+		box-shadow: 0 0 0 1px #2d3f55;
+		overflow: auto;
+		display: flex;
+		flex-direction: column;
+	">
+		{@render children()}
+	</div>
+</div>

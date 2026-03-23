@@ -36,7 +36,7 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	min-height: 100vh;
+	flex: 1;
 	background: #111827;
 	color: #d1d5db;
 ">

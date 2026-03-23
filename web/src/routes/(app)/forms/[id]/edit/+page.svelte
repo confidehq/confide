@@ -104,7 +104,7 @@
 	<div style="
 		font-family: monospace;
 		display: flex; align-items: center; justify-content: center;
-		min-height: 100vh; background: #111827; color: #9ca3af;
+		flex: 1; background: #111827; color: #9ca3af;
 	">
 		<p>Loading form…</p>
 	</div>
@@ -112,7 +112,7 @@
 	<div style="
 		font-family: monospace;
 		display: flex; flex-direction: column; align-items: center; justify-content: center;
-		min-height: 100vh; background: #111827; color: #f87171; gap: 16px;
+		flex: 1; background: #111827; color: #f87171; gap: 16px;
 	">
 		<p>{loadError}</p>
 		<a href="/forms" style="color: #6b7280; font-size: 0.85rem; text-decoration: none;">← Back to forms</a>
@@ -120,7 +120,7 @@
 {:else if store}
 	<div style="
 		display: flex; flex-direction: column;
-		height: 100vh; background: #111827;
+		flex: 1; min-height: 0; background: #111827;
 		font-family: monospace; color: #d1d5db;
 		overflow: hidden;
 	">
