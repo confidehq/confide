@@ -275,7 +275,7 @@
 		<!-- Three-panel body -->
 		<div style="
 			display: grid;
-			grid-template-columns: {store.mode === 'preview' ? '0' : '240px'} 1fr {store.mode === 'preview' ? '0' : '320px'};
+			grid-template-columns: {store.mode === 'preview' ? '1fr' : '240px 1fr 320px'};
 			flex: 1;
 			overflow: hidden;
 		">

@@ -2,6 +2,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { BuilderField } from '$lib/types/builder';
+	import FormPreview from '$lib/components/form/FormPreview.svelte';
 
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
@@ -43,10 +44,12 @@
 	flex: 1;
 	overflow-y: auto;
 	padding: 24px;
-	background: #111827;
+	background: {store.mode === 'preview' ? '#f9fafb' : '#111827'};
 	min-width: 0;
 ">
-	{#if fields.length === 0}
+	{#if store.mode === 'preview'}
+		<FormPreview schema={store.schema} locale={store.activeLocale} />
+	{:else if fields.length === 0}
 		<div style="
 			display: flex; flex-direction: column; align-items: center; justify-content: center;
 			min-height: 300px;
