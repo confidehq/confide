@@ -95,6 +95,7 @@ export interface TranslationMap {
 
 export interface BuilderSchema {
 	version: number;
+	name: string;
 	defaultLocale: string;
 	locales: string[];
 	layout: 'scroll' | 'steps' | 'convo';

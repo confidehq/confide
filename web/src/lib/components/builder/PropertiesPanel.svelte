@@ -69,6 +69,29 @@
 
 			<div style="display: flex; flex-direction: column; gap: 14px;">
 				<div>
+					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Form name</label>
+					<input
+						type="text"
+						placeholder="Internal name…"
+						value={store.schema.name}
+						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
+						style={inputStyle()}
+					/>
+					<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Used in your dashboard only.</p>
+				</div>
+
+				<div>
+					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Title (shown to respondents)</label>
+					<input
+						type="text"
+						placeholder="Public title…"
+						value={store.activeTranslation?.formTitle ?? ''}
+						oninput={(e) => store.updateTranslation(null, 'formTitle', (e.target as HTMLInputElement).value)}
+						style={inputStyle()}
+					/>
+				</div>
+
+				<div>
 					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Description</label>
 					<textarea
 						value={store.activeTranslation?.formDescription ?? ''}

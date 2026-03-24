@@ -78,8 +78,14 @@
 		}
 	}
 
+	let copied = $state(false);
+	let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+
 	function copyShareUrl() {
 		navigator.clipboard.writeText(shareUrl);
+		copied = true;
+		if (copiedTimer) clearTimeout(copiedTimer);
+		copiedTimer = setTimeout(() => { copied = false; }, 2000);
 	}
 
 	function handleAddLocale() {
@@ -134,12 +140,12 @@
 			flex-shrink: 0;
 			flex-wrap: wrap;
 		">
-			<!-- Form title input -->
+			<!-- Form name input -->
 			<input
 				type="text"
-				placeholder="Form title…"
-				value={store.activeTranslation?.formTitle ?? ''}
-				oninput={(e) => store!.updateTranslation(null, 'formTitle', (e.target as HTMLInputElement).value)}
+				placeholder="Form name…"
+				value={store.schema.name}
+				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
 				style="
 					background: transparent; border: none; outline: none;
 					color: #f9fafb; font-family: monospace; font-size: 0.95rem;
@@ -333,12 +339,13 @@
 						onclick={copyShareUrl}
 						style="
 							padding: 8px 16px;
-							background: #1d4ed8; color: #fff;
+							background: {copied ? '#16a34a' : '#1d4ed8'}; color: #fff;
 							border: none; border-radius: 4px;
 							cursor: pointer; font-family: monospace; font-size: 0.8rem;
+							transition: background 0.15s;
 						"
 					>
-						Copy
+						{copied ? 'Copied!' : 'Copy'}
 					</button>
 				</div>
 

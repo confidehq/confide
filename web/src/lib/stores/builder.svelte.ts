@@ -39,6 +39,7 @@ export interface BuilderStore {
 	setActiveLocale(locale: string): void;
 	setSelectedField(id: string | null): void;
 	setMode(mode: BuilderMode): void;
+	setName(name: string): void;
 	setConvoAllowEdit(allow: boolean): void;
 	load(): Promise<void>;
 	save(): Promise<void>;
@@ -48,6 +49,7 @@ export interface BuilderStore {
 export function emptySchema(): BuilderSchema {
 	return {
 		version: 1,
+		name: '',
 		defaultLocale: 'en',
 		locales: ['en'],
 		layout: 'scroll',
@@ -311,6 +313,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		mode = m;
 	}
 
+	function setName(name: string): void {
+		schema = { ...schema, name };
+		markDirty();
+	}
+
 	function setConvoAllowEdit(allow: boolean): void {
 		schema = { ...schema, convoAllowEdit: allow };
 		markDirty();
@@ -318,7 +325,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	async function load(): Promise<void> {
 		const { schema: loaded, record } = await getForm(masterKey, formId);
-		schema = loaded as BuilderSchema;
+		const s = loaded as BuilderSchema;
+		// Migrate pre-name schemas: seed name from the default locale's formTitle
+		if (!s.name) {
+			s.name = s.translations[s.defaultLocale]?.formTitle ?? '';
+		}
+		schema = s;
 		activeLocale = schema.defaultLocale;
 		if (record.renderKeySalt) {
 			const raw = atob(record.renderKeySalt);
@@ -402,6 +414,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setLayout,
 		setActiveLocale,
 		setSelectedField,
+		setName,
 		setMode,
 		setConvoAllowEdit,
 		setRenderKeySalt,

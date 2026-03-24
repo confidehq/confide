@@ -40,13 +40,17 @@
 	let fields = $derived([...store.schema.fields]);
 </script>
 
-<main style="
-	flex: 1;
-	overflow-y: auto;
-	padding: 24px;
-	background: {store.mode === 'preview' ? '#f9fafb' : '#111827'};
-	min-width: 0;
-">
+<main
+	style="
+		flex: 1;
+		overflow-y: auto;
+		padding: 24px;
+		background: {store.mode === 'preview' ? '#f9fafb' : '#111827'};
+		min-width: 0;
+	"
+	onclick={() => store.setSelectedField(null)}
+	role="presentation"
+>
 	{#if store.mode === 'preview'}
 		<FormPreview schema={store.schema} locale={store.activeLocale} />
 	{:else if fields.length === 0}
@@ -80,7 +84,7 @@
 					<div
 						role="button"
 						tabindex="0"
-						onclick={() => store.setSelectedField(field.id)}
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
 						style="
 							display: flex; align-items: center; gap: 12px;
@@ -118,7 +122,7 @@
 					<div
 						role="button"
 						tabindex="0"
-						onclick={() => store.setSelectedField(field.id)}
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
 						style="
 							display: flex; align-items: center; gap: 12px;

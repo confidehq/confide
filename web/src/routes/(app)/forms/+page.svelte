@@ -27,8 +27,8 @@
 			results.forEach((r, i) => {
 				if (r.status === 'fulfilled') {
 					const { schema } = r.value;
-					const title = schema.translations[schema.defaultLocale]?.formTitle;
-					if (title) names.set(forms[i].formId, title);
+					const name = schema.name || schema.translations[schema.defaultLocale]?.formTitle;
+					if (name) names.set(forms[i].formId, name);
 				}
 			});
 			formNames = names;
