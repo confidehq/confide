@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -46,28 +47,48 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
-	// Auth routes — general rate limit.
-	r.Route("/api/auth", func(r chi.Router) {
-		r.Use(mw.RateLimit(cfg.HMACKey))
-		r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development"))
-	})
+	// API routes — CORS restricted to configured origin, general CSP applied.
+	r.Route("/api", func(r chi.Router) {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   []string{cfg.CORSOrigin},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Content-Type", "Authorization"},
+			AllowCredentials: false,
+			MaxAge:           300,
+		}))
+		r.Use(mw.AppCSP)
 
-	// Authenticated form + response routes.
-	r.Group(func(r chi.Router) {
-		r.Use(mw.Authenticator(svc.Auth))
-		r.Mount("/api/forms", forms.Handler(svc.Forms))
-		r.Route("/api/forms/{formId}/responses", func(r chi.Router) {
-			r.Mount("/", responses.Handler(svc.Responses))
+		// Auth routes — general rate limit.
+		r.Route("/auth", func(r chi.Router) {
+			r.Use(mw.RateLimit(cfg.HMACKey))
+			r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
 		})
+
+		// Authenticated form + response routes.
+		r.Group(func(r chi.Router) {
+			r.Use(mw.Authenticator(svc.Auth))
+			r.Mount("/forms", forms.Handler(svc.Forms))
+			r.Route("/forms/{formId}/responses", func(r chi.Router) {
+				r.Mount("/", responses.Handler(svc.Responses))
+			})
+		})
+
+		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.
+		r.With(mw.FormPageCSP, mw.PublicSchemaRateLimit(cfg.HMACKey)).
+			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms))
 	})
 
-	// Public unauthenticated schema endpoint — no cookies, cache-control set in handler.
-	r.With(mw.PublicSchemaRateLimit(cfg.HMACKey)).
-		Get("/api/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms))
-
-	// Relay submit — no auth, no Chi logger, rate limited.
-	r.With(mw.RelayRateLimit(cfg.HMACKey)).
-		Post("/relay/submit", relay.SubmitHandler(svc.RelayQ))
+	// Relay submit — open CORS (respondents arrive from arbitrary origins), rate limited.
+	r.With(
+		cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"POST", "OPTIONS"},
+			AllowedHeaders:   []string{"Content-Type"},
+			AllowCredentials: false,
+			MaxAge:           300,
+		}),
+		mw.RelayRateLimit(cfg.HMACKey),
+	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ))
 
 	return r
 }

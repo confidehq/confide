@@ -20,10 +20,10 @@ import (
 
 const sessionCookieName = "session"
 
-func Handler(svc *Service, recoveryHMACKey []byte, dev bool) http.Handler {
+func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
 	r := chi.NewRouter()
 
-	r.Post("/register/begin", registerBegin(svc))
+	r.Post("/register/begin", registerBegin(svc, registrationOpen))
 	r.Post("/register/finish", registerFinish(svc))
 	r.Post("/login/begin", loginBegin(svc))
 	r.Post("/login/finish", loginFinish(svc, dev))
@@ -44,8 +44,12 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool) http.Handler {
 
 // ─── Register ─────────────────────────────────────────────────────────────────
 
-func registerBegin(svc *Service) http.HandlerFunc {
+func registerBegin(svc *Service, registrationOpen bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !registrationOpen {
+			writeError(w, http.StatusForbidden, "registration_closed", "registration is closed")
+			return
+		}
 		res, err := svc.RegisterBegin(r.Context())
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "register_begin_failed", err.Error())
