@@ -50,6 +50,7 @@
 		padding: 0 {sidebar.collapsed ? 0 : 12}px;
 		justify-content: {sidebar.collapsed ? 'center' : 'space-between'};
 		flex-shrink: 0;
+		border-bottom: 1px solid #1f2937;
 		overflow: hidden;
 		white-space: nowrap;
 		gap: 8px;
