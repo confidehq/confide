@@ -42,11 +42,6 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
-	})
-
 	// API routes — CORS restricted to configured origin, general CSP applied.
 	r.Route("/api", func(r chi.Router) {
 		r.Use(cors.Handler(cors.Options{
@@ -57,6 +52,11 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 			MaxAge:           300,
 		}))
 		r.Use(mw.AppCSP)
+
+		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+		})
 
 		// Auth routes — general rate limit.
 		r.Route("/auth", func(r chi.Router) {

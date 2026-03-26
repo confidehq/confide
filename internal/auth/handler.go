@@ -149,6 +149,7 @@ func registerFinish(svc *Service) http.HandlerFunc {
 				status = http.StatusConflict
 				code = "credential_exists"
 			}
+			log.Printf("register_finish_failed: %v", err)
 			writeError(w, status, code, safeErr(err))
 			return
 		}

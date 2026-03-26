@@ -18,7 +18,7 @@
 		<h1>Confide</h1>
 		<p class="tagline">Private forms. End-to-end encrypted.</p>
 		<div class="cta-group">
-			<a href="/register" class="btn btn-primary">Create an account</a>
+			<a href="/signup" class="btn btn-primary">Create an account</a>
 			<a href="/login" class="btn btn-ghost">Sign in</a>
 		</div>
 	</section>
