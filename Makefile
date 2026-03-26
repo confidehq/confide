@@ -13,7 +13,7 @@ help:
 ## dev: Run locally with Air
 dev: 
 	@echo "Starting local dev with Air..."
-	@set -a && source .env && printenv && set +a && air
+	@set -a && source .env && set +a && air
 
 ## ui: Start frontend
 ui: 
@@ -22,3 +22,6 @@ ui:
 ## db: Start local docker db
 db:
 	cd deploy && docker-compose -f db.yml up
+
+up:
+	@set -a && source .env && docker-compose -f deploy/docker-compose.yml up --build --remove-orphans

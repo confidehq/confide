@@ -1,0 +1,5 @@
+{$CONFIDE_DOMAIN} {
+	reverse_proxy /api/* api:8080
+	reverse_proxy /relay/* api:8080
+	reverse_proxy /* web:3000
+}
