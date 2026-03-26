@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import { onMount } from 'svelte';
 
 	const links = [
 		{
@@ -19,6 +20,22 @@
 			icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
 		}
 	];
+
+	let version = $state('dev');
+	let commit = $state('');
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/health');
+			if (res.ok) {
+				const data = await res.json();
+				version = data.version ?? 'dev';
+				commit = data.commit ?? '';
+			}
+		} catch {
+			// leave defaults
+		}
+	});
 
 	function isActive(href: string): boolean {
 		const path = $page.url.pathname;
@@ -90,38 +107,57 @@
 	</div>
 
 	<!-- Nav links -->
-	<div style="flex: 1; padding: 8px 0; overflow: hidden;">
-		{#each links as link}
-			{@const active = isActive(link.href)}
-			<a
-				href={link.href}
+	<div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
+		<div style="padding: 8px 0;">
+			{#each links as link}
+				{@const active = isActive(link.href)}
+				<a
+					href={link.href}
+					style="
+						display: flex;
+						align-items: center;
+						gap: 10px;
+						padding: 0 {sidebar.collapsed ? 0 : 14}px;
+						height: 40px;
+						justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};
+						text-decoration: none;
+						color: {active ? '#f9fafb' : '#6b7280'};
+						background: {active ? '#1f2937' : 'transparent'};
+						border-left: 2px solid {active ? '#1d4ed8' : 'transparent'};
+						white-space: nowrap;
+						overflow: hidden;
+						transition: color 120ms, background 120ms;
+						font-size: 0.82rem;
+						box-sizing: border-box;
+						width: 100%;
+					"
+				>
+					<span style="flex-shrink: 0; display: flex; align-items: center; color: {active ? '#93c5fd' : '#4b5563'};">
+						{@html link.icon}
+					</span>
+					{#if !sidebar.collapsed}
+						<span style="overflow: hidden; text-overflow: ellipsis;">{link.label}</span>
+					{/if}
+				</a>
+			{/each}
+		</div>
+
+		<!-- Version -->
+		{#if !sidebar.collapsed}
+			<div
+				title={commit || undefined}
 				style="
-					display: flex;
-					align-items: center;
-					gap: 10px;
-					padding: 0 {sidebar.collapsed ? 0 : 14}px;
-					height: 40px;
-					justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};
-					text-decoration: none;
-					color: {active ? '#f9fafb' : '#6b7280'};
-					background: {active ? '#1f2937' : 'transparent'};
-					border-left: 2px solid {active ? '#1d4ed8' : 'transparent'};
+					padding: 12px 0;
+					text-align: center;
+					color: #374151;
+					font-size: 0.8rem;
 					white-space: nowrap;
 					overflow: hidden;
-					transition: color 120ms, background 120ms;
-					font-size: 0.82rem;
-					box-sizing: border-box;
-					width: 100%;
+					text-overflow: ellipsis;
+					cursor: default;
 				"
-			>
-				<span style="flex-shrink: 0; display: flex; align-items: center; color: {active ? '#93c5fd' : '#4b5563'};">
-					{@html link.icon}
-				</span>
-				{#if !sidebar.collapsed}
-					<span style="overflow: hidden; text-overflow: ellipsis;">{link.label}</span>
-				{/if}
-			</a>
-		{/each}
+			>{version}</div>
+		{/if}
 	</div>
 
 </nav>

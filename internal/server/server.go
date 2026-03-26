@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/auth"
+	"github.com/phantompunk/confide/internal/buildinfo"
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/forms"
 	mw "github.com/phantompunk/confide/internal/middleware"
@@ -54,8 +55,9 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 		r.Use(mw.AppCSP)
 
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+			version, commit := buildinfo.Version()
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": version, "commit": commit})
 		})
 
 		// Auth routes — general rate limit.
