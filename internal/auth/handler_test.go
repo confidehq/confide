@@ -8,13 +8,6 @@ import (
 	"github.com/phantompunk/confide/internal/auth"
 )
 
-func newTestService(t *testing.T) *auth.Service {
-	t.Helper()
-	// Service is exported via NewService; for handler tests we use a stub that
-	// only needs to satisfy routing (no DB calls needed for these basic tests).
-	return nil // placeholder — real handler tests require integration DB
-}
-
 func TestHealthEndpoint(t *testing.T) {
 	// The health endpoint lives in server.New, but we sanity-check that
 	// auth.Handler mounts without panicking.

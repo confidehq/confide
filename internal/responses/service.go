@@ -182,7 +182,7 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx) //nolint:errcheck
 
 	q := queries.New(tx)
 	counts := map[string]int32{}

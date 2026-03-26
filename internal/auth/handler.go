@@ -165,7 +165,7 @@ func loginBegin(svc *Service) http.HandlerFunc {
 		var req struct {
 			CredentialIDBase64 string `json:"credentialIdBase64"` // optional
 		}
-		json.NewDecoder(r.Body).Decode(&req) //nolint:errcheck — optional body
+		json.NewDecoder(r.Body).Decode(&req) //nolint:errcheck
 
 		var credID []byte
 		if req.CredentialIDBase64 != "" {
