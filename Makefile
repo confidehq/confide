@@ -13,7 +13,7 @@ help:
 ## dev: Run locally with Air
 dev: 
 	@echo "Starting local dev with Air..."
-	@set -a && source .env && set +a && air
+	@set -a && source local.env && set +a && air
 
 ## ui: Start frontend
 ui: 
