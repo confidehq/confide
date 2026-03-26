@@ -588,9 +588,9 @@ describe('HKDF RFC 5869 Test Case 1', () => {
 // ---------------------------------------------------------------------------
 
 describe('generateRecoveryCode', () => {
-	it('produces XXXX-XXXX format', () => {
+	it('produces GHRK-XXXX-...-XXXX format with 12 segments', () => {
 		const code = generateRecoveryCode();
-		expect(code).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+		expect(code).toMatch(/^GHRK(-[A-Z0-9]{4}){12}$/);
 	});
 
 	it('generates unique codes', () => {
@@ -601,7 +601,7 @@ describe('generateRecoveryCode', () => {
 	it('only uses valid charset characters', () => {
 		for (let i = 0; i < 20; i++) {
 			const code = generateRecoveryCode();
-			const stripped = code.replace('-', '');
+			const stripped = code.replaceAll('-', '');
 			for (const char of stripped) {
 				expect('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789').toContain(char);
 			}
