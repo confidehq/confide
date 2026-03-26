@@ -86,19 +86,27 @@ type CreateRecoveryCodesParams struct {
 }
 
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (id, account_id, token_hash, created_at, last_seen)
-VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_DATE)
-RETURNING id, account_id, token_hash, created_at, last_seen
+INSERT INTO sessions (id, account_id, token_hash, created_at, last_seen, credential_id, user_agent)
+VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_DATE, $4, $5)
+RETURNING id, account_id, token_hash, created_at, last_seen, credential_id, user_agent
 `
 
 type CreateSessionParams struct {
-	ID        string
-	AccountID string
-	TokenHash []byte
+	ID           string
+	AccountID    string
+	TokenHash    []byte
+	CredentialID []byte
+	UserAgent    string
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
-	row := q.db.QueryRow(ctx, createSession, arg.ID, arg.AccountID, arg.TokenHash)
+	row := q.db.QueryRow(ctx, createSession,
+		arg.ID,
+		arg.AccountID,
+		arg.TokenHash,
+		arg.CredentialID,
+		arg.UserAgent,
+	)
 	var i Session
 	err := row.Scan(
 		&i.ID,
@@ -106,6 +114,8 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.TokenHash,
 		&i.CreatedAt,
 		&i.LastSeen,
+		&i.CredentialID,
+		&i.UserAgent,
 	)
 	return i, err
 }
@@ -120,11 +130,27 @@ func (q *Queries) DeleteRecoveryCodesByAccount(ctx context.Context, accountID st
 }
 
 const deleteSession = `-- name: DeleteSession :exec
-DELETE FROM sessions WHERE id = $1
+DELETE FROM sessions WHERE id = $1 AND account_id = $2
 `
 
-func (q *Queries) DeleteSession(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteSession, id)
+type DeleteSessionParams struct {
+	ID        string
+	AccountID string
+}
+
+func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
+	_, err := q.db.Exec(ctx, deleteSession, arg.ID, arg.AccountID)
+	return err
+}
+
+const deleteStaleSessions = `-- name: DeleteStaleSessions :exec
+DELETE FROM sessions
+WHERE last_seen <= CURRENT_DATE - INTERVAL '14 days'
+   OR created_at <= CURRENT_DATE - INTERVAL '30 days'
+`
+
+func (q *Queries) DeleteStaleSessions(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteStaleSessions)
 	return err
 }
 
@@ -175,7 +201,8 @@ SELECT s.id, s.account_id, s.token_hash, s.created_at, s.last_seen, a.wrapped_ma
 FROM sessions s
 JOIN accounts a ON a.id = s.account_id
 WHERE s.token_hash = $1
-  AND s.last_seen > CURRENT_DATE - INTERVAL '30 days'
+  AND s.last_seen > CURRENT_DATE - INTERVAL '14 days'
+  AND s.created_at > CURRENT_DATE - INTERVAL '30 days'
 `
 
 type GetSessionByTokenHashRow struct {
@@ -255,13 +282,15 @@ func (q *Queries) ListCredentials(ctx context.Context) ([]ListCredentialsRow, er
 }
 
 const listSessionsByAccount = `-- name: ListSessionsByAccount :many
-SELECT id, created_at, last_seen FROM sessions WHERE account_id = $1
+SELECT id, created_at, last_seen, credential_id, user_agent FROM sessions WHERE account_id = $1
 `
 
 type ListSessionsByAccountRow struct {
-	ID        string
-	CreatedAt pgtype.Date
-	LastSeen  pgtype.Date
+	ID           string
+	CreatedAt    pgtype.Date
+	LastSeen     pgtype.Date
+	CredentialID []byte
+	UserAgent    string
 }
 
 func (q *Queries) ListSessionsByAccount(ctx context.Context, accountID string) ([]ListSessionsByAccountRow, error) {
@@ -273,7 +302,13 @@ func (q *Queries) ListSessionsByAccount(ctx context.Context, accountID string) (
 	var items []ListSessionsByAccountRow
 	for rows.Next() {
 		var i ListSessionsByAccountRow
-		if err := rows.Scan(&i.ID, &i.CreatedAt, &i.LastSeen); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.LastSeen,
+			&i.CredentialID,
+			&i.UserAgent,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

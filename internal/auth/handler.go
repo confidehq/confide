@@ -37,6 +37,8 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bo
 		r.Post("/logout", logout(svc))
 		r.Get("/sessions", listSessions(svc))
 		r.Delete("/sessions/{id}", deleteSession(svc))
+		r.Post("/reauth/begin", reauthBegin(svc))
+		r.Post("/reauth/finish", reauthFinish(svc))
 	})
 
 	return r
@@ -226,7 +228,7 @@ func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 		}
 		newReq.Header.Set("Content-Type", "application/json")
 
-		res, err := svc.LoginFinish(r.Context(), envelope.ChallengeKey, newReq)
+		res, err := svc.LoginFinish(r.Context(), envelope.ChallengeKey, r.Header.Get("User-Agent"), newReq)
 		if err != nil {
 			log.Printf("login_finish_failed: %v", err)
 			status := http.StatusInternalServerError
@@ -389,8 +391,9 @@ func rekeyFinish(svc *Service) http.HandlerFunc {
 
 func logout(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
 		sessionID := mw.SessionID(r.Context())
-		_ = svc.Logout(r.Context(), sessionID)
+		_ = svc.Logout(r.Context(), accountID, sessionID)
 		clearSessionCookie(w)
 		w.WriteHeader(http.StatusNoContent)
 	}
@@ -406,16 +409,20 @@ func listSessions(svc *Service) http.HandlerFunc {
 		}
 
 		type sessionInfo struct {
-			ID        string `json:"id"`
-			CreatedAt string `json:"createdAt"`
-			LastSeen  string `json:"lastSeen"`
+			ID           string `json:"id"`
+			CreatedAt    string `json:"createdAt"`
+			LastSeen     string `json:"lastSeen"`
+			CredentialID string `json:"credentialId,omitempty"`
+			UserAgent    string `json:"userAgent,omitempty"`
 		}
 		out := make([]sessionInfo, len(rows))
 		for i, s := range rows {
 			out[i] = sessionInfo{
-				ID:        s.ID,
-				CreatedAt: s.CreatedAt.Time.Format("2006-01-02"),
-				LastSeen:  s.LastSeen.Time.Format("2006-01-02"),
+				ID:           s.ID,
+				CreatedAt:    s.CreatedAt.Time.Format("2006-01-02"),
+				LastSeen:     s.LastSeen.Time.Format("2006-01-02"),
+				CredentialID: base64.StdEncoding.EncodeToString(s.CredentialID),
+				UserAgent:    s.UserAgent,
 			}
 		}
 		writeJSON(w, http.StatusOK, out)
@@ -436,6 +443,74 @@ func deleteSession(svc *Service) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ─── Reauth ────────────────────────────────────────────────────────────────────
+
+func reauthBegin(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		res, err := svc.ReauthBegin(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "reauth_begin_failed", safeErr(err))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"challengeKey": res.ChallengeKey,
+			"options":      res.Assertion,
+		})
+	}
+}
+
+func reauthFinish(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "read_body", "failed to read body")
+			return
+		}
+
+		var envelope struct {
+			ChallengeKey string          `json:"challengeKey"`
+			Credential   json.RawMessage `json:"credential"`
+		}
+		if err := json.Unmarshal(body, &envelope); err != nil || envelope.ChallengeKey == "" {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		if credID, err := extractCredentialID(envelope.Credential); err == nil {
+			if be, err := extractBackupEligible(envelope.Credential); err == nil {
+				svc.SyncBackupEligible(r.Context(), credID, be)
+			}
+		}
+
+		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
+			io.NopCloser(bytes.NewReader(envelope.Credential)))
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to rebuild request")
+			return
+		}
+		newReq.Header.Set("Content-Type", "application/json")
+
+		res, err := svc.ReauthFinish(r.Context(), envelope.ChallengeKey, accountID, newReq)
+		if err != nil {
+			log.Printf("reauth_finish_failed: %v", err)
+			status := http.StatusInternalServerError
+			if err == ErrNotFound {
+				status = http.StatusUnauthorized
+			}
+			writeError(w, status, "reauth_finish_failed", safeErr(err))
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"accountId":        res.AccountID,
+			"wrappedMasterKey": base64.StdEncoding.EncodeToString(res.WrappedMasterKey),
+		})
 	}
 }
 
@@ -465,7 +540,7 @@ func setSessionCookie(w http.ResponseWriter, token string, dev bool) {
 		Name:     sessionCookieName,
 		Value:    token,
 		Path:     "/",
-		MaxAge:   2592000, // 30 days
+		MaxAge:   1209600, // 14 days
 		HttpOnly: true,
 		Secure:   !dev, // Secure requires HTTPS; disable for local HTTP dev
 		SameSite: http.SameSiteStrictMode,

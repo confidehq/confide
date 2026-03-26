@@ -33,6 +33,8 @@ import type {
 	RegisterBeginResponse,
 	LoginBeginResponse,
 	LoginFinishResponse,
+	ReauthBeginResponse,
+	ReauthFinishResponse,
 	RecoverResponse,
 	RekeyBeginResponse,
 	RekeyFinishResponse
@@ -306,6 +308,38 @@ export async function login(credentialId?: string | null): Promise<LoginResult> 
 
 	// Step 3: finish — challengeKey replaces credentialIdBase64
 	const finish = await apiPost<LoginFinishResponse>('/api/auth/login/finish', {
+		challengeKey: begin.challengeKey,
+		credential: JSON.parse(JSON.stringify(credential))
+	});
+
+	// Step 4: PRF → KEK; unwrap master key
+	const kek = await extractAuthenticationKek(credential);
+	const masterKey = await unwrapKey(base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer, kek);
+
+	return { masterKey, accountId: finish.accountId, credentialId: credential.id };
+}
+
+/**
+ * Re-derive the master key for an existing valid session after a page refresh.
+ *
+ * Runs a WebAuthn assertion ceremony against /api/auth/reauth/* (authenticated
+ * endpoints) to get PRF output, then unwraps the master key locally.
+ * No new server session is created — the existing session cookie is reused.
+ */
+export async function reauthenticate(): Promise<LoginResult> {
+	// Step 1: begin — server reads accountID from session cookie, no body needed
+	const begin = await apiPost<ReauthBeginResponse>('/api/auth/reauth/begin', {});
+
+	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startAuthentication({ optionsJSON });
+
+	// Step 3: finish — verify assertion server-side, return wrappedMasterKey
+	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
 		challengeKey: begin.challengeKey,
 		credential: JSON.parse(JSON.stringify(credential))
 	});

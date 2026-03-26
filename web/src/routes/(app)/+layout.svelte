@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { login } from '$lib/auth';
+	import { reauthenticate } from '$lib/auth';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import type { Snippet } from 'svelte';
@@ -21,12 +21,11 @@
 	});
 
 	async function handleReauth() {
-		if (!auth.credentialId) return;
 		reauthError = null;
 		reauthLoading = true;
 		try {
-			const result = await login(auth.credentialId);
-			auth.setSession(result.masterKey, result.accountId, auth.credentialId);
+			const result = await reauthenticate();
+			auth.setSession(result.masterKey, result.accountId, result.credentialId);
 			showReauth = false;
 		} catch (err) {
 			reauthError = err instanceof Error ? err.message : 'Authentication failed.';
@@ -63,7 +62,7 @@
 			border-radius: 8px;
 			margin: 0 24px;
 		">
-			<h2 style="font-size: 1rem; color: #e5e7eb; margin: 0 0 8px;">Session expired</h2>
+			<h2 style="font-size: 1rem; color: #e5e7eb; margin: 0 0 8px;">Unlock your session</h2>
 			<p style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 24px;">
 				Your session key is no longer in memory. Re-authenticate to continue.
 			</p>

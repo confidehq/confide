@@ -13,8 +13,8 @@ SELECT * FROM accounts WHERE credential_id = $1;
 SELECT * FROM accounts WHERE id = $1;
 
 -- name: CreateSession :one
-INSERT INTO sessions (id, account_id, token_hash, created_at, last_seen)
-VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_DATE)
+INSERT INTO sessions (id, account_id, token_hash, created_at, last_seen, credential_id, user_agent)
+VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_DATE, $4, $5)
 RETURNING *;
 
 -- name: GetSessionByTokenHash :one
@@ -22,16 +22,22 @@ SELECT s.id, s.account_id, s.token_hash, s.created_at, s.last_seen, a.wrapped_ma
 FROM sessions s
 JOIN accounts a ON a.id = s.account_id
 WHERE s.token_hash = $1
-  AND s.last_seen > CURRENT_DATE - INTERVAL '30 days';
+  AND s.last_seen > CURRENT_DATE - INTERVAL '14 days'
+  AND s.created_at > CURRENT_DATE - INTERVAL '30 days';
 
 -- name: TouchSession :exec
 UPDATE sessions SET last_seen = CURRENT_DATE WHERE id = $1;
 
 -- name: DeleteSession :exec
-DELETE FROM sessions WHERE id = $1;
+DELETE FROM sessions WHERE id = $1 AND account_id = $2;
+
+-- name: DeleteStaleSessions :exec
+DELETE FROM sessions
+WHERE last_seen <= CURRENT_DATE - INTERVAL '14 days'
+   OR created_at <= CURRENT_DATE - INTERVAL '30 days';
 
 -- name: ListSessionsByAccount :many
-SELECT id, created_at, last_seen FROM sessions WHERE account_id = $1;
+SELECT id, created_at, last_seen, credential_id, user_agent FROM sessions WHERE account_id = $1;
 
 -- name: CreateRecoveryCodes :copyfrom
 INSERT INTO recovery_codes (id, account_id, code_hash, used, created_at)

@@ -20,6 +20,16 @@ export interface LoginFinishResponse {
 	wrappedMasterKey: string; // base64 standard
 }
 
+export interface ReauthBeginResponse {
+	challengeKey: string;
+	options: unknown; // PublicKeyCredentialRequestOptionsJSON
+}
+
+export interface ReauthFinishResponse {
+	accountId: string;
+	wrappedMasterKey: string; // base64 standard
+}
+
 export interface RecoverResponse {
 	recoveryWrappedMasterKey: string; // base64 standard
 	rekeyToken: string;
@@ -38,6 +48,8 @@ export interface SessionInfo {
 	id: string;
 	createdAt: string; // YYYY-MM-DD
 	lastSeen: string; // YYYY-MM-DD
+	credentialId?: string; // base64 standard
+	userAgent?: string;
 }
 
 export interface ApiError {

@@ -3,7 +3,12 @@
 	import { goto } from '$app/navigation';
 	import { listSessions, revokeSession, logout } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
-	import type { SessionInfo } from '$lib/auth';
+	import type { SessionInfo } from '$lib/types/auth';
+
+	function isMobile(ua: string | undefined): boolean {
+		if (!ua) return false;
+		return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
+	}
 
 	let sessions = $state<SessionInfo[]>([]);
 	let loading = $state(true);
@@ -86,10 +91,28 @@
 					border: 1px solid #1e2d3e;
 					border-radius: 6px;
 				">
-					<div>
-						<div style="color: #c5d3e0; font-size: 0.85rem;">{session.id.slice(0, 12)}…</div>
-						<div style="color: #4b6280; font-size: 0.75rem; margin-top: 3px;">
-							Created {session.createdAt} · Last seen {session.lastSeen}
+					<div style="display: flex; align-items: center; gap: 12px;">
+						<div style="color: #4b6280; flex-shrink: 0;" title={session.userAgent ?? 'Unknown device'}>
+							{#if isMobile(session.userAgent)}
+								<!-- Phone icon -->
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+									<line x1="12" y1="18" x2="12.01" y2="18"/>
+								</svg>
+							{:else}
+								<!-- Monitor icon -->
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+									<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+									<line x1="8" y1="21" x2="16" y2="21"/>
+									<line x1="12" y1="17" x2="12" y2="21"/>
+								</svg>
+							{/if}
+						</div>
+						<div>
+							<div style="color: #c5d3e0; font-size: 0.85rem;">{session.id.slice(0, 12)}…</div>
+							<div style="color: #4b6280; font-size: 0.75rem; margin-top: 3px;">
+								Created {session.createdAt} · Last seen {session.lastSeen}
+							</div>
 						</div>
 					</div>
 					<button

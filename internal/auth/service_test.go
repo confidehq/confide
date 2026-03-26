@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/phantompunk/wisp/internal/db/queries"
 )
@@ -63,7 +64,13 @@ func (m *mockDB) GetAccountByID(_ context.Context, id string) (queries.Account, 
 }
 
 func (m *mockDB) CreateSession(_ context.Context, arg queries.CreateSessionParams) (queries.Session, error) {
-	s := queries.Session{ID: arg.ID, AccountID: arg.AccountID, TokenHash: arg.TokenHash}
+	s := queries.Session{
+		ID:           arg.ID,
+		AccountID:    arg.AccountID,
+		TokenHash:    arg.TokenHash,
+		CredentialID: arg.CredentialID,
+		UserAgent:    arg.UserAgent,
+	}
 	m.sessions[arg.ID] = s
 	return s, nil
 }
@@ -78,10 +85,16 @@ func (m *mockDB) GetSessionByTokenHash(_ context.Context, tokenHash []byte) (que
 
 func (m *mockDB) TouchSession(_ context.Context, id string) error { return nil }
 
-func (m *mockDB) DeleteSession(_ context.Context, id string) error {
-	delete(m.sessions, id)
+func (m *mockDB) DeleteSession(_ context.Context, arg queries.DeleteSessionParams) error {
+	sess, ok := m.sessions[arg.ID]
+	if !ok || sess.AccountID != arg.AccountID {
+		return pgx.ErrNoRows
+	}
+	delete(m.sessions, arg.ID)
 	return nil
 }
+
+func (m *mockDB) DeleteStaleSessions(_ context.Context) error { return nil }
 
 func (m *mockDB) ListSessionsByAccount(_ context.Context, accountID string) ([]queries.ListSessionsByAccountRow, error) {
 	var out []queries.ListSessionsByAccountRow

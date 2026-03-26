@@ -39,7 +39,8 @@ type DB interface {
 	CreateSession(ctx context.Context, arg queries.CreateSessionParams) (queries.Session, error)
 	GetSessionByTokenHash(ctx context.Context, tokenHash []byte) (queries.GetSessionByTokenHashRow, error)
 	TouchSession(ctx context.Context, id string) error
-	DeleteSession(ctx context.Context, id string) error
+	DeleteSession(ctx context.Context, arg queries.DeleteSessionParams) error
+	DeleteStaleSessions(ctx context.Context) error
 	ListSessionsByAccount(ctx context.Context, accountID string) ([]queries.ListSessionsByAccountRow, error)
 	CreateRecoveryCodes(ctx context.Context, arg []queries.CreateRecoveryCodesParams) (int64, error)
 	GetUnusedRecoveryCode(ctx context.Context, arg queries.GetUnusedRecoveryCodeParams) (queries.RecoveryCode, error)
@@ -101,6 +102,22 @@ func (cs *challengeStore) gcLoop() {
 	}
 }
 
+// startSessionCleanup runs a daily background job that deletes stale sessions.
+// A session is stale if it has been idle for more than 14 days or is older than 30 days.
+func (s *Service) startSessionCleanup() {
+	t := time.NewTicker(24 * time.Hour)
+	go func() {
+		defer t.Stop()
+		for range t.C {
+			if err := s.db.DeleteStaleSessions(context.Background()); err != nil {
+				slog.Error("session cleanup failed", "err", err)
+			} else {
+				slog.Info("session cleanup complete")
+			}
+		}
+	}()
+}
+
 // Service handles auth business logic.
 type Service struct {
 	db         DB
@@ -111,13 +128,15 @@ type Service struct {
 }
 
 func NewService(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Service {
-	return &Service{
+	svc := &Service{
 		db:         queries.New(pool),
 		pool:       pool,
 		wa:         wa,
 		challenges: newChallengeStore(),
 		rekeys:     newRekeyTokenStore(),
 	}
+	svc.startSessionCleanup()
+	return svc
 }
 
 // newServiceWithDB is used by unit tests to inject a mock DB.
@@ -326,7 +345,7 @@ type LoginFinishResult struct {
 	Token            string // raw session token (caller sets cookie)
 }
 
-func (s *Service) LoginFinish(ctx context.Context, challengeKey string, r *http.Request) (*LoginFinishResult, error) {
+func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent string, r *http.Request) (*LoginFinishResult, error) {
 	sd, ok := s.challenges.take(challengeKey)
 	if !ok {
 		return nil, fmt.Errorf("challenge not found or expired")
@@ -377,9 +396,11 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey string, r *http.
 	}
 
 	if _, err := s.db.CreateSession(ctx, queries.CreateSessionParams{
-		ID:        sessionID,
-		AccountID: account.ID,
-		TokenHash: tokenHash,
+		ID:           sessionID,
+		AccountID:    account.ID,
+		TokenHash:    tokenHash,
+		CredentialID: cred.ID,
+		UserAgent:    userAgent,
 	}); err != nil {
 		return nil, fmt.Errorf("CreateSession: %w", err)
 	}
@@ -388,6 +409,90 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey string, r *http.
 		AccountID:        account.ID,
 		WrappedMasterKey: account.WrappedMasterKey,
 		Token:            token,
+	}, nil
+}
+
+// ─── Reauth ───────────────────────────────────────────────────────────────────
+
+// ReauthBeginResult is returned by ReauthBegin.
+type ReauthBeginResult struct {
+	Assertion    *protocol.CredentialAssertion
+	ChallengeKey string
+}
+
+// ReauthBegin issues a WebAuthn challenge for an already-authenticated user.
+// The account is identified from the session context — no credential ID needed.
+func (s *Service) ReauthBegin(ctx context.Context, accountID string) (*ReauthBeginResult, error) {
+	account, err := s.db.GetAccountByID(ctx, accountID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	assertion, sd, err := s.wa.BeginDiscoverableLogin(
+		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
+			"prf": map[string]any{
+				"eval": map[string]any{
+					"first": protocol.URLEncodedBase64(account.PrfSalt),
+				},
+			},
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
+	}
+	challengeKey, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+	s.challenges.set(challengeKey, sd)
+	return &ReauthBeginResult{Assertion: assertion, ChallengeKey: challengeKey}, nil
+}
+
+// ReauthFinishResult is returned by ReauthFinish.
+type ReauthFinishResult struct {
+	AccountID        string
+	WrappedMasterKey []byte
+}
+
+// ReauthFinish verifies the WebAuthn assertion and returns the wrapped master
+// key for the existing session. No new session row is created.
+func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, accountID string, r *http.Request) (*ReauthFinishResult, error) {
+	sd, ok := s.challenges.take(challengeKey)
+	if !ok {
+		return nil, fmt.Errorf("challenge not found or expired")
+	}
+
+	var account queries.Account
+	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+		if len(userHandle) > 0 {
+			acc, err := s.db.GetAccountByID(ctx, string(userHandle))
+			if err == nil {
+				account = acc
+				return accountToWAUser(acc), nil
+			}
+		}
+		acc, err := s.db.GetAccountByCredentialID(ctx, rawID)
+		if err != nil {
+			return nil, ErrNotFound
+		}
+		account = acc
+		return accountToWAUser(acc), nil
+	}
+
+	cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
+	if err != nil {
+		return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+	}
+
+	if account.BackupEligible != cred.Flags.BackupEligible {
+		_ = s.db.UpdateAccountBackupEligible(ctx, queries.UpdateAccountBackupEligibleParams{
+			CredentialID:   account.CredentialID,
+			BackupEligible: cred.Flags.BackupEligible,
+		})
+	}
+
+	return &ReauthFinishResult{
+		AccountID:        account.ID,
+		WrappedMasterKey: account.WrappedMasterKey,
 	}, nil
 }
 
@@ -461,8 +566,8 @@ func (s *Service) ValidateSession(ctx context.Context, token string) (accountID 
 	return row.AccountID, row.WrappedMasterKey, row.ID, nil
 }
 
-func (s *Service) Logout(ctx context.Context, sessionID string) error {
-	return s.db.DeleteSession(ctx, sessionID)
+func (s *Service) Logout(ctx context.Context, accountID, sessionID string) error {
+	return s.db.DeleteSession(ctx, queries.DeleteSessionParams{ID: sessionID, AccountID: accountID})
 }
 
 func (s *Service) ListSessions(ctx context.Context, accountID string) ([]queries.ListSessionsByAccountRow, error) {
@@ -470,17 +575,11 @@ func (s *Service) ListSessions(ctx context.Context, accountID string) ([]queries
 }
 
 func (s *Service) DeleteSession(ctx context.Context, accountID, sessionID string) error {
-	// Verify session belongs to the account before deleting.
-	sessions, err := s.db.ListSessionsByAccount(ctx, accountID)
+	err := s.db.DeleteSession(ctx, queries.DeleteSessionParams{ID: sessionID, AccountID: accountID})
 	if err != nil {
-		return err
+		return ErrNotFound
 	}
-	for _, sess := range sessions {
-		if sess.ID == sessionID {
-			return s.db.DeleteSession(ctx, sessionID)
-		}
-	}
-	return ErrNotFound
+	return nil
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

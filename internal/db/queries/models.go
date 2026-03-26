@@ -59,9 +59,11 @@ type Response struct {
 }
 
 type Session struct {
-	ID        string
-	AccountID string
-	TokenHash []byte
-	CreatedAt pgtype.Date
-	LastSeen  pgtype.Date
+	ID           string
+	AccountID    string
+	TokenHash    []byte
+	CreatedAt    pgtype.Date
+	LastSeen     pgtype.Date
+	CredentialID []byte
+	UserAgent    string
 }
