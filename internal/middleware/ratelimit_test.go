@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	mw "github.com/phantompunk/wisp/internal/middleware"
+	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
 func TestSecurityHeaders(t *testing.T) {

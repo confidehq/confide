@@ -19,7 +19,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/phantompunk/wisp/internal/db/queries"
+	"github.com/phantompunk/confide/internal/db/queries"
 )
 
 // Sentinel errors returned from service methods.

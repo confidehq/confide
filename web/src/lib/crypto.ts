@@ -1,5 +1,5 @@
 /**
- * GhostForm — E2E-encrypted anonymous form platform
+ * Confide — E2E-encrypted anonymous form platform
  * Cryptographic foundation module (Phase 1)
  *
  * All functions are async and use the Web Crypto API (crypto.subtle).

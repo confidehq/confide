@@ -1,12 +1,12 @@
 /**
- * GhostForm auth state store (Svelte 5 runes).
+ * Confide auth state store (Svelte 5 runes).
  *
  * masterKey lives only in memory — lost on tab close / refresh.
  * accountId and credentialId persist in localStorage.
  */
 
-const ACCOUNT_ID_KEY = 'ghostform.accountId';
-const CREDENTIAL_ID_KEY = 'ghostform.credentialId';
+const ACCOUNT_ID_KEY = 'confide.accountId';
+const CREDENTIAL_ID_KEY = 'confide.credentialId';
 
 function readStorage(key: string): string | null {
 	if (typeof localStorage === 'undefined') return null;

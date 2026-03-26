@@ -5,15 +5,15 @@ import (
 	"os"
 	"testing"
 
-	"github.com/phantompunk/wisp/internal/db"
-	"github.com/phantompunk/wisp/migrations"
+	"github.com/phantompunk/confide/internal/db"
+	"github.com/phantompunk/confide/migrations"
 )
 
 func testDatabaseURL(t *testing.T) string {
 	t.Helper()
-	u := os.Getenv("GHOSTFORM_TEST_DATABASE_URL")
+	u := os.Getenv("CONFIDE_TEST_DATABASE_URL")
 	if u == "" {
-		u = "postgresql://ghostform:ghostform@localhost:5432/ghostform_test?sslmode=disable"
+		u = "postgresql://confide:confide@localhost:5432/confide_test?sslmode=disable"
 	}
 	return u
 }

@@ -309,11 +309,11 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — PRF Harness</title>
+	<title>Confide — PRF Harness</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 800px; margin: 40px auto; padding: 0 20px;">
-	<h1 style="font-size: 1.4rem; margin-bottom: 4px;">GhostForm — Crypto / PRF Test Harness</h1>
+	<h1 style="font-size: 1.4rem; margin-bottom: 4px;">Confide — Crypto / PRF Test Harness</h1>
 	<p style="color: #888; font-size: 0.85rem; margin-bottom: 24px;">
 		Dev-only manual verification of Phase 1 crypto primitives. NODE_ENV=development only.
 	</p>

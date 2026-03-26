@@ -1,5 +1,5 @@
 /**
- * GhostForm crypto.ts — unit tests
+ * Confide crypto.ts — unit tests
  *
  * ~35 tests across 9 groups.
  * All tests are async and use the real Web Crypto API (no mocking).

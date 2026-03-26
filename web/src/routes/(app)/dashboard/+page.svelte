@@ -29,7 +29,7 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Dashboard</title>
+	<title>Confide — Dashboard</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 720px; padding: 32px 32px 48px;">

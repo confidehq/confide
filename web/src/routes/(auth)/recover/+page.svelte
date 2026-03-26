@@ -57,7 +57,7 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Account Recovery</title>
+	<title>Confide — Account Recovery</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 560px; margin: 60px auto; padding: 0 24px;">

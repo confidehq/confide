@@ -1,5 +1,5 @@
 /**
- * GhostForm — WebAuthn PRF extension support detection (DQ1 resolution)
+ * Confide — WebAuthn PRF extension support detection (DQ1 resolution)
  *
  * PRF support cannot be fully determined statically — the extension is only
  * confirmed during an actual WebAuthn ceremony (registration or assertion).
@@ -63,7 +63,7 @@ export async function detectPRFSupport(): Promise<PRFSupportResult> {
 			platformAuthenticatorAvailable: false,
 			reason:
 				'No platform authenticator (Touch ID, Face ID, Windows Hello, etc.) ' +
-				'was detected. GhostForm requires a built-in authenticator for secure key derivation.'
+				'was detected. Confide requires a built-in authenticator for secure key derivation.'
 		};
 	}
 

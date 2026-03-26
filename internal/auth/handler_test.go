@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/phantompunk/wisp/internal/auth"
+	"github.com/phantompunk/confide/internal/auth"
 )
 
 func newTestService(t *testing.T) *auth.Service {

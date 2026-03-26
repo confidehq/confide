@@ -1,5 +1,5 @@
 /**
- * GhostForm form builder — strongly-typed field and schema definitions.
+ * Confide form builder — strongly-typed field and schema definitions.
  *
  * All 8 field types are represented as a discriminated union so that
  * builder components get full type inference.

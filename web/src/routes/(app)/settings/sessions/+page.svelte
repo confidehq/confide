@@ -51,7 +51,7 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Sessions</title>
+	<title>Confide — Sessions</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 640px; padding: 32px 32px 48px;">

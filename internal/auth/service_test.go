@@ -8,7 +8,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5"
 
-	"github.com/phantompunk/wisp/internal/db/queries"
+	"github.com/phantompunk/confide/internal/db/queries"
 )
 
 // ─── Mock DB ──────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-module github.com/phantompunk/wisp
+module github.com/phantompunk/confide
 
 go 1.25.5
 

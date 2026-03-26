@@ -1,7 +1,7 @@
 /**
- * GhostForm — WebAuthn ceremony orchestration.
+ * Confide — WebAuthn ceremony orchestration.
  *
- * Bridges @simplewebauthn/browser ceremonies with the GhostForm Go API and the
+ * Bridges @simplewebauthn/browser ceremonies with the Confide Go API and the
  * crypto module. All base64 conversions are handled here so callers deal only
  * with typed values.
  *

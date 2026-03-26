@@ -14,7 +14,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/phantompunk/wisp/internal/db/queries"
+	"github.com/phantompunk/confide/internal/db/queries"
 )
 
 // ─── Rekey Token Store ────────────────────────────────────────────────────────

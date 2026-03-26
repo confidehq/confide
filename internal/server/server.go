@@ -10,12 +10,12 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/phantompunk/wisp/internal/auth"
-	"github.com/phantompunk/wisp/internal/config"
-	"github.com/phantompunk/wisp/internal/forms"
-	mw "github.com/phantompunk/wisp/internal/middleware"
-	"github.com/phantompunk/wisp/internal/relay"
-	"github.com/phantompunk/wisp/internal/responses"
+	"github.com/phantompunk/confide/internal/auth"
+	"github.com/phantompunk/confide/internal/config"
+	"github.com/phantompunk/confide/internal/forms"
+	mw "github.com/phantompunk/confide/internal/middleware"
+	"github.com/phantompunk/confide/internal/relay"
+	"github.com/phantompunk/confide/internal/responses"
 )
 
 // Services groups the application services passed into the server.

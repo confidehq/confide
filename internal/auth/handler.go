@@ -11,7 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	mw "github.com/phantompunk/wisp/internal/middleware"
+	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
 // Handler builds the /auth sub-router. recoveryHMACKey is used to apply a

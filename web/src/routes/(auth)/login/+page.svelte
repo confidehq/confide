@@ -23,11 +23,11 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Sign In</title>
+	<title>Confide — Sign In</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 480px; margin: 80px auto; padding: 0 24px;">
-	<h1 style="font-size: 1.4rem; margin-bottom: 8px;">GhostForm</h1>
+	<h1 style="font-size: 1.4rem; margin-bottom: 8px;">Confide</h1>
 	<p style="color: #888; font-size: 0.85rem; margin-bottom: 40px;">Sign in with your passkey.</p>
 
 	<button

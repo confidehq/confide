@@ -71,7 +71,7 @@
 				</svg>
 			</button>
 		{:else}
-			<span style="color: #d1d5db; font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em;">wisp</span>
+			<span style="color: #d1d5db; font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em;">confide</span>
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Collapse sidebar"

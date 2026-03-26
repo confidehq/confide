@@ -9,13 +9,13 @@
 </script>
 
 <svelte:head>
-	<title>Wisp — Private, end-to-end encrypted forms</title>
+	<title>Confide — Private, end-to-end encrypted forms</title>
 	<meta name="description" content="Create private forms. Only you can read the responses." />
 </svelte:head>
 
 <main class="landing">
 	<section class="hero">
-		<h1>Wisp</h1>
+		<h1>Confide</h1>
 		<p class="tagline">Private forms. End-to-end encrypted.</p>
 		<div class="cta-group">
 			<a href="/register" class="btn btn-primary">Create an account</a>
@@ -45,7 +45,7 @@
 	</section>
 
 	<footer class="landing-footer">
-		<a href="https://github.com/phantompunk/wisp" rel="noopener">GitHub</a>
+		<a href="https://github.com/phantompunk/confide" rel="noopener">GitHub</a>
 		<span aria-hidden="true">·</span>
 		<a href="/docs/self-hosting">Self-hosting guide</a>
 	</footer>

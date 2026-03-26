@@ -1,5 +1,5 @@
 /**
- * GhostForm form builder store (Svelte 5 Runes).
+ * Confide form builder store (Svelte 5 Runes).
  *
  * Create one instance per builder page via createBuilderStore(masterKey, formId).
  * Pass the returned store object into child components via setContext/getContext.

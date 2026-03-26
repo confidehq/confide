@@ -1,5 +1,5 @@
 /**
- * GhostForm crypto layer — type definitions.
+ * Confide crypto layer — type definitions.
  *
  * The crypto layer treats form content as opaque bytes and must not be
  * coupled to the domain model. BuilderSchema is re-exported as FormSchema

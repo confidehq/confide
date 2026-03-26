@@ -196,7 +196,7 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Responses</title>
+	<title>Confide — Responses</title>
 </svelte:head>
 
 <style>

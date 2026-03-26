@@ -1,5 +1,5 @@
 /**
- * Wisp — Form API client (Phase 4)
+ * Confide — Form API client (Phase 4)
  *
  * All authenticated functions require a valid session cookie (set by login/register).
  * Binary blobs are transmitted as base64 standard encoding, matching the Go backend.

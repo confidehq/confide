@@ -90,11 +90,11 @@
 </script>
 
 <svelte:head>
-	<title>GhostForm — Create Account</title>
+	<title>Confide — Create Account</title>
 </svelte:head>
 
 <div style="font-family: monospace; max-width: 560px; margin: 60px auto; padding: 0 24px;">
-	<h1 style="font-size: 1.4rem; margin-bottom: 32px;">Create your GhostForm account</h1>
+	<h1 style="font-size: 1.4rem; margin-bottom: 32px;">Create your Confide account</h1>
 
 	<!-- Step: checking / PRF error -->
 	{#if step === 'checking'}
@@ -130,7 +130,7 @@
 		>
 			<h2 style="font-size: 1rem; margin-top: 0; color: #e5e7eb;">Before you continue</h2>
 			<p style="color: #9ca3af; font-size: 0.85rem; line-height: 1.6;">
-				GhostForm encrypts your data in your browser before it ever leaves your device.
+				Confide encrypts your data in your browser before it ever leaves your device.
 				Your passkey (Touch ID, Face ID, or Windows Hello) is used to derive the encryption key —
 				<strong>the server never sees your key.</strong>
 			</p>
@@ -144,9 +144,9 @@
 				<li>Never share it — anyone with this code can access your account.</li>
 				<li>You cannot recover your account without it.</li>
 			</ul>
-			<h3 style="font-size: 0.9rem; color: #e5e7eb; margin-top: 20px;">What GhostForm cannot do</h3>
+			<h3 style="font-size: 0.9rem; color: #e5e7eb; margin-top: 20px;">What Confide cannot do</h3>
 			<p style="color: #9ca3af; font-size: 0.85rem; line-height: 1.6;">
-				Because encryption happens entirely in your browser, GhostForm staff
+				Because encryption happens entirely in your browser, Confide staff
 				<strong>cannot read your data, reset your password, or recover your account</strong>
 				for you. If you lose your passkey device and your recovery code, your data is unrecoverable.
 			</p>

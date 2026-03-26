@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/phantompunk/wisp/internal/db/queries"
+	"github.com/phantompunk/confide/internal/db/queries"
 )
 
 var ErrNotFound = errors.New("form not found")

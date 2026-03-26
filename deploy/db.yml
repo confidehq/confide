@@ -1,27 +1,27 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: ghostform-db
+    container_name: confide-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ghostform
-      POSTGRES_PASSWORD: ghostform
-      POSTGRES_DB: ghostform
+      POSTGRES_USER: confide
+      POSTGRES_PASSWORD: confide
+      POSTGRES_DB: confide
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ghostform -d ghostform"]
+      test: ["CMD-SHELL", "pg_isready -U confide -d confide"]
       interval: 5s
       timeout: 3s
       retries: 10
     networks:
-      - ghost-net
+      - confide-net
 
 volumes:
   pgdata:
 
 networks:
-  ghost-net:
+  confide-net:
     driver: bridge

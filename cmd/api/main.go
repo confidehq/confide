@@ -12,11 +12,11 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 
-	"github.com/phantompunk/wisp/internal/config"
-	"github.com/phantompunk/wisp/internal/db"
-	"github.com/phantompunk/wisp/internal/relay"
-	"github.com/phantompunk/wisp/internal/server"
-	"github.com/phantompunk/wisp/migrations"
+	"github.com/phantompunk/confide/internal/config"
+	"github.com/phantompunk/confide/internal/db"
+	"github.com/phantompunk/confide/internal/relay"
+	"github.com/phantompunk/confide/internal/server"
+	"github.com/phantompunk/confide/migrations"
 )
 
 func main() {

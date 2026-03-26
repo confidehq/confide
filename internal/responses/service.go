@@ -12,8 +12,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/phantompunk/wisp/internal/db/queries"
-	"github.com/phantompunk/wisp/internal/relay"
+	"github.com/phantompunk/confide/internal/db/queries"
+	"github.com/phantompunk/confide/internal/relay"
 )
 
 var ErrNotFound = errors.New("response not found")
