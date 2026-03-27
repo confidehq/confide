@@ -196,10 +196,13 @@ export async function register(): Promise<RegisterResult> {
 	// Step 1: begin
 	const begin = await apiPost<RegisterBeginResponse>('/api/auth/register/begin', {});
 
-	// Step 2: WebAuthn ceremony
-	const credential = await startRegistration({
-		optionsJSON: unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options)
-	});
+	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startRegistration({ optionsJSON });
 
 	// Step 3: PRF → KEK → wrap new master key
 	const kek = await extractRegistrationKek(credential);
