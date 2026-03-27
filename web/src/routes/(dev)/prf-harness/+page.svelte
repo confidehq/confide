@@ -198,6 +198,7 @@
 
 		const sampleSchema: FormSchema = {
 			version: 1,
+			name: 'test',
 			defaultLocale: 'en',
 			locales: ['en'],
 			layout: 'scroll',

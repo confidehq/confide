@@ -98,7 +98,7 @@
 	{#if schema.layout === 'steps'}
 		<StepsRenderer
 			{schema}
-			formId={$page.params.id}
+			formId={$page.params.id!}
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
@@ -107,7 +107,7 @@
 	{:else}
 		<ScrollRenderer
 			{schema}
-			formId={$page.params.id}
+			formId={$page.params.id!}
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
