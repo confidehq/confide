@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -45,6 +46,8 @@ func Load() (*Config, error) {
 		RelayFlushInterval: flushInterval,
 		RegistrationOpen:   parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
 	}
+
+	log.Println(cfg.RPOrigin)
 
 	var errs []error
 

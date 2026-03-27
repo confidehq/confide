@@ -24,7 +24,7 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bo
 	r := chi.NewRouter()
 
 	r.Post("/register/begin", registerBegin(svc, registrationOpen))
-	r.Post("/register/finish", registerFinish(svc))
+	r.Post("/register/finish", registerFinish(svc, dev))
 	r.Post("/login/begin", loginBegin(svc))
 	r.Post("/login/finish", loginFinish(svc, dev))
 	r.With(mw.RecoveryRateLimit(recoveryHMACKey)).Post("/recover", recover_(svc))
@@ -66,7 +66,7 @@ func registerBegin(svc *Service, registrationOpen bool) http.HandlerFunc {
 	}
 }
 
-func registerFinish(svc *Service) http.HandlerFunc {
+func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -141,7 +141,7 @@ func registerFinish(svc *Service) http.HandlerFunc {
 			PRFSalt:               prfSalt,
 		}
 
-		accountID, err := svc.RegisterFinish(r.Context(), svcReq, newReq)
+		res, err := svc.RegisterFinish(r.Context(), svcReq, r.Header.Get("User-Agent"), newReq)
 		if err != nil {
 			status := http.StatusInternalServerError
 			code := "register_finish_failed"
@@ -154,7 +154,8 @@ func registerFinish(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusCreated, map[string]any{"accountId": accountID})
+		setSessionCookie(w, res.Token, dev)
+		writeJSON(w, http.StatusCreated, map[string]any{"accountId": res.AccountID})
 	}
 }
 
@@ -165,7 +166,8 @@ func loginBegin(svc *Service) http.HandlerFunc {
 		var req struct {
 			CredentialIDBase64 string `json:"credentialIdBase64"` // optional
 		}
-		json.NewDecoder(r.Body).Decode(&req) //nolint:errcheck
+		body, _ := io.ReadAll(r.Body)
+		json.Unmarshal(body, &req) //nolint:errcheck // optional body; missing/malformed defaults to discoverable mode
 
 		var credID []byte
 		if req.CredentialIDBase64 != "" {
@@ -211,14 +213,7 @@ func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 			return
 		}
 
-		// Pre-sync the BackupEligible flag so FinishDiscoverableLogin's consistency
-		// check passes. Extract credential ID from the assertion JSON itself since
-		// credentialIdBase64 is no longer sent by the client.
-		if credID, err := extractCredentialID(envelope.Credential); err == nil {
-			if be, err := extractBackupEligible(envelope.Credential); err == nil {
-				svc.SyncBackupEligible(r.Context(), credID, be)
-			}
-		}
+		syncBackupEligible(svc, r, envelope.Credential)
 
 		// Reconstruct request containing only the credential payload.
 		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
@@ -483,11 +478,7 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if credID, err := extractCredentialID(envelope.Credential); err == nil {
-			if be, err := extractBackupEligible(envelope.Credential); err == nil {
-				svc.SyncBackupEligible(r.Context(), credID, be)
-			}
-		}
+		syncBackupEligible(svc, r, envelope.Credential)
 
 		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
 			io.NopCloser(bytes.NewReader(envelope.Credential)))
@@ -512,6 +503,16 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 			"accountId":        res.AccountID,
 			"wrappedMasterKey": base64.StdEncoding.EncodeToString(res.WrappedMasterKey),
 		})
+	}
+}
+
+// syncBackupEligible pre-syncs the BackupEligible flag from an assertion JSON
+// so FinishDiscoverableLogin's consistency check passes.
+func syncBackupEligible(svc *Service, r *http.Request, credJSON []byte) {
+	if credID, err := extractCredentialID(credJSON); err == nil {
+		if be, err := extractBackupEligible(credJSON); err == nil {
+			svc.SyncBackupEligible(r.Context(), credID, be)
+		}
 	}
 }
 

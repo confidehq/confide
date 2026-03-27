@@ -42,15 +42,11 @@ import type {
 
 // ─── Base64 Helpers ───────────────────────────────────────────────────────────
 
-/** base64url (no padding) → base64 standard (with padding). */
-function base64urlToBase64(b64url: string): string {
-	const pad = (4 - (b64url.length % 4)) % 4;
-	return b64url.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad);
-}
-
 /** base64url string → Uint8Array. */
 export function base64urlToBytes(b64url: string): Uint8Array {
-	return Uint8Array.from(atob(base64urlToBase64(b64url)), (c) => c.charCodeAt(0));
+	const pad = (4 - (b64url.length % 4)) % 4;
+	const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad);
+	return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 /** Uint8Array → base64 standard string. */
@@ -66,14 +62,6 @@ export function base64ToBytes(b64: string): Uint8Array {
 /** ArrayBuffer → base64 standard string. */
 function bufToBase64(buf: ArrayBuffer): string {
 	return bytesToBase64(new Uint8Array(buf));
-}
-
-/**
- * Convert a Base64URLString credential ID (from WebAuthn) to the base64
- * standard encoding the Go backend expects.
- */
-function credentialIdToBase64Std(credentialId: string): string {
-	return bytesToBase64(base64urlToBytes(credentialId));
 }
 
 // ─── PRF Key Derivation ───────────────────────────────────────────────────────
@@ -265,15 +253,6 @@ export interface LoginResult {
 }
 
 /**
- * Complete the login ceremony for a known credential.
- *
- * Steps:
- *   1. POST /api/auth/login/begin with credentialIdBase64 → WebAuthn options
- *   2. startAuthentication → credential with PRF output
- *   3. POST /api/auth/login/finish → wrappedMasterKey + session cookie set
- *   4. PRF → KEK; unwrap master key
- */
-/**
  * Complete the login ceremony.
  *
  * credentialId is optional:
@@ -286,7 +265,7 @@ export interface LoginResult {
 export async function login(credentialId?: string | null): Promise<LoginResult> {
 	// Step 1: begin — send credential ID only if known
 	const body = credentialId
-		? { credentialIdBase64: credentialIdToBase64Std(credentialId) }
+		? { credentialIdBase64: bytesToBase64(base64urlToBytes(credentialId)) }
 		: {};
 	const begin = await apiPost<LoginBeginResponse>('/api/auth/login/begin', body);
 

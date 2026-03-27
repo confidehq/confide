@@ -197,23 +197,37 @@ type RegisterFinishRequest struct {
 	PRFSalt               []byte   `json:"prfSalt"`
 }
 
-func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest, r *http.Request) (string, error) {
+type RegisterFinishResult struct {
+	AccountID string
+	Token     string // raw session token (caller sets cookie)
+}
+
+func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest, userAgent string, r *http.Request) (*RegisterFinishResult, error) {
 	sd, ok := s.challenges.take(req.AccountID)
 	if !ok {
-		return "", fmt.Errorf("challenge not found or expired")
+		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
 	user := &waUser{id: []byte(req.AccountID), name: req.AccountID, displayName: req.AccountID}
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
-		return "", fmt.Errorf("FinishRegistration: %w", err)
+		return nil, fmt.Errorf("FinishRegistration: %w", err)
 	}
 
 	if len(req.RecoveryCodes) != 12 {
-		return "", fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
+		return nil, fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
 	}
 
-	// Write account + recovery codes in a transaction.
+	token, tokenHash, err := newSessionToken()
+	if err != nil {
+		return nil, err
+	}
+	sessionID, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+
+	// Write account, recovery codes, and initial session in a transaction.
 	err = s.withTx(ctx, func(tx pgx.Tx) error {
 		q := queries.New(tx)
 
@@ -252,12 +266,23 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 		if _, err := q.CreateRecoveryCodes(ctx, codes); err != nil {
 			return fmt.Errorf("CreateRecoveryCodes: %w", err)
 		}
+
+		if _, err := q.CreateSession(ctx, queries.CreateSessionParams{
+			ID:           sessionID,
+			AccountID:    req.AccountID,
+			TokenHash:    tokenHash,
+			CredentialID: cred.ID,
+			UserAgent:    userAgent,
+		}); err != nil {
+			return fmt.Errorf("CreateSession: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return req.AccountID, nil
+	return &RegisterFinishResult{AccountID: req.AccountID, Token: token}, nil
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
@@ -277,10 +302,8 @@ type LoginBeginResult struct {
 // challenge is keyed by a random nonce returned as ChallengeKey.
 func (s *Service) LoginBegin(ctx context.Context, credentialID []byte) (*LoginBeginResult, error) {
 	if len(credentialID) > 0 {
-		slog.Info("Begin target")
 		return s.loginBeginTargeted(ctx, credentialID)
 	}
-	slog.Info("Begin discoverable")
 	return s.loginBeginDiscoverable(ctx)
 }
 
