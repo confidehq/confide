@@ -1,5 +1,7 @@
 .PHONY: help run dev up down build clean secrets
 
+DOCKER_COMPOSE := $(shell docker compose version > /dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
 # Set the default goal
 .DEFAULT_GOAL := help
 
@@ -13,7 +15,7 @@ help:
 ## dev: Run locally with Air
 dev: 
 	@echo "Starting local dev with Air..."
-	@set -a && source local.env && set +a && air
+	@set -a && source .env.local && set +a && air
 
 ## ui: Start frontend
 ui: 
@@ -21,7 +23,7 @@ ui:
 
 ## db: Start local docker db
 db:
-	cd deploy && docker-compose -f db.yml up
+	cd deploy && $(DOCKER_COMPOSE) -f db.yml up
 
 up:
-	@set -a && source .env && docker-compose -f deploy/docker-compose.yml up --build --remove-orphans
+	$(DOCKER_COMPOSE) --env-file .env.docker -f deploy/docker-compose.yml up --build --remove-orphans
