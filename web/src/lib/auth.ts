@@ -380,10 +380,13 @@ export async function rekey(masterKey: CryptoKey, rekeyToken: string): Promise<R
 	// Step 1: begin rekey registration
 	const begin = await apiPost<RekeyBeginResponse>('/api/auth/recover/rekey/begin', { rekeyToken });
 
-	// Step 2: WebAuthn ceremony
-	const credential = await startRegistration({
-		optionsJSON: unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options)
-	});
+	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
+	const rekeyOptionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
+	const rekeyPrf = (rekeyOptionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (rekeyPrf?.eval?.first && typeof rekeyPrf.eval.first === 'string') {
+		(rekeyPrf.eval as { first: ArrayBuffer }).first = base64urlToBytes(rekeyPrf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startRegistration({ optionsJSON: rekeyOptionsJSON });
 
 	// Step 3: PRF → KEK; wrap master key with new credential's PRF
 	const kek = await extractRegistrationKek(credential);
