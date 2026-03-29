@@ -192,9 +192,9 @@ export interface RegisterResult {
  *   4. Generate 12 recovery codes; derive recovery key; wrap master key
  *   5. POST /api/auth/register/finish with all blobs
  */
-export async function register(): Promise<RegisterResult> {
+export async function register(username: string): Promise<RegisterResult> {
 	// Step 1: begin
-	const begin = await apiPost<RegisterBeginResponse>('/api/auth/register/begin', {});
+	const begin = await apiPost<RegisterBeginResponse>('/api/auth/register/begin', { username });
 
 	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
 	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
@@ -231,6 +231,7 @@ export async function register(): Promise<RegisterResult> {
 	// Step 5: finish registration
 	const finish = await apiPost<{ accountId: string }>('/api/auth/register/finish', {
 		accountId: begin.accountId,
+		username,
 		prfSalt: begin.prfSalt,
 		wrappedMasterKey: bufToBase64(wrappedMasterKey),
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
@@ -265,11 +266,14 @@ export interface LoginResult {
  *
  * Always returns credentialId from the assertion so the caller can repopulate localStorage.
  */
-export async function login(credentialId?: string | null): Promise<LoginResult> {
-	// Step 1: begin — send credential ID only if known
-	const body = credentialId
-		? { credentialIdBase64: bytesToBase64(base64urlToBytes(credentialId)) }
-		: {};
+export async function login(credentialId?: string | null, username?: string): Promise<LoginResult> {
+	// Step 1: begin — prefer username (server looks up correct PRF salt); fall back to credentialId
+	let body: Record<string, string> = {};
+	if (username) {
+		body = { username };
+	} else if (credentialId) {
+		body = { credentialIdBase64: bytesToBase64(base64urlToBytes(credentialId)) };
+	}
 	const begin = await apiPost<LoginBeginResponse>('/api/auth/login/begin', body);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt strings → ArrayBuffer

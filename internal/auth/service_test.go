@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/phantompunk/confide/internal/db/queries"
 )
@@ -184,6 +185,15 @@ func (m *mockDB) DeleteRecoveryCodesByAccount(_ context.Context, accountID strin
 	return nil
 }
 
+func (m *mockDB) GetAccountByUsername(_ context.Context, username pgtype.Text) (queries.Account, error) {
+	for _, a := range m.accounts {
+		if a.Username.Valid && a.Username.String == username.String {
+			return a, nil
+		}
+	}
+	return queries.Account{}, errors.New("no rows")
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 func newTestWA(t *testing.T) *webauthn.WebAuthn {
@@ -203,7 +213,7 @@ func newTestWA(t *testing.T) *webauthn.WebAuthn {
 
 func TestRegisterBegin_ReturnsAccountID(t *testing.T) {
 	svc := newServiceWithDB(newMockDB(), newTestWA(t))
-	res, err := svc.RegisterBegin(context.Background())
+	res, err := svc.RegisterBegin(context.Background(), "testuser")
 	if err != nil {
 		t.Fatalf("RegisterBegin: %v", err)
 	}

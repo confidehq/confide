@@ -5,13 +5,15 @@
 
 	let error = $state<string | null>(null);
 	let loading = $state(false);
+	let username = $state('');
 
 	async function handleLogin() {
 		error = null;
 		loading = true;
 		try {
-			// Pass credentialId if known (targeted mode); omit for discoverable mode
-			const result = await login(auth.credentialId);
+			// Prefer username for targeted login with correct PRF salt.
+			// Fall back to stored credentialId if username is blank.
+			const result = await login(auth.credentialId, username.trim() || undefined);
 			auth.setSession(result.masterKey, result.accountId, result.credentialId);
 			goto('/dashboard');
 		} catch (err) {
@@ -28,7 +30,29 @@
 
 <div style="font-family: monospace; max-width: 480px; margin: 80px auto; padding: 0 24px;">
 	<h1 style="font-size: 1.4rem; margin-bottom: 8px;">Confide</h1>
-	<p style="color: #888; font-size: 0.85rem; margin-bottom: 40px;">Sign in with your passkey.</p>
+	<p style="color: #888; font-size: 0.85rem; margin-bottom: 32px;">Sign in with your passkey.</p>
+
+	<label style="display: block; color: #9ca3af; font-size: 0.85rem; margin-bottom: 6px;">
+		Username
+	</label>
+	<input
+		type="text"
+		bind:value={username}
+		placeholder="your username"
+		disabled={loading}
+		style="
+			width: 100%;
+			padding: 10px 12px;
+			background: #111;
+			border: 1px solid #374151;
+			border-radius: 4px;
+			color: #e5e7eb;
+			font-family: monospace;
+			font-size: 0.9rem;
+			box-sizing: border-box;
+			margin-bottom: 16px;
+		"
+	/>
 
 	<button
 		onclick={handleLogin}

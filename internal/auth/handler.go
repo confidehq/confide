@@ -52,7 +52,12 @@ func registerBegin(svc *Service, registrationOpen bool) http.HandlerFunc {
 			writeError(w, http.StatusForbidden, "registration_closed", "registration is closed")
 			return
 		}
-		res, err := svc.RegisterBegin(r.Context())
+		var req struct {
+			Username string `json:"username"`
+		}
+		body, _ := io.ReadAll(r.Body)
+		json.Unmarshal(body, &req) //nolint:errcheck
+		res, err := svc.RegisterBegin(r.Context(), req.Username)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "register_begin_failed", err.Error())
 			return
@@ -75,12 +80,13 @@ func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 		}
 
 		var req struct {
-			AccountID             string   `json:"accountId"`
-			WrappedMasterKey      string   `json:"wrappedMasterKey"`
-			RecoveryWrappedMaster string   `json:"recoveryWrappedMasterKey"`
-			RecoveryVerifier      string   `json:"recoveryVerifier"`
-			RecoveryCodes         []string `json:"recoveryCodes"`
-			PRFSalt               string   `json:"prfSalt"`
+			AccountID             string          `json:"accountId"`
+			Username              string          `json:"username"`
+			WrappedMasterKey      string          `json:"wrappedMasterKey"`
+			RecoveryWrappedMaster string          `json:"recoveryWrappedMasterKey"`
+			RecoveryVerifier      string          `json:"recoveryVerifier"`
+			RecoveryCodes         []string        `json:"recoveryCodes"`
+			PRFSalt               string          `json:"prfSalt"`
 			Credential            json.RawMessage `json:"credential"`
 		}
 		if err := json.Unmarshal(body, &req); err != nil {
@@ -134,6 +140,7 @@ func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 
 		svcReq := &RegisterFinishRequest{
 			AccountID:             req.AccountID,
+			Username:              req.Username,
 			WrappedMasterKey:      wmk,
 			RecoveryWrappedMaster: rwmk,
 			RecoveryVerifier:      rv,
@@ -165,6 +172,7 @@ func loginBegin(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			CredentialIDBase64 string `json:"credentialIdBase64"` // optional
+			Username           string `json:"username"`           // optional; preferred over credentialIdBase64
 		}
 		body, _ := io.ReadAll(r.Body)
 		json.Unmarshal(body, &req) //nolint:errcheck // optional body; missing/malformed defaults to discoverable mode
@@ -179,7 +187,7 @@ func loginBegin(svc *Service) http.HandlerFunc {
 			}
 		}
 
-		res, err := svc.LoginBegin(r.Context(), credID)
+		res, err := svc.LoginBegin(r.Context(), credID, req.Username)
 		if err != nil {
 			status := http.StatusInternalServerError
 			if err == ErrNotFound {

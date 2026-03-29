@@ -49,6 +49,7 @@ type DB interface {
 	DeleteRecoveryCodesByAccount(ctx context.Context, accountID string) error
 	UpdateAccountBackupEligible(ctx context.Context, arg queries.UpdateAccountBackupEligibleParams) error
 	ListCredentials(ctx context.Context) ([]queries.ListCredentialsRow, error)
+	GetAccountByUsername(ctx context.Context, username pgtype.Text) (queries.Account, error)
 }
 
 // challengeEntry holds WebAuthn session data with an expiry.
@@ -157,7 +158,7 @@ type RegisterBeginResult struct {
 	Creation  *protocol.CredentialCreation
 }
 
-func (s *Service) RegisterBegin(ctx context.Context) (*RegisterBeginResult, error) {
+func (s *Service) RegisterBegin(ctx context.Context, username string) (*RegisterBeginResult, error) {
 	accountID, err := randomBase64URL(16) // 22-char base64url from 16 bytes
 	if err != nil {
 		return nil, err
@@ -167,7 +168,11 @@ func (s *Service) RegisterBegin(ctx context.Context) (*RegisterBeginResult, erro
 		return nil, err
 	}
 
-	user := &waUser{id: []byte(accountID), name: accountID, displayName: accountID}
+	displayName := username
+	if displayName == "" {
+		displayName = accountID
+	}
+	user := &waUser{id: []byte(accountID), name: displayName, displayName: displayName}
 
 	creation, sd, err := s.wa.BeginRegistration(user,
 		webauthn.WithExtensions(protocol.AuthenticationExtensions{
@@ -190,6 +195,7 @@ func (s *Service) RegisterBegin(ctx context.Context) (*RegisterBeginResult, erro
 
 type RegisterFinishRequest struct {
 	AccountID             string   `json:"accountId"`
+	Username              string   `json:"username"`
 	WrappedMasterKey      []byte   `json:"wrappedMasterKey"`         // base64 in JSON
 	RecoveryWrappedMaster []byte   `json:"recoveryWrappedMasterKey"` // base64 in JSON
 	RecoveryVerifier      []byte   `json:"recoveryVerifier"`         // base64 in JSON
@@ -240,6 +246,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 			RecoveryWrappedMaster: req.RecoveryWrappedMaster,
 			RecoveryVerifier:      req.RecoveryVerifier,
 			BackupEligible:        cred.Flags.BackupEligible,
+			Username:              pgtype.Text{String: req.Username, Valid: req.Username != ""},
 		})
 		if err != nil {
 			if isDuplicateKey(err) {
@@ -294,17 +301,32 @@ type LoginBeginResult struct {
 
 // LoginBegin starts a WebAuthn assertion ceremony.
 //
+// If username is non-empty, looks up the account by username and uses targeted
+// mode with the correct PRF salt (preferred path).
+//
 // If credentialID is non-nil, targeted mode: embeds the account's PRF salt via
 // prf.eval.first (Chrome 116+). The challenge is keyed by base64url(credentialID).
 //
-// If credentialID is nil, discoverable mode: queries all credentials and embeds
+// If both are absent, discoverable mode: queries all credentials and embeds
 // their PRF salts via prf.evalByCredential (Chrome 132+, 1Password). The
 // challenge is keyed by a random nonce returned as ChallengeKey.
-func (s *Service) LoginBegin(ctx context.Context, credentialID []byte) (*LoginBeginResult, error) {
+func (s *Service) LoginBegin(ctx context.Context, credentialID []byte, username string) (*LoginBeginResult, error) {
+	if username != "" {
+		return s.loginBeginByUsername(ctx, username)
+	}
 	if len(credentialID) > 0 {
 		return s.loginBeginTargeted(ctx, credentialID)
 	}
 	return s.loginBeginDiscoverable(ctx)
+}
+
+// loginBeginByUsername looks up an account by username and uses targeted mode.
+func (s *Service) loginBeginByUsername(ctx context.Context, username string) (*LoginBeginResult, error) {
+	account, err := s.db.GetAccountByUsername(ctx, pgtype.Text{String: username, Valid: true})
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return s.loginBeginTargeted(ctx, account.CredentialID)
 }
 
 // loginBeginTargeted uses prf.eval.first with the known credential's PRF salt.
@@ -673,10 +695,14 @@ func (u *waUser) WebAuthnDisplayName() string                { return u.displayN
 func (u *waUser) WebAuthnCredentials() []webauthn.Credential { return u.credentials }
 
 func accountToWAUser(a queries.Account) *waUser {
+	name := a.ID
+	if a.Username.Valid && a.Username.String != "" {
+		name = a.Username.String
+	}
 	return &waUser{
 		id:          []byte(a.ID),
-		name:        a.ID,
-		displayName: a.ID,
+		name:        name,
+		displayName: name,
 		credentials: []webauthn.Credential{
 			{
 				ID:        a.CredentialID,

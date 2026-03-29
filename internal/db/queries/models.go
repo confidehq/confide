@@ -18,6 +18,7 @@ type Account struct {
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
 	BackupEligible        bool
+	Username              pgtype.Text
 }
 
 type Form struct {

@@ -28,6 +28,9 @@
 	let pendingAccountId = $state<string | null>(null);
 	let pendingCredentialId = $state<string | null>(null);
 
+	// Username input
+	let username = $state('');
+
 	// PRF check on mount
 	onMount(async () => {
 		const result = await detectPRFSupport();
@@ -53,10 +56,14 @@
 	});
 
 	async function startRegistration() {
+		if (!username.trim()) {
+			registerError = 'Please enter a username.';
+			return;
+		}
 		loading = true;
 		registerError = null;
 		try {
-			const result = await register();
+			const result = await register(username.trim());
 			recoveryCode = result.recoveryCode;
 			pendingMasterKey = result.masterKey;
 			pendingAccountId = result.accountId;
@@ -184,8 +191,29 @@
 			margin-bottom: 24px;
 		">
 			<p style="color: #9ca3af; font-size: 0.9rem; margin: 0 0 16px;">
-				Your browser will prompt you to create a passkey. Use Touch ID, Face ID, or Windows Hello.
+				Choose a username, then your browser will prompt you to create a passkey.
 			</p>
+			<label style="display: block; color: #9ca3af; font-size: 0.85rem; margin-bottom: 6px;">
+				Username
+			</label>
+			<input
+				type="text"
+				bind:value={username}
+				placeholder="e.g. alice"
+				disabled={loading}
+				style="
+					width: 100%;
+					padding: 10px 12px;
+					background: #111;
+					border: 1px solid #374151;
+					border-radius: 4px;
+					color: #e5e7eb;
+					font-family: monospace;
+					font-size: 0.9rem;
+					box-sizing: border-box;
+					margin-bottom: 16px;
+				"
+			/>
 			{#if registerError}
 				<div style="color: #fca5a5; font-size: 0.85rem; margin-bottom: 12px;">{registerError}</div>
 			{/if}
