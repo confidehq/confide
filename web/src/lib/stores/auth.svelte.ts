@@ -5,6 +5,8 @@
  * accountId and credentialId persist in localStorage.
  */
 
+import { formsStore } from './forms.svelte';
+
 const ACCOUNT_ID_KEY = 'confide.accountId';
 const CREDENTIAL_ID_KEY = 'confide.credentialId';
 
@@ -42,6 +44,7 @@ export const auth = {
 
 	clearMasterKey() {
 		_masterKey = null;
+		formsStore.clear();
 	},
 
 	updateCredentialId(credentialId: string) {
@@ -55,5 +58,6 @@ export const auth = {
 		_credentialId = null;
 		localStorage.removeItem(ACCOUNT_ID_KEY);
 		localStorage.removeItem(CREDENTIAL_ID_KEY);
+		formsStore.clear();
 	}
 };

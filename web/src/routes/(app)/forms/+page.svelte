@@ -1,45 +1,19 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { listForms, getForm, updateFormStatus, deleteForm, ApiError, type FormSummary } from '$lib/forms';
+	import { updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
 	import { auth } from '$lib/stores/auth.svelte';
-
-	let forms = $state<FormSummary[]>([]);
-	let loading = $state(true);
-	let error = $state('');
-	let formNames = $state<Map<string, string>>(new Map());
+	import { formsStore } from '$lib/stores/forms.svelte';
 
 	onMount(async () => {
-		try {
-			forms = await listForms();
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load forms';
-		} finally {
-			loading = false;
-		}
-
-		// Decrypt form names in parallel (best-effort; failures are silently ignored)
-		if (auth.masterKey && forms.length > 0) {
-			const results = await Promise.allSettled(
-				forms.map((f) => getForm(auth.masterKey!, f.formId))
-			);
-			const names = new Map(formNames);
-			results.forEach((r, i) => {
-				if (r.status === 'fulfilled') {
-					const { schema } = r.value;
-					const name = schema.name || schema.translations[schema.defaultLocale]?.formTitle;
-					if (name) names.set(forms[i].formId, name);
-				}
-			});
-			formNames = names;
-		}
+		if (auth.masterKey) await formsStore.load(auth.masterKey);
 	});
 
 	async function toggleStatus(form: FormSummary) {
 		const next = form.status === 'open' ? 'closed' : 'open';
 		try {
 			await updateFormStatus(form.formId, next);
-			forms = forms.map((f) => (f.formId === form.formId ? { ...f, status: next } : f));
+			formsStore.updateStatus(form.formId, next);
 		} catch {
 			alert('Failed to update status');
 		}
@@ -49,7 +23,7 @@
 		if (!confirm(`Delete this form and all ${form.responseCount} response(s)? This cannot be undone.`)) return;
 		try {
 			await deleteForm(form.formId);
-			forms = forms.filter((f) => f.formId !== form.formId);
+			formsStore.remove(form.formId);
 		} catch {
 			alert('Failed to delete form');
 		}
@@ -80,11 +54,11 @@
 		</button>
 	</div>
 
-	{#if loading}
+	{#if formsStore.loading}
 		<p style="color: #8899aa; font-size: 0.9rem;">Loading…</p>
-	{:else if error}
-		<p style="color: #f87171; font-size: 0.9rem;">{error}</p>
-	{:else if forms.length === 0}
+	{:else if formsStore.error}
+		<p style="color: #f87171; font-size: 0.9rem;">{formsStore.error}</p>
+	{:else if formsStore.forms.length === 0}
 		<div style="
 			padding: 48px 32px;
 			border: 1px dashed #374151;
@@ -108,10 +82,10 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each forms as form (form.formId)}
+				{#each formsStore.forms as form (form.formId)}
 					<tr style="border-bottom: 1px solid #1e2d3e;">
 						<td style="padding: 12px; color: #c5d3e0; font-size: 0.85rem;">
-							{formNames.get(form.formId) ?? '—'}
+							{formsStore.formNames.get(form.formId) ?? '—'}
 						</td>
 						<td style="padding: 12px; color: #4b6280; font-size: 0.8rem;">
 							{form.formId.slice(0, 12)}…

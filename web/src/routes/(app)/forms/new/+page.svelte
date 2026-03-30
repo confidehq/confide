@@ -4,6 +4,7 @@
 	import { createForm } from '$lib/forms';
 	import { emptySchema } from '$lib/stores/builder.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { formsStore } from '$lib/stores/forms.svelte';
 
 	let status = $state<'creating' | 'error'>('creating');
 	let errorMessage = $state('');
@@ -18,6 +19,7 @@
 		try {
 			const schema = emptySchema();
 			const { formId } = await createForm(masterKey, schema);
+			formsStore.invalidate();
 			goto(`/forms/${formId}/edit`);
 		} catch (err) {
 			status = 'error';
