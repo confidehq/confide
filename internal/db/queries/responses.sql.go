@@ -11,12 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createResponse = `-- name: CreateResponse :exec
-INSERT INTO responses (id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key)
-VALUES ($1, $2, CURRENT_DATE, $3, $4, $5)
+const insertResponseWithTTL = `-- name: InsertResponseWithTTL :exec
+INSERT INTO responses (id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at)
+SELECT $1, $2, CURRENT_DATE, $3, $4, $5,
+       CASE WHEN f.response_ttl_days IS NOT NULL
+            THEN NOW() + (f.response_ttl_days || ' days')::INTERVAL
+            ELSE NULL END
+FROM forms f
+WHERE f.id = $2
 `
 
-type CreateResponseParams struct {
+type InsertResponseWithTTLParams struct {
 	ID                 string
 	FormID             string
 	SchemaVersion      int32
@@ -24,8 +29,8 @@ type CreateResponseParams struct {
 	EphemeralPublicKey []byte
 }
 
-func (q *Queries) CreateResponse(ctx context.Context, arg CreateResponseParams) error {
-	_, err := q.db.Exec(ctx, createResponse,
+func (q *Queries) InsertResponseWithTTL(ctx context.Context, arg InsertResponseWithTTLParams) error {
+	_, err := q.db.Exec(ctx, insertResponseWithTTL,
 		arg.ID,
 		arg.FormID,
 		arg.SchemaVersion,
@@ -35,49 +40,57 @@ func (q *Queries) CreateResponse(ctx context.Context, arg CreateResponseParams) 
 	return err
 }
 
-const deleteResponse = `-- name: DeleteResponse :exec
-DELETE FROM responses WHERE id = $1 AND form_id = $2
+const listResponsesFirst = `-- name: ListResponsesFirst :many
+SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
+FROM responses
+WHERE form_id = $1
+  AND (expires_at IS NULL OR expires_at > NOW())
+  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true))
+ORDER BY received_at DESC, id DESC
+LIMIT $2
 `
 
-type DeleteResponseParams struct {
-	ID     string
+type ListResponsesFirstParams struct {
 	FormID string
+	Limit  int32
 }
 
-func (q *Queries) DeleteResponse(ctx context.Context, arg DeleteResponseParams) error {
-	_, err := q.db.Exec(ctx, deleteResponse, arg.ID, arg.FormID)
-	return err
-}
-
-const getResponse = `-- name: GetResponse :one
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key
-FROM responses WHERE id = $1 AND form_id = $2
-`
-
-type GetResponseParams struct {
-	ID     string
-	FormID string
-}
-
-func (q *Queries) GetResponse(ctx context.Context, arg GetResponseParams) (Response, error) {
-	row := q.db.QueryRow(ctx, getResponse, arg.ID, arg.FormID)
-	var i Response
-	err := row.Scan(
-		&i.ID,
-		&i.FormID,
-		&i.ReceivedAt,
-		&i.SchemaVersion,
-		&i.EncryptedData,
-		&i.EphemeralPublicKey,
-	)
-	return i, err
+func (q *Queries) ListResponsesFirst(ctx context.Context, arg ListResponsesFirstParams) ([]Response, error) {
+	rows, err := q.db.Query(ctx, listResponsesFirst, arg.FormID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Response
+	for rows.Next() {
+		var i Response
+		if err := rows.Scan(
+			&i.ID,
+			&i.FormID,
+			&i.ReceivedAt,
+			&i.SchemaVersion,
+			&i.EncryptedData,
+			&i.EphemeralPublicKey,
+			&i.ExpiresAt,
+			&i.ReadAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listResponsesAfter = `-- name: ListResponsesAfter :many
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key
+SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
 FROM responses
 WHERE form_id = $1
   AND (received_at < $2 OR (received_at = $2 AND id < $3))
+  AND (expires_at IS NULL OR expires_at > NOW())
+  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true))
 ORDER BY received_at DESC, id DESC
 LIMIT $4
 `
@@ -110,6 +123,8 @@ func (q *Queries) ListResponsesAfter(ctx context.Context, arg ListResponsesAfter
 			&i.SchemaVersion,
 			&i.EncryptedData,
 			&i.EphemeralPublicKey,
+			&i.ExpiresAt,
+			&i.ReadAt,
 		); err != nil {
 			return nil, err
 		}
@@ -121,42 +136,76 @@ func (q *Queries) ListResponsesAfter(ctx context.Context, arg ListResponsesAfter
 	return items, nil
 }
 
-const listResponsesFirst = `-- name: ListResponsesFirst :many
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key
+const getResponse = `-- name: GetResponse :one
+SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
 FROM responses
-WHERE form_id = $1
-ORDER BY received_at DESC, id DESC
-LIMIT $2
+WHERE id = $1 AND form_id = $2
+  AND (expires_at IS NULL OR expires_at > NOW())
+  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true))
 `
 
-type ListResponsesFirstParams struct {
+type GetResponseParams struct {
+	ID     string
 	FormID string
-	Limit  int32
 }
 
-func (q *Queries) ListResponsesFirst(ctx context.Context, arg ListResponsesFirstParams) ([]Response, error) {
-	rows, err := q.db.Query(ctx, listResponsesFirst, arg.FormID, arg.Limit)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Response
-	for rows.Next() {
-		var i Response
-		if err := rows.Scan(
-			&i.ID,
-			&i.FormID,
-			&i.ReceivedAt,
-			&i.SchemaVersion,
-			&i.EncryptedData,
-			&i.EphemeralPublicKey,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+func (q *Queries) GetResponse(ctx context.Context, arg GetResponseParams) (Response, error) {
+	row := q.db.QueryRow(ctx, getResponse, arg.ID, arg.FormID)
+	var i Response
+	err := row.Scan(
+		&i.ID,
+		&i.FormID,
+		&i.ReceivedAt,
+		&i.SchemaVersion,
+		&i.EncryptedData,
+		&i.EphemeralPublicKey,
+		&i.ExpiresAt,
+		&i.ReadAt,
+	)
+	return i, err
+}
+
+const markResponsesRead = `-- name: MarkResponsesRead :exec
+UPDATE responses
+SET read_at = NOW()
+WHERE form_id = $1
+  AND id = ANY($2::text[])
+  AND read_at IS NULL
+`
+
+type MarkResponsesReadParams struct {
+	FormID string
+	Ids    []string
+}
+
+func (q *Queries) MarkResponsesRead(ctx context.Context, arg MarkResponsesReadParams) error {
+	_, err := q.db.Exec(ctx, markResponsesRead, arg.FormID, arg.Ids)
+	return err
+}
+
+const deleteExpiredResponses = `-- name: DeleteExpiredResponses :exec
+DELETE FROM responses
+WHERE (expires_at IS NOT NULL AND expires_at < NOW())
+   OR (read_at IS NOT NULL AND form_id IN (
+         SELECT id FROM forms WHERE burn_after_reading = true
+       ))
+`
+
+func (q *Queries) DeleteExpiredResponses(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteExpiredResponses)
+	return err
+}
+
+const deleteResponse = `-- name: DeleteResponse :exec
+DELETE FROM responses WHERE id = $1 AND form_id = $2
+`
+
+type DeleteResponseParams struct {
+	ID     string
+	FormID string
+}
+
+func (q *Queries) DeleteResponse(ctx context.Context, arg DeleteResponseParams) error {
+	_, err := q.db.Exec(ctx, deleteResponse, arg.ID, arg.FormID)
+	return err
 }

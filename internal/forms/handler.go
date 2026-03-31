@@ -66,6 +66,8 @@ func createForm(svc *Service) http.HandlerFunc {
 			RenderKeySalt         string  `json:"renderKeySalt"`
 			ExpiresAt             *string `json:"expiresAt"`
 			ResponseLimit         *int32  `json:"responseLimit"`
+			ResponseTtlDays       *int32  `json:"responseTtlDays"`
+			BurnAfterReading      bool    `json:"burnAfterReading"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -96,13 +98,13 @@ func createForm(svc *Service) http.HandlerFunc {
 			}
 		}
 
-		expiresAt, responseLimit, parseErr := parseExpirationFields(req.ExpiresAt, req.ResponseLimit)
+		expiresAt, responseLimit, responseTtlDays, burnAfterReading, parseErr := parseExpirationFields(req.ExpiresAt, req.ResponseLimit, req.ResponseTtlDays, req.BurnAfterReading)
 		if parseErr != nil {
 			writeError(w, http.StatusBadRequest, "invalid_field", parseErr.Error())
 			return
 		}
 
-		formID, err := svc.CreateForm(r.Context(), accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, expiresAt, responseLimit)
+		formID, err := svc.CreateForm(r.Context(), accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, expiresAt, responseLimit, responseTtlDays, burnAfterReading)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create form")
 			return
@@ -123,26 +125,30 @@ func listForms(svc *Service) http.HandlerFunc {
 		}
 
 		type formJSON struct {
-			ID              string  `json:"formId"`
-			Status          string  `json:"status"`
-			SchemaVersion   int32   `json:"schemaVersion"`
-			ResponseCount   int32   `json:"responseCount"`
-			CreatedAt       string  `json:"createdAt"`
-			UpdatedAt       string  `json:"updatedAt"`
-			ExpiresAt       *string `json:"expiresAt,omitempty"`
-			ResponseLimit   *int32  `json:"responseLimit,omitempty"`
+			ID               string  `json:"formId"`
+			Status           string  `json:"status"`
+			SchemaVersion    int32   `json:"schemaVersion"`
+			ResponseCount    int32   `json:"responseCount"`
+			CreatedAt        string  `json:"createdAt"`
+			UpdatedAt        string  `json:"updatedAt"`
+			ExpiresAt        *string `json:"expiresAt,omitempty"`
+			ResponseLimit    *int32  `json:"responseLimit,omitempty"`
+			ResponseTtlDays  *int32  `json:"responseTtlDays,omitempty"`
+			BurnAfterReading bool    `json:"burnAfterReading"`
 		}
 		out := make([]formJSON, len(forms))
 		for i, f := range forms {
 			out[i] = formJSON{
-				ID:            f.ID,
-				Status:        effectiveStatus(f.Status, f.ResponseCount, f.ExpiresAt, f.ResponseLimit),
-				SchemaVersion: f.SchemaVersion,
-				ResponseCount: f.ResponseCount,
-				CreatedAt:     f.CreatedAt.Time.Format("2006-01-02"),
-				UpdatedAt:     f.UpdatedAt.Time.Format("2006-01-02"),
-				ExpiresAt:     nullableDateString(f.ExpiresAt),
-				ResponseLimit: nullableInt32(f.ResponseLimit),
+				ID:               f.ID,
+				Status:           effectiveStatus(f.Status, f.ResponseCount, f.ExpiresAt, f.ResponseLimit),
+				SchemaVersion:    f.SchemaVersion,
+				ResponseCount:    f.ResponseCount,
+				CreatedAt:        f.CreatedAt.Time.Format("2006-01-02"),
+				UpdatedAt:        f.UpdatedAt.Time.Format("2006-01-02"),
+				ExpiresAt:        nullableDateString(f.ExpiresAt),
+				ResponseLimit:    nullableInt32(f.ResponseLimit),
+				ResponseTtlDays:  nullableInt32(f.ResponseTtlDays),
+				BurnAfterReading: f.BurnAfterReading,
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"forms": out})
@@ -174,6 +180,7 @@ func getForm(svc *Service) http.HandlerFunc {
 			"encryptedSchema":       base64.StdEncoding.EncodeToString(form.EncryptedSchema),
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(form.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(form.PublicFormKey),
+			"burnAfterReading":      form.BurnAfterReading,
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
@@ -183,6 +190,9 @@ func getForm(svc *Service) http.HandlerFunc {
 		}
 		if n := nullableInt32(form.ResponseLimit); n != nil {
 			resp["responseLimit"] = *n
+		}
+		if n := nullableInt32(form.ResponseTtlDays); n != nil {
+			resp["responseTtlDays"] = *n
 		}
 		writeJSON(w, http.StatusOK, resp)
 	}
@@ -311,21 +321,23 @@ func updateFormExpiration(svc *Service) http.HandlerFunc {
 		formID := chi.URLParam(r, "id")
 
 		var req struct {
-			ExpiresAt     *string `json:"expiresAt"`
-			ResponseLimit *int32  `json:"responseLimit"`
+			ExpiresAt        *string `json:"expiresAt"`
+			ResponseLimit    *int32  `json:"responseLimit"`
+			ResponseTtlDays  *int32  `json:"responseTtlDays"`
+			BurnAfterReading bool    `json:"burnAfterReading"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
 
-		expiresAt, responseLimit, parseErr := parseExpirationFields(req.ExpiresAt, req.ResponseLimit)
+		expiresAt, responseLimit, responseTtlDays, burnAfterReading, parseErr := parseExpirationFields(req.ExpiresAt, req.ResponseLimit, req.ResponseTtlDays, req.BurnAfterReading)
 		if parseErr != nil {
 			writeError(w, http.StatusBadRequest, "invalid_field", parseErr.Error())
 			return
 		}
 
-		if err := svc.UpdateExpiration(r.Context(), accountID, formID, expiresAt, responseLimit); err != nil {
+		if err := svc.UpdateExpiration(r.Context(), accountID, formID, expiresAt, responseLimit, responseTtlDays, burnAfterReading); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to update expiration")
 			return
 		}
@@ -353,12 +365,12 @@ func effectiveStatus(status string, responseCount int32, expiresAt pgtype.Date, 
 }
 
 // parseExpirationFields converts optional JSON expiration inputs to pgtype values.
-func parseExpirationFields(expiresAtStr *string, responseLimit *int32) (pgtype.Date, pgtype.Int4, error) {
+func parseExpirationFields(expiresAtStr *string, responseLimit *int32, responseTtlDaysRaw *int32, burnAfterReading bool) (pgtype.Date, pgtype.Int4, pgtype.Int4, bool, error) {
 	var expiresAt pgtype.Date
 	if expiresAtStr != nil {
 		t, err := time.Parse("2006-01-02", *expiresAtStr)
 		if err != nil {
-			return pgtype.Date{}, pgtype.Int4{}, errors.New("expiresAt must be a date in YYYY-MM-DD format")
+			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("expiresAt must be a date in YYYY-MM-DD format")
 		}
 		expiresAt = pgtype.Date{Time: t, Valid: true}
 	}
@@ -366,12 +378,20 @@ func parseExpirationFields(expiresAtStr *string, responseLimit *int32) (pgtype.D
 	var limit pgtype.Int4
 	if responseLimit != nil {
 		if *responseLimit < 1 {
-			return pgtype.Date{}, pgtype.Int4{}, errors.New("responseLimit must be a positive integer")
+			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseLimit must be a positive integer")
 		}
 		limit = pgtype.Int4{Int32: *responseLimit, Valid: true}
 	}
 
-	return expiresAt, limit, nil
+	var ttlDays pgtype.Int4
+	if responseTtlDaysRaw != nil {
+		if *responseTtlDaysRaw < 1 {
+			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseTtlDays must be a positive integer")
+		}
+		ttlDays = pgtype.Int4{Int32: *responseTtlDaysRaw, Valid: true}
+	}
+
+	return expiresAt, limit, ttlDays, burnAfterReading, nil
 }
 
 func nullableDateString(d pgtype.Date) *string {

@@ -2,9 +2,9 @@
 INSERT INTO forms (
     id, account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
-    render_key_salt, expires_at, response_limit
+    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8
+    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: GetFormByOwner :one
@@ -15,7 +15,7 @@ SELECT id, status, schema_version, response_count, render_encrypted_schema, publ
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByAccount :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
 FROM forms WHERE account_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateFormSchema :one
@@ -37,7 +37,11 @@ DELETE FROM forms WHERE id = $1 AND account_id = $2;
 
 -- name: UpdateFormExpiration :exec
 UPDATE forms
-SET expires_at = $3, response_limit = $4, updated_at = CURRENT_DATE
+SET expires_at          = $3,
+    response_limit      = $4,
+    response_ttl_days   = $5,
+    burn_after_reading  = $6,
+    updated_at          = CURRENT_DATE
 WHERE id = $1 AND account_id = $2;
 
 -- name: IncrementResponseCount :one

@@ -26,16 +26,28 @@
 	let expirationSaving = $state(false);
 	let expirationError = $state<string | null>(null);
 
-	async function applyExpiration(newExpiresAt: string | null, newResponseLimit: number | null) {
+	async function applyExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newTtlDays: number | null, newBurnAfterReading: boolean) {
 		expirationSaving = true;
 		expirationError = null;
 		try {
-			await store.setExpiration(newExpiresAt, newResponseLimit);
+			await store.setExpiration(newExpiresAt, newResponseLimit, newTtlDays, newBurnAfterReading);
 		} catch {
 			expirationError = 'Failed to save — please try again.';
 		} finally {
 			expirationSaving = false;
 		}
+	}
+
+	type ResponseLifetimePolicy = 'none' | 'burn' | 'ttl';
+
+	let responseLifetimePolicy = $derived<ResponseLifetimePolicy>(
+		store.burnAfterReading ? 'burn' : store.responseTtlDays ? 'ttl' : 'none'
+	);
+
+	function applyResponseLifetime(policy: ResponseLifetimePolicy, ttlDays: number | null) {
+		const burn = policy === 'burn';
+		const days = policy === 'ttl' ? ttlDays : null;
+		applyExpiration(store.expiresAt, store.responseLimit, days, burn);
 	}
 
 	function inputStyle(): string {
@@ -153,13 +165,13 @@
 									value={store.expiresAt ?? ''}
 									onchange={(e) => {
 										const v = (e.target as HTMLInputElement).value;
-										applyExpiration(v || null, store.responseLimit);
+										applyExpiration(v || null, store.responseLimit, store.responseTtlDays, store.burnAfterReading);
 									}}
 									style={inputStyle()}
 								/>
 								{#if store.expiresAt}
 									<button
-										onclick={() => applyExpiration(null, store.responseLimit)}
+										onclick={() => applyExpiration(null, store.responseLimit, store.responseTtlDays, store.burnAfterReading)}
 										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
 										title="Clear sunset date"
 									>×</button>
@@ -178,19 +190,55 @@
 									value={store.responseLimit ?? ''}
 									onchange={(e) => {
 										const v = parseInt((e.target as HTMLInputElement).value);
-										applyExpiration(store.expiresAt, v > 0 ? v : null);
+										applyExpiration(store.expiresAt, v > 0 ? v : null, store.responseTtlDays, store.burnAfterReading);
 									}}
 									style={inputStyle()}
 								/>
 								{#if store.responseLimit}
 									<button
-										onclick={() => applyExpiration(store.expiresAt, null)}
+										onclick={() => applyExpiration(store.expiresAt, null, store.responseTtlDays, store.burnAfterReading)}
 										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
 										title="Clear response cap"
 									>×</button>
 								{/if}
 							</div>
 							<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Form closes after this many responses.</p>
+						</div>
+
+						<div>
+							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Response lifetime</label>
+							<select
+								value={responseLifetimePolicy}
+								onchange={(e) => {
+									const policy = (e.target as HTMLSelectElement).value as ResponseLifetimePolicy;
+									applyResponseLifetime(policy, policy === 'ttl' ? (store.responseTtlDays ?? 30) : null);
+								}}
+								style={inputStyle()}
+							>
+								<option value="none">No automatic deletion</option>
+								<option value="burn">Burn after reading</option>
+								<option value="ttl">Delete after X days</option>
+							</select>
+
+							{#if responseLifetimePolicy === 'ttl'}
+								<div style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
+									<input
+										type="number"
+										min="1"
+										placeholder="Days"
+										value={store.responseTtlDays ?? ''}
+										onchange={(e) => {
+											const v = parseInt((e.target as HTMLInputElement).value);
+											applyResponseLifetime('ttl', v > 0 ? v : null);
+										}}
+										style={inputStyle()}
+									/>
+									<span style="font-size: 0.75rem; color: #9ca3af; flex-shrink: 0;">days</span>
+								</div>
+								<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Responses are deleted this many days after they are received.</p>
+							{:else if responseLifetimePolicy === 'burn'}
+								<p style="margin: 6px 0 0; font-size: 0.7rem; color: #4b5563;">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
+							{/if}
 						</div>
 
 						{#if expirationSaving}

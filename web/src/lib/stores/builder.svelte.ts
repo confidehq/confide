@@ -22,6 +22,8 @@ export interface BuilderStore {
 	readonly renderKeySalt: Uint8Array | null;
 	readonly expiresAt: string | null;
 	readonly responseLimit: number | null;
+	readonly responseTtlDays: number | null;
+	readonly burnAfterReading: boolean;
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
@@ -43,7 +45,7 @@ export interface BuilderStore {
 	setMode(mode: BuilderMode): void;
 	setName(name: string): void;
 	setConvoAllowEdit(allow: boolean): void;
-	setExpiration(expiresAt: string | null, responseLimit: number | null): Promise<void>;
+	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
 	load(): Promise<void>;
 	save(): Promise<void>;
 	flushSave(): Promise<void>;
@@ -98,6 +100,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let mode = $state<BuilderMode>('edit');
 	let expiresAt = $state<string | null>(null);
 	let responseLimit = $state<number | null>(null);
+	let responseTtlDays = $state<number | null>(null);
+	let burnAfterReading = $state(false);
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -328,10 +332,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markDirty();
 	}
 
-	async function setExpiration(newExpiresAt: string | null, newResponseLimit: number | null): Promise<void> {
-		await updateFormExpiration(formId, newExpiresAt, newResponseLimit);
+	async function setExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newResponseTtlDays: number | null, newBurnAfterReading: boolean): Promise<void> {
+		await updateFormExpiration(formId, newExpiresAt, newResponseLimit, newResponseTtlDays, newBurnAfterReading);
 		expiresAt = newExpiresAt;
 		responseLimit = newResponseLimit;
+		responseTtlDays = newResponseTtlDays;
+		burnAfterReading = newBurnAfterReading;
 	}
 
 	async function load(): Promise<void> {
@@ -345,6 +351,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		activeLocale = schema.defaultLocale;
 		expiresAt = record.expiresAt ?? null;
 		responseLimit = record.responseLimit ?? null;
+		responseTtlDays = record.responseTtlDays ?? null;
+		burnAfterReading = record.burnAfterReading ?? false;
 		if (record.renderKeySalt) {
 			const raw = atob(record.renderKeySalt);
 			const bytes = new Uint8Array(raw.length);
@@ -415,6 +423,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		},
 		get responseLimit() {
 			return responseLimit;
+		},
+		get responseTtlDays() {
+			return responseTtlDays;
+		},
+		get burnAfterReading() {
+			return burnAfterReading;
 		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;

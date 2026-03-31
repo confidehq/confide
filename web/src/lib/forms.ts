@@ -30,6 +30,8 @@ export interface FormSummary {
 	updatedAt: string;
 	expiresAt?: string | null;
 	responseLimit?: number | null;
+	responseTtlDays?: number | null;
+	burnAfterReading: boolean;
 }
 
 export interface FormRecord extends FormSummary {
@@ -157,18 +159,20 @@ export async function updateFormSchema(
 }
 
 /**
- * Update a form's sunset date and/or response cap.
- * Pass null for either field to clear it.
+ * Update a form's sunset date, response cap, and/or response TTL policy.
+ * Pass null for optional fields to clear them.
  */
 export async function updateFormExpiration(
 	formId: string,
 	expiresAt: string | null,
-	responseLimit: number | null
+	responseLimit: number | null,
+	responseTtlDays: number | null = null,
+	burnAfterReading = false
 ): Promise<void> {
 	const res = await fetch(`/api/forms/${formId}/expiration`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ expiresAt, responseLimit })
+		body: JSON.stringify({ expiresAt, responseLimit, responseTtlDays, burnAfterReading })
 	});
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }

@@ -15,10 +15,10 @@ const createForm = `-- name: CreateForm :one
 INSERT INTO forms (
     id, account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
-    render_key_salt, expires_at, response_limit
+    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8
-) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit
+    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8, $9, $10
+) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
 `
 
 type CreateFormParams struct {
@@ -30,6 +30,8 @@ type CreateFormParams struct {
 	RenderKeySalt         []byte
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
+	ResponseTtlDays       pgtype.Int4
+	BurnAfterReading      bool
 }
 
 func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, error) {
@@ -42,6 +44,8 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		arg.RenderKeySalt,
 		arg.ExpiresAt,
 		arg.ResponseLimit,
+		arg.ResponseTtlDays,
+		arg.BurnAfterReading,
 	)
 	var i Form
 	err := row.Scan(
@@ -58,6 +62,8 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.RenderKeySalt,
 		&i.ExpiresAt,
 		&i.ResponseLimit,
+		&i.ResponseTtlDays,
+		&i.BurnAfterReading,
 	)
 	return i, err
 }
@@ -77,7 +83,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByOwner = `-- name: GetFormByOwner :one
-SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit FROM forms WHERE id = $1 AND account_id = $2
+SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading FROM forms WHERE id = $1 AND account_id = $2
 `
 
 type GetFormByOwnerParams struct {
@@ -102,6 +108,8 @@ func (q *Queries) GetFormByOwner(ctx context.Context, arg GetFormByOwnerParams) 
 		&i.RenderKeySalt,
 		&i.ExpiresAt,
 		&i.ResponseLimit,
+		&i.ResponseTtlDays,
+		&i.BurnAfterReading,
 	)
 	return i, err
 }
@@ -189,19 +197,21 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 }
 
 const listFormsByAccount = `-- name: ListFormsByAccount :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
 FROM forms WHERE account_id = $1 ORDER BY created_at DESC
 `
 
 type ListFormsByAccountRow struct {
-	ID            string
-	Status        string
-	SchemaVersion int32
-	ResponseCount int32
-	CreatedAt     pgtype.Date
-	UpdatedAt     pgtype.Date
-	ExpiresAt     pgtype.Date
-	ResponseLimit pgtype.Int4
+	ID               string
+	Status           string
+	SchemaVersion    int32
+	ResponseCount    int32
+	CreatedAt        pgtype.Date
+	UpdatedAt        pgtype.Date
+	ExpiresAt        pgtype.Date
+	ResponseLimit    pgtype.Int4
+	ResponseTtlDays  pgtype.Int4
+	BurnAfterReading bool
 }
 
 func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]ListFormsByAccountRow, error) {
@@ -222,6 +232,8 @@ func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]L
 			&i.UpdatedAt,
 			&i.ExpiresAt,
 			&i.ResponseLimit,
+			&i.ResponseTtlDays,
+			&i.BurnAfterReading,
 		); err != nil {
 			return nil, err
 		}
@@ -265,15 +277,21 @@ func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]List
 
 const updateFormExpiration = `-- name: UpdateFormExpiration :exec
 UPDATE forms
-SET expires_at = $3, response_limit = $4, updated_at = CURRENT_DATE
+SET expires_at         = $3,
+    response_limit     = $4,
+    response_ttl_days  = $5,
+    burn_after_reading = $6,
+    updated_at         = CURRENT_DATE
 WHERE id = $1 AND account_id = $2
 `
 
 type UpdateFormExpirationParams struct {
-	ID            string
-	AccountID     string
-	ExpiresAt     pgtype.Date
-	ResponseLimit pgtype.Int4
+	ID               string
+	AccountID        string
+	ExpiresAt        pgtype.Date
+	ResponseLimit    pgtype.Int4
+	ResponseTtlDays  pgtype.Int4
+	BurnAfterReading bool
 }
 
 func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpirationParams) error {
@@ -282,6 +300,8 @@ func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpira
 		arg.AccountID,
 		arg.ExpiresAt,
 		arg.ResponseLimit,
+		arg.ResponseTtlDays,
+		arg.BurnAfterReading,
 	)
 	return err
 }

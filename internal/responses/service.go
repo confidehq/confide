@@ -25,7 +25,9 @@ type DB interface {
 	ListResponsesAfter(ctx context.Context, arg queries.ListResponsesAfterParams) ([]queries.Response, error)
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
 	DeleteResponse(ctx context.Context, arg queries.DeleteResponseParams) error
-	CreateResponse(ctx context.Context, arg queries.CreateResponseParams) error
+	InsertResponseWithTTL(ctx context.Context, arg queries.InsertResponseWithTTLParams) error
+	MarkResponsesRead(ctx context.Context, arg queries.MarkResponsesReadParams) error
+	DeleteExpiredResponses(ctx context.Context) error
 	IncrementResponseCount(ctx context.Context, id string) (int32, error)
 }
 
@@ -109,8 +111,20 @@ func (s *Service) ListResponses(ctx context.Context, accountID, formID string, a
 	}
 
 	out := make([]ResponseRecord, len(rows))
+	ids := make([]string, len(rows))
 	for i, r := range rows {
 		out[i] = responseRecordFromDB(r)
+		ids[i] = r.ID
+	}
+
+	// Mark responses as read for burn-after-reading forms. The reaper will delete
+	// them on the next pass. Failure here is non-fatal — responses remain visible
+	// until the next list call or the reaper runs.
+	if len(ids) > 0 {
+		_ = s.db.MarkResponsesRead(ctx, queries.MarkResponsesReadParams{
+			FormID: formID,
+			Ids:    ids,
+		})
 	}
 
 	var nextCursor *string
@@ -200,7 +214,7 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 			return err
 		}
 
-		insertErr := q.CreateResponse(ctx, queries.CreateResponseParams{
+		insertErr := q.InsertResponseWithTTL(ctx, queries.InsertResponseWithTTLParams{
 			ID:                 id,
 			FormID:             item.FormID,
 			SchemaVersion:      item.SchemaVersion,
@@ -232,6 +246,12 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	}
 
 	return tx.Commit(ctx)
+}
+
+// DeleteExpiredResponses hard-deletes all responses that have passed their TTL
+// or have been read on a burn-after-reading form. Called by the reaper goroutine.
+func (s *Service) DeleteExpiredResponses(ctx context.Context) error {
+	return s.db.DeleteExpiredResponses(ctx)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

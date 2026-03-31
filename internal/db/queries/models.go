@@ -35,6 +35,8 @@ type Form struct {
 	RenderKeySalt         []byte
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
+	ResponseTtlDays       pgtype.Int4
+	BurnAfterReading      bool
 }
 
 type FormSchemaVersion struct {
@@ -59,6 +61,8 @@ type Response struct {
 	SchemaVersion      int32
 	EncryptedData      []byte
 	EphemeralPublicKey []byte
+	ExpiresAt          pgtype.Timestamptz
+	ReadAt             pgtype.Timestamptz
 }
 
 type Session struct {

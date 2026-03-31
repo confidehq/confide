@@ -53,18 +53,22 @@ type FormRecord struct {
 	RenderKeySalt         []byte // nil if never published
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
+	ResponseTtlDays       pgtype.Int4
+	BurnAfterReading      bool
 }
 
 // FormSummary is a list-view row — no schema blobs.
 type FormSummary struct {
-	ID            string
-	Status        string
-	SchemaVersion int32
-	ResponseCount int32
-	CreatedAt     pgtype.Date
-	UpdatedAt     pgtype.Date
-	ExpiresAt     pgtype.Date
-	ResponseLimit pgtype.Int4
+	ID               string
+	Status           string
+	SchemaVersion    int32
+	ResponseCount    int32
+	CreatedAt        pgtype.Date
+	UpdatedAt        pgtype.Date
+	ExpiresAt        pgtype.Date
+	ResponseLimit    pgtype.Int4
+	ResponseTtlDays  pgtype.Int4
+	BurnAfterReading bool
 }
 
 // PublicFormRecord is returned to unauthenticated respondents.
@@ -83,7 +87,7 @@ type PublicFormRecord struct {
 // If clientID is non-empty it is used as the form ID (client-proposed, for key derivation);
 // otherwise a random ID is generated server-side.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -110,6 +114,8 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 		RenderKeySalt:         renderKeySalt,
 		ExpiresAt:             expiresAt,
 		ResponseLimit:         responseLimit,
+		ResponseTtlDays:       responseTtlDays,
+		BurnAfterReading:      burnAfterReading,
 	})
 	if err != nil {
 		return "", err
@@ -129,15 +135,17 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 	return id, nil
 }
 
-// UpdateExpiration sets the sunset date and/or response cap for a form.
+// UpdateExpiration sets the sunset date, response cap, and/or response TTL policy for a form.
 // Passing zero-value pgtype.Date/pgtype.Int4 (Valid=false) clears the respective limit.
 // Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) UpdateExpiration(ctx context.Context, accountID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4) error {
+func (s *Service) UpdateExpiration(ctx context.Context, accountID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) error {
 	return s.db.UpdateFormExpiration(ctx, queries.UpdateFormExpirationParams{
-		ID:            formID,
-		AccountID:     accountID,
-		ExpiresAt:     expiresAt,
-		ResponseLimit: responseLimit,
+		ID:               formID,
+		AccountID:        accountID,
+		ExpiresAt:        expiresAt,
+		ResponseLimit:    responseLimit,
+		ResponseTtlDays:  responseTtlDays,
+		BurnAfterReading: burnAfterReading,
 	})
 }
 
@@ -166,14 +174,16 @@ func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummar
 	out := make([]FormSummary, len(rows))
 	for i, r := range rows {
 		out[i] = FormSummary{
-			ID:            r.ID,
-			Status:        r.Status,
-			SchemaVersion: r.SchemaVersion,
-			ResponseCount: r.ResponseCount,
-			CreatedAt:     r.CreatedAt,
-			UpdatedAt:     r.UpdatedAt,
-			ExpiresAt:     r.ExpiresAt,
-			ResponseLimit: r.ResponseLimit,
+			ID:               r.ID,
+			Status:           r.Status,
+			SchemaVersion:    r.SchemaVersion,
+			ResponseCount:    r.ResponseCount,
+			CreatedAt:        r.CreatedAt,
+			UpdatedAt:        r.UpdatedAt,
+			ExpiresAt:        r.ExpiresAt,
+			ResponseLimit:    r.ResponseLimit,
+			ResponseTtlDays:  r.ResponseTtlDays,
+			BurnAfterReading: r.BurnAfterReading,
 		}
 	}
 	return out, nil
@@ -317,5 +327,7 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		RenderKeySalt:         f.RenderKeySalt,
 		ExpiresAt:             f.ExpiresAt,
 		ResponseLimit:         f.ResponseLimit,
+		ResponseTtlDays:       f.ResponseTtlDays,
+		BurnAfterReading:      f.BurnAfterReading,
 	}
 }

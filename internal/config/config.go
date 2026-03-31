@@ -22,6 +22,7 @@ type Config struct {
 	RPDisplayName      string
 	Env                string
 	RelayFlushInterval time.Duration
+	ReaperInterval     time.Duration
 	RegistrationOpen   bool
 }
 
@@ -36,6 +37,13 @@ func Load() (*Config, error) {
 		}
 	}
 
+	reaperInterval := 1 * time.Hour
+	if v := os.Getenv("CONFIDE_REAPER_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			reaperInterval = d
+		}
+	}
+
 	cfg := &Config{
 		BindAddr:           getEnv("CONFIDE_BIND_ADDR", ":8080"),
 		CORSOrigin:         getEnv("CONFIDE_CORS_ORIGIN", "http://localhost:3000"),
@@ -44,6 +52,7 @@ func Load() (*Config, error) {
 		RPDisplayName:      getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
 		Env:                getEnv("CONFIDE_ENV", "development"),
 		RelayFlushInterval: flushInterval,
+		ReaperInterval:     reaperInterval,
 		RegistrationOpen:   parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
 	}
 
