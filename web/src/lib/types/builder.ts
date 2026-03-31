@@ -13,7 +13,10 @@ export type FieldType =
 	| 'dropdown'
 	| 'date_time'
 	| 'rating'
-	| 'section_break';
+	| 'section_break'
+	| 'heading'
+	| 'accordion'
+	| 'accent';
 
 export interface ShortTextConfig {
 	maxLength?: number;
@@ -60,6 +63,18 @@ export interface SectionBreakConfig {
 	// no config
 }
 
+export interface HeadingConfig {
+	level: 0 | 1 | 2 | 3; // 0 = plain paragraph text
+}
+
+export interface AccordionConfig {
+	// no config — title in translation.label, body in translation.helpText
+}
+
+export interface AccentConfig {
+	variant: 'note' | 'warning' | 'danger' | 'success';
+}
+
 export type FieldConfig =
 	| ShortTextConfig
 	| LongTextConfig
@@ -68,7 +83,10 @@ export type FieldConfig =
 	| DropdownConfig
 	| DateTimeConfig
 	| RatingConfig
-	| SectionBreakConfig;
+	| SectionBreakConfig
+	| HeadingConfig
+	| AccordionConfig
+	| AccentConfig;
 
 export interface BuilderField {
 	id: string;

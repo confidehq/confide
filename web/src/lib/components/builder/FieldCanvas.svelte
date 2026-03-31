@@ -18,7 +18,10 @@
 		dropdown: 'Dropdown',
 		date_time: 'Date / time',
 		rating: 'Rating',
-		section_break: 'Section break'
+		section_break: 'Section break',
+		heading: 'Heading',
+		accordion: 'Accordion',
+		accent: 'Accent block'
 	};
 
 	function hasTranslation(field: BuilderField): boolean {

@@ -87,6 +87,12 @@ function defaultConfigForType(type: FieldType): FieldConfig {
 			return { scale: 5, shape: 'star' };
 		case 'section_break':
 			return {};
+		case 'heading':
+			return { level: 2 };
+		case 'accordion':
+			return {};
+		case 'accent':
+			return { variant: 'note' };
 	}
 }
 

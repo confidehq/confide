@@ -9,6 +9,9 @@
 	import DateTimeInput from './DateTimeInput.svelte';
 	import RatingInput from './RatingInput.svelte';
 	import SectionBreakInput from './SectionBreakInput.svelte';
+	import HeadingField from './HeadingField.svelte';
+	import AccordionField from './AccordionField.svelte';
+	import AccentField from './AccentField.svelte';
 
 	interface Props {
 		field: BuilderField;
@@ -38,5 +41,11 @@
 		<DateTimeInput {field} {translation} {value} {error} {onchange} />
 	{:else if field.type === 'rating'}
 		<RatingInput {field} {translation} {value} {error} {onchange} />
+	{:else if field.type === 'heading'}
+		<HeadingField {field} {translation} />
+	{:else if field.type === 'accordion'}
+		<AccordionField {field} {translation} />
+	{:else if field.type === 'accent'}
+		<AccentField {field} {translation} />
 	{/if}
 </div>

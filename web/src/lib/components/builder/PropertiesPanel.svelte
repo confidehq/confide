@@ -8,6 +8,8 @@
 		DropdownConfig,
 		DateTimeConfig,
 		RatingConfig,
+		HeadingConfig,
+		AccentConfig,
 		ChoiceOption
 	} from '$lib/types/builder';
 	import TranslationEditor from './TranslationEditor.svelte';
@@ -491,6 +493,49 @@
 						{#if field.type === 'section_break'}
 							<p style="font-size: 0.8rem; color: #6b7280; margin: 0;">
 								Section breaks have no settings. Use the Translation tab to add a label.
+							</p>
+						{/if}
+
+						<!-- heading config -->
+						{#if field.type === 'heading'}
+							{@const cfg = field.config as HeadingConfig}
+							<div>
+								<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Level</label>
+								<select
+									value={cfg.level}
+									onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 })}
+									style={inputStyle()}
+								>
+									<option value={0}>Text — Paragraph</option>
+									<option value={1}>H1 — Title</option>
+									<option value={2}>H2 — Section</option>
+									<option value={3}>H3 — Subsection</option>
+								</select>
+							</div>
+						{/if}
+
+						<!-- accent config -->
+						{#if field.type === 'accent'}
+							{@const cfg = field.config as AccentConfig}
+							<div>
+								<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Variant</label>
+								<select
+									value={cfg.variant}
+									onchange={(e) => store.updateFieldConfig(field.id, { variant: (e.target as HTMLSelectElement).value as AccentConfig['variant'] })}
+									style={inputStyle()}
+								>
+									<option value="note">Note</option>
+									<option value="warning">Warning</option>
+									<option value="danger">Danger</option>
+									<option value="success">Success</option>
+								</select>
+							</div>
+						{/if}
+
+						<!-- accordion config -->
+						{#if field.type === 'accordion'}
+							<p style="font-size: 0.8rem; color: #6b7280; margin: 0;">
+								Set the title and body text in the Translation tab.
 							</p>
 						{/if}
 					</div>

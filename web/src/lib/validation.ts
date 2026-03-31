@@ -3,6 +3,7 @@ import type { BuilderField, CheckboxesConfig, DateTimeConfig } from './types/bui
 export type AnswerValue = string | string[] | number | null | undefined;
 
 export function validateAnswer(field: BuilderField, value: AnswerValue): string | null {
+	if (field.type === 'section_break' || field.type === 'heading' || field.type === 'accordion' || field.type === 'accent') return null;
 	if (field.required && isEmpty(value)) return 'This field is required.';
 	if (field.type === 'checkboxes') {
 		const cfg = field.config as CheckboxesConfig;
@@ -26,7 +27,7 @@ export function validateAll(
 ): Record<string, string> {
 	const errors: Record<string, string> = {};
 	for (const field of fields) {
-		if (field.type === 'section_break') continue;
+		if (field.type === 'section_break' || field.type === 'heading' || field.type === 'accordion' || field.type === 'accent') continue;
 		const err = validateAnswer(field, answers[field.id]);
 		if (err) errors[field.id] = err;
 	}

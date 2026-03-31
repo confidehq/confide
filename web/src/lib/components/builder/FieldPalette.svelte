@@ -16,7 +16,10 @@
 		{ type: 'dropdown', label: 'Dropdown', icon: '▾' },
 		{ type: 'date_time', label: 'Date / time', icon: '📅' },
 		{ type: 'rating', label: 'Rating', icon: '★' },
-		{ type: 'section_break', label: 'Section break', icon: '—' }
+		{ type: 'section_break', label: 'Section break', icon: '—' },
+		{ type: 'heading', label: 'Heading', icon: 'H' },
+		{ type: 'accordion', label: 'Accordion', icon: '▸' },
+		{ type: 'accent', label: 'Accent block', icon: '!' }
 	];
 </script>
 
