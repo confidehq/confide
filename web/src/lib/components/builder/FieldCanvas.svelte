@@ -2,6 +2,7 @@
 	import { dndzone } from 'svelte-dnd-action';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { BuilderField } from '$lib/types/builder';
+	import { getOrderedFields } from '$lib/types/builder';
 	import FormPreview from '$lib/components/form/FormPreview.svelte';
 
 	interface Props {
@@ -31,16 +32,22 @@
 		return !!ft?.label;
 	}
 
+	// Local state for dnd — holds shadow items during drag without touching the store.
+	// Synced from the store via $effect; committed back only on finalize.
+	let fields = $state<BuilderField[]>([]);
+
+	$effect(() => {
+		fields = getOrderedFields(store.schema, store.activeLocale);
+	});
+
 	function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
-		store.reorderFields(e.detail.items);
+		// Update local list only — keeps dnd animation without writing shadow IDs to the store
+		fields = e.detail.items;
 	}
 
 	function handleDndFinalize(e: CustomEvent<{ items: BuilderField[] }>) {
 		store.reorderFields(e.detail.items);
 	}
-
-	// Derived: get current fields as a reactive list for dnd
-	let fields = $derived([...store.schema.fields]);
 </script>
 
 <main

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BuilderSchema, BuilderField } from '$lib/types/builder';
+	import { getOrderedFields } from '$lib/types/builder';
 	import type { ResponsePayload } from '$lib/types/crypto';
 	import { submitResponse } from '$lib/forms';
 	import { validateAnswer } from '$lib/validation';
@@ -36,7 +37,7 @@
 		return groups.filter((g) => g.length > 0);
 	}
 
-	const steps = $derived(computeSteps(schema.fields));
+	const steps = $derived(computeSteps(getOrderedFields(schema, locale)));
 	const totalSteps = $derived(steps.length);
 
 	let currentStep = $state(0);

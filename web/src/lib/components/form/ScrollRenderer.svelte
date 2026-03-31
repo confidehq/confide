@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BuilderSchema, BuilderField } from '$lib/types/builder';
+	import { getOrderedFields } from '$lib/types/builder';
 	import type { ResponsePayload } from '$lib/types/crypto';
 	import { submitResponse } from '$lib/forms';
 	import { validateAll } from '$lib/validation';
@@ -22,6 +23,8 @@
 	const translation = $derived(
 		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
 	);
+
+	const orderedFields = $derived(getOrderedFields(schema, locale));
 
 	let answers = $state<Record<string, AnswerValue>>({});
 	let errors = $state<Record<string, string>>({});
@@ -46,7 +49,7 @@
 		const allErrors = validateAll(schema.fields, answers);
 		if (Object.keys(allErrors).length > 0) {
 			errors = allErrors;
-			const firstErrField = schema.fields.find((f) => allErrors[f.id]);
+			const firstErrField = orderedFields.find((f) => allErrors[f.id]);
 			if (firstErrField) {
 				document
 					.getElementById(`field-${firstErrField.id}`)
@@ -95,7 +98,7 @@
 			{/each}
 		</div>
 		<div style="display: flex; flex-direction: column; gap: 24px;">
-			{#each schema.fields as field (field.id)}
+			{#each orderedFields as field (field.id)}
 				<FieldRenderer
 					{field}
 					translation={fieldTranslation(field.id)}

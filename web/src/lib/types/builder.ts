@@ -120,4 +120,25 @@ export interface BuilderSchema {
 	convoAllowEdit?: boolean;
 	fields: BuilderField[];
 	translations: Record<string, TranslationMap>;
+	/** Per-locale field ordering: maps locale → ordered array of field IDs.
+	 *  When absent for a locale, falls back to the default locale order,
+	 *  then to the `order` property on each BuilderField. */
+	fieldOrders?: Record<string, string[]>;
+}
+
+/** Returns fields sorted for the given locale, using locale-specific ordering
+ *  if available, otherwise the default-locale order, otherwise field.order. */
+export function getOrderedFields(schema: BuilderSchema, locale: string): BuilderField[] {
+	const ids =
+		schema.fieldOrders?.[locale] ??
+		schema.fieldOrders?.[schema.defaultLocale] ??
+		null;
+	if (ids) {
+		const fieldMap = new Map(schema.fields.map((f) => [f.id, f]));
+		return ids.flatMap((id) => {
+			const f = fieldMap.get(id);
+			return f ? [f] : [];
+		});
+	}
+	return [...schema.fields].sort((a, b) => a.order - b.order);
 }

@@ -7,6 +7,7 @@
 
 import { updateFormSchema, updateFormExpiration, getForm } from '$lib/forms';
 import type { BuilderSchema, BuilderField, FieldType, FieldConfig, TranslationMap } from '$lib/types/builder';
+import { getOrderedFields } from '$lib/types/builder';
 
 export type BuilderMode = 'edit' | 'preview';
 
@@ -195,31 +196,65 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			};
 		}
 
+		// Append new field ID to every locale-specific order list
+		const updatedFieldOrders: Record<string, string[]> = {};
+		if (schema.fieldOrders) {
+			for (const [loc, ids] of Object.entries(schema.fieldOrders)) {
+				updatedFieldOrders[loc] = [...ids, id];
+			}
+		}
+
 		schema = {
 			...schema,
 			fields: [...schema.fields, newField],
-			translations: updatedTranslations
+			translations: updatedTranslations,
+			...(schema.fieldOrders ? { fieldOrders: updatedFieldOrders } : {})
 		};
 		selectedFieldId = id;
 		markDirty();
 	}
 
 	function removeField(id: string): void {
+		const updatedFieldOrders: Record<string, string[]> | undefined = schema.fieldOrders
+			? Object.fromEntries(
+					Object.entries(schema.fieldOrders).map(([loc, ids]) => [loc, ids.filter((fid) => fid !== id)])
+				)
+			: undefined;
+
 		schema = {
 			...schema,
 			fields: schema.fields
 				.filter((f) => f.id !== id)
-				.map((f, i) => ({ ...f, order: i }))
+				.map((f, i) => ({ ...f, order: i })),
+			...(updatedFieldOrders ? { fieldOrders: updatedFieldOrders } : {})
 		};
 		if (selectedFieldId === id) selectedFieldId = null;
 		markDirty();
 	}
 
 	function reorderFields(newOrder: BuilderField[]): void {
-		schema = {
-			...schema,
-			fields: newOrder.map((f, i) => ({ ...f, order: i }))
-		};
+		const newIds = newOrder.map((f) => f.id);
+		if (activeLocale === schema.defaultLocale) {
+			// Update the canonical order on each field AND sync the default-locale entry in fieldOrders
+			const updatedFieldOrders: Record<string, string[]> = {
+				...(schema.fieldOrders ?? {}),
+				[schema.defaultLocale]: newIds
+			};
+			schema = {
+				...schema,
+				fields: newOrder.map((f, i) => ({ ...f, order: i })),
+				fieldOrders: updatedFieldOrders
+			};
+		} else {
+			// Only write a locale-specific order; leave field.order (default order) untouched
+			schema = {
+				...schema,
+				fieldOrders: {
+					...(schema.fieldOrders ?? {}),
+					[activeLocale]: newIds
+				}
+			};
+		}
 		markDirty();
 	}
 
@@ -284,6 +319,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function addLocale(locale: string): void {
 		if (schema.locales.includes(locale)) return;
+		// Seed the new locale's field order from the current default order
+		const defaultOrder = getOrderedFields(schema, schema.defaultLocale).map((f) => f.id);
 		schema = {
 			...schema,
 			locales: [...schema.locales, locale],
@@ -294,6 +331,10 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 					formDescription: '',
 					fields: Object.fromEntries(schema.fields.map((f) => [f.id, { label: '' }]))
 				}
+			},
+			fieldOrders: {
+				...(schema.fieldOrders ?? { [schema.defaultLocale]: defaultOrder }),
+				[locale]: [...defaultOrder]
 			}
 		};
 		markDirty();
@@ -302,10 +343,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	function removeLocale(locale: string): void {
 		if (locale === schema.defaultLocale) return;
 		const { [locale]: _removed, ...remaining } = schema.translations;
+		const { [locale]: _removedOrder, ...remainingOrders } = schema.fieldOrders ?? {};
 		schema = {
 			...schema,
 			locales: schema.locales.filter((l) => l !== locale),
-			translations: remaining
+			translations: remaining,
+			fieldOrders: Object.keys(remainingOrders).length > 0 ? remainingOrders : undefined
 		};
 		if (activeLocale === locale) activeLocale = schema.defaultLocale;
 		markDirty();

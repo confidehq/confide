@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BuilderSchema, BuilderField } from '$lib/types/builder';
+	import { getOrderedFields } from '$lib/types/builder';
 	import type { AnswerValue } from '$lib/validation';
 	import FieldRenderer from './FieldRenderer.svelte';
 
@@ -28,14 +29,15 @@
 	}
 
 	const isSteps = $derived(schema.layout === 'steps');
-	const steps = $derived(computeSteps(schema.fields));
+	const orderedFields = $derived(getOrderedFields(schema, locale));
+	const steps = $derived(computeSteps(orderedFields));
 	const totalSteps = $derived(steps.length);
 
 	let currentStep = $state(0);
 	let answers = $state<Record<string, AnswerValue>>({});
 
 	const isLastStep = $derived(currentStep === totalSteps - 1);
-	const currentFields = $derived(isSteps ? (steps[currentStep] ?? []) : schema.fields);
+	const currentFields = $derived(isSteps ? (steps[currentStep] ?? []) : orderedFields);
 
 	function fieldTranslation(fieldId: string) {
 		return translation?.fields[fieldId] ?? { label: fieldId };
