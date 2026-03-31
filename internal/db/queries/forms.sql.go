@@ -15,10 +15,10 @@ const createForm = `-- name: CreateForm :one
 INSERT INTO forms (
     id, account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
-    render_key_salt
+    render_key_salt, expires_at, response_limit
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6
-) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt
+    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8
+) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit
 `
 
 type CreateFormParams struct {
@@ -28,6 +28,8 @@ type CreateFormParams struct {
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
 	RenderKeySalt         []byte
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
 }
 
 func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, error) {
@@ -38,6 +40,8 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		arg.RenderEncryptedSchema,
 		arg.PublicFormKey,
 		arg.RenderKeySalt,
+		arg.ExpiresAt,
+		arg.ResponseLimit,
 	)
 	var i Form
 	err := row.Scan(
@@ -52,6 +56,8 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.RenderEncryptedSchema,
 		&i.PublicFormKey,
 		&i.RenderKeySalt,
+		&i.ExpiresAt,
+		&i.ResponseLimit,
 	)
 	return i, err
 }
@@ -71,7 +77,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByOwner = `-- name: GetFormByOwner :one
-SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt FROM forms WHERE id = $1 AND account_id = $2
+SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit FROM forms WHERE id = $1 AND account_id = $2
 `
 
 type GetFormByOwnerParams struct {
@@ -94,12 +100,14 @@ func (q *Queries) GetFormByOwner(ctx context.Context, arg GetFormByOwnerParams) 
 		&i.RenderEncryptedSchema,
 		&i.PublicFormKey,
 		&i.RenderKeySalt,
+		&i.ExpiresAt,
+		&i.ResponseLimit,
 	)
 	return i, err
 }
 
 const getFormPublic = `-- name: GetFormPublic :one
-SELECT id, status, schema_version, render_encrypted_schema, public_form_key
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit
 FROM forms WHERE id = $1
 `
 
@@ -107,8 +115,11 @@ type GetFormPublicRow struct {
 	ID                    string
 	Status                string
 	SchemaVersion         int32
+	ResponseCount         int32
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
 }
 
 func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRow, error) {
@@ -118,8 +129,11 @@ func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRo
 		&i.ID,
 		&i.Status,
 		&i.SchemaVersion,
+		&i.ResponseCount,
 		&i.RenderEncryptedSchema,
 		&i.PublicFormKey,
+		&i.ExpiresAt,
+		&i.ResponseLimit,
 	)
 	return i, err
 }
@@ -141,18 +155,21 @@ func (q *Queries) GetSchemaVersion(ctx context.Context, arg GetSchemaVersionPara
 	return encrypted_schema, err
 }
 
-const incrementResponseCount = `-- name: IncrementResponseCount :exec
-UPDATE forms SET response_count = response_count + $2 WHERE id = $1
+const incrementResponseCount = `-- name: IncrementResponseCount :one
+UPDATE forms
+SET response_count = response_count + 1
+WHERE id = $1
+  AND (response_limit IS NULL OR response_count < response_limit)
+  AND (expires_at IS NULL OR expires_at >= CURRENT_DATE)
+  AND status = 'open'
+RETURNING response_count
 `
 
-type IncrementResponseCountParams struct {
-	ID            string
-	ResponseCount int32
-}
-
-func (q *Queries) IncrementResponseCount(ctx context.Context, arg IncrementResponseCountParams) error {
-	_, err := q.db.Exec(ctx, incrementResponseCount, arg.ID, arg.ResponseCount)
-	return err
+func (q *Queries) IncrementResponseCount(ctx context.Context, id string) (int32, error) {
+	row := q.db.QueryRow(ctx, incrementResponseCount, id)
+	var response_count int32
+	err := row.Scan(&response_count)
+	return response_count, err
 }
 
 const insertSchemaVersion = `-- name: InsertSchemaVersion :exec
@@ -172,7 +189,7 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 }
 
 const listFormsByAccount = `-- name: ListFormsByAccount :many
-SELECT id, status, schema_version, response_count, created_at, updated_at
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit
 FROM forms WHERE account_id = $1 ORDER BY created_at DESC
 `
 
@@ -183,6 +200,8 @@ type ListFormsByAccountRow struct {
 	ResponseCount int32
 	CreatedAt     pgtype.Date
 	UpdatedAt     pgtype.Date
+	ExpiresAt     pgtype.Date
+	ResponseLimit pgtype.Int4
 }
 
 func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]ListFormsByAccountRow, error) {
@@ -201,6 +220,8 @@ func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]L
 			&i.ResponseCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ExpiresAt,
+			&i.ResponseLimit,
 		); err != nil {
 			return nil, err
 		}
@@ -240,6 +261,29 @@ func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]List
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateFormExpiration = `-- name: UpdateFormExpiration :exec
+UPDATE forms
+SET expires_at = $3, response_limit = $4, updated_at = CURRENT_DATE
+WHERE id = $1 AND account_id = $2
+`
+
+type UpdateFormExpirationParams struct {
+	ID            string
+	AccountID     string
+	ExpiresAt     pgtype.Date
+	ResponseLimit pgtype.Int4
+}
+
+func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpirationParams) error {
+	_, err := q.db.Exec(ctx, updateFormExpiration,
+		arg.ID,
+		arg.AccountID,
+		arg.ExpiresAt,
+		arg.ResponseLimit,
+	)
+	return err
 }
 
 const updateFormSchema = `-- name: UpdateFormSchema :one

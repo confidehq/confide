@@ -23,6 +23,7 @@ type DB interface {
 	ListFormsByAccount(ctx context.Context, accountID string) ([]queries.ListFormsByAccountRow, error)
 	UpdateFormSchema(ctx context.Context, arg queries.UpdateFormSchemaParams) (int32, error)
 	UpdateFormStatus(ctx context.Context, arg queries.UpdateFormStatusParams) error
+	UpdateFormExpiration(ctx context.Context, arg queries.UpdateFormExpirationParams) error
 	DeleteForm(ctx context.Context, arg queries.DeleteFormParams) error
 	InsertSchemaVersion(ctx context.Context, arg queries.InsertSchemaVersionParams) error
 	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
@@ -50,6 +51,8 @@ type FormRecord struct {
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
 	RenderKeySalt         []byte // nil if never published
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -60,6 +63,8 @@ type FormSummary struct {
 	ResponseCount int32
 	CreatedAt     pgtype.Date
 	UpdatedAt     pgtype.Date
+	ExpiresAt     pgtype.Date
+	ResponseLimit pgtype.Int4
 }
 
 // PublicFormRecord is returned to unauthenticated respondents.
@@ -67,15 +72,18 @@ type PublicFormRecord struct {
 	ID                    string
 	Status                string
 	SchemaVersion         int32
+	ResponseCount         int32
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
 }
 
 // CreateForm stores a new form and returns its ID.
 // If clientID is non-empty it is used as the form ID (client-proposed, for key derivation);
 // otherwise a random ID is generated server-side.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -100,6 +108,8 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 		RenderEncryptedSchema: renderEncryptedSchema,
 		PublicFormKey:         publicFormKey,
 		RenderKeySalt:         renderKeySalt,
+		ExpiresAt:             expiresAt,
+		ResponseLimit:         responseLimit,
 	})
 	if err != nil {
 		return "", err
@@ -117,6 +127,18 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 		return "", err
 	}
 	return id, nil
+}
+
+// UpdateExpiration sets the sunset date and/or response cap for a form.
+// Passing zero-value pgtype.Date/pgtype.Int4 (Valid=false) clears the respective limit.
+// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
+func (s *Service) UpdateExpiration(ctx context.Context, accountID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4) error {
+	return s.db.UpdateFormExpiration(ctx, queries.UpdateFormExpirationParams{
+		ID:            formID,
+		AccountID:     accountID,
+		ExpiresAt:     expiresAt,
+		ResponseLimit: responseLimit,
+	})
 }
 
 // GetForm returns the full form record for the owner. Returns ErrNotFound if
@@ -150,6 +172,8 @@ func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummar
 			ResponseCount: r.ResponseCount,
 			CreatedAt:     r.CreatedAt,
 			UpdatedAt:     r.UpdatedAt,
+			ExpiresAt:     r.ExpiresAt,
+			ResponseLimit: r.ResponseLimit,
 		}
 	}
 	return out, nil
@@ -232,8 +256,11 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		ID:                    row.ID,
 		Status:                row.Status,
 		SchemaVersion:         row.SchemaVersion,
+		ResponseCount:         row.ResponseCount,
 		RenderEncryptedSchema: row.RenderEncryptedSchema,
 		PublicFormKey:         row.PublicFormKey,
+		ExpiresAt:             row.ExpiresAt,
+		ResponseLimit:         row.ResponseLimit,
 	}, nil
 }
 
@@ -288,5 +315,7 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		RenderEncryptedSchema: f.RenderEncryptedSchema,
 		PublicFormKey:         f.PublicFormKey,
 		RenderKeySalt:         f.RenderKeySalt,
+		ExpiresAt:             f.ExpiresAt,
+		ResponseLimit:         f.ResponseLimit,
 	}
 }

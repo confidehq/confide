@@ -5,7 +5,7 @@
  * Pass the returned store object into child components via setContext/getContext.
  */
 
-import { updateFormSchema, getForm } from '$lib/forms';
+import { updateFormSchema, updateFormExpiration, getForm } from '$lib/forms';
 import type { BuilderSchema, BuilderField, FieldType, FieldConfig, TranslationMap } from '$lib/types/builder';
 
 export type BuilderMode = 'edit' | 'preview';
@@ -20,6 +20,8 @@ export interface BuilderStore {
 	readonly selectedFieldId: string | null;
 	readonly mode: BuilderMode;
 	readonly renderKeySalt: Uint8Array | null;
+	readonly expiresAt: string | null;
+	readonly responseLimit: number | null;
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
@@ -41,6 +43,7 @@ export interface BuilderStore {
 	setMode(mode: BuilderMode): void;
 	setName(name: string): void;
 	setConvoAllowEdit(allow: boolean): void;
+	setExpiration(expiresAt: string | null, responseLimit: number | null): Promise<void>;
 	load(): Promise<void>;
 	save(): Promise<void>;
 	flushSave(): Promise<void>;
@@ -93,6 +96,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let activeLocale = $state('en');
 	let selectedFieldId = $state<string | null>(null);
 	let mode = $state<BuilderMode>('edit');
+	let expiresAt = $state<string | null>(null);
+	let responseLimit = $state<number | null>(null);
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -323,6 +328,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markDirty();
 	}
 
+	async function setExpiration(newExpiresAt: string | null, newResponseLimit: number | null): Promise<void> {
+		await updateFormExpiration(formId, newExpiresAt, newResponseLimit);
+		expiresAt = newExpiresAt;
+		responseLimit = newResponseLimit;
+	}
+
 	async function load(): Promise<void> {
 		const { schema: loaded, record } = await getForm(masterKey, formId);
 		const s = loaded as BuilderSchema;
@@ -332,6 +343,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		}
 		schema = s;
 		activeLocale = schema.defaultLocale;
+		expiresAt = record.expiresAt ?? null;
+		responseLimit = record.responseLimit ?? null;
 		if (record.renderKeySalt) {
 			const raw = atob(record.renderKeySalt);
 			const bytes = new Uint8Array(raw.length);
@@ -397,6 +410,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get renderKeySalt() {
 			return currentRenderKeySalt;
 		},
+		get expiresAt() {
+			return expiresAt;
+		},
+		get responseLimit() {
+			return responseLimit;
+		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 		},
@@ -417,6 +436,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setName,
 		setMode,
 		setConvoAllowEdit,
+		setExpiration,
 		setRenderKeySalt,
 		load,
 		save,

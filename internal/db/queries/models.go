@@ -33,6 +33,8 @@ type Form struct {
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
 	RenderKeySalt         []byte
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
 }
 
 type FormSchemaVersion struct {

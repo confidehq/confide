@@ -28,6 +28,8 @@ export interface FormSummary {
 	responseCount: number;
 	createdAt: string;
 	updatedAt: string;
+	expiresAt?: string | null;
+	responseLimit?: number | null;
 }
 
 export interface FormRecord extends FormSummary {
@@ -152,6 +154,23 @@ export async function updateFormSchema(
 
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 	return res.json();
+}
+
+/**
+ * Update a form's sunset date and/or response cap.
+ * Pass null for either field to clear it.
+ */
+export async function updateFormExpiration(
+	formId: string,
+	expiresAt: string | null,
+	responseLimit: number | null
+): Promise<void> {
+	const res = await fetch(`/api/forms/${formId}/expiration`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ expiresAt, responseLimit })
+	});
+	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
 /**

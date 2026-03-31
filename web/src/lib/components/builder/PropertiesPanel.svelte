@@ -23,6 +23,21 @@
 	const field = $derived(store.selectedField);
 	const isConvo = $derived(store.schema.layout === 'convo');
 
+	let expirationSaving = $state(false);
+	let expirationError = $state<string | null>(null);
+
+	async function applyExpiration(newExpiresAt: string | null, newResponseLimit: number | null) {
+		expirationSaving = true;
+		expirationError = null;
+		try {
+			await store.setExpiration(newExpiresAt, newResponseLimit);
+		} catch {
+			expirationError = 'Failed to save — please try again.';
+		} finally {
+			expirationSaving = false;
+		}
+	}
+
 	function inputStyle(): string {
 		return `
 			width: 100%; padding: 6px 10px;
@@ -123,6 +138,68 @@
 						/>
 					</div>
 				{/if}
+
+				<div style="margin-top: 8px;">
+					<p style="margin: 0 0 12px; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
+						Behavior
+					</p>
+
+					<div style="display: flex; flex-direction: column; gap: 14px;">
+						<div>
+							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Sunset date</label>
+							<div style="display: flex; gap: 6px; align-items: center;">
+								<input
+									type="date"
+									value={store.expiresAt ?? ''}
+									onchange={(e) => {
+										const v = (e.target as HTMLInputElement).value;
+										applyExpiration(v || null, store.responseLimit);
+									}}
+									style={inputStyle()}
+								/>
+								{#if store.expiresAt}
+									<button
+										onclick={() => applyExpiration(null, store.responseLimit)}
+										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
+										title="Clear sunset date"
+									>×</button>
+								{/if}
+							</div>
+							<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Form closes automatically on this date.</p>
+						</div>
+
+						<div>
+							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Response cap</label>
+							<div style="display: flex; gap: 6px; align-items: center;">
+								<input
+									type="number"
+									min="1"
+									placeholder="Unlimited"
+									value={store.responseLimit ?? ''}
+									onchange={(e) => {
+										const v = parseInt((e.target as HTMLInputElement).value);
+										applyExpiration(store.expiresAt, v > 0 ? v : null);
+									}}
+									style={inputStyle()}
+								/>
+								{#if store.responseLimit}
+									<button
+										onclick={() => applyExpiration(store.expiresAt, null)}
+										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
+										title="Clear response cap"
+									>×</button>
+								{/if}
+							</div>
+							<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Form closes after this many responses.</p>
+						</div>
+
+						{#if expirationSaving}
+							<p style="margin: 0; font-size: 0.7rem; color: #6b7280;">Saving…</p>
+						{:else if expirationError}
+							<p style="margin: 0; font-size: 0.7rem; color: #ef4444;">{expirationError}</p>
+						{/if}
+					</div>
+				</div>
 
 				<p style="margin: 0; font-size: 0.8rem; color: #6b7280;">
 					Select a field to edit its properties.

@@ -26,7 +26,7 @@ type DB interface {
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
 	DeleteResponse(ctx context.Context, arg queries.DeleteResponseParams) error
 	CreateResponse(ctx context.Context, arg queries.CreateResponseParams) error
-	IncrementResponseCount(ctx context.Context, arg queries.IncrementResponseCountParams) error
+	IncrementResponseCount(ctx context.Context, id string) (int32, error)
 }
 
 // Service handles response storage and retrieval.
@@ -172,6 +172,8 @@ func (s *Service) DeleteResponse(ctx context.Context, accountID, formID, respons
 
 // CreateBatch inserts relay submissions in a single transaction.
 // Submissions referencing non-existent forms are silently dropped (FK violation).
+// Submissions that would exceed the form's response_limit, are past expires_at,
+// or target a closed form are also silently dropped.
 // Implements relay.BatchStorer.
 func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem) error {
 	if len(items) == 0 {
@@ -185,7 +187,6 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	q := queries.New(tx)
-	counts := map[string]int32{}
 
 	for i, item := range items {
 		id, err := randomID()
@@ -193,7 +194,7 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 			return err
 		}
 
-		// Use a savepoint so a FK violation on one item doesn't abort the transaction.
+		// Each item gets its own savepoint so failures don't abort the transaction.
 		sp := fmt.Sprintf("sp_%d", i)
 		if _, err := tx.Exec(ctx, "SAVEPOINT "+sp); err != nil {
 			return err
@@ -207,7 +208,18 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 			EphemeralPublicKey: item.EphemeralPublicKey,
 		})
 		if insertErr != nil {
-			// Roll back to savepoint and skip this item (likely FK violation).
+			// FK violation or other insert error — roll back and skip.
+			if _, rbErr := tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+sp); rbErr != nil {
+				return rbErr
+			}
+			continue
+		}
+
+		// Conditionally increment response_count. Returns pgx.ErrNoRows if the
+		// form is closed, expired, or has hit its response cap.
+		_, incrErr := q.IncrementResponseCount(ctx, item.FormID)
+		if incrErr != nil {
+			// Cap/expiry hit or form closed — roll back the insert too.
 			if _, rbErr := tx.Exec(ctx, "ROLLBACK TO SAVEPOINT "+sp); rbErr != nil {
 				return rbErr
 			}
@@ -215,16 +227,6 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 		}
 
 		if _, err := tx.Exec(ctx, "RELEASE SAVEPOINT "+sp); err != nil {
-			return err
-		}
-		counts[item.FormID]++
-	}
-
-	for formID, n := range counts {
-		if err := q.IncrementResponseCount(ctx, queries.IncrementResponseCountParams{
-			ID:            formID,
-			ResponseCount: n,
-		}); err != nil {
 			return err
 		}
 	}
