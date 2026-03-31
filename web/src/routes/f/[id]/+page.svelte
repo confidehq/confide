@@ -16,6 +16,8 @@
 	let publicFormKey: ArrayBuffer | null = null;
 	let schemaVersion = 0;
 	let locale = 'en';
+	let honeypotFields: string[] = [];
+	let loadToken = '';
 
 	onMount(async () => {
 		const formId = $page.params.id ?? '';
@@ -46,6 +48,8 @@
 			schema = result.schema;
 			publicFormKey = result.publicFormKey;
 			schemaVersion = result.schemaVersion;
+			honeypotFields = result.honeypotFields;
+			loadToken = result.loadToken;
 
 			// Use requested locale if the form supports it, else default
 			const supported = result.schema.locales ?? [result.schema.defaultLocale];
@@ -102,6 +106,8 @@
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
+			{honeypotFields}
+			{loadToken}
 			onsubmitted={handleSubmitted}
 		/>
 	{:else}
@@ -111,6 +117,8 @@
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
+			{honeypotFields}
+			{loadToken}
 			onsubmitted={handleSubmitted}
 		/>
 	{/if}

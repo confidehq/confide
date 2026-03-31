@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/auth"
+	"github.com/phantompunk/confide/internal/botguard"
 	"github.com/phantompunk/confide/internal/buildinfo"
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/forms"
@@ -38,6 +39,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
 }
 
 func New(cfg *config.Config, svc *Services) http.Handler {
+	guard := botguard.New(cfg.HMACKey)
 	r := chi.NewRouter()
 	r.Use(mw.SecurityHeaders)
 	r.Use(chimw.RealIP)
@@ -77,7 +79,7 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 
 		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.
 		r.With(mw.FormPageCSP, mw.PublicSchemaRateLimit(cfg.HMACKey)).
-			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms))
+			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms, guard))
 	})
 
 	// Relay submit — open CORS (respondents arrive from arbitrary origins), rate limited.
@@ -90,7 +92,7 @@ func New(cfg *config.Config, svc *Services) http.Handler {
 			MaxAge:           300,
 		}),
 		mw.RelayRateLimit(cfg.HMACKey),
-	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ))
+	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ, guard))
 
 	return r
 }

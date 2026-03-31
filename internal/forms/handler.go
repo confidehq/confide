@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/phantompunk/confide/internal/botguard"
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
@@ -29,7 +30,7 @@ func Handler(svc *Service) http.Handler {
 }
 
 // PublicSchemaHandler handles GET /api/f/{id}/schema — no authentication.
-func PublicSchemaHandler(svc *Service) http.HandlerFunc {
+func PublicSchemaHandler(svc *Service, guard *botguard.Guard) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		formID := chi.URLParam(r, "id")
 		rec, err := svc.GetPublicSchema(r.Context(), formID)
@@ -48,6 +49,8 @@ func PublicSchemaHandler(svc *Service) http.HandlerFunc {
 			"publicFormKey":         base64.StdEncoding.EncodeToString(rec.PublicFormKey),
 			"schemaVersion":         rec.SchemaVersion,
 			"status":                effectiveStatus(rec.Status, rec.ResponseCount, rec.ExpiresAt, rec.ResponseLimit),
+			"honeypotFields":        guard.HoneypotNames(formID),
+			"loadToken":             guard.IssueToken(formID),
 		})
 	}
 }

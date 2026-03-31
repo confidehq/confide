@@ -262,7 +262,7 @@ export async function deleteResponse(formId: string, responseId: string): Promis
 export async function getPublicSchema(
 	formId: string,
 	renderKey: CryptoKey
-): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer }> {
+): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer; honeypotFields: string[]; loadToken: string }> {
 	const res = await fetch(`/api/f/${formId}/schema`, { credentials: 'omit' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
@@ -270,7 +270,14 @@ export async function getPublicSchema(
 	const schema = await decryptSchema(base64ToArrayBuffer(body.renderEncryptedSchema), renderKey);
 	const publicFormKey = base64ToArrayBuffer(body.publicFormKey);
 
-	return { schema, status: body.status, schemaVersion: body.schemaVersion, publicFormKey };
+	return {
+		schema,
+		status: body.status,
+		schemaVersion: body.schemaVersion,
+		publicFormKey,
+		honeypotFields: Array.isArray(body.honeypotFields) ? body.honeypotFields : [],
+		loadToken: typeof body.loadToken === 'string' ? body.loadToken : ''
+	};
 }
 
 /**
@@ -281,7 +288,9 @@ export async function submitResponse(
 	formId: string,
 	publicFormKeyBytes: ArrayBuffer,
 	payload: ResponsePayload,
-	schemaVersion: number
+	schemaVersion: number,
+	loadToken: string = '',
+	honeypotValues: Record<string, string> = {}
 ): Promise<void> {
 	const publicFormKey = await crypto.subtle.importKey(
 		'raw',
@@ -297,7 +306,9 @@ export async function submitResponse(
 		formId,
 		encryptedData: arrayBufferToBase64(encryptedData),
 		ephemeralPublicKey: arrayBufferToBase64(ephemeralPublicKey),
-		schemaVersion
+		schemaVersion,
+		loadToken,
+		honeypotFields: honeypotValues
 	});
 
 	for (let attempt = 0; attempt < 3; attempt++) {

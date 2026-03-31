@@ -14,6 +14,7 @@ import (
 
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/db"
+	"github.com/phantompunk/confide/internal/reaper"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/server"
 	"github.com/phantompunk/confide/migrations"
@@ -51,10 +52,11 @@ func main() {
 
 	svc := server.NewServices(pool, wa)
 
-	// Start relay flusher — runs until ctx is cancelled on shutdown.
+	// Start relay flusher and reaper — both run until ctx is cancelled on shutdown.
 	runCtx, runCancel := context.WithCancel(context.Background())
 	defer runCancel()
 	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
+	go reaper.Start(runCtx, svc.Responses, cfg.ReaperInterval)
 
 	h := server.New(cfg, svc)
 

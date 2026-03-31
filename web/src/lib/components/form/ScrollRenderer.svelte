@@ -12,10 +12,12 @@
 		publicFormKey: ArrayBuffer;
 		schemaVersion: number;
 		locale: string;
+		honeypotFields: string[];
+		loadToken: string;
 		onsubmitted: () => void;
 	}
 
-	const { schema, formId, publicFormKey, schemaVersion, locale, onsubmitted }: Props = $props();
+	const { schema, formId, publicFormKey, schemaVersion, locale, honeypotFields, loadToken, onsubmitted }: Props = $props();
 
 	const translation = $derived(
 		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
@@ -25,6 +27,7 @@
 	let errors = $state<Record<string, string>>({});
 	let submitting = $state(false);
 	let submitError = $state<string | null>(null);
+	let honeypotValues = $state<Record<string, string>>({});
 
 	function fieldTranslation(fieldId: string) {
 		return translation?.fields[fieldId] ?? { label: fieldId };
@@ -62,7 +65,7 @@
 					Object.entries(answers).filter(([, v]) => v !== undefined && v !== null)
 				) as ResponsePayload['answers']
 			};
-			await submitResponse(formId, publicFormKey, payload, schemaVersion);
+			await submitResponse(formId, publicFormKey, payload, schemaVersion, loadToken, honeypotValues);
 			onsubmitted();
 		} catch (err) {
 			submitError = err instanceof Error ? err.message : 'Submission failed. Please try again.';
@@ -79,6 +82,18 @@
 	{/if}
 
 	<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} novalidate>
+		<div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden;">
+			{#each honeypotFields as name (name)}
+				<input
+					type="text"
+					{name}
+					tabindex="-1"
+					autocomplete="off"
+					value={honeypotValues[name] ?? ''}
+					oninput={(e) => { honeypotValues = { ...honeypotValues, [name]: (e.target as HTMLInputElement).value }; }}
+				/>
+			{/each}
+		</div>
 		<div style="display: flex; flex-direction: column; gap: 24px;">
 			{#each schema.fields as field (field.id)}
 				<FieldRenderer
