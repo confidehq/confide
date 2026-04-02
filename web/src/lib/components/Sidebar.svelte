@@ -142,22 +142,54 @@
 			{/each}
 		</div>
 
-		<!-- Version -->
-		{#if !sidebar.collapsed}
-			<div
-				title={commit || undefined}
+		<!-- Bottom links + version -->
+		<div style="padding-bottom: 4px;">
+			<a
+				href="https://feedback.useconfide.app/"
+				target="_blank"
+				rel="noopener noreferrer"
 				style="
-					padding: 12px 0;
-					text-align: center;
-					color: #374151;
-					font-size: 0.8rem;
+					display: flex;
+					align-items: center;
+					gap: 10px;
+					padding: 0 {sidebar.collapsed ? 0 : 14}px;
+					height: 40px;
+					justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};
+					text-decoration: none;
+					color: #6b7280;
+					background: transparent;
+					border-left: 2px solid transparent;
 					white-space: nowrap;
 					overflow: hidden;
-					text-overflow: ellipsis;
-					cursor: default;
+					transition: color 120ms;
+					font-size: 0.82rem;
+					box-sizing: border-box;
+					width: 100%;
 				"
-			>{version}</div>
-		{/if}
+			>
+				<span style="flex-shrink: 0; display: flex; align-items: center; color: #4b5563;">
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+				</span>
+				{#if !sidebar.collapsed}
+					<span style="overflow: hidden; text-overflow: ellipsis;">Leave Feedback</span>
+				{/if}
+			</a>
+			{#if !sidebar.collapsed}
+				<div
+					title={commit || undefined}
+					style="
+						padding: 8px 0 12px;
+						text-align: center;
+						color: #374151;
+						font-size: 0.8rem;
+						white-space: nowrap;
+						overflow: hidden;
+						text-overflow: ellipsis;
+						cursor: default;
+					"
+				>{version}</div>
+			{/if}
+		</div>
 	</div>
 
 </nav>
