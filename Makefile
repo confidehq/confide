@@ -26,4 +26,6 @@ db:
 	cd deploy && $(DOCKER_COMPOSE) -f db.yml up
 
 up:
+	VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo dev) \
+	COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown) \
 	$(DOCKER_COMPOSE) --env-file .env.docker -f deploy/docker-compose.yml up --build --remove-orphans

@@ -20,6 +20,11 @@ import (
 	"github.com/phantompunk/confide/migrations"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -58,7 +63,7 @@ func main() {
 	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
 	go reaper.Start(runCtx, svc.Responses, cfg.ReaperInterval)
 
-	h := server.New(cfg, svc)
+	h := server.New(cfg, svc, version, commit)
 
 	srv := &http.Server{
 		Addr:         cfg.BindAddr,
