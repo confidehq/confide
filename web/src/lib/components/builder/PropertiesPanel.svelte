@@ -20,7 +20,6 @@
 
 	const { store }: Props = $props();
 
-	let activeTab = $state<'settings' | 'translation'>('settings');
 
 	const field = $derived(store.selectedField);
 	const isConvo = $derived(store.schema.layout === 'convo');
@@ -97,18 +96,6 @@
 			</p>
 
 			<div style="display: flex; flex-direction: column; gap: 14px;">
-				<div>
-					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Form name</label>
-					<input
-						type="text"
-						placeholder="Internal name…"
-						value={store.schema.name}
-						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
-						style={inputStyle()}
-					/>
-					<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Used in your dashboard only.</p>
-				</div>
-
 				<div>
 					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Title (shown to respondents)</label>
 					<input
@@ -262,24 +249,24 @@
 			<!-- Tab bar -->
 			<div style="display: flex; border-bottom: 1px solid #374151;">
 				<button
-					onclick={() => (activeTab = 'settings')}
+					onclick={() => store.setPropertiesTab('settings')}
 					style="
 						flex: 1; padding: 10px;
-						background: {activeTab === 'settings' ? '#111827' : 'transparent'};
-						color: {activeTab === 'settings' ? '#f9fafb' : '#9ca3af'};
-						border: none; border-bottom: 2px solid {activeTab === 'settings' ? '#1d4ed8' : 'transparent'};
+						background: {store.activePropertiesTab === 'settings' ? '#111827' : 'transparent'};
+						color: {store.activePropertiesTab === 'settings' ? '#f9fafb' : '#9ca3af'};
+						border: none; border-bottom: 2px solid {store.activePropertiesTab === 'settings' ? '#1d4ed8' : 'transparent'};
 						cursor: pointer; font-family: monospace; font-size: 0.8rem;
 					"
 				>
 					Settings
 				</button>
 				<button
-					onclick={() => (activeTab = 'translation')}
+					onclick={() => store.setPropertiesTab('translation')}
 					style="
 						flex: 1; padding: 10px;
-						background: {activeTab === 'translation' ? '#111827' : 'transparent'};
-						color: {activeTab === 'translation' ? '#f9fafb' : '#9ca3af'};
-						border: none; border-bottom: 2px solid {activeTab === 'translation' ? '#1d4ed8' : 'transparent'};
+						background: {store.activePropertiesTab === 'translation' ? '#111827' : 'transparent'};
+						color: {store.activePropertiesTab === 'translation' ? '#f9fafb' : '#9ca3af'};
+						border: none; border-bottom: 2px solid {store.activePropertiesTab === 'translation' ? '#1d4ed8' : 'transparent'};
 						cursor: pointer; font-family: monospace; font-size: 0.8rem;
 					"
 				>
@@ -288,7 +275,7 @@
 			</div>
 
 			<div style="padding: 16px;">
-				{#if activeTab === 'settings'}
+				{#if store.activePropertiesTab === 'settings'}
 					<div style="display: flex; flex-direction: column; gap: 14px;">
 						<!-- Required toggle -->
 						<div style="display: flex; align-items: center; justify-content: space-between;">

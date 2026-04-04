@@ -25,6 +25,7 @@ export interface BuilderStore {
 	readonly responseLimit: number | null;
 	readonly responseTtlDays: number | null;
 	readonly burnAfterReading: boolean;
+	readonly activePropertiesTab: 'settings' | 'translation';
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
@@ -32,6 +33,7 @@ export interface BuilderStore {
 
 	// Actions
 	setRenderKeySalt(salt: Uint8Array): void;
+	setPropertiesTab(tab: 'settings' | 'translation'): void;
 	addField(type: FieldType): void;
 	removeField(id: string): void;
 	reorderFields(newOrder: BuilderField[]): void;
@@ -109,6 +111,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let responseLimit = $state<number | null>(null);
 	let responseTtlDays = $state<number | null>(null);
 	let burnAfterReading = $state(false);
+	let activePropertiesTab = $state<'settings' | 'translation'>('translation');
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -365,6 +368,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function setSelectedField(id: string | null): void {
 		selectedFieldId = id;
+		if (id !== null) activePropertiesTab = 'translation';
+	}
+
+	function setPropertiesTab(tab: 'settings' | 'translation'): void {
+		activePropertiesTab = tab;
 	}
 
 	function setMode(m: BuilderMode): void {
@@ -479,6 +487,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get burnAfterReading() {
 			return burnAfterReading;
 		},
+		get activePropertiesTab() {
+			return activePropertiesTab;
+		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 		},
@@ -496,6 +507,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setLayout,
 		setActiveLocale,
 		setSelectedField,
+		setPropertiesTab,
 		setName,
 		setMode,
 		setConvoAllowEdit,
