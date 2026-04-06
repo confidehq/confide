@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { dndzone } from 'svelte-dnd-action';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
-	import type { BuilderField, MultipleChoiceConfig, CheckboxesConfig, ChoiceOption } from '$lib/types/builder';
+	import type { BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, ChoiceOption, RatingConfig } from '$lib/types/builder';
 	import { getOrderedFields } from '$lib/types/builder';
 	import FormPreview from '$lib/components/form/FormPreview.svelte';
 
@@ -75,13 +75,12 @@
 
 	function focusField(fieldId: string) {
 		store.setSelectedField(fieldId);
-		store.setPropertiesTab('translation');
 	}
 
 	function getOptionLabels(fieldId: string): string[] {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return [];
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig;
+		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
 		const count = cfg.options?.length ?? 0;
 		const translated = store.schema.translations[store.activeLocale]?.fields[fieldId]?.options;
 		return Array.from({ length: count }, (_, i) => translated?.[i] ?? '');
@@ -90,7 +89,7 @@
 	function setOptionLabel(fieldId: string, index: number, value: string) {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig;
+		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
 		const count = cfg.options?.length ?? 0;
 		const current = store.schema.translations[store.activeLocale]?.fields[fieldId]?.options ?? Array(count).fill('');
 		const updated = [...current];
@@ -102,7 +101,7 @@
 	function addOption(fieldId: string) {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig;
+		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
 		const options = cfg.options ?? [];
 		const newOpt: ChoiceOption = { id: crypto.randomUUID(), order: options.length };
 		store.updateFieldConfig(fieldId, { options: [...options, newOpt] } as Partial<MultipleChoiceConfig>);
@@ -111,7 +110,7 @@
 	function removeOption(fieldId: string, optId: string) {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig;
+		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
 		const removedIndex = (cfg.options ?? []).findIndex((o) => o.id === optId);
 		const options = (cfg.options ?? [])
 			.filter((o) => o.id !== optId)
@@ -130,7 +129,7 @@
 	style="
 		flex: 1;
 		overflow-y: auto;
-		padding: 24px;
+		padding: 24px 320px 24px 24px;
 		background: {store.mode === 'preview' ? '#f9fafb' : '#111827'};
 		min-width: 0;
 	"
@@ -139,7 +138,60 @@
 >
 	{#if store.mode === 'preview'}
 		<FormPreview schema={store.schema} locale={store.activeLocale} />
-	{:else if fields.length === 0}
+	{:else}
+{@const defaultLocaleTitle = store.activeLocale !== store.schema.defaultLocale
+	? (store.schema.translations[store.schema.defaultLocale]?.formTitle ?? '')
+		: ''}
+{@const defaultLocaleDesc = store.activeLocale !== store.schema.defaultLocale
+	? (store.schema.translations[store.schema.defaultLocale]?.formDescription ?? '')
+		: ''}
+	<div style="max-width: 680px; margin: 0 auto; width: 100%;">
+		<!-- Form title and description -->
+		<div
+			onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
+			style="margin-bottom: 20px;"
+		>
+			<textarea
+				rows={1}
+				value={store.activeTranslation?.formTitle ?? ''}
+				placeholder={defaultLocaleTitle || 'Form title…'}
+				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
+				oninput={(e) => {
+					const el = e.target as HTMLTextAreaElement;
+					autoGrow(el);
+					store.updateTranslation(null, 'formTitle', el.value);
+				}}
+				style="
+					display: block; width: 100%; box-sizing: border-box;
+					background: transparent; border: none; outline: none;
+					resize: none; overflow: hidden;
+					color: {store.activeTranslation?.formTitle ? '#f9fafb' : '#4b5563'};
+					font-size: 1.5rem; font-weight: 600; font-family: inherit;
+					padding: 2px 4px; margin-bottom: 6px;
+				"
+			></textarea>
+			<textarea
+				rows={1}
+				value={store.activeTranslation?.formDescription ?? ''}
+				placeholder={defaultLocaleDesc || 'Form description…'}
+				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
+				oninput={(e) => {
+					const el = e.target as HTMLTextAreaElement;
+					autoGrow(el);
+					store.updateTranslation(null, 'formDescription', el.value);
+				}}
+				style="
+					display: block; width: 100%; box-sizing: border-box;
+					background: transparent; border: none; outline: none;
+					resize: none; overflow: hidden;
+					color: {store.activeTranslation?.formDescription ? '#9ca3af' : '#374151'};
+					font-size: 0.9rem; font-family: inherit;
+					padding: 2px 4px;
+				"
+			></textarea>
+		</div>
+
+		{#if fields.length === 0}
 		<div style="
 			display: flex; flex-direction: column; align-items: center; justify-content: center;
 			min-height: 300px;
@@ -162,7 +214,8 @@
 				{@const isSelected = store.selectedFieldId === field.id}
 				{@const isSectionBreak = field.type === 'section_break'}
 				{@const hasPlaceholder = field.type === 'short_text' || field.type === 'long_text'}
-				{@const hasOptions = field.type === 'multiple_choice' || field.type === 'checkboxes'}
+				{@const hasOptions = field.type === 'multiple_choice' || field.type === 'checkboxes' || field.type === 'dropdown'}
+				{@const isRating = field.type === 'rating'}
 				{@const label = getLabel(field.id)}
 				{@const helpText = getHelpText(field.id)}
 				{@const placeholder = getPlaceholder(field.id)}
@@ -369,7 +422,7 @@
 								style="margin-top: 8px; border-top: 1px solid #374151; padding-top: 8px; display: flex; flex-direction: column; gap: 4px;"
 							>
 								{#each optionLabels as optLabel, i}
-									{@const opt = (field.config as MultipleChoiceConfig | CheckboxesConfig).options?.[i]}
+									{@const opt = (field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig).options?.[i]}
 									<div style="display: flex; align-items: center; gap: 6px;">
 										<span style="color: #4b5563; font-size: 0.7rem; flex-shrink: 0; width: 14px; text-align: right;">{i + 1}.</span>
 										<input
@@ -407,9 +460,30 @@
 								>+ Add option</button>
 							</div>
 						{/if}
+
+						<!-- Rating shape preview -->
+						{#if isRating}
+							{@const cfg = field.config as RatingConfig}
+							<div style="margin-top: 8px; border-top: 1px solid #374151; padding-top: 8px; display: flex; gap: 4px; flex-wrap: wrap;">
+								{#each { length: cfg.scale ?? 5 } as _, i}
+									{#if cfg.shape === 'number'}
+										<span style="
+											display: inline-flex; align-items: center; justify-content: center;
+											width: 28px; height: 28px;
+											border: 1px solid #374151; border-radius: 4px;
+											color: #6b7280; font-size: 0.75rem; font-family: monospace;
+										">{i + 1}</span>
+									{:else}
+										<span style="color: #6b7280; font-size: 1.1rem; line-height: 1;">★</span>
+									{/if}
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/if}
 			{/each}
 		</div>
+	{/if}
+	</div>
 	{/if}
 </main>

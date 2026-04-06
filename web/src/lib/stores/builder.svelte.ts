@@ -25,7 +25,7 @@ export interface BuilderStore {
 	readonly responseLimit: number | null;
 	readonly responseTtlDays: number | null;
 	readonly burnAfterReading: boolean;
-	readonly activePropertiesTab: 'settings' | 'translation';
+	readonly showFormSettings: boolean;
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
@@ -33,7 +33,7 @@ export interface BuilderStore {
 
 	// Actions
 	setRenderKeySalt(salt: Uint8Array): void;
-	setPropertiesTab(tab: 'settings' | 'translation'): void;
+	setShowFormSettings(show: boolean): void;
 	addField(type: FieldType): void;
 	removeField(id: string): void;
 	reorderFields(newOrder: BuilderField[]): void;
@@ -111,7 +111,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let responseLimit = $state<number | null>(null);
 	let responseTtlDays = $state<number | null>(null);
 	let burnAfterReading = $state(false);
-	let activePropertiesTab = $state<'settings' | 'translation'>('translation');
+	let showFormSettings = $state(false);
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -368,11 +368,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function setSelectedField(id: string | null): void {
 		selectedFieldId = id;
-		if (id !== null) activePropertiesTab = 'translation';
+		if (id !== null) showFormSettings = false;
 	}
 
-	function setPropertiesTab(tab: 'settings' | 'translation'): void {
-		activePropertiesTab = tab;
+	function setShowFormSettings(show: boolean): void {
+		showFormSettings = show;
+		if (show) selectedFieldId = null;
 	}
 
 	function setMode(m: BuilderMode): void {
@@ -487,8 +488,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get burnAfterReading() {
 			return burnAfterReading;
 		},
-		get activePropertiesTab() {
-			return activePropertiesTab;
+		get showFormSettings() {
+			return showFormSettings;
 		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
@@ -507,7 +508,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setLayout,
 		setActiveLocale,
 		setSelectedField,
-		setPropertiesTab,
+		setShowFormSettings,
 		setName,
 		setMode,
 		setConvoAllowEdit,

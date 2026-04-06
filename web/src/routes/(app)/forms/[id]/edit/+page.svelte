@@ -133,70 +133,89 @@
 	">
 		<!-- Toolbar -->
 		<div style="
-			display: flex; align-items: center; gap: 12px;
-			padding: 8px 16px;
-			background: #1f2937;
-			border-bottom: 1px solid #374151;
+			display: flex; align-items: center; gap: 8px;
+			padding: 0 12px;
+			height: 44px;
+			background: #161d28;
+			border-bottom: 1px solid #2a3341;
 			flex-shrink: 0;
-			flex-wrap: wrap;
 		">
 			<!-- Form name input -->
 			<input
 				type="text"
-				placeholder="Form name…"
+				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
 				style="
 					background: transparent; border: none; outline: none;
-					color: #f9fafb; font-family: monospace; font-size: 0.95rem;
-					width: 220px;
+					color: #e5e7eb; font-family: monospace; font-size: 0.875rem;
+					width: 200px; min-width: 0;
+					padding: 4px 6px;
+					border-radius: 4px;
+					transition: background 0.1s;
 				"
+				onfocus={(e) => { (e.target as HTMLInputElement).style.background = '#1f2937'; }}
+				onblur={(e) => { (e.target as HTMLInputElement).style.background = 'transparent'; }}
 			/>
 
-			<div style="width: 1px; height: 20px; background: #374151;"></div>
+			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
 
 			<!-- Layout selector -->
-			<div style="display: flex; gap: 2px;">
-				{#each ['scroll', 'steps', 'convo'] as layout}
-					<button
-						onclick={() => store!.setLayout(layout as 'scroll' | 'steps' | 'convo')}
-						style="
-							padding: 4px 10px;
-							background: {store.schema.layout === layout ? '#1d4ed8' : 'transparent'};
-							color: {store.schema.layout === layout ? '#fff' : '#9ca3af'};
-							border: 1px solid {store.schema.layout === layout ? '#1d4ed8' : '#374151'};
-							border-radius: 4px;
-							cursor: pointer;
-							font-family: monospace;
-							font-size: 0.75rem;
-						"
-					>
-						{layout}
-					</button>
-				{/each}
+			<div style="position: relative; display: flex; align-items: center;">
+				<select
+					value={store.schema.layout}
+					onchange={(e) => store!.setLayout((e.target as HTMLSelectElement).value as 'scroll' | 'steps' | 'convo')}
+					style="
+						appearance: none; -webkit-appearance: none;
+						padding: 0 28px 0 10px;
+						height: 28px;
+						background: #1f2937;
+						color: #9ca3af;
+						border: 1px solid #2a3341;
+						border-radius: 5px;
+						cursor: pointer;
+						font-family: monospace;
+						font-size: 0.75rem;
+						outline: none;
+						line-height: 1;
+					"
+				>
+					<option value="scroll">Scroll</option>
+					<option value="steps">Steps</option>
+					<option value="convo">Convo</option>
+				</select>
+				<svg style="position: absolute; right: 7px; top: 50%; transform: translateY(-50%); pointer-events: none;" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
 			</div>
 
-			<div style="width: 1px; height: 20px; background: #374151;"></div>
+			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
 
 			<!-- Locale switcher -->
 			<div style="display: flex; align-items: center; gap: 6px;">
-				{#each store.schema.locales as locale}
-					<button
-						onclick={() => store!.setActiveLocale(locale)}
+				<div style="position: relative; display: flex; align-items: center;">
+					<select
+						value={store.activeLocale}
+						onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
 						style="
-							padding: 4px 10px;
-							background: {store.activeLocale === locale ? '#374151' : 'transparent'};
-							color: {store.activeLocale === locale ? '#f9fafb' : '#9ca3af'};
-							border: 1px solid #374151;
-							border-radius: 4px;
+							appearance: none; -webkit-appearance: none;
+							padding: 0 28px 0 10px;
+							height: 28px;
+							background: #1f2937;
+							color: #9ca3af;
+							border: 1px solid #2a3341;
+							border-radius: 5px;
 							cursor: pointer;
 							font-family: monospace;
 							font-size: 0.75rem;
+							outline: none;
+							line-height: 1;
 						"
 					>
-						{locale}
-					</button>
-				{/each}
+						{#each store.schema.locales as locale}
+							<option value={locale}>{locale}</option>
+						{/each}
+					</select>
+					<svg style="position: absolute; right: 7px; top: 50%; transform: translateY(-50%); pointer-events: none;" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				</div>
 				{#if showLocaleInput}
 					<input
 						type="text"
@@ -204,31 +223,36 @@
 						bind:value={newLocaleInput}
 						onkeydown={(e) => { if (e.key === 'Enter') handleAddLocale(); if (e.key === 'Escape') showLocaleInput = false; }}
 						style="
-							width: 60px; padding: 4px 6px;
-							background: #111827; border: 1px solid #374151;
-							color: #d1d5db; border-radius: 4px;
+							width: 56px; padding: 0 8px; height: 28px;
+							background: #1f2937; border: 1px solid #2a3341;
+							color: #d1d5db; border-radius: 5px;
 							font-family: monospace; font-size: 0.75rem; outline: none;
+							box-sizing: border-box;
 						"
 					/>
 					<button
 						onclick={handleAddLocale}
-						style="padding: 4px 8px; background: #1d4ed8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 0.75rem;"
-					>
-						Add
-					</button>
+						style="
+							padding: 0 10px; height: 28px;
+							background: #1d4ed8; color: #fff;
+							border: none; border-radius: 5px;
+							cursor: pointer; font-family: monospace; font-size: 0.75rem;
+						"
+					>Add</button>
 				{:else}
 					<button
 						onclick={() => (showLocaleInput = true)}
 						style="
-							padding: 4px 8px;
-							background: transparent; color: #6b7280;
-							border: 1px dashed #374151;
-							border-radius: 4px; cursor: pointer;
+							padding: 0 8px; height: 28px;
+							background: transparent; color: #4b5563;
+							border: 1px dashed #2a3341;
+							border-radius: 5px; cursor: pointer;
 							font-family: monospace; font-size: 0.75rem;
+							transition: color 0.1s, border-color 0.1s;
 						"
-					>
-						+ Language
-					</button>
+						onmouseenter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#374151'; }}
+						onmouseleave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4b5563'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#2a3341'; }}
+					>+ lang</button>
 				{/if}
 			</div>
 
@@ -236,54 +260,69 @@
 			<div style="flex: 1;"></div>
 
 			<!-- Save indicator -->
-			<span style="font-size: 0.75rem; color: #6b7280; min-width: 120px; text-align: right;">
+			<span style="font-size: 0.7rem; color: #374151; letter-spacing: 0.02em;">
 				{saveIndicatorText(store)}
 			</span>
 
-			<div style="width: 1px; height: 20px; background: #374151;"></div>
+			<!-- Form settings cog -->
+			<button
+				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
+				title="Form settings"
+				style="
+					padding: 0 8px; height: 28px;
+					background: {store.showFormSettings ? '#1f2937' : 'transparent'};
+					color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'};
+					border: 1px solid {store.showFormSettings ? '#374151' : 'transparent'};
+					border-radius: 5px; cursor: pointer;
+					font-size: 0.9rem; line-height: 1;
+					transition: color 0.1s;
+				"
+				onmouseenter={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'; }}
+				onmouseleave={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#4b5563'; }}
+			>⚙</button>
+
+			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
 
 			<!-- Preview toggle -->
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
 				style="
-					padding: 6px 12px;
-					background: {store.mode === 'preview' ? '#374151' : 'transparent'};
-					color: {store.mode === 'preview' ? '#f9fafb' : '#9ca3af'};
-					border: 1px solid #374151;
-					border-radius: 4px; cursor: pointer;
-					font-family: monospace; font-size: 0.8rem;
+					padding: 0 12px; height: 28px;
+					background: {store.mode === 'preview' ? '#1f2937' : 'transparent'};
+					color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'};
+					border: 1px solid {store.mode === 'preview' ? '#374151' : '#2a3341'};
+					border-radius: 5px; cursor: pointer;
+					font-family: monospace; font-size: 0.75rem;
 				"
-			>
-				{store.mode === 'preview' ? 'Edit' : 'Preview'}
-			</button>
+			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
 			<!-- Publish button -->
 			<button
 				onclick={handlePublish}
 				disabled={store.saving || publishing}
 				style="
-					padding: 6px 16px;
-					background: {store.saving || publishing ? '#1e3a8a' : '#1d4ed8'};
+					padding: 0 14px; height: 28px;
+					background: {store.saving || publishing ? '#1e3a8a' : '#2563eb'};
 					color: #fff;
-					border: none; border-radius: 4px;
+					border: none; border-radius: 5px;
 					cursor: {store.saving || publishing ? 'not-allowed' : 'pointer'};
-					font-family: monospace; font-size: 0.8rem;
+					font-family: monospace; font-size: 0.75rem;
+					opacity: {store.saving || publishing ? '0.7' : '1'};
 				"
-			>
-				{publishing ? 'Publishing…' : 'Publish'}
-			</button>
+			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
-				<span style="color: #f87171; font-size: 0.75rem;">{publishError}</span>
+				<span style="color: #f87171; font-size: 0.7rem;">{publishError}</span>
 			{/if}
 		</div>
 
-		<!-- Three-panel body -->
+		<!-- Body -->
 		<div style="
 			display: grid;
-			grid-template-columns: {store.mode === 'preview' ? '1fr' : '240px 1fr 320px'};
+			grid-template-columns: {store.mode === 'preview' ? '1fr' : '240px 1fr'};
 			flex: 1;
 			overflow: hidden;
+			position: relative;
 		">
 			{#if store.mode === 'edit'}
 				<FieldPalette {store} />
