@@ -50,7 +50,7 @@
 		</p>
 		<a
 			href="/forms"
-			style="color: #6b7280; font-size: 0.85rem; text-decoration: none;"
+			style="color: #6b7280; font-size: 0.975rem; text-decoration: none;"
 		>
 			← Go back to forms
 		</a>

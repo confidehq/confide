@@ -28,6 +28,7 @@
 		"vitest": "^4.1.0"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.7.0",
 		"svelte-dnd-action": "^0.9.69"
 	}
 }

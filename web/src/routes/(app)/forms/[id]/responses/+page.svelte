@@ -12,6 +12,7 @@
 		type EncryptedResponseRecord
 	} from '$lib/forms';
 	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
+	import { CheckCheck, RefreshCw } from '@lucide/svelte';
 
 	type AnswerValue = string | string[] | number | null | undefined;
 
@@ -220,7 +221,7 @@
 	}
 
 	.top-bar-name {
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		color: #c5d3e0;
 		white-space: nowrap;
 		overflow: hidden;
@@ -235,7 +236,7 @@
 	}
 
 	.top-bar-id {
-		font-size: 0.72rem;
+		font-size: 0.82rem;
 		color: #4b6280;
 		white-space: nowrap;
 	}
@@ -268,7 +269,7 @@
 	}
 
 	.list-title {
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		font-weight: 600;
 		letter-spacing: 0.1em;
 		text-transform: uppercase;
@@ -329,7 +330,7 @@
 	}
 
 	.item-id {
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		color: #8899aa;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -338,7 +339,7 @@
 	}
 
 	.item-version {
-		font-size: 0.65rem;
+		font-size: 0.75rem;
 		color: #4b6280;
 		background: #111e2d;
 		border: 1px solid #243347;
@@ -348,7 +349,7 @@
 	}
 
 	.item-date {
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		color: #4b6280;
 		margin-top: 3px;
 	}
@@ -376,7 +377,7 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-family: monospace;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		transition: color 120ms, border-color 120ms;
 	}
 	.btn-ghost:hover:not(:disabled) { color: #8899aa; border-color: #374151; }
@@ -406,7 +407,7 @@
 	}
 
 	.detail-id {
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		color: #8899aa;
 		margin: 0 0 4px;
 		overflow: hidden;
@@ -415,7 +416,7 @@
 	}
 
 	.detail-submitted {
-		font-size: 0.72rem;
+		font-size: 0.82rem;
 		color: #4b6280;
 		margin: 0;
 	}
@@ -445,13 +446,13 @@
 	}
 
 	.detail-empty-icon {
-		font-size: 2rem;
+		font-size: 2.3rem;
 		margin-bottom: 12px;
 		opacity: 0.4;
 	}
 
 	.detail-empty-text {
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		margin: 0;
 	}
 
@@ -471,7 +472,7 @@
 	}
 
 	.field-label {
-		font-size: 0.7rem;
+		font-size: 0.8rem;
 		font-weight: 600;
 		letter-spacing: 0.06em;
 		text-transform: uppercase;
@@ -485,7 +486,7 @@
 	}
 
 	.field-value {
-		font-size: 0.875rem;
+		font-size: 1rem;
 		color: #c5d3e0;
 		margin: 0;
 		line-height: 1.6;
@@ -503,7 +504,7 @@
 		align-items: center;
 		gap: 10px;
 		color: #4b6280;
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		padding: 32px 0;
 	}
 
@@ -520,7 +521,7 @@
 
 	.error-msg {
 		color: #f87171;
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		padding: 12px 0;
 		margin: 0;
 	}
@@ -533,7 +534,7 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-family: monospace;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 		transition: background 120ms, border-color 120ms;
 	}
 	.btn-delete:hover { background: #1a0e0e; border-color: #7f1d1d; }
@@ -546,7 +547,7 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-family: monospace;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 	}
 
 	.btn-cancel {
@@ -557,17 +558,17 @@
 		border-radius: 4px;
 		cursor: pointer;
 		font-family: monospace;
-		font-size: 0.75rem;
+		font-size: 0.875rem;
 	}
 
 	.confirm-label {
-		font-size: 0.72rem;
+		font-size: 0.82rem;
 		color: #f87171;
 	}
 
 	.locale-badge {
 		display: inline-block;
-		font-size: 0.65rem;
+		font-size: 0.75rem;
 		color: #4b6280;
 		background: #111e2d;
 		border: 1px solid #243347;
@@ -583,7 +584,7 @@
 		align-items: center;
 		justify-content: center;
 		color: #4b6280;
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		gap: 10px;
 	}
 
@@ -593,7 +594,7 @@
 		align-items: center;
 		justify-content: center;
 		color: #f87171;
-		font-size: 0.8rem;
+		font-size: 0.925rem;
 		padding: 32px;
 		text-align: center;
 	}
@@ -605,7 +606,7 @@
 	<div class="top-bar-divider"></div>
 	<span class="top-bar-id">{formId.slice(0, 16)}…</span>
 	<div style="flex: 1;"></div>
-	<a href="/forms/{formId}/edit" style="font-family: monospace; font-size: 0.72rem; color: #93c5fd; text-decoration: none; padding: 2px 10px; border: 1px solid #2d3f55; border-radius: 3px; white-space: nowrap;">→ Edit form</a>
+	<a href="/forms/{formId}/edit" style="font-family: monospace; font-size: 0.82rem; color: #93c5fd; text-decoration: none; padding: 2px 10px; border: 1px solid #2d3f55; border-radius: 3px; white-space: nowrap;">→ Edit form</a>
 </div>
 <div class="responses-shell">
 	<!-- ── Left: response list ── -->
@@ -615,19 +616,11 @@
 			<div class="list-header-actions">
 				<!-- Mark all as read -->
 				<button class="icon-btn" title="Mark all as read" onclick={() => {}}>
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M20 6L9 17l-5-5"/>
-						<path d="M20 12L9 23l-5-5" opacity="0.4"/>
-					</svg>
+					<CheckCheck size={15} strokeWidth={2} />
 				</button>
 				<!-- Refresh -->
 				<button class="icon-btn" title="Refresh" disabled={loading || loadMore} onclick={() => loadResponses()}>
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-						<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-						<path d="M21 3v5h-5"/>
-						<path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-						<path d="M8 16H3v5"/>
-					</svg>
+					<RefreshCw size={15} strokeWidth={2} />
 				</button>
 			</div>
 		</div>

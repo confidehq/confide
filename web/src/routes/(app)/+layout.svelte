@@ -37,7 +37,7 @@
 
 <svelte:head>
 	<style>
-		html, body { margin: 0; padding: 0; background: #111827; }
+		html, body { margin: 0; padding: 0; background: #111827; font-size: 14px; }
 	</style>
 </svelte:head>
 
@@ -63,12 +63,12 @@
 			margin: 0 24px;
 		">
 			<h2 style="font-size: 1rem; color: #e5e7eb; margin: 0 0 8px;">Unlock your session</h2>
-			<p style="color: #9ca3af; font-size: 0.85rem; margin-bottom: 24px;">
+			<p style="color: #9ca3af; font-size: 0.975rem; margin-bottom: 24px;">
 				Your session key is no longer in memory. Re-authenticate to continue.
 			</p>
 
 			{#if reauthError}
-				<div style="color: #fca5a5; font-size: 0.85rem; margin-bottom: 12px;">{reauthError}</div>
+				<div style="color: #fca5a5; font-size: 0.975rem; margin-bottom: 12px;">{reauthError}</div>
 			{/if}
 
 			<button
@@ -101,7 +101,7 @@
 					border-radius: 6px;
 					cursor: pointer;
 					font-family: monospace;
-					font-size: 0.85rem;
+					font-size: 0.975rem;
 				"
 			>
 				Sign out

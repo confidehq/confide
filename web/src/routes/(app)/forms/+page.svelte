@@ -36,7 +36,7 @@
 
 <div style="font-family: monospace; max-width: 960px; padding: 32px 32px 48px;">
 	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
-		<h1 style="font-size: 1.4rem; margin: 0; color: #e2e8f0;">Forms</h1>
+		<h1 style="font-size: 1.6rem; margin: 0; color: #e2e8f0;">Forms</h1>
 		<button
 			onclick={() => goto('/forms/new')}
 			style="
@@ -47,7 +47,7 @@
 				border-radius: 4px;
 				cursor: pointer;
 				font-family: monospace;
-				font-size: 0.85rem;
+				font-size: 0.975rem;
 			"
 		>
 			+ New form
@@ -55,9 +55,9 @@
 	</div>
 
 	{#if formsStore.loading}
-		<p style="color: #8899aa; font-size: 0.9rem;">Loading…</p>
+		<p style="color: #8899aa; font-size: 1.025rem;">Loading…</p>
 	{:else if formsStore.error}
-		<p style="color: #f87171; font-size: 0.9rem;">{formsStore.error}</p>
+		<p style="color: #f87171; font-size: 1.025rem;">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
 		<div style="
 			padding: 48px 32px;
@@ -66,11 +66,11 @@
 			text-align: center;
 			color: #8899aa;
 		">
-			<p style="margin: 0 0 8px; font-size: 0.95rem;">No forms yet</p>
-			<p style="margin: 0; font-size: 0.8rem;">Create your first form to get started</p>
+			<p style="margin: 0 0 8px; font-size: 1.1rem;">No forms yet</p>
+			<p style="margin: 0; font-size: 0.925rem;">Create your first form to get started</p>
 		</div>
 	{:else}
-		<table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+		<table style="width: 100%; border-collapse: collapse; font-size: 0.975rem;">
 			<thead>
 				<tr style="border-bottom: 1px solid #2d3f55; color: #7a90a8;">
 					<th style="text-align: left; padding: 8px 12px; font-weight: normal;">Title</th>
@@ -84,17 +84,17 @@
 			<tbody>
 				{#each formsStore.forms as form (form.formId)}
 					<tr style="border-bottom: 1px solid #1e2d3e;">
-						<td style="padding: 12px; color: #c5d3e0; font-size: 0.85rem;">
+						<td style="padding: 12px; color: #c5d3e0; font-size: 0.975rem;">
 							{formsStore.formNames.get(form.formId) ?? '—'}
 						</td>
-						<td style="padding: 12px; color: #4b6280; font-size: 0.8rem;">
+						<td style="padding: 12px; color: #4b6280; font-size: 0.925rem;">
 							{form.formId.slice(0, 12)}…
 						</td>
 						<td style="padding: 12px;">
 							<span style="
 								padding: 2px 8px;
 								border-radius: 9999px;
-								font-size: 0.75rem;
+								font-size: 0.875rem;
 								background: {form.status === 'open' ? '#14532d' : '#1a2332'};
 								color: {form.status === 'open' ? '#86efac' : '#7a90a8'};
 								border: 1px solid {form.status === 'open' ? '#166534' : '#2d3f55'};
@@ -120,7 +120,7 @@
 										border-radius: 4px;
 										cursor: pointer;
 										font-family: monospace;
-										font-size: 0.75rem;
+										font-size: 0.875rem;
 									"
 								>
 									Edit
@@ -135,7 +135,7 @@
 										border-radius: 4px;
 										cursor: pointer;
 										font-family: monospace;
-										font-size: 0.75rem;
+										font-size: 0.875rem;
 									"
 								>
 									Responses ({form.responseCount})
@@ -150,7 +150,7 @@
 										border-radius: 4px;
 										cursor: pointer;
 										font-family: monospace;
-										font-size: 0.75rem;
+										font-size: 0.875rem;
 									"
 								>
 									{form.status === 'open' ? 'Close' : 'Open'}
@@ -165,7 +165,7 @@
 										border-radius: 4px;
 										cursor: pointer;
 										font-family: monospace;
-										font-size: 0.75rem;
+										font-size: 0.875rem;
 									"
 								>
 									Delete

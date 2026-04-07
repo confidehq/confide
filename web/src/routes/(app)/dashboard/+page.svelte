@@ -37,12 +37,12 @@
 	<!-- Header -->
 	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px;">
 		<div>
-			<h1 style="font-size: 1.4rem; margin: 0 0 4px; color: #e2e8f0;">Dashboard</h1>
-			<p style="margin: 0; font-size: 0.75rem; color: #4b6280;">{auth.accountId ?? '—'}</p>
+			<h1 style="font-size: 1.6rem; margin: 0 0 4px; color: #e2e8f0;">Dashboard</h1>
+			<p style="margin: 0; font-size: 0.875rem; color: #4b6280;">{auth.accountId ?? '—'}</p>
 		</div>
 		<button
 			onclick={handleLogout}
-			style="padding: 7px 14px; background: transparent; color: #8899aa; border: 1px solid #2d3f55; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 0.8rem;"
+			style="padding: 7px 14px; background: transparent; color: #8899aa; border: 1px solid #2d3f55; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 0.925rem;"
 		>
 			Sign out
 		</button>
@@ -56,8 +56,8 @@
 			{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
 		] as stat}
 			<div style="padding: 16px 20px; border: 1px solid #1e2d3e; border-radius: 6px;">
-				<p style="margin: 0 0 6px; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #4b6280;">{stat.label}</p>
-				<p style="margin: 0; font-size: 1.6rem; color: #c5d3e0;">{stat.value}</p>
+				<p style="margin: 0 0 6px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #4b6280;">{stat.label}</p>
+				<p style="margin: 0; font-size: 1.85rem; color: #c5d3e0;">{stat.value}</p>
 			</div>
 		{/each}
 	</div>
@@ -67,26 +67,26 @@
 		<a href="/forms" style="
 			display: flex; align-items: center; justify-content: space-between;
 			padding: 13px 16px; border: 1px solid #1e2d3e; border-radius: 6px;
-			text-decoration: none; color: #c5d3e0; font-size: 0.85rem;
+			text-decoration: none; color: #c5d3e0; font-size: 0.975rem;
 			transition: border-color 120ms, background 120ms;
 		"
 		onmouseenter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2d3f55'; (e.currentTarget as HTMLElement).style.background = '#1a2840'; }}
 		onmouseleave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1e2d3e'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
 		>
 			<span>Forms</span>
-			<span style="color: #4b6280; font-size: 0.75rem;">→</span>
+			<span style="color: #4b6280; font-size: 0.875rem;">→</span>
 		</a>
 		<a href="/settings/sessions" style="
 			display: flex; align-items: center; justify-content: space-between;
 			padding: 13px 16px; border: 1px solid #1e2d3e; border-radius: 6px;
-			text-decoration: none; color: #c5d3e0; font-size: 0.85rem;
+			text-decoration: none; color: #c5d3e0; font-size: 0.975rem;
 			transition: border-color 120ms, background 120ms;
 		"
 		onmouseenter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2d3f55'; (e.currentTarget as HTMLElement).style.background = '#1a2840'; }}
 		onmouseleave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1e2d3e'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
 		>
 			<span>Sessions</span>
-			<span style="color: #4b6280; font-size: 0.75rem;">→</span>
+			<span style="color: #4b6280; font-size: 0.875rem;">→</span>
 		</a>
 	</div>
 

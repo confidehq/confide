@@ -35,6 +35,7 @@ export interface BuilderStore {
 	setRenderKeySalt(salt: Uint8Array): void;
 	setShowFormSettings(show: boolean): void;
 	addField(type: FieldType): void;
+	addFieldAt(type: FieldType, afterIndex: number): void;
 	removeField(id: string): void;
 	reorderFields(newOrder: BuilderField[]): void;
 	updateField(id: string, patch: Partial<BuilderField>): void;
@@ -212,6 +213,51 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			fields: [...schema.fields, newField],
 			translations: updatedTranslations,
 			...(schema.fieldOrders ? { fieldOrders: updatedFieldOrders } : {})
+		};
+		selectedFieldId = id;
+		markDirty();
+	}
+
+	function addFieldAt(type: FieldType, afterIndex: number): void {
+		const orderedIds = getOrderedFields(schema, activeLocale).map((f) => f.id);
+		const id = crypto.randomUUID();
+		const newField: BuilderField = {
+			id,
+			type,
+			required: false,
+			order: schema.fields.length,
+			config: defaultConfigForType(type)
+		};
+
+		const updatedTranslations = { ...schema.translations };
+		for (const locale of schema.locales) {
+			if (!updatedTranslations[locale]) {
+				updatedTranslations[locale] = { formTitle: '', formDescription: '', fields: {} };
+			}
+			updatedTranslations[locale] = {
+				...updatedTranslations[locale],
+				fields: { ...updatedTranslations[locale].fields, [id]: { label: '' } }
+			};
+		}
+
+		const baseIds = [...orderedIds];
+		baseIds.splice(afterIndex + 1, 0, id);
+
+		const updatedFieldOrders: Record<string, string[]> = {};
+		for (const locale of schema.locales) {
+			if (locale === activeLocale) {
+				updatedFieldOrders[locale] = baseIds;
+			} else {
+				const existing = schema.fieldOrders?.[locale] ?? getOrderedFields(schema, locale).map((f) => f.id);
+				updatedFieldOrders[locale] = [...existing, id];
+			}
+		}
+
+		schema = {
+			...schema,
+			fields: [...schema.fields, newField],
+			translations: updatedTranslations,
+			fieldOrders: updatedFieldOrders
 		};
 		selectedFieldId = id;
 		markDirty();
@@ -498,6 +544,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			return schema.translations[activeLocale] ?? schema.translations[schema.defaultLocale];
 		},
 		addField,
+		addFieldAt,
 		removeField,
 		reorderFields,
 		updateField,

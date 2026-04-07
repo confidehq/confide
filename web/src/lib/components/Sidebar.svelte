@@ -2,23 +2,13 @@
 	import { page } from '$app/stores';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { onMount } from 'svelte';
+	import type { Component } from 'svelte';
+	import { LayoutGrid, FileText, Settings, ChevronLeft, ChevronRight, MessageSquare } from '@lucide/svelte';
 
-	const links = [
-		{
-			href: '/dashboard',
-			label: 'Dashboard',
-			icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>`
-		},
-		{
-			href: '/forms',
-			label: 'Forms',
-			icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>`
-		},
-		{
-			href: '/settings/sessions',
-			label: 'Settings',
-			icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`
-		}
+	const links: Array<{ href: string; label: string; icon: Component }> = [
+		{ href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
+		{ href: '/forms', label: 'Forms', icon: FileText },
+		{ href: '/settings/sessions', label: 'Settings', icon: Settings }
 	];
 
 	let version = $state('dev');
@@ -83,12 +73,10 @@
 					transition: color 120ms;
 				"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="9 18 15 12 9 6"/>
-				</svg>
+				<ChevronRight size={16} strokeWidth={1.75} />
 			</button>
 		{:else}
-			<span style="color: #d1d5db; font-size: 0.95rem; font-weight: 600; letter-spacing: -0.02em;">confide</span>
+			<span style="color: #d1d5db; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em;">confide</span>
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Collapse sidebar"
@@ -99,9 +87,7 @@
 					transition: color 120ms; flex-shrink: 0;
 				"
 			>
-				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-					<polyline points="15 18 9 12 15 6"/>
-				</svg>
+				<ChevronLeft size={16} strokeWidth={1.75} />
 			</button>
 		{/if}
 	</div>
@@ -127,13 +113,13 @@
 						white-space: nowrap;
 						overflow: hidden;
 						transition: color 120ms, background 120ms;
-						font-size: 0.82rem;
+						font-size: 0.95rem;
 						box-sizing: border-box;
 						width: 100%;
 					"
 				>
 					<span style="flex-shrink: 0; display: flex; align-items: center; color: {active ? '#93c5fd' : '#4b5563'};">
-						{@html link.icon}
+						<svelte:component this={link.icon} size={18} strokeWidth={1.75} />
 					</span>
 					{#if !sidebar.collapsed}
 						<span style="overflow: hidden; text-overflow: ellipsis;">{link.label}</span>
@@ -162,13 +148,13 @@
 					white-space: nowrap;
 					overflow: hidden;
 					transition: color 120ms;
-					font-size: 0.82rem;
+					font-size: 0.95rem;
 					box-sizing: border-box;
 					width: 100%;
 				"
 			>
 				<span style="flex-shrink: 0; display: flex; align-items: center; color: #4b5563;">
-					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+					<MessageSquare size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
 					<span style="overflow: hidden; text-overflow: ellipsis;">Leave Feedback</span>
@@ -181,7 +167,7 @@
 						padding: 8px 0 12px;
 						text-align: center;
 						color: #374151;
-						font-size: 0.8rem;
+						font-size: 0.925rem;
 						white-space: nowrap;
 						overflow: hidden;
 						text-overflow: ellipsis;

@@ -82,7 +82,7 @@
 			style={inputStyle(!currentFieldTranslation?.label)}
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.label}
-			<p style="margin: 4px 0 0; font-size: 0.72rem; color: #6b7280;">
+			<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
 				{store.schema.defaultLocale}: {defaultLocaleTranslation.label}
 			</p>
 		{/if}
@@ -98,7 +98,7 @@
 			style={inputStyle(false)}
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.helpText}
-			<p style="margin: 4px 0 0; font-size: 0.72rem; color: #6b7280;">
+			<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
 				{store.schema.defaultLocale}: {defaultLocaleTranslation.helpText}
 			</p>
 		{/if}
@@ -115,7 +115,7 @@
 				style={inputStyle(false)}
 			/>
 			{#if isNonDefaultLocale && defaultLocaleTranslation?.placeholder}
-				<p style="margin: 4px 0 0; font-size: 0.72rem; color: #6b7280;">
+				<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
 					{store.schema.defaultLocale}: {defaultLocaleTranslation.placeholder}
 				</p>
 			{/if}
@@ -137,7 +137,7 @@
 							style={inputStyle(!getOptionLabel(i))}
 						/>
 						{#if isNonDefaultLocale && getDefaultOptionLabel(i)}
-							<p style="margin: 2px 0 0; font-size: 0.72rem; color: #6b7280;">
+							<p style="margin: 2px 0 0; font-size: 0.82rem; color: #6b7280;">
 								{store.schema.defaultLocale}: {getDefaultOptionLabel(i)}
 							</p>
 						{/if}

@@ -5,9 +5,21 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
 	import { publishForm, rotateRenderKey } from '$lib/forms';
-	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
+	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
+	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check } from '@lucide/svelte';
+	import type { Component } from 'svelte';
+
+	type LayoutMode = 'scroll' | 'steps' | 'convo';
+
+	const layoutModes: Array<{ value: LayoutMode; label: string; help: string; icon: Component }> = [
+		{ value: 'scroll', label: 'Scroll mode', help: 'All questions on a single page', icon: ScrollText },
+		{ value: 'steps', label: 'Steps mode', help: 'One question per step', icon: LayoutList },
+		{ value: 'convo', label: 'Convo mode', help: 'Chat-like conversational flow', icon: MessageCircle }
+	];
+
+	let layoutOpen = $state(false);
 
 	const formId = $page.params.id ?? '';
 
@@ -95,12 +107,7 @@
 		showLocaleInput = false;
 	}
 
-	function saveIndicatorText(s: ReturnType<typeof createBuilderStore>) {
-		if (s.saving) return 'Saving…';
-		if (s.dirty) return 'Unsaved changes';
-		if (s.lastSaved) return 'Saved';
-		return '';
-	}
+
 </script>
 
 <svelte:head>
@@ -122,7 +129,7 @@
 		flex: 1; background: #111827; color: #f87171; gap: 16px;
 	">
 		<p>{loadError}</p>
-		<a href="/forms" style="color: #6b7280; font-size: 0.85rem; text-decoration: none;">← Back to forms</a>
+		<a href="/forms" style="color: #6b7280; font-size: 0.975rem; text-decoration: none;">← Back to forms</a>
 	</div>
 {:else if store}
 	<div style="
@@ -148,7 +155,7 @@
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
 				style="
 					background: transparent; border: none; outline: none;
-					color: #e5e7eb; font-family: monospace; font-size: 0.875rem;
+					color: #e5e7eb; font-family: monospace; font-size: 1rem;
 					width: 200px; min-width: 0;
 					padding: 4px 6px;
 					border-radius: 4px;
@@ -161,30 +168,67 @@
 			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
 
 			<!-- Layout selector -->
-			<div style="position: relative; display: flex; align-items: center;">
-				<select
-					value={store.schema.layout}
-					onchange={(e) => store!.setLayout((e.target as HTMLSelectElement).value as 'scroll' | 'steps' | 'convo')}
+			<div style="position: relative;">
+				{#if layoutOpen}
+					<div onclick={() => layoutOpen = false} style="position: fixed; inset: 0; z-index: 10;"></div>
+				{/if}
+				<button
+					onclick={() => layoutOpen = !layoutOpen}
 					style="
-						appearance: none; -webkit-appearance: none;
-						padding: 0 28px 0 10px;
-						height: 28px;
-						background: #1f2937;
+						display: flex; align-items: center; gap: 6px;
+						padding: 0 8px; height: 28px;
+						background: {layoutOpen ? '#1f2937' : 'transparent'};
 						color: #9ca3af;
-						border: 1px solid #2a3341;
-						border-radius: 5px;
-						cursor: pointer;
-						font-family: monospace;
-						font-size: 0.75rem;
-						outline: none;
-						line-height: 1;
+						border: 1px solid {layoutOpen ? '#374151' : '#2a3341'};
+						border-radius: 5px; cursor: pointer;
+						font-family: monospace; font-size: 0.875rem;
+						transition: background 0.1s, border-color 0.1s;
 					"
 				>
-					<option value="scroll">Scroll</option>
-					<option value="steps">Steps</option>
-					<option value="convo">Convo</option>
-				</select>
-				<svg style="position: absolute; right: 7px; top: 50%; transform: translateY(-50%); pointer-events: none;" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					{#each layoutModes as mode}
+						{#if mode.value === store.schema.layout}
+							<svelte:component this={mode.icon} size={13} strokeWidth={1.75} />
+							<span>{mode.label}</span>
+						{/if}
+					{/each}
+					<ChevronDown size={11} strokeWidth={1.75} style="color: #4b5563; margin-left: 2px;" />
+				</button>
+
+				{#if layoutOpen}
+					<div style="
+						position: absolute; top: calc(100% + 4px); left: 0;
+						background: #1a2233; border: 1px solid #2a3341;
+						border-radius: 7px; padding: 4px;
+						min-width: 210px; z-index: 20;
+						box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+					">
+						{#each layoutModes as mode}
+							{@const active = mode.value === store.schema.layout}
+							<button
+								onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
+								style="
+									display: flex; align-items: flex-start; gap: 10px;
+									width: 100%; padding: 8px 10px;
+									background: {active ? '#1f2d42' : 'transparent'};
+									color: {active ? '#e5e7eb' : '#9ca3af'};
+									border: none; border-radius: 5px;
+									cursor: pointer; font-family: monospace; text-align: left;
+									transition: background 0.1s, color 0.1s;
+								"
+								onmouseenter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#1e2b3c'; (e.currentTarget as HTMLElement).style.color = '#d1d5db'; } }}
+								onmouseleave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#9ca3af'; } }}
+							>
+								<span style="margin-top: 2px; flex-shrink: 0; color: {active ? '#60a5fa' : '#4b6280'};">
+									<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
+								</span>
+								<span>
+									<span style="display: block; font-size: 0.9rem;">{mode.label}</span>
+									<span style="display: block; font-size: 0.82rem; color: #4b6280; margin-top: 2px;">{mode.help}</span>
+								</span>
+							</button>
+						{/each}
+					</div>
+				{/if}
 			</div>
 
 			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
@@ -205,7 +249,7 @@
 							border-radius: 5px;
 							cursor: pointer;
 							font-family: monospace;
-							font-size: 0.75rem;
+							font-size: 0.875rem;
 							outline: none;
 							line-height: 1;
 						"
@@ -214,7 +258,9 @@
 							<option value={locale}>{locale}</option>
 						{/each}
 					</select>
-					<svg style="position: absolute; right: 7px; top: 50%; transform: translateY(-50%); pointer-events: none;" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" stroke="#4b5563" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					<span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; color: #4b5563;">
+						<ChevronDown size={12} strokeWidth={1.75} />
+					</span>
 				</div>
 				{#if showLocaleInput}
 					<input
@@ -226,7 +272,7 @@
 							width: 56px; padding: 0 8px; height: 28px;
 							background: #1f2937; border: 1px solid #2a3341;
 							color: #d1d5db; border-radius: 5px;
-							font-family: monospace; font-size: 0.75rem; outline: none;
+							font-family: monospace; font-size: 0.875rem; outline: none;
 							box-sizing: border-box;
 						"
 					/>
@@ -236,7 +282,7 @@
 							padding: 0 10px; height: 28px;
 							background: #1d4ed8; color: #fff;
 							border: none; border-radius: 5px;
-							cursor: pointer; font-family: monospace; font-size: 0.75rem;
+							cursor: pointer; font-family: monospace; font-size: 0.875rem;
 						"
 					>Add</button>
 				{:else}
@@ -247,7 +293,7 @@
 							background: transparent; color: #4b5563;
 							border: 1px dashed #2a3341;
 							border-radius: 5px; cursor: pointer;
-							font-family: monospace; font-size: 0.75rem;
+							font-family: monospace; font-size: 0.875rem;
 							transition: color 0.1s, border-color 0.1s;
 						"
 						onmouseenter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#374151'; }}
@@ -260,26 +306,36 @@
 			<div style="flex: 1;"></div>
 
 			<!-- Save indicator -->
-			<span style="font-size: 0.7rem; color: #374151; letter-spacing: 0.02em;">
-				{saveIndicatorText(store)}
-			</span>
+			{#if store.saving}
+				<span title="Saving…" style="display: flex; color: #4b5563;">
+					<Loader size={14} strokeWidth={2} />
+				</span>
+			{:else if store.dirty}
+				<span title="Unsaved changes" style="display: flex; color: #6b7280;">
+					<CloudOff size={14} strokeWidth={2} />
+				</span>
+			{:else if store.lastSaved}
+				<span title="Saved" style="display: flex; color: #374151;">
+					<Check size={14} strokeWidth={2} />
+				</span>
+			{/if}
 
 			<!-- Form settings cog -->
 			<button
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
 				style="
-					padding: 0 8px; height: 28px;
+					padding: 0 6px; height: 28px;
+					display: flex; align-items: center;
 					background: {store.showFormSettings ? '#1f2937' : 'transparent'};
 					color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'};
 					border: 1px solid {store.showFormSettings ? '#374151' : 'transparent'};
 					border-radius: 5px; cursor: pointer;
-					font-size: 0.9rem; line-height: 1;
 					transition: color 0.1s;
 				"
 				onmouseenter={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'; }}
 				onmouseleave={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#4b5563'; }}
-			>⚙</button>
+			><Settings size={15} strokeWidth={1.75} /></button>
 
 			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
 
@@ -292,7 +348,7 @@
 					color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'};
 					border: 1px solid {store.mode === 'preview' ? '#374151' : '#2a3341'};
 					border-radius: 5px; cursor: pointer;
-					font-family: monospace; font-size: 0.75rem;
+					font-family: monospace; font-size: 0.875rem;
 				"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
@@ -306,20 +362,19 @@
 					color: #fff;
 					border: none; border-radius: 5px;
 					cursor: {store.saving || publishing ? 'not-allowed' : 'pointer'};
-					font-family: monospace; font-size: 0.75rem;
+					font-family: monospace; font-size: 0.875rem;
 					opacity: {store.saving || publishing ? '0.7' : '1'};
 				"
 			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
-				<span style="color: #f87171; font-size: 0.7rem;">{publishError}</span>
+				<span style="color: #f87171; font-size: 0.8rem;">{publishError}</span>
 			{/if}
 		</div>
 
 		<!-- Body -->
 		<div style="
-			display: grid;
-			grid-template-columns: {store.mode === 'preview' ? '1fr' : '240px 1fr'};
+			display: flex;
 			flex: 1;
 			overflow: hidden;
 			position: relative;
@@ -359,8 +414,8 @@
 				width: 90%;
 				font-family: monospace;
 			">
-				<h2 style="margin: 0 0 8px; font-size: 1.1rem; color: #f9fafb;">Your form is live.</h2>
-				<p style="margin: 0 0 20px; font-size: 0.85rem; color: #9ca3af;">Share this link with respondents:</p>
+				<h2 style="margin: 0 0 8px; font-size: 1.25rem; color: #f9fafb;">Your form is live.</h2>
+				<p style="margin: 0 0 20px; font-size: 0.975rem; color: #9ca3af;">Share this link with respondents:</p>
 
 				<div style="display: flex; gap: 8px; margin-bottom: 24px;">
 					<input
@@ -371,7 +426,7 @@
 							flex: 1; padding: 8px 12px;
 							background: #111827; border: 1px solid #374151;
 							color: #d1d5db; border-radius: 4px;
-							font-family: monospace; font-size: 0.8rem; outline: none;
+							font-family: monospace; font-size: 0.925rem; outline: none;
 						"
 					/>
 					<button
@@ -380,7 +435,7 @@
 							padding: 8px 16px;
 							background: {copied ? '#16a34a' : '#1d4ed8'}; color: #fff;
 							border: none; border-radius: 4px;
-							cursor: pointer; font-family: monospace; font-size: 0.8rem;
+							cursor: pointer; font-family: monospace; font-size: 0.925rem;
 							transition: background 0.15s;
 						"
 					>
@@ -397,7 +452,7 @@
 							background: transparent; color: #9ca3af;
 							border: 1px solid #374151; border-radius: 4px;
 							cursor: {publishing ? 'not-allowed' : 'pointer'};
-							font-family: monospace; font-size: 0.75rem;
+							font-family: monospace; font-size: 0.875rem;
 						"
 					>
 						{publishing ? 'Rotating…' : 'Rotate key (invalidates old links)'}
@@ -408,7 +463,7 @@
 							padding: 6px 12px;
 							background: transparent; color: #6b7280;
 							border: none; cursor: pointer;
-							font-family: monospace; font-size: 0.75rem;
+							font-family: monospace; font-size: 0.875rem;
 						"
 					>
 						Close
@@ -416,7 +471,7 @@
 				</div>
 
 				{#if publishError}
-					<p style="margin: 12px 0 0; color: #f87171; font-size: 0.8rem;">{publishError}</p>
+					<p style="margin: 12px 0 0; color: #f87171; font-size: 0.925rem;">{publishError}</p>
 				{/if}
 			</div>
 		</div>

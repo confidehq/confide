@@ -57,7 +57,7 @@
 			border: 1px solid #374151;
 			border-radius: 4px;
 			color: #d1d5db;
-			font-family: monospace; font-size: 0.8rem;
+			font-family: monospace; font-size: 0.925rem;
 			outline: none; box-sizing: border-box;
 		`;
 	}
@@ -95,13 +95,13 @@
 	{#if store.showFormSettings}
 		<!-- Form settings panel -->
 		<div style="padding: 16px;">
-			<p style="margin: 0 0 16px; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
+			<p style="margin: 0 0 16px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
 				Form settings
 			</p>
 
 			<div style="display: flex; flex-direction: column; gap: 14px;">
 				<div>
-					<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Form name</label>
+					<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Form name</label>
 					<input
 						type="text"
 						placeholder="Internal name…"
@@ -109,12 +109,12 @@
 						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
 						style={inputStyle()}
 					/>
-					<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Used in your dashboard only.</p>
+					<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Used in your dashboard only.</p>
 				</div>
 
 				{#if isConvo}
 					<div>
-						<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">
+						<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">
 							Completion message
 						</label>
 						<textarea
@@ -126,7 +126,7 @@
 					</div>
 
 					<div style="display: flex; align-items: center; justify-content: space-between;">
-						<label style="font-size: 0.8rem; color: #d1d5db;">Allow edit after submit</label>
+						<label style="font-size: 0.925rem; color: #d1d5db;">Allow edit after submit</label>
 						<input
 							type="checkbox"
 							checked={store.schema.convoAllowEdit ?? false}
@@ -135,14 +135,14 @@
 					</div>
 				{/if}
 
-				<div style="margin-top: 4px;">
-					<p style="margin: 0 0 12px; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
-						Behavior
+				<!-- Access section -->
+				<div style="border-top: 1px solid #374151; padding-top: 16px;">
+					<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
+						Access
 					</p>
-
 					<div style="display: flex; flex-direction: column; gap: 14px;">
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Sunset date</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Close form on schedule</label>
 							<div style="display: flex; gap: 6px; align-items: center;">
 								<input
 									type="date"
@@ -156,21 +156,21 @@
 								{#if store.expiresAt}
 									<button
 										onclick={() => applyExpiration(null, store.responseLimit, store.responseTtlDays, store.burnAfterReading)}
-										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
-										title="Clear sunset date"
+										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1.15rem; padding: 0 4px; flex-shrink: 0;"
+										title="Clear close date"
 									>×</button>
 								{/if}
 							</div>
-							<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Form closes automatically on this date.</p>
+							<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Stop accepting new responses after this date.</p>
 						</div>
 
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Response cap</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Limit total responses</label>
 							<div style="display: flex; gap: 6px; align-items: center;">
 								<input
 									type="number"
 									min="1"
-									placeholder="Unlimited"
+									placeholder="No limit"
 									value={store.responseLimit ?? ''}
 									onchange={(e) => {
 										const v = parseInt((e.target as HTMLInputElement).value);
@@ -181,57 +181,64 @@
 								{#if store.responseLimit}
 									<button
 										onclick={() => applyExpiration(store.expiresAt, null, store.responseTtlDays, store.burnAfterReading)}
-										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1rem; padding: 0 4px; flex-shrink: 0;"
-										title="Clear response cap"
+										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1.15rem; padding: 0 4px; flex-shrink: 0;"
+										title="Clear submission limit"
 									>×</button>
 								{/if}
 							</div>
-							<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Form closes after this many responses.</p>
+							<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Stop accepting responses once this many submissions have been received.</p>
 						</div>
+					</div>
+				</div>
 
-						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Response lifetime</label>
-							<select
-								value={responseLifetimePolicy}
-								onchange={(e) => {
-									const policy = (e.target as HTMLSelectElement).value as ResponseLifetimePolicy;
-									applyResponseLifetime(policy, policy === 'ttl' ? (store.responseTtlDays ?? 30) : null);
-								}}
-								style={inputStyle()}
-							>
-								<option value="none">No automatic deletion</option>
-								<option value="burn">Burn after reading</option>
-								<option value="ttl">Delete after X days</option>
-							</select>
+				<!-- Auto delete responses section -->
+				<div style="border-top: 1px solid #374151; padding-top: 16px;">
+					<p style="margin: 0 0 4px; font-size: 0.875rem; color: #9ca3af; letter-spacing: 0.05em;">
+						Auto delete responses
+					</p>
+					<p style="margin: 0 0 12px; font-size: 0.8rem; color: #4b5563; line-height: 1.5;">
+						Automatically remove a submission from our servers after it has been stored for a set period.
+					</p>
+					<div style="display: flex; flex-direction: column; gap: 10px;">
+						<select
+							value={responseLifetimePolicy}
+							onchange={(e) => {
+								const policy = (e.target as HTMLSelectElement).value as ResponseLifetimePolicy;
+								applyResponseLifetime(policy, policy === 'ttl' ? (store.responseTtlDays ?? 30) : null);
+							}}
+							style={inputStyle()}
+						>
+							<option value="none">Keep indefinitely</option>
+							<option value="burn">Burn after reading</option>
+							<option value="ttl">Delete after a set period</option>
+						</select>
 
-							{#if responseLifetimePolicy === 'ttl'}
-								<div style="display: flex; gap: 6px; align-items: center; margin-top: 6px;">
-									<input
-										type="number"
-										min="1"
-										placeholder="Days"
-										value={store.responseTtlDays ?? ''}
-										onchange={(e) => {
-											const v = parseInt((e.target as HTMLInputElement).value);
-											applyResponseLifetime('ttl', v > 0 ? v : null);
-										}}
-										style={inputStyle()}
-									/>
-									<span style="font-size: 0.75rem; color: #9ca3af; flex-shrink: 0;">days</span>
-								</div>
-								<p style="margin: 4px 0 0; font-size: 0.7rem; color: #4b5563;">Responses are deleted this many days after they are received.</p>
-							{:else if responseLifetimePolicy === 'burn'}
-								<p style="margin: 6px 0 0; font-size: 0.7rem; color: #4b5563;">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
-							{/if}
-						</div>
-
-						{#if expirationSaving}
-							<p style="margin: 0; font-size: 0.7rem; color: #6b7280;">Saving…</p>
-						{:else if expirationError}
-							<p style="margin: 0; font-size: 0.7rem; color: #ef4444;">{expirationError}</p>
+						{#if responseLifetimePolicy === 'ttl'}
+							<div style="display: flex; gap: 6px; align-items: center;">
+								<input
+									type="number"
+									min="1"
+									placeholder="Days"
+									value={store.responseTtlDays ?? ''}
+									onchange={(e) => {
+										const v = parseInt((e.target as HTMLInputElement).value);
+										applyResponseLifetime('ttl', v > 0 ? v : null);
+									}}
+									style={inputStyle()}
+								/>
+								<span style="font-size: 0.875rem; color: #9ca3af; flex-shrink: 0;">days</span>
+							</div>
+						{:else if responseLifetimePolicy === 'burn'}
+							<p style="margin: 0; font-size: 0.8rem; color: #4b5563; line-height: 1.5;">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
 						{/if}
 					</div>
 				</div>
+
+				{#if expirationSaving}
+					<p style="margin: 0; font-size: 0.8rem; color: #6b7280;">Saving…</p>
+				{:else if expirationError}
+					<p style="margin: 0; font-size: 0.8rem; color: #ef4444;">{expirationError}</p>
+				{/if}
 			</div>
 		</div>
 
@@ -241,7 +248,7 @@
 
 			<!-- Translation section -->
 			<div>
-				<p style="margin: 0 0 12px; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Content</p>
+				<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Content</p>
 				<TranslationEditor {store} fieldId={field.id} />
 			</div>
 
@@ -250,12 +257,12 @@
 
 			<!-- Settings section -->
 			<div>
-				<p style="margin: 0 0 12px; font-size: 0.75rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Settings</p>
+				<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Settings</p>
 				<div style="display: flex; flex-direction: column; gap: 14px;">
 
 					<!-- Required toggle -->
 					<div style="display: flex; align-items: center; justify-content: space-between;">
-						<label style="font-size: 0.8rem; color: #d1d5db;">Required</label>
+						<label style="font-size: 0.925rem; color: #d1d5db;">Required</label>
 						<input
 							type="checkbox"
 							checked={field.required}
@@ -267,7 +274,7 @@
 					{#if field.type === 'short_text'}
 						{@const cfg = field.config as ShortTextConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -282,7 +289,7 @@
 					{#if field.type === 'long_text'}
 						{@const cfg = field.config as LongTextConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -292,7 +299,7 @@
 							/>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Min rows</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min rows</label>
 							<input
 								type="number"
 								min="1"
@@ -308,12 +315,12 @@
 					{#if field.type === 'multiple_choice' || field.type === 'checkboxes' || field.type === 'dropdown'}
 						{@const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Options</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Options</label>
 							<div style="display: flex; flex-direction: column; gap: 6px;">
 								{#each cfg.options ?? [] as opt (opt.id)}
 									<div style="display: flex; align-items: center; gap: 6px;">
-										<span style="color: #6b7280; font-size: 0.75rem; min-width: 20px;">{opt.order + 1}.</span>
-										<span style="flex: 1; font-size: 0.8rem; color: #9ca3af;">Option {opt.order + 1}</span>
+										<span style="color: #6b7280; font-size: 0.875rem; min-width: 20px;">{opt.order + 1}.</span>
+										<span style="flex: 1; font-size: 0.925rem; color: #9ca3af;">Option {opt.order + 1}</span>
 										<button
 											onclick={() => removeOption(opt.id)}
 											style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace;"
@@ -332,7 +339,7 @@
 										border-radius: 4px;
 										cursor: pointer;
 										font-family: monospace;
-										font-size: 0.75rem;
+										font-size: 0.875rem;
 									"
 								>
 									+ Add option
@@ -343,7 +350,7 @@
 						{#if field.type === 'multiple_choice'}
 							{@const mcCfg = field.config as MultipleChoiceConfig}
 							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<label style="font-size: 0.8rem; color: #d1d5db;">Allow "Other"</label>
+								<label style="font-size: 0.925rem; color: #d1d5db;">Allow "Other"</label>
 								<input
 									type="checkbox"
 									checked={mcCfg.allowOther ?? false}
@@ -355,7 +362,7 @@
 						{#if field.type === 'checkboxes'}
 							{@const cbCfg = field.config as CheckboxesConfig}
 							<div>
-								<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Min selections</label>
+								<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min selections</label>
 								<input
 									type="number"
 									min="0"
@@ -365,7 +372,7 @@
 								/>
 							</div>
 							<div>
-								<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Max selections</label>
+								<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max selections</label>
 								<input
 									type="number"
 									min="0"
@@ -379,7 +386,7 @@
 						{#if field.type === 'dropdown'}
 							{@const ddCfg = field.config as DropdownConfig}
 							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<label style="font-size: 0.8rem; color: #d1d5db;">Searchable</label>
+								<label style="font-size: 0.925rem; color: #d1d5db;">Searchable</label>
 								<input
 									type="checkbox"
 									checked={ddCfg.searchable ?? false}
@@ -393,7 +400,7 @@
 					{#if field.type === 'date_time'}
 						{@const cfg = field.config as DateTimeConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Mode</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Mode</label>
 							<select
 								value={cfg.mode}
 								onchange={(e) => store.updateFieldConfig(field.id, { mode: (e.target as HTMLSelectElement).value as 'date' | 'time' | 'datetime' })}
@@ -405,7 +412,7 @@
 							</select>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Min</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min</label>
 							<input
 								type="text"
 								placeholder="e.g. 2024-01-01"
@@ -415,7 +422,7 @@
 							/>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Max</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max</label>
 							<input
 								type="text"
 								placeholder="e.g. 2030-12-31"
@@ -430,7 +437,7 @@
 					{#if field.type === 'rating'}
 						{@const cfg = field.config as RatingConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Scale</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Scale</label>
 							<select
 								value={cfg.scale}
 								onchange={(e) => store.updateFieldConfig(field.id, { scale: parseInt((e.target as HTMLSelectElement).value) as 5 | 10 })}
@@ -441,7 +448,7 @@
 							</select>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Shape</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Shape</label>
 							<select
 								value={cfg.shape}
 								onchange={(e) => store.updateFieldConfig(field.id, { shape: (e.target as HTMLSelectElement).value as 'star' | 'number' })}
@@ -457,7 +464,7 @@
 					{#if field.type === 'heading'}
 						{@const cfg = field.config as HeadingConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Level</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Level</label>
 							<select
 								value={cfg.level}
 								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 })}
@@ -475,7 +482,7 @@
 					{#if field.type === 'accent'}
 						{@const cfg = field.config as AccentConfig}
 						<div>
-							<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Variant</label>
+							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Variant</label>
 							<select
 								value={cfg.variant}
 								onchange={(e) => store.updateFieldConfig(field.id, { variant: (e.target as HTMLSelectElement).value as AccentConfig['variant'] })}
@@ -490,13 +497,13 @@
 					{/if}
 
 					{#if field.type === 'section_break'}
-						<p style="font-size: 0.8rem; color: #6b7280; margin: 0;">
+						<p style="font-size: 0.925rem; color: #6b7280; margin: 0;">
 							Section breaks have no settings. Use the Content section above to add a label.
 						</p>
 					{/if}
 
 					{#if field.type === 'accordion'}
-						<p style="font-size: 0.8rem; color: #6b7280; margin: 0;">
+						<p style="font-size: 0.925rem; color: #6b7280; margin: 0;">
 							Set the title and body text in the Content section above.
 						</p>
 					{/if}

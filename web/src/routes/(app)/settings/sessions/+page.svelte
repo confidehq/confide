@@ -4,6 +4,7 @@
 	import { listSessions, revokeSession, logout } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { SessionInfo } from '$lib/types/auth';
+	import { Smartphone, Monitor } from '@lucide/svelte';
 
 	function isMobile(ua: string | undefined): boolean {
 		if (!ua) return false;
@@ -56,7 +57,7 @@
 
 <div style="font-family: monospace; max-width: 640px; padding: 32px 32px 48px;">
 	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
-		<h1 style="font-size: 1.4rem; margin: 0; color: #e2e8f0;">Active Sessions</h1>
+		<h1 style="font-size: 1.6rem; margin: 0; color: #e2e8f0;">Active Sessions</h1>
 		<button
 			onclick={handleLogout}
 			style="
@@ -67,7 +68,7 @@
 				border-radius: 4px;
 				cursor: pointer;
 				font-family: monospace;
-				font-size: 0.85rem;
+				font-size: 0.975rem;
 			"
 		>
 			Sign out
@@ -75,11 +76,11 @@
 	</div>
 
 	{#if loading}
-		<p style="color: #8899aa; font-size: 0.9rem;">Loading sessions…</p>
+		<p style="color: #8899aa; font-size: 1.025rem;">Loading sessions…</p>
 	{:else if error}
-		<p style="color: #f87171; font-size: 0.85rem;">{error}</p>
+		<p style="color: #f87171; font-size: 0.975rem;">{error}</p>
 	{:else if sessions.length === 0}
-		<p style="color: #8899aa; font-size: 0.9rem;">No active sessions.</p>
+		<p style="color: #8899aa; font-size: 1.025rem;">No active sessions.</p>
 	{:else}
 		<div style="display: flex; flex-direction: column; gap: 6px;">
 			{#each sessions as session}
@@ -94,23 +95,14 @@
 					<div style="display: flex; align-items: center; gap: 12px;">
 						<div style="color: #4b6280; flex-shrink: 0;" title={session.userAgent ?? 'Unknown device'}>
 							{#if isMobile(session.userAgent)}
-								<!-- Phone icon -->
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-									<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
-									<line x1="12" y1="18" x2="12.01" y2="18"/>
-								</svg>
+								<Smartphone size={18} strokeWidth={1.75} />
 							{:else}
-								<!-- Monitor icon -->
-								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-									<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-									<line x1="8" y1="21" x2="16" y2="21"/>
-									<line x1="12" y1="17" x2="12" y2="21"/>
-								</svg>
+								<Monitor size={18} strokeWidth={1.75} />
 							{/if}
 						</div>
 						<div>
-							<div style="color: #c5d3e0; font-size: 0.85rem;">{session.id.slice(0, 12)}…</div>
-							<div style="color: #4b6280; font-size: 0.75rem; margin-top: 3px;">
+							<div style="color: #c5d3e0; font-size: 0.975rem;">{session.id.slice(0, 12)}…</div>
+							<div style="color: #4b6280; font-size: 0.875rem; margin-top: 3px;">
 								Created {session.createdAt} · Last seen {session.lastSeen}
 							</div>
 						</div>
@@ -126,7 +118,7 @@
 							border-radius: 4px;
 							cursor: {revoking === session.id ? 'not-allowed' : 'pointer'};
 							font-family: monospace;
-							font-size: 0.8rem;
+							font-size: 0.925rem;
 						"
 					>
 						{revoking === session.id ? 'Revoking…' : 'Revoke'}
