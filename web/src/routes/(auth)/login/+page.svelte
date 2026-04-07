@@ -28,57 +28,34 @@
 	<title>Confide — Sign In</title>
 </svelte:head>
 
-<div style="font-family: monospace; max-width: 480px; margin: 80px auto; padding: 0 24px;">
-	<h1 style="font-size: 1.4rem; margin-bottom: 8px;">Confide</h1>
-	<p style="color: #888; font-size: 0.85rem; margin-bottom: 32px;">Sign in with your passkey.</p>
+<div class="font-mono max-w-[480px] mx-auto mt-20 px-6">
+	<h1 class="text-[1.4rem] mb-2">Confide</h1>
+	<p class="text-[#888] text-[0.85rem] mb-8">Sign in with your passkey.</p>
 
-	<label style="display: block; color: #9ca3af; font-size: 0.85rem; margin-bottom: 6px;">
-		Username
-	</label>
+	<label class="block text-muted text-[0.85rem] mb-1.5">Username</label>
 	<input
 		type="text"
 		bind:value={username}
 		placeholder="your username"
 		disabled={loading}
-		style="
-			width: 100%;
-			padding: 10px 12px;
-			background: #111;
-			border: 1px solid #374151;
-			border-radius: 4px;
-			color: #e5e7eb;
-			font-family: monospace;
-			font-size: 0.9rem;
-			box-sizing: border-box;
-			margin-bottom: 16px;
-		"
+		class="input-base mb-4 text-[0.9rem] py-2.5 px-3"
 	/>
 
 	<button
 		onclick={handleLogin}
 		disabled={loading}
-		style="
-			width: 100%;
-			padding: 14px;
-			background: {loading ? '#555' : '#2563eb'};
-			color: white;
-			border: none;
-			border-radius: 6px;
-			cursor: {loading ? 'not-allowed' : 'pointer'};
-			font-family: monospace;
-			font-size: 1rem;
-			margin-bottom: 16px;
-		"
+		class="w-full py-3.5 text-white border-none rounded-md font-mono text-base mb-4
+			{loading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 	>
 		{loading ? 'Authenticating…' : 'Sign in with passkey'}
 	</button>
 
 	{#if error}
-		<div style="color: #fca5a5; font-size: 0.85rem; margin-bottom: 16px;">{error}</div>
+		<div class="text-error-muted text-[0.85rem] mb-4">{error}</div>
 	{/if}
 
-	<p style="font-size: 0.8rem; color: #6b7280; margin-top: 24px;">
+	<p class="text-[0.8rem] text-muted-dark mt-6">
 		Lost your passkey?
-		<a href="/recover" style="color: #60a5fa;">Recover with recovery codes</a>
+		<a href="/recover" class="text-[#60a5fa]">Recover with recovery codes</a>
 	</p>
 </div>

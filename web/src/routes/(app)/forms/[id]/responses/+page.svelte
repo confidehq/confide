@@ -201,538 +201,176 @@
 </svelte:head>
 
 <style>
-	.responses-root {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		min-height: 0;
-		height: 100%;
-		font-family: monospace;
-	}
-
-	.top-bar {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 0 20px;
-		height: 36px;
-		border-bottom: 1px solid #1e2d3e;
-		flex-shrink: 0;
-	}
-
-	.top-bar-name {
-		font-size: 0.925rem;
-		color: #c5d3e0;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.top-bar-divider {
-		width: 1px;
-		height: 12px;
-		background: #2d3f55;
-		flex-shrink: 0;
-	}
-
-	.top-bar-id {
-		font-size: 0.82rem;
-		color: #4b6280;
-		white-space: nowrap;
-	}
-
-	.responses-shell {
-		display: flex;
-		flex: 1;
-		min-height: 0;
-		font-family: monospace;
-	}
-
-	/* ── Left panel ── */
-	.list-panel {
-		width: 280px;
-		flex-shrink: 0;
-		display: flex;
-		flex-direction: column;
-		border-right: 1px solid #243347;
-		min-height: 0;
-	}
-
-	.list-header {
-		padding: 12px 16px;
-		border-bottom: 1px solid #243347;
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-	}
-
-	.list-title {
-		font-size: 0.8rem;
-		font-weight: 600;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: #4b6280;
-		margin: 0;
-		flex: 1;
-	}
-
-	.list-header-actions {
-		display: flex;
-		align-items: center;
-		gap: 4px;
-	}
-
-	.icon-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 28px;
-		height: 28px;
-		background: transparent;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		color: #4b6280;
-		transition: color 120ms, background 120ms;
-	}
-	.icon-btn:hover { color: #8899aa; background: #1e2d3e; }
-	.icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-	.list-scroll {
-		flex: 1;
-		overflow-y: auto;
-		overflow-x: hidden;
-	}
-
-	.list-item {
-		display: block;
-		width: 100%;
-		padding: 11px 16px;
-		text-align: left;
-		background: transparent;
-		border: none;
-		border-bottom: 1px solid #1e2d3e;
-		cursor: pointer;
-		transition: background 100ms;
-		font-family: monospace;
-	}
-	.list-item:hover { background: #1e2c3d; }
-	.list-item.selected { background: #172030; border-left: 2px solid #3b82f6; padding-left: 14px; }
-	.list-item.selected .item-id { color: #93c5fd; }
-
-	.item-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 8px;
-	}
-
-	.item-id {
-		font-size: 0.875rem;
-		color: #8899aa;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		flex: 1;
-	}
-
-	.item-version {
-		font-size: 0.75rem;
-		color: #4b6280;
-		background: #111e2d;
-		border: 1px solid #243347;
-		border-radius: 3px;
-		padding: 1px 5px;
-		flex-shrink: 0;
-	}
-
-	.item-date {
-		font-size: 0.8rem;
-		color: #4b6280;
-		margin-top: 3px;
-	}
-
-	.item-decrypted-dot {
-		width: 5px;
-		height: 5px;
-		border-radius: 50%;
-		background: #22c55e;
-		flex-shrink: 0;
-	}
-
-	.list-load-more {
-		padding: 12px 16px;
-		border-top: 1px solid #1e2d3e;
-		flex-shrink: 0;
-	}
-
-	.btn-ghost {
-		width: 100%;
-		padding: 7px 12px;
-		background: transparent;
-		color: #4b6280;
-		border: 1px solid #243347;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		font-size: 0.875rem;
-		transition: color 120ms, border-color 120ms;
-	}
-	.btn-ghost:hover:not(:disabled) { color: #8899aa; border-color: #374151; }
-	.btn-ghost:disabled { opacity: 0.4; cursor: not-allowed; }
-
-	/* ── Right panel ── */
-	.detail-panel {
-		flex: 1;
-		min-width: 0;
-		display: flex;
-		flex-direction: column;
-		min-height: 0;
-	}
-
-	.detail-header {
-		padding: 18px 24px 14px;
-		border-bottom: 1px solid #243347;
-		flex-shrink: 0;
-		display: flex;
-		align-items: flex-start;
-		justify-content: space-between;
-		gap: 16px;
-	}
-
-	.detail-header-meta {
-		min-width: 0;
-	}
-
-	.detail-id {
-		font-size: 0.925rem;
-		color: #8899aa;
-		margin: 0 0 4px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.detail-submitted {
-		font-size: 0.82rem;
-		color: #4b6280;
-		margin: 0;
-	}
-
-	.detail-header-actions {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		flex-shrink: 0;
-	}
-
-	.detail-scroll {
-		flex: 1;
-		overflow-y: auto;
-		padding: 24px;
-	}
-
-	.detail-empty {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		color: #2d3f55;
-		text-align: center;
-		padding: 48px;
-	}
-
-	.detail-empty-icon {
-		font-size: 2.3rem;
-		margin-bottom: 12px;
-		opacity: 0.4;
-	}
-
-	.detail-empty-text {
-		font-size: 0.925rem;
-		margin: 0;
-	}
-
-	.detail-fields {
-		display: flex;
-		flex-direction: column;
-		gap: 20px;
-	}
-
-	.field-block {
-		border-bottom: 1px solid #1e2d3e;
-		padding-bottom: 20px;
-	}
-	.field-block:last-child {
-		border-bottom: none;
-		padding-bottom: 0;
-	}
-
-	.field-label {
-		font-size: 0.8rem;
-		font-weight: 600;
-		letter-spacing: 0.06em;
-		text-transform: uppercase;
-		color: #4b6280;
-		margin: 0 0 6px;
-	}
-
-	.field-required {
-		color: #f87171;
-		margin-left: 2px;
-	}
-
-	.field-value {
-		font-size: 1rem;
-		color: #c5d3e0;
-		margin: 0;
-		line-height: 1.6;
-		white-space: pre-wrap;
-		word-break: break-word;
-	}
-
-	.field-value.empty {
-		color: #3a4f63;
-		font-style: italic;
-	}
-
-	.decrypting-state {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		color: #4b6280;
-		font-size: 0.925rem;
-		padding: 32px 0;
-	}
-
-	.spinner {
-		width: 14px;
-		height: 14px;
-		border: 2px solid #243347;
-		border-top-color: #3b82f6;
-		border-radius: 50%;
-		animation: spin 0.7s linear infinite;
-	}
-
 	@keyframes spin { to { transform: rotate(360deg); } }
-
-	.error-msg {
-		color: #f87171;
-		font-size: 0.925rem;
-		padding: 12px 0;
-		margin: 0;
-	}
-
-	.btn-delete {
-		padding: 5px 12px;
-		background: transparent;
-		color: #f87171;
-		border: 1px solid #374151;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		font-size: 0.875rem;
-		transition: background 120ms, border-color 120ms;
-	}
-	.btn-delete:hover { background: #1a0e0e; border-color: #7f1d1d; }
-
-	.btn-confirm-delete {
-		padding: 5px 12px;
-		background: #7f1d1d;
-		color: #fca5a5;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		font-size: 0.875rem;
-	}
-
-	.btn-cancel {
-		padding: 5px 12px;
-		background: transparent;
-		color: #6b7280;
-		border: 1px solid #374151;
-		border-radius: 4px;
-		cursor: pointer;
-		font-family: monospace;
-		font-size: 0.875rem;
-	}
-
-	.confirm-label {
-		font-size: 0.82rem;
-		color: #f87171;
-	}
-
-	.locale-badge {
-		display: inline-block;
-		font-size: 0.75rem;
-		color: #4b6280;
-		background: #111e2d;
-		border: 1px solid #243347;
-		border-radius: 3px;
-		padding: 1px 6px;
-		margin-left: 8px;
-		vertical-align: middle;
-	}
-
-	.loading-full {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #4b6280;
-		font-size: 0.925rem;
-		gap: 10px;
-	}
-
-	.error-full {
-		flex: 1;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		color: #f87171;
-		font-size: 0.925rem;
-		padding: 32px;
-		text-align: center;
-	}
+	.spinner { animation: spin 0.7s linear infinite; }
 </style>
 
-<div class="responses-root">
-<div class="top-bar">
-	<span class="top-bar-name">{formName ?? '—'}</span>
-	<div class="top-bar-divider"></div>
-	<span class="top-bar-id">{formId.slice(0, 16)}…</span>
-	<div style="flex: 1;"></div>
-	<a href="/forms/{formId}/edit" style="font-family: monospace; font-size: 0.82rem; color: #93c5fd; text-decoration: none; padding: 2px 10px; border: 1px solid #2d3f55; border-radius: 3px; white-space: nowrap;">→ Edit form</a>
-</div>
-<div class="responses-shell">
-	<!-- ── Left: response list ── -->
-	<div class="list-panel">
-		<div class="list-header">
-			<p class="list-title">Responses</p>
-			<div class="list-header-actions">
-				<!-- Mark all as read -->
-				<button class="icon-btn" title="Mark all as read" onclick={() => {}}>
-					<CheckCheck size={15} strokeWidth={2} />
-				</button>
-				<!-- Refresh -->
-				<button class="icon-btn" title="Refresh" disabled={loading || loadMore} onclick={() => loadResponses()}>
-					<RefreshCw size={15} strokeWidth={2} />
-				</button>
-			</div>
-		</div>
+<!-- Root -->
+<div class="flex flex-col flex-1 min-h-0 h-full font-mono">
 
-		{#if loading}
-			<div class="loading-full">
-				<div class="spinner"></div>
-				Loading…
-			</div>
-		{:else if loadError}
-			<div class="error-full">{loadError}</div>
-		{:else if responses.length === 0}
-			<div class="detail-empty" style="flex: 1;">
-				<div class="detail-empty-icon">○</div>
-				<p class="detail-empty-text">No responses yet</p>
-			</div>
-		{:else}
-			<div class="list-scroll">
-				{#each responses as record, i (record.id)}
-					<button
-						class="list-item"
-						class:selected={selectedId === record.id}
-						onclick={() => selectResponse(record)}
-					>
-						<div class="item-row">
-							<span class="item-id">#{i + 1} · {record.id.slice(0, 12)}…</span>
-							{#if decrypted.has(record.id)}
-								<span class="item-decrypted-dot" title="Decrypted"></span>
-							{/if}
-							<span class="item-version">v{record.schemaVersion}</span>
-						</div>
-						<div class="item-date">{formatDate(record.receivedAt)}</div>
-					</button>
-				{/each}
-			</div>
-
-			{#if hasMore}
-				<div class="list-load-more">
-					<button class="btn-ghost" onclick={() => loadResponses(nextCursor)} disabled={loadMore}>
-						{loadMore ? 'Loading…' : 'Load more'}
-					</button>
-				</div>
-			{/if}
-		{/if}
+	<!-- Top bar -->
+	<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0">
+		<span class="text-[0.925rem] text-[#c5d3e0] whitespace-nowrap overflow-hidden text-ellipsis">{formName ?? '—'}</span>
+		<div class="w-px h-3 bg-border-subtle shrink-0"></div>
+		<span class="text-[0.82rem] text-[#4b6280] whitespace-nowrap">{formId.slice(0, 16)}…</span>
+		<div class="flex-1"></div>
+		<a href="/forms/{formId}/edit" class="font-mono text-[0.82rem] text-[#93c5fd] no-underline px-2.5 py-0.5 border border-border-subtle rounded-sm whitespace-nowrap">→ Edit form</a>
 	</div>
 
-	<!-- ── Right: detail panel ── -->
-	<div class="detail-panel">
-		{#if !selectedRecord}
-			<div class="detail-empty">
-				<div class="detail-empty-icon">⊡</div>
-				<p class="detail-empty-text">Select a response to view its contents</p>
-			</div>
-		{:else}
-			<!-- Detail header -->
-			<div class="detail-header">
-				<div class="detail-header-meta">
-					<p class="detail-id">{selectedRecord.id}</p>
-					<p class="detail-submitted">
-						Received {formatDateLong(selectedRecord.receivedAt)}
-						{#if selectedDecrypted}
-							<span class="locale-badge">{selectedDecrypted.locale}</span>
-						{/if}
-					</p>
-				</div>
+	<!-- Shell -->
+	<div class="flex flex-1 min-h-0 font-mono">
 
-				<div class="detail-header-actions">
-					{#if confirmDelete === selectedRecord.id}
-						<span class="confirm-label">Delete?</span>
+		<!-- Left panel: response list -->
+		<div class="w-[280px] shrink-0 flex flex-col border-r border-[#243347] min-h-0">
+
+			<!-- List header -->
+			<div class="px-4 py-3 border-b border-[#243347] shrink-0 flex items-center justify-between gap-2">
+				<p class="text-[0.8rem] font-semibold tracking-[0.1em] uppercase text-[#4b6280] m-0 flex-1">Responses</p>
+				<div class="flex items-center gap-1">
+					<button
+						title="Mark all as read"
+						onclick={() => {}}
+						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-[#4b6280] transition-[color,background] duration-100 hover:text-[#8899aa] hover:bg-border-deep"
+					>
+						<CheckCheck size={15} strokeWidth={2} />
+					</button>
+					<button
+						title="Refresh"
+						disabled={loading || loadMore}
+						onclick={() => loadResponses()}
+						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-[#4b6280] transition-[color,background] duration-100 hover:text-[#8899aa] hover:bg-border-deep disabled:opacity-30 disabled:cursor-not-allowed"
+					>
+						<RefreshCw size={15} strokeWidth={2} />
+					</button>
+				</div>
+			</div>
+
+			{#if loading}
+				<div class="flex-1 flex items-center justify-center text-[#4b6280] text-[0.925rem] gap-2.5">
+					<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
+					Loading…
+				</div>
+			{:else if loadError}
+				<div class="flex-1 flex items-center justify-center text-error-light text-[0.925rem] p-8 text-center">{loadError}</div>
+			{:else if responses.length === 0}
+				<div class="flex-1 flex flex-col items-center justify-center text-border-subtle text-center p-12">
+					<div class="text-[2.3rem] mb-3 opacity-40">○</div>
+					<p class="text-[0.925rem] m-0">No responses yet</p>
+				</div>
+			{:else}
+				<div class="flex-1 overflow-y-auto overflow-x-hidden">
+					{#each responses as record, i (record.id)}
 						<button
-							class="btn-confirm-delete"
-							onclick={() => handleDelete(selectedRecord.id)}
-							disabled={deleting.has(selectedRecord.id)}
+							onclick={() => selectResponse(record)}
+							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-deep cursor-pointer transition-[background] duration-100 font-mono hover:bg-[#1e2c3d]
+								{selectedId === record.id ? 'bg-[#172030] border-l-2 border-l-[#3b82f6] pl-[14px]' : ''}"
 						>
-							{deleting.has(selectedRecord.id) ? '…' : 'Confirm'}
+							<div class="flex items-center justify-between gap-2">
+								<span class="text-[0.875rem] overflow-hidden text-ellipsis whitespace-nowrap flex-1
+									{selectedId === record.id ? 'text-[#93c5fd]' : 'text-[#8899aa]'}">
+									#{i + 1} · {record.id.slice(0, 12)}…
+								</span>
+								{#if decrypted.has(record.id)}
+									<span class="w-[5px] h-[5px] rounded-full bg-[#22c55e] shrink-0" title="Decrypted"></span>
+								{/if}
+								<span class="text-[0.75rem] text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px shrink-0">v{record.schemaVersion}</span>
+							</div>
+							<div class="text-[0.8rem] text-[#4b6280] mt-0.5">{formatDate(record.receivedAt)}</div>
 						</button>
-						<button class="btn-cancel" onclick={() => (confirmDelete = null)}>Cancel</button>
-					{:else}
-						<button class="btn-delete" onclick={() => (confirmDelete = selectedRecord.id)}>
-							Delete
-						</button>
-					{/if}
+					{/each}
 				</div>
-			</div>
 
-			<!-- Detail content -->
-			<div class="detail-scroll">
-				{#if isDecryptingSelected}
-					<div class="decrypting-state">
-						<div class="spinner"></div>
-						Decrypting…
-					</div>
-				{:else if selectedDecryptError}
-					<p class="error-msg">{selectedDecryptError}</p>
-				{:else if selectedDecrypted}
-					<div class="detail-fields">
-						{#each selectedDecrypted.schema.fields as field (field.id)}
-							{#if field.type !== 'section_break'}
-								{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
-								{@const answer = renderAnswer(field, selectedDecrypted)}
-								<div class="field-block">
-									<p class="field-label">
-										{fieldT?.label ?? field.id}{#if field.required}<span class="field-required">*</span>{/if}
-									</p>
-									<p class="field-value" class:empty={answer === '—'}>{answer}</p>
-								</div>
-							{/if}
-						{/each}
+				{#if hasMore}
+					<div class="px-4 py-3 border-t border-border-deep shrink-0">
+						<button
+							onclick={() => loadResponses(nextCursor)}
+							disabled={loadMore}
+							class="w-full px-3 py-1.5 bg-transparent text-[#4b6280] border border-[#243347] rounded cursor-pointer font-mono text-[0.875rem] transition-[color,border-color] duration-100 hover:not-disabled:text-[#8899aa] hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+						>
+							{loadMore ? 'Loading…' : 'Load more'}
+						</button>
 					</div>
 				{/if}
-			</div>
-		{/if}
+			{/if}
+		</div>
+
+		<!-- Right panel: detail -->
+		<div class="flex-1 min-w-0 flex flex-col min-h-0">
+			{#if !selectedRecord}
+				<div class="flex-1 flex flex-col items-center justify-center text-border-subtle text-center p-12">
+					<div class="text-[2.3rem] mb-3 opacity-40">⊡</div>
+					<p class="text-[0.925rem] m-0">Select a response to view its contents</p>
+				</div>
+			{:else}
+				<!-- Detail header -->
+				<div class="px-6 pt-[18px] pb-3.5 border-b border-[#243347] shrink-0 flex items-start justify-between gap-4">
+					<div class="min-w-0">
+						<p class="text-[0.925rem] text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
+						<p class="text-[0.82rem] text-[#4b6280] m-0">
+							Received {formatDateLong(selectedRecord.receivedAt)}
+							{#if selectedDecrypted}
+								<span class="inline-block text-[0.75rem] text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
+							{/if}
+						</p>
+					</div>
+
+					<div class="flex items-center gap-2 shrink-0">
+						{#if confirmDelete === selectedRecord.id}
+							<span class="text-[0.82rem] text-error-light">Delete?</span>
+							<button
+								onclick={() => handleDelete(selectedRecord.id)}
+								disabled={deleting.has(selectedRecord.id)}
+								class="px-3 py-1 bg-[#7f1d1d] text-error-muted border-none rounded cursor-pointer font-mono text-[0.875rem]"
+							>
+								{deleting.has(selectedRecord.id) ? '…' : 'Confirm'}
+							</button>
+							<button
+								onclick={() => (confirmDelete = null)}
+								class="px-3 py-1 bg-transparent text-muted-dark border border-border rounded cursor-pointer font-mono text-[0.875rem]"
+							>
+								Cancel
+							</button>
+						{:else}
+							<button
+								onclick={() => (confirmDelete = selectedRecord.id)}
+								class="px-3 py-1 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
+							>
+								Delete
+							</button>
+						{/if}
+					</div>
+				</div>
+
+				<!-- Detail content -->
+				<div class="flex-1 overflow-y-auto p-6">
+					{#if isDecryptingSelected}
+						<div class="flex items-center gap-2.5 text-[#4b6280] text-[0.925rem] py-8">
+							<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
+							Decrypting…
+						</div>
+					{:else if selectedDecryptError}
+						<p class="text-error-light text-[0.925rem] py-3 m-0">{selectedDecryptError}</p>
+					{:else if selectedDecrypted}
+						<div class="flex flex-col gap-5">
+							{#each selectedDecrypted.schema.fields as field (field.id)}
+								{#if field.type !== 'section_break'}
+									{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
+									{@const answer = renderAnswer(field, selectedDecrypted)}
+									<div class="border-b border-border-deep pb-5 last:border-b-0 last:pb-0">
+										<p class="text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-[#4b6280] m-0 mb-1.5">
+											{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
+										</p>
+										<p class="text-base text-[#c5d3e0] m-0 leading-relaxed whitespace-pre-wrap break-words
+											{answer === '—' ? 'text-[#3a4f63] italic' : ''}">
+											{answer}
+										</p>
+									</div>
+								{/if}
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
 	</div>
-</div>
 </div>

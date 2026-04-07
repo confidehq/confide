@@ -62,8 +62,6 @@
 		publishError = '';
 		try {
 			await store.flushSave();
-			// Pass existing salt so the share URL stays stable across publishes.
-			// On first publish renderKeySalt is null and a new salt is generated.
 			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt);
 			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
@@ -106,8 +104,6 @@
 		newLocaleInput = '';
 		showLocaleInput = false;
 	}
-
-
 </script>
 
 <svelte:head>
@@ -115,75 +111,38 @@
 </svelte:head>
 
 {#if loading}
-	<div style="
-		font-family: monospace;
-		display: flex; align-items: center; justify-content: center;
-		flex: 1; background: #111827; color: #9ca3af;
-	">
+	<div class="font-mono flex items-center justify-center flex-1 bg-canvas text-muted">
 		<p>Loading form…</p>
 	</div>
 {:else if loadError}
-	<div style="
-		font-family: monospace;
-		display: flex; flex-direction: column; align-items: center; justify-content: center;
-		flex: 1; background: #111827; color: #f87171; gap: 16px;
-	">
+	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-error-light gap-4">
 		<p>{loadError}</p>
-		<a href="/forms" style="color: #6b7280; font-size: 0.975rem; text-decoration: none;">← Back to forms</a>
+		<a href="/forms" class="text-muted-dark text-[0.975rem] no-underline">← Back to forms</a>
 	</div>
 {:else if store}
-	<div style="
-		display: flex; flex-direction: column;
-		flex: 1; min-height: 0; background: #111827;
-		font-family: monospace; color: #d1d5db;
-		overflow: hidden;
-	">
+	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text-dim overflow-hidden">
 		<!-- Toolbar -->
-		<div style="
-			display: flex; align-items: center; gap: 8px;
-			padding: 0 12px;
-			height: 44px;
-			background: #161d28;
-			border-bottom: 1px solid #2a3341;
-			flex-shrink: 0;
-		">
+		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-[#2a3341] shrink-0">
 			<!-- Form name input -->
 			<input
 				type="text"
 				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				style="
-					background: transparent; border: none; outline: none;
-					color: #e5e7eb; font-family: monospace; font-size: 1rem;
-					width: 200px; min-width: 0;
-					padding: 4px 6px;
-					border-radius: 4px;
-					transition: background 0.1s;
-				"
-				onfocus={(e) => { (e.target as HTMLInputElement).style.background = '#1f2937'; }}
-				onblur={(e) => { (e.target as HTMLInputElement).style.background = 'transparent'; }}
+				class="bg-transparent border-none outline-none text-text font-mono text-base w-[200px] min-w-0 px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
 			/>
 
-			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
+			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
 
 			<!-- Layout selector -->
-			<div style="position: relative;">
+			<div class="relative">
 				{#if layoutOpen}
-					<div onclick={() => layoutOpen = false} style="position: fixed; inset: 0; z-index: 10;"></div>
+					<div onclick={() => layoutOpen = false} class="fixed inset-0 z-10"></div>
 				{/if}
 				<button
 					onclick={() => layoutOpen = !layoutOpen}
-					style="
-						display: flex; align-items: center; gap: 6px;
-						padding: 0 8px; height: 28px;
-						background: {layoutOpen ? '#1f2937' : 'transparent'};
-						color: #9ca3af;
-						border: 1px solid {layoutOpen ? '#374151' : '#2a3341'};
-						border-radius: 5px; cursor: pointer;
-						font-family: monospace; font-size: 0.875rem;
-						transition: background 0.1s, border-color 0.1s;
-					"
+					style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? '#374151' : '#2a3341'};"
+					class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100"
 				>
 					{#each layoutModes as mode}
 						{#if mode.value === store.schema.layout}
@@ -191,39 +150,24 @@
 							<span>{mode.label}</span>
 						{/if}
 					{/each}
-					<ChevronDown size={11} strokeWidth={1.75} style="color: #4b5563; margin-left: 2px;" />
+					<ChevronDown size={11} strokeWidth={1.75} class="text-muted-dark ml-0.5" />
 				</button>
 
 				{#if layoutOpen}
-					<div style="
-						position: absolute; top: calc(100% + 4px); left: 0;
-						background: #1a2233; border: 1px solid #2a3341;
-						border-radius: 7px; padding: 4px;
-						min-width: 210px; z-index: 20;
-						box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-					">
+					<div class="absolute top-[calc(100%+4px)] left-0 bg-[#1a2233] border border-[#2a3341] rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
 						{#each layoutModes as mode}
 							{@const active = mode.value === store.schema.layout}
 							<button
 								onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
-								style="
-									display: flex; align-items: flex-start; gap: 10px;
-									width: 100%; padding: 8px 10px;
-									background: {active ? '#1f2d42' : 'transparent'};
-									color: {active ? '#e5e7eb' : '#9ca3af'};
-									border: none; border-radius: 5px;
-									cursor: pointer; font-family: monospace; text-align: left;
-									transition: background 0.1s, color 0.1s;
-								"
-								onmouseenter={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = '#1e2b3c'; (e.currentTarget as HTMLElement).style.color = '#d1d5db'; } }}
-								onmouseleave={(e) => { if (!active) { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = '#9ca3af'; } }}
+								class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
+									{active ? 'bg-[#1f2d42] text-text' : 'bg-transparent text-muted hover:bg-[#1e2b3c] hover:text-text-dim'}"
 							>
-								<span style="margin-top: 2px; flex-shrink: 0; color: {active ? '#60a5fa' : '#4b6280'};">
+								<span class="mt-0.5 shrink-0 {active ? 'text-[#60a5fa]' : 'text-[#4b6280]'}">
 									<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
 								</span>
 								<span>
-									<span style="display: block; font-size: 0.9rem;">{mode.label}</span>
-									<span style="display: block; font-size: 0.82rem; color: #4b6280; margin-top: 2px;">{mode.help}</span>
+									<span class="block text-[0.9rem]">{mode.label}</span>
+									<span class="block text-[0.82rem] text-[#4b6280] mt-0.5">{mode.help}</span>
 								</span>
 							</button>
 						{/each}
@@ -231,34 +175,21 @@
 				{/if}
 			</div>
 
-			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
+			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
 
 			<!-- Locale switcher -->
-			<div style="display: flex; align-items: center; gap: 6px;">
-				<div style="position: relative; display: flex; align-items: center;">
+			<div class="flex items-center gap-1.5">
+				<div class="relative flex items-center">
 					<select
 						value={store.activeLocale}
 						onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-						style="
-							appearance: none; -webkit-appearance: none;
-							padding: 0 28px 0 10px;
-							height: 28px;
-							background: #1f2937;
-							color: #9ca3af;
-							border: 1px solid #2a3341;
-							border-radius: 5px;
-							cursor: pointer;
-							font-family: monospace;
-							font-size: 0.875rem;
-							outline: none;
-							line-height: 1;
-						"
+						class="appearance-none pl-2.5 pr-7 h-7 bg-surface-2 text-muted border border-[#2a3341] rounded-md cursor-pointer font-mono text-[0.875rem] outline-none leading-none"
 					>
 						{#each store.schema.locales as locale}
 							<option value={locale}>{locale}</option>
 						{/each}
 					</select>
-					<span style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); pointer-events: none; display: flex; color: #4b5563;">
+					<span class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
 						<ChevronDown size={12} strokeWidth={1.75} />
 					</span>
 				</div>
@@ -268,117 +199,64 @@
 						placeholder="e.g. fr"
 						bind:value={newLocaleInput}
 						onkeydown={(e) => { if (e.key === 'Enter') handleAddLocale(); if (e.key === 'Escape') showLocaleInput = false; }}
-						style="
-							width: 56px; padding: 0 8px; height: 28px;
-							background: #1f2937; border: 1px solid #2a3341;
-							color: #d1d5db; border-radius: 5px;
-							font-family: monospace; font-size: 0.875rem; outline: none;
-							box-sizing: border-box;
-						"
+						class="w-14 px-2 h-7 bg-surface-2 border border-[#2a3341] text-text-dim rounded-md font-mono text-[0.875rem] outline-none box-border"
 					/>
 					<button
 						onclick={handleAddLocale}
-						style="
-							padding: 0 10px; height: 28px;
-							background: #1d4ed8; color: #fff;
-							border: none; border-radius: 5px;
-							cursor: pointer; font-family: monospace; font-size: 0.875rem;
-						"
+						class="px-2.5 h-7 bg-primary text-white border-none rounded-md cursor-pointer font-mono text-[0.875rem]"
 					>Add</button>
 				{:else}
 					<button
 						onclick={() => (showLocaleInput = true)}
-						style="
-							padding: 0 8px; height: 28px;
-							background: transparent; color: #4b5563;
-							border: 1px dashed #2a3341;
-							border-radius: 5px; cursor: pointer;
-							font-family: monospace; font-size: 0.875rem;
-							transition: color 0.1s, border-color 0.1s;
-						"
-						onmouseenter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6b7280'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#374151'; }}
-						onmouseleave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4b5563'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#2a3341'; }}
+						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-[#2a3341] rounded-md cursor-pointer font-mono text-[0.875rem] transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
 					>+ lang</button>
 				{/if}
 			</div>
 
 			<!-- Spacer -->
-			<div style="flex: 1;"></div>
+			<div class="flex-1"></div>
 
 			<!-- Save indicator -->
 			{#if store.saving}
-				<span title="Saving…" style="display: flex; color: #4b5563;">
-					<Loader size={14} strokeWidth={2} />
-				</span>
+				<span title="Saving…" class="flex text-muted-dark"><Loader size={14} strokeWidth={2} /></span>
 			{:else if store.dirty}
-				<span title="Unsaved changes" style="display: flex; color: #6b7280;">
-					<CloudOff size={14} strokeWidth={2} />
-				</span>
+				<span title="Unsaved changes" class="flex text-muted-dark"><CloudOff size={14} strokeWidth={2} /></span>
 			{:else if store.lastSaved}
-				<span title="Saved" style="display: flex; color: #374151;">
-					<Check size={14} strokeWidth={2} />
-				</span>
+				<span title="Saved" class="flex text-border"><Check size={14} strokeWidth={2} /></span>
 			{/if}
 
 			<!-- Form settings cog -->
 			<button
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
-				style="
-					padding: 0 6px; height: 28px;
-					display: flex; align-items: center;
-					background: {store.showFormSettings ? '#1f2937' : 'transparent'};
-					color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'};
-					border: 1px solid {store.showFormSettings ? '#374151' : 'transparent'};
-					border-radius: 5px; cursor: pointer;
-					transition: color 0.1s;
-				"
-				onmouseenter={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#9ca3af'; }}
-				onmouseleave={(e) => { if (!store.showFormSettings) (e.currentTarget as HTMLButtonElement).style.color = '#4b5563'; }}
+				style="background: {store.showFormSettings ? '#1f2937' : 'transparent'}; color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'}; border-color: {store.showFormSettings ? '#374151' : 'transparent'};"
+				class="px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
-			<div style="width: 1px; height: 18px; background: #2a3341; flex-shrink: 0;"></div>
+			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
 
 			<!-- Preview toggle -->
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
-				style="
-					padding: 0 12px; height: 28px;
-					background: {store.mode === 'preview' ? '#1f2937' : 'transparent'};
-					color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'};
-					border: 1px solid {store.mode === 'preview' ? '#374151' : '#2a3341'};
-					border-radius: 5px; cursor: pointer;
-					font-family: monospace; font-size: 0.875rem;
-				"
+				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? '#374151' : '#2a3341'};"
+				class="px-3 h-7 border rounded-md cursor-pointer font-mono text-[0.875rem]"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
 			<!-- Publish button -->
 			<button
 				onclick={handlePublish}
 				disabled={store.saving || publishing}
-				style="
-					padding: 0 14px; height: 28px;
-					background: {store.saving || publishing ? '#1e3a8a' : '#2563eb'};
-					color: #fff;
-					border: none; border-radius: 5px;
-					cursor: {store.saving || publishing ? 'not-allowed' : 'pointer'};
-					font-family: monospace; font-size: 0.875rem;
-					opacity: {store.saving || publishing ? '0.7' : '1'};
-				"
+				class="px-3.5 h-7 text-white border-none rounded-md font-mono text-[0.875rem] transition-[background,opacity] duration-100
+					{store.saving || publishing ? 'bg-[#1e3a8a] cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
-				<span style="color: #f87171; font-size: 0.8rem;">{publishError}</span>
+				<span class="text-error-light text-[0.8rem]">{publishError}</span>
 			{/if}
 		</div>
 
 		<!-- Body -->
-		<div style="
-			display: flex;
-			flex: 1;
-			overflow: hidden;
-			position: relative;
-		">
+		<div class="flex flex-1 overflow-hidden relative">
 			{#if store.mode === 'edit'}
 				<FieldPalette {store} />
 			{/if}
@@ -397,81 +275,48 @@
 			role="dialog"
 			aria-modal="true"
 			aria-label="Form published"
-			style="
-				position: fixed; inset: 0;
-				background: rgba(0,0,0,0.7);
-				display: flex; align-items: center; justify-content: center;
-				z-index: 1000;
-			"
+			class="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]"
 			onclick={(e) => { if (e.target === e.currentTarget) publishModalOpen = false; }}
 		>
-			<div style="
-				background: #1f2937;
-				border: 1px solid #374151;
-				border-radius: 8px;
-				padding: 32px;
-				max-width: 540px;
-				width: 90%;
-				font-family: monospace;
-			">
-				<h2 style="margin: 0 0 8px; font-size: 1.25rem; color: #f9fafb;">Your form is live.</h2>
-				<p style="margin: 0 0 20px; font-size: 0.975rem; color: #9ca3af;">Share this link with respondents:</p>
+			<div class="bg-surface-2 border border-border rounded-lg p-8 max-w-[540px] w-[90%] font-mono">
+				<h2 class="m-0 mb-2 text-[1.25rem] text-[#f9fafb]">Your form is live.</h2>
+				<p class="m-0 mb-5 text-[0.975rem] text-muted">Share this link with respondents:</p>
 
-				<div style="display: flex; gap: 8px; margin-bottom: 24px;">
+				<div class="flex gap-2 mb-6">
 					<input
 						type="text"
 						readonly
 						value={shareUrl}
-						style="
-							flex: 1; padding: 8px 12px;
-							background: #111827; border: 1px solid #374151;
-							color: #d1d5db; border-radius: 4px;
-							font-family: monospace; font-size: 0.925rem; outline: none;
-						"
+						class="flex-1 px-3 py-2 bg-canvas border border-border text-text-dim rounded font-mono text-[0.925rem] outline-none"
 					/>
 					<button
 						onclick={copyShareUrl}
-						style="
-							padding: 8px 16px;
-							background: {copied ? '#16a34a' : '#1d4ed8'}; color: #fff;
-							border: none; border-radius: 4px;
-							cursor: pointer; font-family: monospace; font-size: 0.925rem;
-							transition: background 0.15s;
-						"
+						class="px-4 py-2 text-white border-none rounded font-mono text-[0.925rem] transition-[background] duration-150
+							{copied ? 'bg-[#16a34a]' : 'bg-primary-hover hover:bg-primary cursor-pointer'}"
 					>
 						{copied ? 'Copied!' : 'Copy'}
 					</button>
 				</div>
 
-				<div style="display: flex; justify-content: space-between; align-items: center;">
+				<div class="flex justify-between items-center">
 					<button
 						onclick={handleRotateKey}
 						disabled={publishing}
-						style="
-							padding: 6px 12px;
-							background: transparent; color: #9ca3af;
-							border: 1px solid #374151; border-radius: 4px;
-							cursor: {publishing ? 'not-allowed' : 'pointer'};
-							font-family: monospace; font-size: 0.875rem;
-						"
+						class="px-3 py-1.5 bg-transparent text-muted border border-border rounded cursor-pointer font-mono text-[0.875rem]
+							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text transition-colors duration-100'}"
 					>
 						{publishing ? 'Rotating…' : 'Rotate key (invalidates old links)'}
 					</button>
 					<button
 						onclick={() => (publishModalOpen = false)}
-						style="
-							padding: 6px 12px;
-							background: transparent; color: #6b7280;
-							border: none; cursor: pointer;
-							font-family: monospace; font-size: 0.875rem;
-						"
+						class="px-3 py-1.5 bg-transparent text-muted-dark border-none cursor-pointer font-mono text-[0.875rem] hover:text-muted transition-colors duration-100"
 					>
 						Close
 					</button>
 				</div>
 
 				{#if publishError}
-					<p style="margin: 12px 0 0; color: #f87171; font-size: 0.925rem;">{publishError}</p>
+					<p class="mt-3 m-0 text-error-light text-[0.925rem]">{publishError}</p>
 				{/if}
 			</div>
 		</div>

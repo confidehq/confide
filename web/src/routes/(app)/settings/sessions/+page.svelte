@@ -55,45 +55,29 @@
 	<title>Confide — Sessions</title>
 </svelte:head>
 
-<div style="font-family: monospace; max-width: 640px; padding: 32px 32px 48px;">
-	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
-		<h1 style="font-size: 1.6rem; margin: 0; color: #e2e8f0;">Active Sessions</h1>
+<div class="font-mono max-w-[640px] p-8 pb-12">
+	<div class="flex items-center justify-between mb-7">
+		<h1 class="text-[1.6rem] m-0 text-[#e2e8f0]">Active Sessions</h1>
 		<button
 			onclick={handleLogout}
-			style="
-				padding: 8px 16px;
-				background: transparent;
-				color: #8899aa;
-				border: 1px solid #2d3f55;
-				border-radius: 4px;
-				cursor: pointer;
-				font-family: monospace;
-				font-size: 0.975rem;
-			"
+			class="px-4 py-2 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.975rem] hover:text-muted transition-colors duration-100"
 		>
 			Sign out
 		</button>
 	</div>
 
 	{#if loading}
-		<p style="color: #8899aa; font-size: 1.025rem;">Loading sessions…</p>
+		<p class="text-[#8899aa] text-[1.025rem]">Loading sessions…</p>
 	{:else if error}
-		<p style="color: #f87171; font-size: 0.975rem;">{error}</p>
+		<p class="text-error-light text-[0.975rem]">{error}</p>
 	{:else if sessions.length === 0}
-		<p style="color: #8899aa; font-size: 1.025rem;">No active sessions.</p>
+		<p class="text-[#8899aa] text-[1.025rem]">No active sessions.</p>
 	{:else}
-		<div style="display: flex; flex-direction: column; gap: 6px;">
+		<div class="flex flex-col gap-1.5">
 			{#each sessions as session}
-				<div style="
-					display: flex;
-					align-items: center;
-					justify-content: space-between;
-					padding: 12px 16px;
-					border: 1px solid #1e2d3e;
-					border-radius: 6px;
-				">
-					<div style="display: flex; align-items: center; gap: 12px;">
-						<div style="color: #4b6280; flex-shrink: 0;" title={session.userAgent ?? 'Unknown device'}>
+				<div class="flex items-center justify-between px-4 py-3 border border-border-deep rounded-md">
+					<div class="flex items-center gap-3">
+						<div class="text-[#4b6280] shrink-0" title={session.userAgent ?? 'Unknown device'}>
 							{#if isMobile(session.userAgent)}
 								<Smartphone size={18} strokeWidth={1.75} />
 							{:else}
@@ -101,8 +85,8 @@
 							{/if}
 						</div>
 						<div>
-							<div style="color: #c5d3e0; font-size: 0.975rem;">{session.id.slice(0, 12)}…</div>
-							<div style="color: #4b6280; font-size: 0.875rem; margin-top: 3px;">
+							<div class="text-[#c5d3e0] text-[0.975rem]">{session.id.slice(0, 12)}…</div>
+							<div class="text-[#4b6280] text-[0.875rem] mt-0.5">
 								Created {session.createdAt} · Last seen {session.lastSeen}
 							</div>
 						</div>
@@ -110,16 +94,10 @@
 					<button
 						onclick={() => handleRevoke(session.id)}
 						disabled={revoking === session.id}
-						style="
-							padding: 5px 12px;
-							background: transparent;
-							color: {revoking === session.id ? '#4b6280' : '#f87171'};
-							border: 1px solid {revoking === session.id ? '#2d3f55' : '#7f1d1d'};
-							border-radius: 4px;
-							cursor: {revoking === session.id ? 'not-allowed' : 'pointer'};
-							font-family: monospace;
-							font-size: 0.925rem;
-						"
+						class="px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-[0.925rem] transition-[color,border-color] duration-100
+							{revoking === session.id
+								? 'text-[#4b6280] border-border-subtle cursor-not-allowed'
+								: 'text-error-light border-[#7f1d1d] hover:bg-[#1a0e0e]'}"
 					>
 						{revoking === session.id ? 'Revoking…' : 'Revoke'}
 					</button>

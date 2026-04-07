@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+@theme {
+  /* Backgrounds */
+  --color-canvas: #111827;
+  --color-surface: #1a2332;
+  --color-surface-2: #1f2937;
+
+  /* Borders */
+  --color-border: #374151;
+  --color-border-subtle: #2d3f55;
+  --color-border-deep: #1e2d3e;
+
+  /* Text */
+  --color-text: #e5e7eb;
+  --color-text-dim: #d1d5db;
+  --color-muted: #9ca3af;
+  --color-muted-dark: #6b7280;
+  --color-muted-blue: #7a90a8;
+
+  /* Actions */
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+
+  /* Status */
+  --color-error: #ef4444;
+  --color-error-light: #f87171;
+  --color-error-muted: #fca5a5;
+
+  /* Form badges */
+  --color-open-bg: #14532d;
+  --color-open-text: #86efac;
+  --color-open-border: #166534;
+  --color-closed-bg: #1a2332;
+  --color-closed-text: #7a90a8;
+  --color-closed-border: #2d3f55;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-canvas);
+  font-size: 14px;
+  font-family: monospace;
+}
+
+/* Shared input style used across builder components */
+.input-base {
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--color-canvas);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  color: var(--color-text-dim);
+  font-family: monospace;
+  font-size: 0.925rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.input-base:focus {
+  border-color: var(--color-primary);
+}
+
+/* Shared input style for public (light-theme) form renderer */
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1d4ed8;
+}

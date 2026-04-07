@@ -18,17 +18,12 @@
 	}[variant]);
 </script>
 
-<div style="
-	padding: 12px 16px;
-	border-left: 4px solid {styles.border};
-	background: {styles.bg};
-	border-radius: 4px;
-	font-size: 0.875rem;
-	color: {styles.color};
-	line-height: 1.6;
-">
-	<p style="margin: 0; font-weight: 600;">{translation.label}</p>
+<div
+	style="border-left-color: {styles.border}; background: {styles.bg}; color: {styles.color};"
+	class="px-4 py-3 border-l-4 rounded text-[0.875rem] leading-relaxed"
+>
+	<p class="m-0 font-semibold">{translation.label}</p>
 	{#if translation.helpText}
-		<p style="margin: 4px 0 0;">{translation.helpText}</p>
+		<p class="mt-1 m-0">{translation.helpText}</p>
 	{/if}
 </div>

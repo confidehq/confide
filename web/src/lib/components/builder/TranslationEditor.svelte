@@ -55,34 +55,22 @@
 	function getDefaultOptionLabel(index: number): string {
 		return defaultLocaleTranslation?.options?.[index] ?? '';
 	}
-
-	function inputStyle(isEmpty: boolean): string {
-		return `
-			width: 100%; padding: 6px 10px;
-			background: #111827;
-			border: 1px solid ${isEmpty ? '#92400e' : '#374151'};
-			border-radius: 4px;
-			color: #d1d5db;
-			font-family: monospace; font-size: 0.8rem;
-			outline: none; box-sizing: border-box;
-		`;
-	}
 </script>
 
-<div style="display: flex; flex-direction: column; gap: 14px;">
+<div class="flex flex-col gap-3.5">
 	<!-- Label -->
 	<div>
-		<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">
-			Label {#if !currentFieldTranslation?.label}<span style="color: #f59e0b;">*</span>{/if}
+		<label class="block text-[0.75rem] text-muted mb-1">
+			Label {#if !currentFieldTranslation?.label}<span class="text-[#f59e0b]">*</span>{/if}
 		</label>
 		<textarea
 			value={currentFieldTranslation?.label ?? ''}
 			oninput={(e) => fieldId && store.updateTranslation(fieldId, 'label', (e.target as HTMLTextAreaElement).value)}
 			rows={2}
-			style={inputStyle(!currentFieldTranslation?.label)}
+			class="input-base {!currentFieldTranslation?.label ? '!border-[#92400e]' : ''}"
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.label}
-			<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
+			<p class="mt-1 m-0 text-[0.82rem] text-muted-dark">
 				{store.schema.defaultLocale}: {defaultLocaleTranslation.label}
 			</p>
 		{/if}
@@ -90,15 +78,15 @@
 
 	<!-- Help text -->
 	<div>
-		<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Help text</label>
+		<label class="block text-[0.75rem] text-muted mb-1">Help text</label>
 		<textarea
 			value={currentFieldTranslation?.helpText ?? ''}
 			oninput={(e) => fieldId && store.updateTranslation(fieldId, 'helpText', (e.target as HTMLTextAreaElement).value)}
 			rows={2}
-			style={inputStyle(false)}
+			class="input-base"
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.helpText}
-			<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
+			<p class="mt-1 m-0 text-[0.82rem] text-muted-dark">
 				{store.schema.defaultLocale}: {defaultLocaleTranslation.helpText}
 			</p>
 		{/if}
@@ -107,15 +95,15 @@
 	<!-- Placeholder (for text fields) -->
 	{#if selectedField?.type === 'short_text' || selectedField?.type === 'long_text'}
 		<div>
-			<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Placeholder</label>
+			<label class="block text-[0.75rem] text-muted mb-1">Placeholder</label>
 			<input
 				type="text"
 				value={currentFieldTranslation?.placeholder ?? ''}
 				oninput={(e) => fieldId && store.updateTranslation(fieldId, 'placeholder', (e.target as HTMLInputElement).value)}
-				style={inputStyle(false)}
+				class="input-base"
 			/>
 			{#if isNonDefaultLocale && defaultLocaleTranslation?.placeholder}
-				<p style="margin: 4px 0 0; font-size: 0.82rem; color: #6b7280;">
+				<p class="mt-1 m-0 text-[0.82rem] text-muted-dark">
 					{store.schema.defaultLocale}: {defaultLocaleTranslation.placeholder}
 				</p>
 			{/if}
@@ -125,8 +113,8 @@
 	<!-- Options (for choice fields) -->
 	{#if hasOptions}
 		<div>
-			<label style="display: block; font-size: 0.75rem; color: #9ca3af; margin-bottom: 4px;">Options</label>
-			<div style="display: flex; flex-direction: column; gap: 6px;">
+			<label class="block text-[0.75rem] text-muted mb-1">Options</label>
+			<div class="flex flex-col gap-1.5">
 				{#each { length: optionsCount } as _, i}
 					<div>
 						<input
@@ -134,10 +122,10 @@
 							placeholder="Option {i + 1}"
 							value={getOptionLabel(i)}
 							oninput={(e) => setOptionLabel(i, (e.target as HTMLInputElement).value)}
-							style={inputStyle(!getOptionLabel(i))}
+							class="input-base text-[0.8rem] {!getOptionLabel(i) ? '!border-[#92400e]' : ''}"
 						/>
 						{#if isNonDefaultLocale && getDefaultOptionLabel(i)}
-							<p style="margin: 2px 0 0; font-size: 0.82rem; color: #6b7280;">
+							<p class="mt-0.5 m-0 text-[0.82rem] text-muted-dark">
 								{store.schema.defaultLocale}: {getDefaultOptionLabel(i)}
 							</p>
 						{/if}

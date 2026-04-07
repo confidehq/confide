@@ -24,13 +24,14 @@
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
-	<div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+	<div class="flex gap-1.5 items-center flex-wrap">
 		{#each items as n}
 			{#if cfg.shape === 'star'}
 				<button
 					type="button"
 					onclick={() => select(n)}
-					style="background: none; border: none; cursor: pointer; font-size: 1.5rem; padding: 2px; color: {n <= current ? '#f59e0b' : '#d1d5db'}; line-height: 1;"
+					style="color: {n <= current ? '#f59e0b' : '#d1d5db'};"
+					class="bg-none border-none cursor-pointer text-[1.5rem] p-0.5 leading-none transition-colors duration-100"
 					aria-label="Rate {n} out of {cfg.scale}"
 				>
 					{n <= current ? '★' : '☆'}
@@ -39,7 +40,12 @@
 				<button
 					type="button"
 					onclick={() => select(n)}
-					style="width: 36px; height: 36px; border: 1.5px solid {n <= current ? '#1d4ed8' : '#d1d5db'}; border-radius: 50%; background: {n <= current ? '#1d4ed8' : 'white'}; color: {n <= current ? 'white' : '#374151'}; font-size: 0.8rem; font-family: inherit; cursor: pointer;"
+					style="
+						border-color: {n <= current ? '#1d4ed8' : '#d1d5db'};
+						background: {n <= current ? '#1d4ed8' : 'white'};
+						color: {n <= current ? 'white' : '#374151'};
+					"
+					class="w-9 h-9 border-[1.5px] rounded-full text-[0.8rem] font-[inherit] cursor-pointer transition-[background,border-color,color] duration-100"
 					aria-label="Rate {n} out of {cfg.scale}"
 				>
 					{n}

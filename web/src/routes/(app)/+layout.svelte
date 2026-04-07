@@ -35,74 +35,31 @@
 	}
 </script>
 
-<svelte:head>
-	<style>
-		html, body { margin: 0; padding: 0; background: #111827; font-size: 14px; }
-	</style>
-</svelte:head>
-
 {#if showReauth}
 	<!-- Re-auth overlay: shown when masterKey is gone (tab refresh) but credential exists -->
-	<div style="
-		position: fixed;
-		inset: 0;
-		background: rgba(0,0,0,0.85);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 1000;
-	">
-		<div style="
-			font-family: monospace;
-			max-width: 400px;
-			width: 100%;
-			padding: 32px;
-			background: #111;
-			border: 1px solid #374151;
-			border-radius: 8px;
-			margin: 0 24px;
-		">
-			<h2 style="font-size: 1rem; color: #e5e7eb; margin: 0 0 8px;">Unlock your session</h2>
-			<p style="color: #9ca3af; font-size: 0.975rem; margin-bottom: 24px;">
+	<div class="fixed inset-0 bg-black/85 flex items-center justify-center z-[1000]">
+		<div class="font-mono max-w-[400px] w-full p-8 bg-[#111] border border-border rounded-lg mx-6">
+			<h2 class="text-base text-text m-0 mb-2">Unlock your session</h2>
+			<p class="text-muted text-[0.975rem] mb-6">
 				Your session key is no longer in memory. Re-authenticate to continue.
 			</p>
 
 			{#if reauthError}
-				<div style="color: #fca5a5; font-size: 0.975rem; margin-bottom: 12px;">{reauthError}</div>
+				<div class="text-error-muted text-[0.975rem] mb-3">{reauthError}</div>
 			{/if}
 
 			<button
 				onclick={handleReauth}
 				disabled={reauthLoading}
-				style="
-					width: 100%;
-					padding: 14px;
-					background: {reauthLoading ? '#555' : '#2563eb'};
-					color: white;
-					border: none;
-					border-radius: 6px;
-					cursor: {reauthLoading ? 'not-allowed' : 'pointer'};
-					font-family: monospace;
-					font-size: 1rem;
-				"
+				class="w-full py-3.5 text-white border-none rounded-md font-mono text-base
+					{reauthLoading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>
 				{reauthLoading ? 'Authenticating…' : 'Authenticate with passkey'}
 			</button>
 
 			<button
 				onclick={() => goto('/login')}
-				style="
-					width: 100%;
-					padding: 10px;
-					margin-top: 8px;
-					background: transparent;
-					color: #6b7280;
-					border: 1px solid #374151;
-					border-radius: 6px;
-					cursor: pointer;
-					font-family: monospace;
-					font-size: 0.975rem;
-				"
+				class="w-full py-2.5 mt-2 bg-transparent text-muted-dark border border-border rounded-md cursor-pointer font-mono text-[0.975rem] hover:text-text transition-colors duration-100"
 			>
 				Sign out
 			</button>
@@ -113,26 +70,12 @@
 <Sidebar />
 
 <!-- Canvas wrapper: fills viewport, provides inset for the floating sheet -->
-<div style="
-	margin-left: {sidebar.width}px;
-	transition: margin-left 200ms ease;
-	height: 100vh;
-	overflow: hidden;
-	padding: 12px;
-	box-sizing: border-box;
-	display: flex;
-">
+<div
+	style="margin-left: {sidebar.width}px;"
+	class="transition-[margin-left] duration-200 ease-linear h-screen overflow-hidden p-3 box-border flex"
+>
 	<!-- Elevated sheet: floats above the canvas layer -->
-	<div style="
-		flex: 1;
-		min-height: 0;
-		background: #1a2332;
-		border-radius: 12px;
-		box-shadow: 0 0 0 1px #2d3f55;
-		overflow: auto;
-		display: flex;
-		flex-direction: column;
-	">
+	<div class="flex-1 min-h-0 bg-surface rounded-xl shadow-[0_0_0_1px_var(--color-border-subtle)] overflow-auto flex flex-col">
 		{@render children()}
 	</div>
 </div>

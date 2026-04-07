@@ -10,24 +10,13 @@
 	const { translation }: Props = $props();
 </script>
 
-<details style="border: 1px solid #e5e7eb; border-radius: 6px; overflow: hidden;">
-	<summary style="
-		padding: 12px 16px;
-		font-size: 0.9rem;
-		font-weight: 600;
-		color: #374151;
-		cursor: pointer;
-		user-select: none;
-		list-style: none;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-	">
-		<span style="font-size: 0.7rem; color: #9ca3af;">▶</span>
+<details class="border border-[#e5e7eb] rounded-md overflow-hidden">
+	<summary class="px-4 py-3 text-[0.9rem] font-semibold text-[#374151] cursor-pointer select-none list-none flex items-center gap-2">
+		<span class="text-[0.7rem] text-[#9ca3af]">▶</span>
 		{translation.label}
 	</summary>
 	{#if translation.helpText}
-		<div style="padding: 12px 16px; border-top: 1px solid #e5e7eb; font-size: 0.875rem; color: #4b5563; line-height: 1.6;">
+		<div class="px-4 py-3 border-t border-[#e5e7eb] text-[0.875rem] text-[#4b5563] leading-relaxed">
 			{translation.helpText}
 		</div>
 	{/if}

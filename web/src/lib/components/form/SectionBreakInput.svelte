@@ -10,11 +10,11 @@
 	const { translation }: Props = $props();
 </script>
 
-<div style="margin: 4px 0; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+<div class="my-1 pt-2 border-t border-[#e5e7eb]">
 	{#if translation.label}
-		<h2 style="margin: 0 0 4px; font-size: 1rem; font-weight: 700; color: #111;">{translation.label}</h2>
+		<h2 class="m-0 mb-1 text-base font-bold text-[#111]">{translation.label}</h2>
 	{/if}
 	{#if translation.helpText}
-		<p style="margin: 0; font-size: 0.85rem; color: #6b7280;">{translation.helpText}</p>
+		<p class="m-0 text-[0.85rem] text-[#6b7280]">{translation.helpText}</p>
 	{/if}
 </div>

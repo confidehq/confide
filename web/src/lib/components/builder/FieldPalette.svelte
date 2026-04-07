@@ -28,44 +28,16 @@
 	];
 </script>
 
-<style>
-	aside { display: none; }
-	@media (min-width: 1440px) { aside { display: block; } }
-</style>
+<aside class="hidden xl:flex w-[240px] bg-surface-2 border-r border-border p-4 overflow-y-auto shrink-0 flex-col">
+	<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Fields</p>
 
-<aside style="
-	width: 240px;
-	background: #1f2937;
-	border-right: 1px solid #374151;
-	padding: 16px;
-	overflow-y: auto;
-	flex-shrink: 0;
-">
-	<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
-		Fields
-	</p>
-
-	<div style="display: flex; flex-direction: column; gap: 4px;">
+	<div class="flex flex-col gap-1">
 		{#each fieldTypes as { type, label, icon }}
 			<button
 				onclick={() => store.addField(type)}
-				style="
-					display: flex; align-items: center; gap: 10px;
-					padding: 8px 12px;
-					background: transparent;
-					color: #d1d5db;
-					border: 1px solid #374151;
-					border-radius: 6px;
-					cursor: pointer;
-					font-family: monospace;
-					font-size: 0.925rem;
-					text-align: left;
-					transition: background 0.1s;
-				"
-				onmouseenter={(e) => { (e.currentTarget as HTMLElement).style.background = '#374151'; }}
-				onmouseleave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+				class="flex items-center gap-2.5 px-3 py-2 bg-transparent text-text-dim border border-border rounded-md cursor-pointer font-mono text-[0.925rem] text-left transition-[background] duration-100 hover:bg-border"
 			>
-				<span style="width: 20px; display: flex; justify-content: center; flex-shrink: 0; color: #9ca3af;">
+				<span class="w-5 flex justify-center shrink-0 text-muted">
 					<svelte:component this={icon} size={15} strokeWidth={1.75} />
 				</span>
 				<span>{label}</span>

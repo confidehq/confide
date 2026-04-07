@@ -32,14 +32,14 @@
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
-	<div style="display: flex; flex-direction: column; gap: 8px;">
+	<div class="flex flex-col gap-2">
 		{#each cfg.options as opt, i (opt.id)}
-			<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: #374151;">
+			<label class="flex items-center gap-2.5 cursor-pointer text-[0.9rem] text-[#374151]">
 				<input
 					type="checkbox"
 					checked={checked.includes(opt.id)}
 					onchange={() => toggle(opt.id)}
-					style="accent-color: #1d4ed8; width: 16px; height: 16px; flex-shrink: 0;"
+					class="accent-[#1d4ed8] w-4 h-4 shrink-0"
 				/>
 				{getLabel(i)}
 			</label>

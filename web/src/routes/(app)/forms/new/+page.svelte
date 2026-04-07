@@ -32,26 +32,14 @@
 	<title>Creating form…</title>
 </svelte:head>
 
-<div style="
-	font-family: monospace;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	flex: 1;
-	background: #111827;
-	color: #d1d5db;
-">
+<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-text-dim">
 	{#if status === 'creating'}
-		<p style="color: #9ca3af; font-size: 0.95rem;">Creating form…</p>
+		<p class="text-muted text-[0.95rem]">Creating form…</p>
 	{:else}
-		<p style="color: #f87171; font-size: 0.95rem; margin-bottom: 16px;">
+		<p class="text-error-light text-[0.95rem] mb-4">
 			Failed to create form: {errorMessage}
 		</p>
-		<a
-			href="/forms"
-			style="color: #6b7280; font-size: 0.975rem; text-decoration: none;"
-		>
+		<a href="/forms" class="text-muted-dark text-[0.975rem] no-underline">
 			← Go back to forms
 		</a>
 	{/if}

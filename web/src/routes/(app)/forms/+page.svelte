@@ -34,139 +34,84 @@
 	<title>Confide — Forms</title>
 </svelte:head>
 
-<div style="font-family: monospace; max-width: 960px; padding: 32px 32px 48px;">
-	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;">
-		<h1 style="font-size: 1.6rem; margin: 0; color: #e2e8f0;">Forms</h1>
+<div class="font-mono max-w-[960px] p-8 pb-12">
+	<div class="flex items-center justify-between mb-7">
+		<h1 class="text-[1.6rem] m-0 text-[#e2e8f0]">Forms</h1>
 		<button
 			onclick={() => goto('/forms/new')}
-			style="
-				padding: 8px 16px;
-				background: #1d4ed8;
-				color: #fff;
-				border: none;
-				border-radius: 4px;
-				cursor: pointer;
-				font-family: monospace;
-				font-size: 0.975rem;
-			"
+			class="px-4 py-2 bg-primary-hover text-white border-none rounded cursor-pointer font-mono text-[0.975rem] hover:bg-primary transition-colors duration-100"
 		>
 			+ New form
 		</button>
 	</div>
 
 	{#if formsStore.loading}
-		<p style="color: #8899aa; font-size: 1.025rem;">Loading…</p>
+		<p class="text-[#8899aa] text-[1.025rem]">Loading…</p>
 	{:else if formsStore.error}
-		<p style="color: #f87171; font-size: 1.025rem;">{formsStore.error}</p>
+		<p class="text-error-light text-[1.025rem]">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
-		<div style="
-			padding: 48px 32px;
-			border: 1px dashed #374151;
-			border-radius: 8px;
-			text-align: center;
-			color: #8899aa;
-		">
-			<p style="margin: 0 0 8px; font-size: 1.1rem;">No forms yet</p>
-			<p style="margin: 0; font-size: 0.925rem;">Create your first form to get started</p>
+		<div class="px-8 py-12 border border-dashed border-border rounded-lg text-center text-[#8899aa]">
+			<p class="m-0 mb-2 text-[1.1rem]">No forms yet</p>
+			<p class="m-0 text-[0.925rem]">Create your first form to get started</p>
 		</div>
 	{:else}
-		<table style="width: 100%; border-collapse: collapse; font-size: 0.975rem;">
+		<table class="w-full border-collapse text-[0.975rem]">
 			<thead>
-				<tr style="border-bottom: 1px solid #2d3f55; color: #7a90a8;">
-					<th style="text-align: left; padding: 8px 12px; font-weight: normal;">Title</th>
-					<th style="text-align: left; padding: 8px 12px; font-weight: normal;">Form ID</th>
-					<th style="text-align: left; padding: 8px 12px; font-weight: normal;">Status</th>
-					<th style="text-align: right; padding: 8px 12px; font-weight: normal;">Responses</th>
-					<th style="text-align: left; padding: 8px 12px; font-weight: normal;">Created</th>
-					<th style="padding: 8px 12px;"></th>
+				<tr class="border-b border-border-subtle text-muted-blue">
+					<th class="text-left px-3 py-2 font-normal">Title</th>
+					<th class="text-left px-3 py-2 font-normal">Form ID</th>
+					<th class="text-left px-3 py-2 font-normal">Status</th>
+					<th class="text-right px-3 py-2 font-normal">Responses</th>
+					<th class="text-left px-3 py-2 font-normal">Created</th>
+					<th class="px-3 py-2"></th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each formsStore.forms as form (form.formId)}
-					<tr style="border-bottom: 1px solid #1e2d3e;">
-						<td style="padding: 12px; color: #c5d3e0; font-size: 0.975rem;">
+					<tr class="border-b border-border-deep">
+						<td class="p-3 text-[#c5d3e0] text-[0.975rem]">
 							{formsStore.formNames.get(form.formId) ?? '—'}
 						</td>
-						<td style="padding: 12px; color: #4b6280; font-size: 0.925rem;">
+						<td class="p-3 text-[#4b6280] text-[0.925rem]">
 							{form.formId.slice(0, 12)}…
 						</td>
-						<td style="padding: 12px;">
-							<span style="
-								padding: 2px 8px;
-								border-radius: 9999px;
-								font-size: 0.875rem;
-								background: {form.status === 'open' ? '#14532d' : '#1a2332'};
-								color: {form.status === 'open' ? '#86efac' : '#7a90a8'};
-								border: 1px solid {form.status === 'open' ? '#166534' : '#2d3f55'};
-							">
+						<td class="p-3">
+							<span class="px-2 py-0.5 rounded-full text-[0.875rem]
+								{form.status === 'open'
+									? 'bg-open-bg text-open-text border border-open-border'
+									: 'bg-closed-bg text-closed-text border border-closed-border'}">
 								{form.status}
 							</span>
 						</td>
-						<td style="padding: 12px; text-align: right; color: #c5d3e0;">
+						<td class="p-3 text-right text-[#c5d3e0]">
 							{form.responseCount}
 						</td>
-						<td style="padding: 12px; color: #7a90a8;">
+						<td class="p-3 text-muted-blue">
 							{form.createdAt}
 						</td>
-						<td style="padding: 12px; white-space: nowrap;">
-							<div style="display: flex; gap: 8px; justify-content: flex-end;">
+						<td class="p-3 whitespace-nowrap">
+							<div class="flex gap-2 justify-end">
 								<button
 									onclick={() => goto(`/forms/${form.formId}/edit`)}
-									style="
-										padding: 4px 10px;
-										background: transparent;
-										color: #93c5fd;
-										border: 1px solid #2d3f55;
-										border-radius: 4px;
-										cursor: pointer;
-										font-family: monospace;
-										font-size: 0.875rem;
-									"
+									class="px-2.5 py-1 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
 								>
 									Edit
 								</button>
 								<button
 									onclick={() => goto(`/forms/${form.formId}/responses`)}
-									style="
-										padding: 4px 10px;
-										background: transparent;
-										color: #a3e635;
-										border: 1px solid #2d3f55;
-										border-radius: 4px;
-										cursor: pointer;
-										font-family: monospace;
-										font-size: 0.875rem;
-									"
+									class="px-2.5 py-1 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
 								>
 									Responses ({form.responseCount})
 								</button>
 								<button
 									onclick={() => toggleStatus(form)}
-									style="
-										padding: 4px 10px;
-										background: transparent;
-										color: #8899aa;
-										border: 1px solid #2d3f55;
-										border-radius: 4px;
-										cursor: pointer;
-										font-family: monospace;
-										font-size: 0.875rem;
-									"
+									class="px-2.5 py-1 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
 								>
 									{form.status === 'open' ? 'Close' : 'Open'}
 								</button>
 								<button
 									onclick={() => handleDelete(form)}
-									style="
-										padding: 4px 10px;
-										background: transparent;
-										color: #f87171;
-										border: 1px solid #2d3f55;
-										border-radius: 4px;
-										cursor: pointer;
-										font-family: monospace;
-										font-size: 0.875rem;
-									"
+									class="px-2.5 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-[#7f1d1d] transition-colors duration-100"
 								>
 									Delete
 								</button>

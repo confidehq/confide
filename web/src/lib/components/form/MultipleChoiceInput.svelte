@@ -32,27 +32,27 @@
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
-	<div style="display: flex; flex-direction: column; gap: 8px;">
+	<div class="flex flex-col gap-2">
 		{#each cfg.options as opt, i (opt.id)}
-			<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: #374151;">
+			<label class="flex items-center gap-2.5 cursor-pointer text-[0.9rem] text-[#374151]">
 				<input
 					type="radio"
 					name={field.id}
 					checked={value === opt.id}
 					onchange={() => onchange(opt.id)}
-					style="accent-color: #1d4ed8; flex-shrink: 0;"
+					class="accent-[#1d4ed8] shrink-0"
 				/>
 				{getLabel(i)}
 			</label>
 		{/each}
 		{#if cfg.allowOther}
-			<label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: #374151;">
+			<label class="flex items-center gap-2.5 cursor-pointer text-[0.9rem] text-[#374151]">
 				<input
 					type="radio"
 					name={field.id}
 					checked={isOther}
 					onchange={() => onchange(`other:${otherText}`)}
-					style="accent-color: #1d4ed8; flex-shrink: 0;"
+					class="accent-[#1d4ed8] shrink-0"
 				/>
 				Other:
 				<input
@@ -61,7 +61,7 @@
 					oninput={handleOtherText}
 					onfocus={() => onchange(`other:${otherText}`)}
 					placeholder="Please specify"
-					style="flex: 1; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.85rem; font-family: inherit;"
+					class="flex-1 px-2 py-1 border border-[#d1d5db] rounded text-[0.85rem] font-[inherit]"
 				/>
 			</label>
 		{/if}

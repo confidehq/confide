@@ -107,8 +107,8 @@
 	}
 </script>
 
-<div style="max-width: 600px; margin: 40px auto; padding: 0 24px 80px; font-family: system-ui, sans-serif; color: #111;">
-	<div aria-hidden="true" style="position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; overflow: hidden;">
+<div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-[#111]">
+	<div aria-hidden="true" class="absolute left-[-9999px] top-[-9999px] w-px h-px overflow-hidden">
 		{#each honeypotFields as name (name)}
 			<input
 				type="text"
@@ -120,16 +120,17 @@
 			/>
 		{/each}
 	</div>
-	<p style="font-size: 0.8rem; color: #9ca3af; margin: 0 0 16px;">Step {currentStep + 1} of {totalSteps}</p>
+
+	<p class="text-[0.8rem] text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
 
 	{#if currentStep === 0}
-		<h1 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 8px;">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-[1.5rem] font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
-			<p style="margin: 0 0 32px; color: #4b5563;">{translation.formDescription}</p>
+			<p class="m-0 mb-8 text-[#4b5563]">{translation.formDescription}</p>
 		{/if}
 	{/if}
 
-	<div style="display: flex; flex-direction: column; gap: 24px;">
+	<div class="flex flex-col gap-6">
 		{#each currentFields as field (field.id)}
 			<FieldRenderer
 				{field}
@@ -142,15 +143,15 @@
 	</div>
 
 	{#if submitError}
-		<p style="margin: 24px 0 0; color: #ef4444; font-size: 0.9rem;">{submitError}</p>
+		<p class="mt-6 m-0 text-[#ef4444] text-[0.9rem]">{submitError}</p>
 	{/if}
 
-	<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px;">
+	<div class="flex justify-between items-center mt-8">
 		{#if currentStep > 0}
 			<button
 				type="button"
 				onclick={handleBack}
-				style="padding: 10px 24px; background: white; color: #374151; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; font-family: inherit; cursor: pointer;"
+				class="px-6 py-2.5 bg-white text-[#374151] border-[1.5px] border-[#d1d5db] rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#f9fafb] transition-colors duration-100"
 			>
 				← Back
 			</button>
@@ -163,7 +164,8 @@
 				type="button"
 				onclick={handleSubmit}
 				disabled={submitting}
-				style="padding: 10px 24px; background: {submitting ? '#9ca3af' : '#1d4ed8'}; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-family: inherit; cursor: {submitting ? 'not-allowed' : 'pointer'};"
+				class="px-6 py-2.5 text-white border-none rounded-md text-[0.9rem] font-[inherit] transition-colors duration-100
+					{submitting ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#1d4ed8] hover:bg-[#1e40af] cursor-pointer'}"
 			>
 				{submitting ? 'Submitting…' : 'Submit'}
 			</button>
@@ -171,7 +173,7 @@
 			<button
 				type="button"
 				onclick={handleNext}
-				style="padding: 10px 24px; background: #1d4ed8; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-family: inherit; cursor: pointer;"
+				class="px-6 py-2.5 bg-[#1d4ed8] text-white border-none rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#1e40af] transition-colors duration-100"
 			>
 				Next →
 			</button>

@@ -12,14 +12,14 @@
 </script>
 
 {#if level === 0}
-	<p style="margin: 0; font-size: 0.9375rem; color: #4b5563; line-height: 1.6;">{translation.label}</p>
+	<p class="m-0 text-[0.9375rem] text-[#4b5563] leading-relaxed">{translation.label}</p>
 {:else if level === 1}
-	<h1 style="margin: 0; font-size: 1.75rem; font-weight: 700; color: #111;">{translation.label}</h1>
+	<h1 class="m-0 text-[1.75rem] font-bold text-[#111]">{translation.label}</h1>
 {:else if level === 2}
-	<h2 style="margin: 0; font-size: 1.25rem; font-weight: 700; color: #111;">{translation.label}</h2>
+	<h2 class="m-0 text-[1.25rem] font-bold text-[#111]">{translation.label}</h2>
 {:else}
-	<h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: #374151;">{translation.label}</h3>
+	<h3 class="m-0 text-base font-bold text-[#374151]">{translation.label}</h3>
 {/if}
 {#if translation.helpText}
-	<p style="margin: 4px 0 0; font-size: 0.875rem; color: #6b7280; line-height: 1.6;">{translation.helpText}</p>
+	<p class="mt-1 m-0 text-[0.875rem] text-[#6b7280] leading-relaxed">{translation.helpText}</p>
 {/if}

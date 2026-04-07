@@ -12,15 +12,15 @@
 	const { label, required, helpText, error, children }: Props = $props();
 </script>
 
-<div style="display: flex; flex-direction: column; gap: 6px; width: 100%;">
-	<label style="font-size: 0.9rem; font-weight: 600; color: #111;">
-		{label}{#if required}<span style="color: #ef4444; margin-left: 2px;" aria-hidden="true">*</span>{/if}
+<div class="flex flex-col gap-1.5 w-full">
+	<label class="text-[0.9rem] font-semibold text-[#111]">
+		{label}{#if required}<span class="text-[#ef4444] ml-0.5" aria-hidden="true">*</span>{/if}
 	</label>
 	{#if helpText}
-		<p style="margin: 0; font-size: 0.8rem; color: #6b7280;">{helpText}</p>
+		<p class="m-0 text-[0.8rem] text-[#6b7280]">{helpText}</p>
 	{/if}
 	{@render children()}
 	{#if error}
-		<p style="margin: 0; font-size: 0.75rem; color: #ef4444;" role="alert">{error}</p>
+		<p class="m-0 text-[0.75rem] text-[#ef4444]" role="alert">{error}</p>
 	{/if}
 </div>

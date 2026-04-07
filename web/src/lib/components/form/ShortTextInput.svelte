@@ -22,6 +22,6 @@
 		maxlength={cfg.maxLength}
 		placeholder={translation.placeholder ?? ''}
 		oninput={(e) => onchange(e.currentTarget.value)}
-		style="width: 100%; padding: 8px 12px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box;"
+		class="form-input"
 	/>
 </FieldShell>

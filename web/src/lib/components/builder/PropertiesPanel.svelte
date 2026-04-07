@@ -50,18 +50,6 @@
 		applyExpiration(store.expiresAt, store.responseLimit, days, burn);
 	}
 
-	function inputStyle(): string {
-		return `
-			width: 100%; padding: 6px 10px;
-			background: #111827;
-			border: 1px solid #374151;
-			border-radius: 4px;
-			color: #d1d5db;
-			font-family: monospace; font-size: 0.925rem;
-			outline: none; box-sizing: border-box;
-		`;
-	}
-
 	function addOption() {
 		if (!field) return;
 		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
@@ -80,53 +68,41 @@
 	}
 </script>
 
-<aside style="
-	position: absolute;
-	top: 8px; bottom: 8px; right: 8px;
-	width: 280px;
-	background: #1f2937;
-	border-radius: 8px;
-	box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-	overflow-y: auto;
-	z-index: 20;
-	transform: translateX({store.showFormSettings || store.selectedField ? '0' : 'calc(100% + 16px)'});
-	transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
-">
+<aside
+	style="transform: translateX({store.showFormSettings || store.selectedField ? '0' : 'calc(100% + 16px)'});"
+	class="absolute top-2 bottom-2 right-2 w-[280px] bg-surface-2 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.4)] overflow-y-auto z-20 transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+>
 	{#if store.showFormSettings}
 		<!-- Form settings panel -->
-		<div style="padding: 16px;">
-			<p style="margin: 0 0 16px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
-				Form settings
-			</p>
+		<div class="p-4">
+			<p class="m-0 mb-4 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Form settings</p>
 
-			<div style="display: flex; flex-direction: column; gap: 14px;">
+			<div class="flex flex-col gap-3.5">
 				<div>
-					<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Form name</label>
+					<label class="block text-[0.875rem] text-muted mb-1">Form name</label>
 					<input
 						type="text"
 						placeholder="Internal name…"
 						value={store.schema.name}
 						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
-						style={inputStyle()}
+						class="input-base"
 					/>
-					<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Used in your dashboard only.</p>
+					<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Used in your dashboard only.</p>
 				</div>
 
 				{#if isConvo}
 					<div>
-						<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">
-							Completion message
-						</label>
+						<label class="block text-[0.875rem] text-muted mb-1">Completion message</label>
 						<textarea
 							value={store.activeTranslation?.convoCompletionMessage ?? ''}
 							oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
 							rows={2}
-							style={inputStyle()}
+							class="input-base"
 						></textarea>
 					</div>
 
-					<div style="display: flex; align-items: center; justify-content: space-between;">
-						<label style="font-size: 0.925rem; color: #d1d5db;">Allow edit after submit</label>
+					<div class="flex items-center justify-between">
+						<label class="text-[0.925rem] text-text-dim">Allow edit after submit</label>
 						<input
 							type="checkbox"
 							checked={store.schema.convoAllowEdit ?? false}
@@ -136,14 +112,12 @@
 				{/if}
 
 				<!-- Access section -->
-				<div style="border-top: 1px solid #374151; padding-top: 16px;">
-					<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">
-						Access
-					</p>
-					<div style="display: flex; flex-direction: column; gap: 14px;">
+				<div class="border-t border-border pt-4">
+					<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Access</p>
+					<div class="flex flex-col gap-3.5">
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Close form on schedule</label>
-							<div style="display: flex; gap: 6px; align-items: center;">
+							<label class="block text-[0.875rem] text-muted mb-1">Close form on schedule</label>
+							<div class="flex gap-1.5 items-center">
 								<input
 									type="date"
 									value={store.expiresAt ?? ''}
@@ -151,22 +125,22 @@
 										const v = (e.target as HTMLInputElement).value;
 										applyExpiration(v || null, store.responseLimit, store.responseTtlDays, store.burnAfterReading);
 									}}
-									style={inputStyle()}
+									class="input-base"
 								/>
 								{#if store.expiresAt}
 									<button
 										onclick={() => applyExpiration(null, store.responseLimit, store.responseTtlDays, store.burnAfterReading)}
-										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1.15rem; padding: 0 4px; flex-shrink: 0;"
+										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-[1.15rem] px-1 shrink-0"
 										title="Clear close date"
 									>×</button>
 								{/if}
 							</div>
-							<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Stop accepting new responses after this date.</p>
+							<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Stop accepting new responses after this date.</p>
 						</div>
 
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Limit total responses</label>
-							<div style="display: flex; gap: 6px; align-items: center;">
+							<label class="block text-[0.875rem] text-muted mb-1">Limit total responses</label>
+							<div class="flex gap-1.5 items-center">
 								<input
 									type="number"
 									min="1"
@@ -176,37 +150,35 @@
 										const v = parseInt((e.target as HTMLInputElement).value);
 										applyExpiration(store.expiresAt, v > 0 ? v : null, store.responseTtlDays, store.burnAfterReading);
 									}}
-									style={inputStyle()}
+									class="input-base"
 								/>
 								{#if store.responseLimit}
 									<button
 										onclick={() => applyExpiration(store.expiresAt, null, store.responseTtlDays, store.burnAfterReading)}
-										style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace; font-size: 1.15rem; padding: 0 4px; flex-shrink: 0;"
+										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-[1.15rem] px-1 shrink-0"
 										title="Clear submission limit"
 									>×</button>
 								{/if}
 							</div>
-							<p style="margin: 4px 0 0; font-size: 0.8rem; color: #4b5563;">Stop accepting responses once this many submissions have been received.</p>
+							<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Stop accepting responses once this many submissions have been received.</p>
 						</div>
 					</div>
 				</div>
 
 				<!-- Auto delete responses section -->
-				<div style="border-top: 1px solid #374151; padding-top: 16px;">
-					<p style="margin: 0 0 4px; font-size: 0.875rem; color: #9ca3af; letter-spacing: 0.05em;">
-						Auto delete responses
-					</p>
-					<p style="margin: 0 0 12px; font-size: 0.8rem; color: #4b5563; line-height: 1.5;">
+				<div class="border-t border-border pt-4">
+					<p class="m-0 mb-1 text-[0.875rem] text-muted tracking-[0.05em]">Auto delete responses</p>
+					<p class="m-0 mb-3 text-[0.8rem] text-muted-dark leading-relaxed">
 						Automatically remove a submission from our servers after it has been stored for a set period.
 					</p>
-					<div style="display: flex; flex-direction: column; gap: 10px;">
+					<div class="flex flex-col gap-2.5">
 						<select
 							value={responseLifetimePolicy}
 							onchange={(e) => {
 								const policy = (e.target as HTMLSelectElement).value as ResponseLifetimePolicy;
 								applyResponseLifetime(policy, policy === 'ttl' ? (store.responseTtlDays ?? 30) : null);
 							}}
-							style={inputStyle()}
+							class="input-base"
 						>
 							<option value="none">Keep indefinitely</option>
 							<option value="burn">Burn after reading</option>
@@ -214,7 +186,7 @@
 						</select>
 
 						{#if responseLifetimePolicy === 'ttl'}
-							<div style="display: flex; gap: 6px; align-items: center;">
+							<div class="flex gap-1.5 items-center">
 								<input
 									type="number"
 									min="1"
@@ -224,45 +196,45 @@
 										const v = parseInt((e.target as HTMLInputElement).value);
 										applyResponseLifetime('ttl', v > 0 ? v : null);
 									}}
-									style={inputStyle()}
+									class="input-base"
 								/>
-								<span style="font-size: 0.875rem; color: #9ca3af; flex-shrink: 0;">days</span>
+								<span class="text-[0.875rem] text-muted shrink-0">days</span>
 							</div>
 						{:else if responseLifetimePolicy === 'burn'}
-							<p style="margin: 0; font-size: 0.8rem; color: #4b5563; line-height: 1.5;">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
+							<p class="m-0 text-[0.8rem] text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
 						{/if}
 					</div>
 				</div>
 
 				{#if expirationSaving}
-					<p style="margin: 0; font-size: 0.8rem; color: #6b7280;">Saving…</p>
+					<p class="m-0 text-[0.8rem] text-muted-dark">Saving…</p>
 				{:else if expirationError}
-					<p style="margin: 0; font-size: 0.8rem; color: #ef4444;">{expirationError}</p>
+					<p class="m-0 text-[0.8rem] text-error">{expirationError}</p>
 				{/if}
 			</div>
 		</div>
 
 	{:else if field}
 		<!-- Field selected: single scrollable panel -->
-		<div style="padding: 16px; display: flex; flex-direction: column; gap: 20px;">
+		<div class="p-4 flex flex-col gap-5">
 
 			<!-- Translation section -->
 			<div>
-				<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Content</p>
+				<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Content</p>
 				<TranslationEditor {store} fieldId={field.id} />
 			</div>
 
 			<!-- Divider -->
-			<div style="height: 1px; background: #374151;"></div>
+			<div class="h-px bg-border"></div>
 
 			<!-- Settings section -->
 			<div>
-				<p style="margin: 0 0 12px; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Settings</p>
-				<div style="display: flex; flex-direction: column; gap: 14px;">
+				<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Settings</p>
+				<div class="flex flex-col gap-3.5">
 
 					<!-- Required toggle -->
-					<div style="display: flex; align-items: center; justify-content: space-between;">
-						<label style="font-size: 0.925rem; color: #d1d5db;">Required</label>
+					<div class="flex items-center justify-between">
+						<label class="text-[0.925rem] text-text-dim">Required</label>
 						<input
 							type="checkbox"
 							checked={field.required}
@@ -274,13 +246,13 @@
 					{#if field.type === 'short_text'}
 						{@const cfg = field.config as ShortTextConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
 								value={cfg.maxLength ?? ''}
 								oninput={(e) => store.updateFieldConfig(field.id, { maxLength: parseInt((e.target as HTMLInputElement).value) || undefined })}
-								style={inputStyle()}
+								class="input-base"
 							/>
 						</div>
 					{/if}
@@ -289,24 +261,24 @@
 					{#if field.type === 'long_text'}
 						{@const cfg = field.config as LongTextConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max length</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
 								value={cfg.maxLength ?? ''}
 								oninput={(e) => store.updateFieldConfig(field.id, { maxLength: parseInt((e.target as HTMLInputElement).value) || undefined })}
-								style={inputStyle()}
+								class="input-base"
 							/>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min rows</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Min rows</label>
 							<input
 								type="number"
 								min="1"
 								max="20"
 								value={cfg.minRows ?? 3}
 								oninput={(e) => store.updateFieldConfig(field.id, { minRows: parseInt((e.target as HTMLInputElement).value) || 3 })}
-								style={inputStyle()}
+								class="input-base"
 							/>
 						</div>
 					{/if}
@@ -315,32 +287,21 @@
 					{#if field.type === 'multiple_choice' || field.type === 'checkboxes' || field.type === 'dropdown'}
 						{@const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Options</label>
-							<div style="display: flex; flex-direction: column; gap: 6px;">
+							<label class="block text-[0.875rem] text-muted mb-1">Options</label>
+							<div class="flex flex-col gap-1.5">
 								{#each cfg.options ?? [] as opt (opt.id)}
-									<div style="display: flex; align-items: center; gap: 6px;">
-										<span style="color: #6b7280; font-size: 0.875rem; min-width: 20px;">{opt.order + 1}.</span>
-										<span style="flex: 1; font-size: 0.925rem; color: #9ca3af;">Option {opt.order + 1}</span>
+									<div class="flex items-center gap-1.5">
+										<span class="text-muted-dark text-[0.875rem] min-w-5">{opt.order + 1}.</span>
+										<span class="flex-1 text-[0.925rem] text-muted">Option {opt.order + 1}</span>
 										<button
 											onclick={() => removeOption(opt.id)}
-											style="background: transparent; border: none; color: #6b7280; cursor: pointer; font-family: monospace;"
-										>
-											×
-										</button>
+											class="bg-transparent border-none text-muted-dark cursor-pointer font-mono"
+										>×</button>
 									</div>
 								{/each}
 								<button
 									onclick={addOption}
-									style="
-										padding: 6px 10px;
-										background: transparent;
-										color: #6b7280;
-										border: 1px dashed #374151;
-										border-radius: 4px;
-										cursor: pointer;
-										font-family: monospace;
-										font-size: 0.875rem;
-									"
+									class="px-2.5 py-1.5 bg-transparent text-muted-dark border border-dashed border-border rounded cursor-pointer font-mono text-[0.875rem] hover:text-muted transition-colors duration-100"
 								>
 									+ Add option
 								</button>
@@ -349,8 +310,8 @@
 
 						{#if field.type === 'multiple_choice'}
 							{@const mcCfg = field.config as MultipleChoiceConfig}
-							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<label style="font-size: 0.925rem; color: #d1d5db;">Allow "Other"</label>
+							<div class="flex items-center justify-between">
+								<label class="text-[0.925rem] text-text-dim">Allow "Other"</label>
 								<input
 									type="checkbox"
 									checked={mcCfg.allowOther ?? false}
@@ -362,31 +323,31 @@
 						{#if field.type === 'checkboxes'}
 							{@const cbCfg = field.config as CheckboxesConfig}
 							<div>
-								<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min selections</label>
+								<label class="block text-[0.875rem] text-muted mb-1">Min selections</label>
 								<input
 									type="number"
 									min="0"
 									value={cbCfg.minSelect ?? ''}
 									oninput={(e) => store.updateFieldConfig(field.id, { minSelect: parseInt((e.target as HTMLInputElement).value) || undefined })}
-									style={inputStyle()}
+									class="input-base"
 								/>
 							</div>
 							<div>
-								<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max selections</label>
+								<label class="block text-[0.875rem] text-muted mb-1">Max selections</label>
 								<input
 									type="number"
 									min="0"
 									value={cbCfg.maxSelect ?? ''}
 									oninput={(e) => store.updateFieldConfig(field.id, { maxSelect: parseInt((e.target as HTMLInputElement).value) || undefined })}
-									style={inputStyle()}
+									class="input-base"
 								/>
 							</div>
 						{/if}
 
 						{#if field.type === 'dropdown'}
 							{@const ddCfg = field.config as DropdownConfig}
-							<div style="display: flex; align-items: center; justify-content: space-between;">
-								<label style="font-size: 0.925rem; color: #d1d5db;">Searchable</label>
+							<div class="flex items-center justify-between">
+								<label class="text-[0.925rem] text-text-dim">Searchable</label>
 								<input
 									type="checkbox"
 									checked={ddCfg.searchable ?? false}
@@ -400,11 +361,11 @@
 					{#if field.type === 'date_time'}
 						{@const cfg = field.config as DateTimeConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Mode</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Mode</label>
 							<select
 								value={cfg.mode}
 								onchange={(e) => store.updateFieldConfig(field.id, { mode: (e.target as HTMLSelectElement).value as 'date' | 'time' | 'datetime' })}
-								style={inputStyle()}
+								class="input-base"
 							>
 								<option value="date">Date</option>
 								<option value="time">Time</option>
@@ -412,23 +373,23 @@
 							</select>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Min</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Min</label>
 							<input
 								type="text"
 								placeholder="e.g. 2024-01-01"
 								value={cfg.min ?? ''}
 								oninput={(e) => store.updateFieldConfig(field.id, { min: (e.target as HTMLInputElement).value || undefined })}
-								style={inputStyle()}
+								class="input-base"
 							/>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Max</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Max</label>
 							<input
 								type="text"
 								placeholder="e.g. 2030-12-31"
 								value={cfg.max ?? ''}
 								oninput={(e) => store.updateFieldConfig(field.id, { max: (e.target as HTMLInputElement).value || undefined })}
-								style={inputStyle()}
+								class="input-base"
 							/>
 						</div>
 					{/if}
@@ -437,22 +398,22 @@
 					{#if field.type === 'rating'}
 						{@const cfg = field.config as RatingConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Scale</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Scale</label>
 							<select
 								value={cfg.scale}
 								onchange={(e) => store.updateFieldConfig(field.id, { scale: parseInt((e.target as HTMLSelectElement).value) as 5 | 10 })}
-								style={inputStyle()}
+								class="input-base"
 							>
 								<option value="5">1 – 5</option>
 								<option value="10">1 – 10</option>
 							</select>
 						</div>
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Shape</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Shape</label>
 							<select
 								value={cfg.shape}
 								onchange={(e) => store.updateFieldConfig(field.id, { shape: (e.target as HTMLSelectElement).value as 'star' | 'number' })}
-								style={inputStyle()}
+								class="input-base"
 							>
 								<option value="star">Stars (★)</option>
 								<option value="number">Numbers</option>
@@ -464,11 +425,11 @@
 					{#if field.type === 'heading'}
 						{@const cfg = field.config as HeadingConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Level</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Level</label>
 							<select
 								value={cfg.level}
 								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 })}
-								style={inputStyle()}
+								class="input-base"
 							>
 								<option value={0}>Text — Paragraph</option>
 								<option value={1}>H1 — Title</option>
@@ -482,11 +443,11 @@
 					{#if field.type === 'accent'}
 						{@const cfg = field.config as AccentConfig}
 						<div>
-							<label style="display: block; font-size: 0.875rem; color: #9ca3af; margin-bottom: 4px;">Variant</label>
+							<label class="block text-[0.875rem] text-muted mb-1">Variant</label>
 							<select
 								value={cfg.variant}
 								onchange={(e) => store.updateFieldConfig(field.id, { variant: (e.target as HTMLSelectElement).value as AccentConfig['variant'] })}
-								style={inputStyle()}
+								class="input-base"
 							>
 								<option value="note">Note</option>
 								<option value="warning">Warning</option>
@@ -497,13 +458,13 @@
 					{/if}
 
 					{#if field.type === 'section_break'}
-						<p style="font-size: 0.925rem; color: #6b7280; margin: 0;">
+						<p class="text-[0.925rem] text-muted-dark m-0">
 							Section breaks have no settings. Use the Content section above to add a label.
 						</p>
 					{/if}
 
 					{#if field.type === 'accordion'}
-						<p style="font-size: 0.925rem; color: #6b7280; margin: 0;">
+						<p class="text-[0.925rem] text-muted-dark m-0">
 							Set the title and body text in the Content section above.
 						</p>
 					{/if}

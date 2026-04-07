@@ -36,56 +36,29 @@
 	}
 </script>
 
-<nav style="
-	position: fixed;
-	top: 0; left: 0;
-	height: 100vh;
-	width: {sidebar.width}px;
-	background: #111827;
-	display: flex;
-	flex-direction: column;
-	z-index: 20;
-	overflow: hidden;
-	transition: width 200ms ease;
-	font-family: monospace;
-">
+<nav
+	style="width: {sidebar.width}px;"
+	class="fixed top-0 left-0 h-screen bg-canvas flex flex-col z-20 overflow-hidden transition-[width] duration-200 ease-linear font-mono"
+>
 	<!-- Logo / wordmark + toggle -->
-	<div style="
-		height: 52px;
-		display: flex;
-		align-items: center;
-		padding: 0 {sidebar.collapsed ? 0 : 12}px;
-		justify-content: {sidebar.collapsed ? 'center' : 'space-between'};
-		flex-shrink: 0;
-		border-bottom: 1px solid #1f2937;
-		overflow: hidden;
-		white-space: nowrap;
-		gap: 8px;
-	">
+	<div
+		style="padding: 0 {sidebar.collapsed ? 0 : 12}px; justify-content: {sidebar.collapsed ? 'center' : 'space-between'};"
+		class="h-[52px] flex items-center shrink-0 border-b border-surface-2 overflow-hidden whitespace-nowrap gap-2"
+	>
 		{#if sidebar.collapsed}
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Expand sidebar"
-				style="
-					background: transparent; border: none; cursor: pointer;
-					color: #4b5563; display: flex; align-items: center;
-					padding: 4px; border-radius: 4px;
-					transition: color 120ms;
-				"
+				class="bg-transparent border-none cursor-pointer text-muted-dark flex items-center p-1 rounded hover:text-muted transition-colors duration-100"
 			>
 				<ChevronRight size={16} strokeWidth={1.75} />
 			</button>
 		{:else}
-			<span style="color: #d1d5db; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.02em;">confide</span>
+			<span class="text-text-dim text-[1.1rem] font-semibold tracking-tight">confide</span>
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Collapse sidebar"
-				style="
-					background: transparent; border: none; cursor: pointer;
-					color: #4b5563; display: flex; align-items: center;
-					padding: 4px; border-radius: 4px;
-					transition: color 120ms; flex-shrink: 0;
-				"
+				class="bg-transparent border-none cursor-pointer text-muted-dark flex items-center p-1 rounded shrink-0 hover:text-muted transition-colors duration-100"
 			>
 				<ChevronLeft size={16} strokeWidth={1.75} />
 			</button>
@@ -93,89 +66,53 @@
 	</div>
 
 	<!-- Nav links -->
-	<div style="flex: 1; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;">
-		<div style="padding: 8px 0;">
+	<div class="flex-1 overflow-hidden flex flex-col justify-between">
+		<div class="py-2">
 			{#each links as link}
 				{@const active = isActive(link.href)}
 				<a
 					href={link.href}
-					style="
-						display: flex;
-						align-items: center;
-						gap: 10px;
-						padding: 0 {sidebar.collapsed ? 0 : 14}px;
-						height: 40px;
-						justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};
-						text-decoration: none;
-						color: {active ? '#f9fafb' : '#6b7280'};
-						background: {active ? '#1f2937' : 'transparent'};
-						border-left: 2px solid {active ? '#1d4ed8' : 'transparent'};
-						white-space: nowrap;
-						overflow: hidden;
-						transition: color 120ms, background 120ms;
-						font-size: 0.95rem;
-						box-sizing: border-box;
-						width: 100%;
-					"
+					style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
+					class="flex items-center gap-2.5 h-10 no-underline whitespace-nowrap overflow-hidden
+						text-[0.95rem] box-border w-full transition-[color,background] duration-100
+						{active
+							? 'text-[#f9fafb] bg-surface-2 border-l-2 border-primary-hover'
+							: 'text-muted-dark bg-transparent border-l-2 border-transparent hover:text-muted'}"
 				>
-					<span style="flex-shrink: 0; display: flex; align-items: center; color: {active ? '#93c5fd' : '#4b5563'};">
+					<span class="shrink-0 flex items-center {active ? 'text-[#93c5fd]' : 'text-muted-dark'}">
 						<svelte:component this={link.icon} size={18} strokeWidth={1.75} />
 					</span>
 					{#if !sidebar.collapsed}
-						<span style="overflow: hidden; text-overflow: ellipsis;">{link.label}</span>
+						<span class="overflow-hidden text-ellipsis">{link.label}</span>
 					{/if}
 				</a>
 			{/each}
 		</div>
 
 		<!-- Bottom links + version -->
-		<div style="padding-bottom: 4px;">
+		<div class="pb-1">
 			<a
 				href="https://feedback.useconfide.app/"
 				target="_blank"
 				rel="noopener noreferrer"
-				style="
-					display: flex;
-					align-items: center;
-					gap: 10px;
-					padding: 0 {sidebar.collapsed ? 0 : 14}px;
-					height: 40px;
-					justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};
-					text-decoration: none;
-					color: #6b7280;
-					background: transparent;
-					border-left: 2px solid transparent;
-					white-space: nowrap;
-					overflow: hidden;
-					transition: color 120ms;
-					font-size: 0.95rem;
-					box-sizing: border-box;
-					width: 100%;
-				"
+				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
+				class="flex items-center gap-2.5 h-10 no-underline text-muted-dark bg-transparent
+					border-l-2 border-transparent whitespace-nowrap overflow-hidden
+					text-[0.95rem] box-border w-full hover:text-muted transition-colors duration-100"
 			>
-				<span style="flex-shrink: 0; display: flex; align-items: center; color: #4b5563;">
+				<span class="shrink-0 flex items-center text-muted-dark">
 					<MessageSquare size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
-					<span style="overflow: hidden; text-overflow: ellipsis;">Leave Feedback</span>
+					<span class="overflow-hidden text-ellipsis">Leave Feedback</span>
 				{/if}
 			</a>
 			{#if !sidebar.collapsed}
 				<div
 					title={commit || undefined}
-					style="
-						padding: 8px 0 12px;
-						text-align: center;
-						color: #374151;
-						font-size: 0.925rem;
-						white-space: nowrap;
-						overflow: hidden;
-						text-overflow: ellipsis;
-						cursor: default;
-					"
+					class="py-2 pb-3 text-center text-border text-[0.925rem] whitespace-nowrap overflow-hidden text-ellipsis cursor-default"
 				>{version}</div>
 			{/if}
 		</div>
 	</div>
-
 </nav>

@@ -60,129 +60,73 @@
 	<title>Confide — Account Recovery</title>
 </svelte:head>
 
-<div style="font-family: monospace; max-width: 560px; margin: 60px auto; padding: 0 24px;">
-	<h1 style="font-size: 1.4rem; margin-bottom: 8px;">Account Recovery</h1>
+<div class="font-mono max-w-[560px] mx-auto mt-[60px] px-6">
+	<h1 class="text-[1.4rem] mb-2">Account Recovery</h1>
 
 	{#if step === 'enter-code'}
-		<p style="color: #888; font-size: 0.85rem; margin-bottom: 32px;">
+		<p class="text-[#888] text-[0.85rem] mb-8">
 			Enter your account ID and recovery code to regain access.
 		</p>
 
-		<div style="margin-bottom: 16px;">
-			<label style="display: block; color: #9ca3af; font-size: 0.8rem; margin-bottom: 4px;">
-				Account ID
-			</label>
+		<div class="mb-4">
+			<label class="block text-muted text-[0.8rem] mb-1">Account ID</label>
 			<input
 				type="text"
 				bind:value={accountId}
 				placeholder="Your account ID"
-				style="
-					width: 100%;
-					padding: 10px 12px;
-					background: #111;
-					border: 1px solid #374151;
-					border-radius: 4px;
-					color: #e5e7eb;
-					font-family: monospace;
-					font-size: 0.9rem;
-					box-sizing: border-box;
-				"
+				class="input-base py-2.5 px-3 text-[0.9rem]"
 			/>
 		</div>
 
-		<div style="margin-bottom: 20px;">
-			<label style="display: block; color: #9ca3af; font-size: 0.8rem; margin-bottom: 4px;">
-				Recovery code
-			</label>
+		<div class="mb-5">
+			<label class="block text-muted text-[0.8rem] mb-1">Recovery code</label>
 			<input
 				type="text"
 				bind:value={recoveryCode}
 				placeholder="GHRK-XXXX-XXXX-XXXX-…"
-				style="
-					width: 100%;
-					padding: 10px 12px;
-					background: #111;
-					border: 1px solid #374151;
-					border-radius: 4px;
-					color: #e5e7eb;
-					font-family: monospace;
-					font-size: 0.85rem;
-					box-sizing: border-box;
-				"
+				class="input-base py-2.5 px-3 text-[0.85rem]"
 			/>
 		</div>
 
 		{#if error}
-			<div style="color: #fca5a5; font-size: 0.85rem; margin-bottom: 12px;">{error}</div>
+			<div class="text-error-muted text-[0.85rem] mb-3">{error}</div>
 		{/if}
 
 		<button
 			onclick={handleRecover}
 			disabled={loading}
-			style="
-				width: 100%;
-				padding: 14px;
-				background: {loading ? '#555' : '#2563eb'};
-				color: white;
-				border: none;
-				border-radius: 6px;
-				cursor: {loading ? 'not-allowed' : 'pointer'};
-				font-family: monospace;
-				font-size: 1rem;
-			"
+			class="w-full py-3.5 text-white border-none rounded-md font-mono text-base
+				{loading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 		>
 			{loading ? 'Verifying…' : 'Verify recovery code'}
 		</button>
 
-		<p style="font-size: 0.8rem; color: #6b7280; margin-top: 16px;">
-			<a href="/login" style="color: #60a5fa;">Back to sign in</a>
+		<p class="text-[0.8rem] text-muted-dark mt-4">
+			<a href="/login" class="text-[#60a5fa]">Back to sign in</a>
 		</p>
 
 	{:else if step === 'rekey'}
-		<div style="
-			padding: 20px;
-			border: 1px solid #166534;
-			border-radius: 6px;
-			background: #052e16;
-			margin-bottom: 24px;
-		">
-			<p style="color: #bbf7d0; font-size: 0.9rem; margin: 0;">
+		<div class="p-5 border border-[#166534] rounded-md bg-[#052e16] mb-6">
+			<p class="text-[#bbf7d0] text-[0.9rem] m-0">
 				Recovery code verified. Now register a new passkey on this device.
 			</p>
 		</div>
 
 		{#if error}
-			<div style="color: #fca5a5; font-size: 0.85rem; margin-bottom: 12px;">{error}</div>
+			<div class="text-error-muted text-[0.85rem] mb-3">{error}</div>
 		{/if}
 
 		<button
 			onclick={handleRekey}
 			disabled={loading}
-			style="
-				width: 100%;
-				padding: 14px;
-				background: {loading ? '#555' : '#2563eb'};
-				color: white;
-				border: none;
-				border-radius: 6px;
-				cursor: {loading ? 'not-allowed' : 'pointer'};
-				font-family: monospace;
-				font-size: 1rem;
-			"
+			class="w-full py-3.5 text-white border-none rounded-md font-mono text-base
+				{loading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 		>
 			{loading ? 'Registering passkey…' : 'Register new passkey'}
 		</button>
 
 	{:else if step === 'success'}
-		<div style="
-			padding: 24px;
-			border: 1px solid #166534;
-			border-radius: 6px;
-			background: #052e16;
-			color: #bbf7d0;
-			font-size: 0.9rem;
-			text-align: center;
-		">
+		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-[0.9rem] text-center">
 			New passkey registered. Redirecting to dashboard…
 		</div>
 	{/if}

@@ -32,61 +32,51 @@
 	<title>Confide — Dashboard</title>
 </svelte:head>
 
-<div style="font-family: monospace; max-width: 720px; padding: 32px 32px 48px;">
+<div class="font-mono max-w-[720px] p-8 pb-12">
 
 	<!-- Header -->
-	<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 36px;">
+	<div class="flex items-center justify-between mb-9">
 		<div>
-			<h1 style="font-size: 1.6rem; margin: 0 0 4px; color: #e2e8f0;">Dashboard</h1>
-			<p style="margin: 0; font-size: 0.875rem; color: #4b6280;">{auth.accountId ?? '—'}</p>
+			<h1 class="text-[1.6rem] m-0 mb-1 text-[#e2e8f0]">Dashboard</h1>
+			<p class="m-0 text-[0.875rem] text-[#4b6280]">{auth.accountId ?? '—'}</p>
 		</div>
 		<button
 			onclick={handleLogout}
-			style="padding: 7px 14px; background: transparent; color: #8899aa; border: 1px solid #2d3f55; border-radius: 4px; cursor: pointer; font-family: monospace; font-size: 0.925rem;"
+			class="px-3.5 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.925rem] hover:text-muted transition-colors duration-100"
 		>
 			Sign out
 		</button>
 	</div>
 
 	<!-- Stats row -->
-	<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px;">
+	<div class="grid grid-cols-3 gap-3 mb-8">
 		{#each [
 			{ label: 'Total forms', value: loading ? '…' : String(totalForms) },
 			{ label: 'Open', value: loading ? '…' : String(openForms) },
 			{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
 		] as stat}
-			<div style="padding: 16px 20px; border: 1px solid #1e2d3e; border-radius: 6px;">
-				<p style="margin: 0 0 6px; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #4b6280;">{stat.label}</p>
-				<p style="margin: 0; font-size: 1.85rem; color: #c5d3e0;">{stat.value}</p>
+			<div class="px-5 py-4 border border-border-deep rounded-md">
+				<p class="m-0 mb-1.5 text-[0.78rem] font-semibold tracking-[0.08em] uppercase text-[#4b6280]">{stat.label}</p>
+				<p class="m-0 text-[1.85rem] text-[#c5d3e0]">{stat.value}</p>
 			</div>
 		{/each}
 	</div>
 
 	<!-- Quick links -->
-	<div style="display: flex; flex-direction: column; gap: 6px;">
-		<a href="/forms" style="
-			display: flex; align-items: center; justify-content: space-between;
-			padding: 13px 16px; border: 1px solid #1e2d3e; border-radius: 6px;
-			text-decoration: none; color: #c5d3e0; font-size: 0.975rem;
-			transition: border-color 120ms, background 120ms;
-		"
-		onmouseenter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2d3f55'; (e.currentTarget as HTMLElement).style.background = '#1a2840'; }}
-		onmouseleave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1e2d3e'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+	<div class="flex flex-col gap-1.5">
+		<a
+			href="/forms"
+			class="flex items-center justify-between px-4 py-3.5 border border-border-deep rounded-md no-underline text-[#c5d3e0] text-[0.975rem] transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
 		>
 			<span>Forms</span>
-			<span style="color: #4b6280; font-size: 0.875rem;">→</span>
+			<span class="text-[#4b6280] text-[0.875rem]">→</span>
 		</a>
-		<a href="/settings/sessions" style="
-			display: flex; align-items: center; justify-content: space-between;
-			padding: 13px 16px; border: 1px solid #1e2d3e; border-radius: 6px;
-			text-decoration: none; color: #c5d3e0; font-size: 0.975rem;
-			transition: border-color 120ms, background 120ms;
-		"
-		onmouseenter={e => { (e.currentTarget as HTMLElement).style.borderColor = '#2d3f55'; (e.currentTarget as HTMLElement).style.background = '#1a2840'; }}
-		onmouseleave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#1e2d3e'; (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+		<a
+			href="/settings/sessions"
+			class="flex items-center justify-between px-4 py-3.5 border border-border-deep rounded-md no-underline text-[#c5d3e0] text-[0.975rem] transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
 		>
 			<span>Sessions</span>
-			<span style="color: #4b6280; font-size: 0.875rem;">→</span>
+			<span class="text-[#4b6280] text-[0.875rem]">→</span>
 		</a>
 	</div>
 
