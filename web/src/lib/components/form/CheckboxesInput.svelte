@@ -34,7 +34,7 @@
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
 	<div class="flex flex-col gap-2">
 		{#each cfg.options as opt, i (opt.id)}
-			<label class="flex items-center gap-2.5 cursor-pointer text-[0.9rem] text-[#374151]">
+			<label class="flex items-center gap-2.5 cursor-pointer text-sm text-[#374151]">
 				<input
 					type="checkbox"
 					checked={checked.includes(opt.id)}

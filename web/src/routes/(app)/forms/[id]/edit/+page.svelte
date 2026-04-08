@@ -117,7 +117,7 @@
 {:else if loadError}
 	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-error-light gap-4">
 		<p>{loadError}</p>
-		<a href="/forms" class="text-muted-dark text-[0.975rem] no-underline">← Back to forms</a>
+		<a href="/forms" class="text-muted-dark text-sm no-underline">← Back to forms</a>
 	</div>
 {:else if store}
 	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text-dim overflow-hidden">
@@ -142,7 +142,7 @@
 					<button
 						onclick={() => layoutOpen = !layoutOpen}
 						style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? '#374151' : '#2a3341'};"
-						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100"
+						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-sm transition-[background,border-color] duration-100"
 					>
 						{#each layoutModes as mode}
 							{#if mode.value === store.schema.layout}
@@ -166,8 +166,8 @@
 										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
 									</span>
 									<span>
-										<span class="block text-[0.9rem]">{mode.label}</span>
-										<span class="block text-[0.82rem] text-[#4b6280] mt-0.5">{mode.help}</span>
+										<span class="block text-sm">{mode.label}</span>
+										<span class="block text-sm text-[#4b6280] mt-0.5">{mode.help}</span>
 									</span>
 								</button>
 							{/each}
@@ -183,7 +183,7 @@
 					<select
 						value={store.activeLocale}
 						onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-						class="appearance-none pl-2.5 pr-7 h-7 bg-surface-2 text-muted border border-[#2a3341] rounded-md cursor-pointer font-mono text-[0.875rem] outline-none leading-none"
+						class="appearance-none pl-2.5 pr-7 h-7 bg-surface-2 text-muted border border-[#2a3341] rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
 					>
 						{#each store.schema.locales as locale}
 							<option value={locale}>{locale}</option>
@@ -199,16 +199,16 @@
 						placeholder="e.g. fr"
 						bind:value={newLocaleInput}
 						onkeydown={(e) => { if (e.key === 'Enter') handleAddLocale(); if (e.key === 'Escape') showLocaleInput = false; }}
-						class="w-14 px-2 h-7 bg-surface-2 border border-[#2a3341] text-text-dim rounded-md font-mono text-[0.875rem] outline-none box-border"
+						class="w-14 px-2 h-7 bg-surface-2 border border-[#2a3341] text-text-dim rounded-md font-mono text-sm outline-none box-border"
 					/>
 					<button
 						onclick={handleAddLocale}
-						class="px-2.5 h-7 bg-primary text-white border-none rounded-md cursor-pointer font-mono text-[0.875rem]"
+						class="px-2.5 h-7 bg-primary text-white border-none rounded-md cursor-pointer font-mono text-sm"
 					>Add</button>
 				{:else}
 					<button
 						onclick={() => (showLocaleInput = true)}
-						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-[#2a3341] rounded-md cursor-pointer font-mono text-[0.875rem] transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
+						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-[#2a3341] rounded-md cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
 					>+ lang</button>
 				{/if}
 			</div>
@@ -239,19 +239,19 @@
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
 				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? '#374151' : '#2a3341'};"
-				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-[0.875rem]"
+				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-sm"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
 			<!-- Publish button -->
 			<button
 				onclick={handlePublish}
 				disabled={store.saving || publishing}
-				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-[0.875rem] transition-[background,opacity] duration-100
+				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm transition-[background,opacity] duration-100
 					{store.saving || publishing ? 'bg-[#1e3a8a] cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
-				<span class="shrink-0 text-error-light text-[0.8rem]">{publishError}</span>
+				<span class="shrink-0 text-error-light text-xs">{publishError}</span>
 			{/if}
 		</div>
 
@@ -279,19 +279,19 @@
 			onclick={(e) => { if (e.target === e.currentTarget) publishModalOpen = false; }}
 		>
 			<div class="bg-surface-2 border border-border rounded-lg p-8 max-w-[540px] w-[90%] font-mono">
-				<h2 class="m-0 mb-2 text-[1.25rem] text-[#f9fafb]">Your form is live.</h2>
-				<p class="m-0 mb-5 text-[0.975rem] text-muted">Share this link with respondents:</p>
+				<h2 class="m-0 mb-2 text-xl text-[#f9fafb]">Your form is live.</h2>
+				<p class="m-0 mb-5 text-sm text-muted">Share this link with respondents:</p>
 
 				<div class="flex gap-2 mb-6">
 					<input
 						type="text"
 						readonly
 						value={shareUrl}
-						class="flex-1 px-3 py-2 bg-canvas border border-border text-text-dim rounded font-mono text-[0.925rem] outline-none"
+						class="flex-1 px-3 py-2 bg-canvas border border-border text-text-dim rounded font-mono text-sm outline-none"
 					/>
 					<button
 						onclick={copyShareUrl}
-						class="px-4 py-2 text-white border-none rounded font-mono text-[0.925rem] transition-[background] duration-150
+						class="px-4 py-2 text-white border-none rounded font-mono text-sm transition-[background] duration-150
 							{copied ? 'bg-[#16a34a]' : 'bg-primary-hover hover:bg-primary cursor-pointer'}"
 					>
 						{copied ? 'Copied!' : 'Copy'}
@@ -302,21 +302,21 @@
 					<button
 						onclick={handleRotateKey}
 						disabled={publishing}
-						class="px-3 py-1.5 bg-transparent text-muted border border-border rounded cursor-pointer font-mono text-[0.875rem]
+						class="px-3 py-1.5 bg-transparent text-muted border border-border rounded cursor-pointer font-mono text-sm
 							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text transition-colors duration-100'}"
 					>
 						{publishing ? 'Rotating…' : 'Rotate key (invalidates old links)'}
 					</button>
 					<button
 						onclick={() => (publishModalOpen = false)}
-						class="px-3 py-1.5 bg-transparent text-muted-dark border-none cursor-pointer font-mono text-[0.875rem] hover:text-muted transition-colors duration-100"
+						class="px-3 py-1.5 bg-transparent text-muted-dark border-none cursor-pointer font-mono text-sm hover:text-muted transition-colors duration-100"
 					>
 						Close
 					</button>
 				</div>
 
 				{#if publishError}
-					<p class="mt-3 m-0 text-error-light text-[0.925rem]">{publishError}</p>
+					<p class="mt-3 m-0 text-error-light text-sm">{publishError}</p>
 				{/if}
 			</div>
 		</div>

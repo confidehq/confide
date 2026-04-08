@@ -79,7 +79,7 @@
 </script>
 
 <div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-[#111]">
-	<h1 class="text-[1.5rem] font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
+	<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 	{#if translation?.formDescription}
 		<p class="m-0 mb-8 text-[#4b5563]">{translation.formDescription}</p>
 	{/if}
@@ -111,7 +111,7 @@
 		</div>
 
 		{#if submitError}
-			<p class="mt-6 m-0 text-[#ef4444] text-[0.9rem]">{submitError}</p>
+			<p class="mt-6 m-0 text-[#ef4444] text-sm">{submitError}</p>
 		{/if}
 
 		<button

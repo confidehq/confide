@@ -226,7 +226,7 @@
 					store.updateTranslation(null, 'formTitle', el.value);
 				}}
 				style="color: {store.activeTranslation?.formTitle ? '#f9fafb' : '#4b5563'};"
-				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-[1.75rem] font-semibold font-[inherit] px-1 py-0.5 mb-1.5"
+				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-3xl font-semibold font-[inherit] px-1 py-0.5 mb-1.5"
 			></textarea>
 			<textarea
 				rows={1}
@@ -239,7 +239,7 @@
 					store.updateTranslation(null, 'formDescription', el.value);
 				}}
 				style="color: {store.activeTranslation?.formDescription ? '#9ca3af' : '#374151'};"
-				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-[1.025rem] font-[inherit] px-1 py-0.5"
+				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-base font-[inherit] px-1 py-0.5"
 			></textarea>
 		</div>
 
@@ -252,7 +252,7 @@
 		<div class="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded-lg text-muted-dark">
 			<button
 				onclick={(e) => openSlot(e, -1)}
-				class="flex items-center gap-2 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-[0.925rem] px-4 py-2.5 transition-[color,border-color] duration-100 hover:text-muted hover:border-[#4b5563]"
+				class="flex items-center gap-2 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm px-4 py-2.5 transition-[color,border-color] duration-100 hover:text-muted hover:border-[#4b5563]"
 			>
 				<Plus size={14} strokeWidth={2} />
 				Add first field
@@ -308,7 +308,7 @@
 						style="border-color: {isSelected ? '#1d4ed8' : '#374151'}; background: {isSelected ? '#1e3a8a22' : 'transparent'};"
 						class="flex items-center gap-3 px-3 py-2 border rounded-md cursor-pointer"
 					>
-						<span class="text-muted-dark cursor-grab text-[0.925rem]">⠿</span>
+						<span class="text-muted-dark cursor-grab text-sm">⠿</span>
 						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
 							<textarea
 								rows={1}
@@ -321,12 +321,12 @@
 									autoGrow(el);
 									store.updateTranslation(field.id, 'label', el.value);
 								}}
-								class="relative z-[1] bg-canvas border-none outline-none text-muted text-[0.875rem] font-mono text-center px-2 py-0 resize-none overflow-hidden w-auto min-w-[80px] max-w-[200px]"
+								class="relative z-[1] bg-canvas border-none outline-none text-muted text-sm font-mono text-center px-2 py-0 resize-none overflow-hidden w-auto min-w-[80px] max-w-[200px]"
 							></textarea>
 						</div>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-							class="bg-transparent border-none text-muted-dark cursor-pointer text-[1.15rem] px-1.5 py-0.5 font-mono"
+							class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono"
 							aria-label="Delete field"
 						>×</button>
 					</div>
@@ -344,12 +344,12 @@
 						class="px-3 py-2 border rounded-md cursor-pointer"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab text-[0.925rem] shrink-0">⠿</span>
-							<span class="px-1.5 py-px bg-surface-2 text-muted-dark rounded-full text-[0.75rem] shrink-0">{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</span>
+							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
+							<span class="px-1.5 py-px bg-surface-2 text-muted-dark rounded-full text-xs shrink-0">{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</span>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-[1.15rem] px-1.5 py-0.5 font-mono shrink-0"
+								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
 								aria-label="Delete field"
 							>×</button>
 						</div>
@@ -399,15 +399,15 @@
 						class="px-3 py-2.5 rounded-r-md cursor-pointer"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab text-[0.925rem] shrink-0">⠿</span>
+							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
 							<span
 								style="background: {accentColors.badgeBg}; color: {accentColors.badge}; border-color: {accentColors.border}44;"
-								class="px-1.5 py-px border rounded-full text-[0.75rem] shrink-0"
+								class="px-1.5 py-px border rounded-full text-xs shrink-0"
 							>{accentVariant}</span>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-[1.15rem] px-1.5 py-0.5 font-mono shrink-0"
+								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
 								aria-label="Delete field"
 							>×</button>
 						</div>
@@ -429,7 +429,7 @@
 							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? '#cbd5e1' : '#4b5563'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-[0.95rem] font-[inherit] px-1 py-0.5 leading-relaxed"
+							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
 						></textarea>
 					</div>
 
@@ -445,9 +445,9 @@
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-muted-dark cursor-grab text-[0.925rem] shrink-0">⠿</span>
+							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
 
-							<span class="px-2 py-0.5 bg-border text-muted rounded-full text-[0.8rem] shrink-0">
+							<span class="px-2 py-0.5 bg-border text-muted rounded-full text-xs shrink-0">
 								{FIELD_TYPE_LABELS[field.type] ?? field.type}
 							</span>
 
@@ -456,19 +456,19 @@
 							{#if !label}
 								<span
 									title="Missing translation for {store.activeLocale}"
-									class="text-[#f59e0b] text-[0.975rem] shrink-0"
+									class="text-[#f59e0b] text-sm shrink-0"
 								>⚠</span>
 							{/if}
 
 							{#if field.required}
-								<span class="px-1.5 py-0.5 bg-[#1e3a8a] text-[#93c5fd] rounded-full text-[0.75rem] shrink-0">
+								<span class="px-1.5 py-0.5 bg-[#1e3a8a] text-[#93c5fd] rounded-full text-xs shrink-0">
 									required
 								</span>
 							{/if}
 
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-[1.15rem] px-1.5 py-0.5 font-mono shrink-0"
+								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
 								aria-label="Delete field"
 							>×</button>
 						</div>
@@ -486,7 +486,7 @@
 								store.updateTranslation(field.id, 'label', el.value);
 							}}
 							style="color: {label ? '#e5e7eb' : '#6b7280'};"
-							class="block w-full box-border bg-transparent border-none border-b border-b-transparent outline-none resize-none overflow-hidden text-[1.025rem] font-[inherit] px-1 py-0.5 mb-2 cursor-text"
+							class="block w-full box-border bg-transparent border-none border-b border-b-transparent outline-none resize-none overflow-hidden text-base font-[inherit] px-1 py-0.5 mb-2 cursor-text"
 						></textarea>
 
 						<!-- Help text inline editor -->
@@ -503,7 +503,7 @@
 								store.updateTranslation(field.id, 'helpText', el.value);
 							}}
 							style="color: {helpText ? '#9ca3af' : '#4b5563'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-[0.9rem] font-[inherit] px-1 py-0.5 cursor-text"
+							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-[inherit] px-1 py-0.5 cursor-text"
 						></textarea>
 
 						<!-- Placeholder inline editor (text fields only) -->
@@ -522,7 +522,7 @@
 											store.updateTranslation(field.id, 'placeholder', el.value);
 										}}
 										style="color: {placeholder ? '#6b7280' : '#374151'};"
-										class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-[0.9rem] font-[inherit] py-1 cursor-text italic"
+										class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-[inherit] py-1 cursor-text italic"
 									></textarea>
 								</div>
 							</div>
@@ -549,7 +549,7 @@
 										{:else if isCheckbox}
 											<span class="inline-block shrink-0 w-[13px] h-[13px] border-[1.5px] border-[#4b5563] rounded-sm"></span>
 										{:else}
-											<span class="text-muted-dark text-[0.8rem] font-mono shrink-0 w-[14px] text-right">{i + 1}.</span>
+											<span class="text-muted-dark text-xs font-mono shrink-0 w-[14px] text-right">{i + 1}.</span>
 										{/if}
 										<input
 											type="text"
@@ -558,18 +558,18 @@
 											onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
 											oninput={(e) => setOptionLabel(field.id, i, (e.target as HTMLInputElement).value)}
 											style="color: {optLabel ? '#d1d5db' : '#4b5563'};"
-											class="flex-1 min-w-0 bg-transparent border-none outline-none text-[0.95rem] font-[inherit] py-px"
+											class="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-[inherit] py-px"
 										/>
 										<button
 											onclick={(e) => { e.stopPropagation(); if (opt) removeOption(field.id, opt.id); }}
-											class="bg-transparent border-none text-border cursor-pointer font-mono text-[1.15rem] px-0.5 shrink-0 leading-none hover:text-muted-dark transition-colors duration-100"
+											class="bg-transparent border-none text-border cursor-pointer font-mono text-lg px-0.5 shrink-0 leading-none hover:text-muted-dark transition-colors duration-100"
 											aria-label="Remove option"
 										>×</button>
 									</div>
 								{/each}
 								<button
 									onclick={(e) => { e.stopPropagation(); focusField(field.id); addOption(field.id); }}
-									class="self-start bg-transparent border-none text-muted-dark text-[0.875rem] cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-muted"
+									class="self-start bg-transparent border-none text-muted-dark text-sm cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-muted"
 								>+ Add option</button>
 							</div>
 						{/if}
@@ -594,20 +594,20 @@
 													background: {lit ? '#1e3a5f' : '#0f1623'};
 													color: {lit ? '#93c5fd' : '#6b7280'};
 												"
-												class="inline-flex items-center justify-center w-8 h-8 border rounded-md text-[0.925rem] font-mono cursor-default transition-[background,border-color,color] duration-100"
+												class="inline-flex items-center justify-center w-8 h-8 border rounded-md text-sm font-mono cursor-default transition-[background,border-color,color] duration-100"
 												onmouseenter={() => ratingHover = { fieldId: field.id, value: i + 1 }}
 												role="none"
 											>{i + 1}</span>
 										{:else}
 											<span
 												style="color: {lit ? '#f59e0b' : '#4b5563'};"
-												class="text-[1.6rem] leading-none cursor-default transition-colors duration-100"
+												class="text-2xl leading-none cursor-default transition-colors duration-100"
 												onmouseenter={() => ratingHover = { fieldId: field.id, value: i + 1 }}
 												role="none"
 											>★</span>
 										{/if}
 									{/each}
-									<span class="text-border text-[0.8rem] ml-1">/ {scale}</span>
+									<span class="text-border text-xs ml-1">/ {scale}</span>
 								</div>
 							</div>
 						{/if}
@@ -623,7 +623,7 @@
 											<span class="text-border flex shrink-0">
 												<Calendar size={14} strokeWidth={1.75} />
 											</span>
-											<span class="text-border text-[0.9rem] font-mono tracking-[0.04em]">MM / DD / YYYY</span>
+											<span class="text-border text-sm font-mono tracking-[0.04em]">MM / DD / YYYY</span>
 										</div>
 									{/if}
 									{#if mode === 'time' || mode === 'datetime'}
@@ -634,7 +634,7 @@
 											<span class="text-border flex shrink-0">
 												<Clock size={14} strokeWidth={1.75} />
 											</span>
-											<span class="text-border text-[0.9rem] font-mono tracking-[0.04em]">HH : MM</span>
+											<span class="text-border text-sm font-mono tracking-[0.04em]">HH : MM</span>
 										</div>
 									{/if}
 								</div>
@@ -659,7 +659,7 @@
 			{#each fieldPalette as item}
 				<button
 					onclick={() => pickField(item.type)}
-					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-muted cursor-pointer font-mono text-[0.9rem] text-left transition-[background,color] duration-100 hover:bg-[#1e2b3c] hover:text-text-dim"
+					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-muted cursor-pointer font-mono text-sm text-left transition-[background,color] duration-100 hover:bg-[#1e2b3c] hover:text-text-dim"
 				>
 					<span class="shrink-0 text-[#4b6280]">
 						<svelte:component this={item.icon} size={14} strokeWidth={1.75} />

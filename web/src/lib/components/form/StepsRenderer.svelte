@@ -121,10 +121,10 @@
 		{/each}
 	</div>
 
-	<p class="text-[0.8rem] text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
+	<p class="text-xs text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
 
 	{#if currentStep === 0}
-		<h1 class="text-[1.5rem] font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 mb-8 text-[#4b5563]">{translation.formDescription}</p>
 		{/if}
@@ -143,7 +143,7 @@
 	</div>
 
 	{#if submitError}
-		<p class="mt-6 m-0 text-[#ef4444] text-[0.9rem]">{submitError}</p>
+		<p class="mt-6 m-0 text-[#ef4444] text-sm">{submitError}</p>
 	{/if}
 
 	<div class="flex justify-between items-center mt-8">
@@ -151,7 +151,7 @@
 			<button
 				type="button"
 				onclick={handleBack}
-				class="px-6 py-2.5 bg-white text-[#374151] border-[1.5px] border-[#d1d5db] rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#f9fafb] transition-colors duration-100"
+				class="px-6 py-2.5 bg-white text-[#374151] border-[1.5px] border-[#d1d5db] rounded-md text-sm font-[inherit] cursor-pointer hover:bg-[#f9fafb] transition-colors duration-100"
 			>
 				← Back
 			</button>
@@ -164,7 +164,7 @@
 				type="button"
 				onclick={handleSubmit}
 				disabled={submitting}
-				class="px-6 py-2.5 text-white border-none rounded-md text-[0.9rem] font-[inherit] transition-colors duration-100
+				class="px-6 py-2.5 text-white border-none rounded-md text-sm font-[inherit] transition-colors duration-100
 					{submitting ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#1d4ed8] hover:bg-[#1e40af] cursor-pointer'}"
 			>
 				{submitting ? 'Submitting…' : 'Submit'}
@@ -173,7 +173,7 @@
 			<button
 				type="button"
 				onclick={handleNext}
-				class="px-6 py-2.5 bg-[#1d4ed8] text-white border-none rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#1e40af] transition-colors duration-100"
+				class="px-6 py-2.5 bg-[#1d4ed8] text-white border-none rounded-md text-sm font-[inherit] cursor-pointer hover:bg-[#1e40af] transition-colors duration-100"
 			>
 				Next →
 			</button>

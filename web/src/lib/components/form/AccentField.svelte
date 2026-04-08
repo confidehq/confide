@@ -20,7 +20,7 @@
 
 <div
 	style="border-left-color: {styles.border}; background: {styles.bg}; color: {styles.color};"
-	class="px-4 py-3 border-l-4 rounded text-[0.875rem] leading-relaxed"
+	class="px-4 py-3 border-l-4 rounded text-sm leading-relaxed"
 >
 	<p class="m-0 font-semibold">{translation.label}</p>
 	{#if translation.helpText}

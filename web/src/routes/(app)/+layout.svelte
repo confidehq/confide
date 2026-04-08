@@ -41,12 +41,12 @@
 	<div class="fixed inset-0 bg-black/85 flex items-center justify-center z-[1000]">
 		<div class="font-mono max-w-[400px] w-full p-8 bg-[#111] border border-border rounded-lg mx-6">
 			<h2 class="text-base text-text m-0 mb-2">Unlock your session</h2>
-			<p class="text-muted text-[0.975rem] mb-6">
+			<p class="text-muted text-sm mb-6">
 				Your session key is no longer in memory. Re-authenticate to continue.
 			</p>
 
 			{#if reauthError}
-				<div class="text-error-muted text-[0.975rem] mb-3">{reauthError}</div>
+				<div class="text-error-muted text-sm mb-3">{reauthError}</div>
 			{/if}
 
 			<button
@@ -60,7 +60,7 @@
 
 			<button
 				onclick={() => goto('/login')}
-				class="w-full py-2.5 mt-2 bg-transparent text-muted-dark border border-border rounded-md cursor-pointer font-mono text-[0.975rem] hover:text-text transition-colors duration-100"
+				class="w-full py-2.5 mt-2 bg-transparent border-l-2 text-muted-dark border border-border rounded-md cursor-pointer font-mono text-sm hover:text-text transition-colors duration-100"
 			>
 				Sign out
 			</button>

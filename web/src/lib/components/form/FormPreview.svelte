@@ -50,16 +50,16 @@
 
 <div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-[#111]">
 	<!-- Preview banner -->
-	<div class="mb-6 px-3.5 py-2 bg-[#fefce8] border border-[#fde047] rounded-md text-[0.8rem] text-[#854d0e]">
+	<div class="mb-6 px-3.5 py-2 bg-[#fefce8] border border-[#fde047] rounded-md text-xs text-[#854d0e]">
 		Preview mode — responses will not be submitted
 	</div>
 
 	{#if isSteps}
-		<p class="text-[0.8rem] text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
+		<p class="text-xs text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
 	{/if}
 
 	{#if !isSteps || currentStep === 0}
-		<h1 class="text-[1.5rem] font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 mb-8 text-[#4b5563]">{translation.formDescription}</p>
 		{/if}
@@ -82,7 +82,7 @@
 			<button
 				type="button"
 				onclick={() => { currentStep = Math.max(currentStep - 1, 0); }}
-				class="px-6 py-2.5 bg-white text-[#374151] border-[1.5px] border-[#d1d5db] rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#f9fafb] transition-colors duration-100"
+				class="px-6 py-2.5 bg-white text-[#374151] border-[1.5px] border-[#d1d5db] rounded-md text-sm font-[inherit] cursor-pointer hover:bg-[#f9fafb] transition-colors duration-100"
 			>
 				← Back
 			</button>
@@ -94,7 +94,7 @@
 			<button
 				type="button"
 				onclick={() => { currentStep = Math.min(currentStep + 1, totalSteps - 1); }}
-				class="px-6 py-2.5 bg-[#1d4ed8] text-white border-none rounded-md text-[0.9rem] font-[inherit] cursor-pointer hover:bg-[#1e40af] transition-colors duration-100"
+				class="px-6 py-2.5 bg-[#1d4ed8] text-white border-none rounded-md text-sm font-[inherit] cursor-pointer hover:bg-[#1e40af] transition-colors duration-100"
 			>
 				Next →
 			</button>
@@ -102,7 +102,7 @@
 			<button
 				type="button"
 				disabled
-				class="px-6 py-2.5 bg-[#9ca3af] text-white border-none rounded-md text-[0.9rem] font-[inherit] cursor-not-allowed"
+				class="px-6 py-2.5 bg-[#9ca3af] text-white border-none rounded-md text-sm font-[inherit] cursor-not-allowed"
 			>
 				Submit
 			</button>

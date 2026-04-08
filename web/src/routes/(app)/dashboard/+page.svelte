@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { logout } from '$lib/auth';
 	import { listForms } from '$lib/forms';
 	import { goto } from '$app/navigation';
+	import { FileText, Settings } from '@lucide/svelte';
 	import type { FormSummary } from '$lib/forms';
 
 	let forms = $state<FormSummary[]>([]);
@@ -21,62 +21,65 @@
 		}
 	});
 
-	async function handleLogout() {
-		await logout();
-		auth.clearAll();
-		goto('/login');
-	}
 </script>
 
 <svelte:head>
 	<title>Confide — Dashboard</title>
 </svelte:head>
 
-<div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-12">
+<div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-16">
 
 	<!-- Header -->
-	<div class="flex items-center justify-between mb-9">
+	<div class="flex items-center justify-between mb-8">
 		<div>
-			<h1 class="text-[1.4rem] sm:text-[1.6rem] m-0 mb-1 text-[#e2e8f0]">Dashboard</h1>
-			<p class="m-0 text-[0.875rem] text-[#4b6280] truncate max-w-[180px] sm:max-w-none">{auth.accountId ?? '—'}</p>
+			<h1 class="text-2xl sm:text-2xl m-0 mb-1 text-[#e2e8f0]">Dashboard</h1>
+			<p class="m-0 text-xs text-[#4b6280] truncate max-w-[200px] sm:max-w-none">{auth.accountId ?? '—'}</p>
 		</div>
 		<button
-			onclick={handleLogout}
-			class="shrink-0 px-3.5 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.925rem] hover:text-muted transition-colors duration-100"
-		>
-			Sign out
-		</button>
+			onclick={() => goto('/forms/new')}
+			class="shrink-0 px-3 py-1.5 bg-primary text-white border-none rounded cursor-pointer font-mono text-sm hover:bg-primary-hover transition-colors duration-100"
+		>+ New form</button>
 	</div>
 
-	<!-- Stats row -->
-	<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
+	<!-- Stats -->
+	<div class="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
 		{#each [
 			{ label: 'Total forms', value: loading ? '…' : String(totalForms) },
 			{ label: 'Open', value: loading ? '…' : String(openForms) },
 			{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
 		] as stat}
-			<div class="px-3 py-3 sm:px-5 sm:py-4 border border-border-deep rounded-md">
-				<p class="m-0 mb-1 text-[0.7rem] sm:text-[0.78rem] font-semibold tracking-[0.08em] uppercase text-[#4b6280]">{stat.label}</p>
-				<p class="m-0 text-[1.5rem] sm:text-[1.85rem] text-[#c5d3e0]">{stat.value}</p>
+			<div class="px-4 py-4 sm:px-6 sm:py-5 border border-border-deep rounded-lg">
+				<p class="m-0 mb-2 text-xs sm:text-xs font-semibold tracking-[0.1em] uppercase text-[#4b6280]">{stat.label}</p>
+				<p class="m-0 text-3xl sm:text-4xl text-[#c5d3e0] leading-none">{stat.value}</p>
 			</div>
 		{/each}
 	</div>
 
-	<!-- Quick links -->
-	<div class="flex flex-col gap-1.5">
+	<!-- Nav cards -->
+	<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 		<a
 			href="/forms"
-			class="flex items-center justify-between px-4 py-3.5 border border-border-deep rounded-md no-underline text-[#c5d3e0] text-[0.975rem] transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
+			class="group flex items-start gap-4 p-5 sm:p-6 border border-border-deep rounded-lg no-underline transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
 		>
-			<span>Forms</span>
-			<span class="text-[#4b6280] text-[0.875rem]">→</span>
+			<div class="shrink-0 mt-0.5 text-[#4b6280] group-hover:text-[#93c5fd] transition-colors duration-100">
+				<FileText size={20} strokeWidth={1.75} />
+			</div>
+			<div>
+				<p class="m-0 mb-1 text-[#c5d3e0] text-sm">Forms</p>
+				<p class="m-0 text-[#4b6280] text-sm">Manage your forms and view responses</p>
+			</div>
 		</a>
 		<a
 			href="/settings/sessions"
-			class="flex items-center justify-between px-4 py-3.5 border border-border-deep rounded-md no-underline text-[#c5d3e0] text-[0.975rem] transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
+			class="group flex items-start gap-4 p-5 sm:p-6 border border-border-deep rounded-lg no-underline transition-[border-color,background] duration-100 hover:border-border-subtle hover:bg-[#1a2840]"
 		>
-			<span>Sessions</span>
-			<span class="text-[#4b6280] text-[0.875rem]">→</span>
+			<div class="shrink-0 mt-0.5 text-[#4b6280] group-hover:text-[#93c5fd] transition-colors duration-100">
+				<Settings size={20} strokeWidth={1.75} />
+			</div>
+			<div>
+				<p class="m-0 mb-1 text-[#c5d3e0] text-sm">Sessions</p>
+				<p class="m-0 text-[#4b6280] text-sm">View and revoke active login sessions</p>
+			</div>
 		</a>
 	</div>
 

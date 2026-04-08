@@ -34,12 +34,12 @@
 
 <div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-text-dim">
 	{#if status === 'creating'}
-		<p class="text-muted text-[0.95rem]">Creating form…</p>
+		<p class="text-muted text-sm">Creating form…</p>
 	{:else}
-		<p class="text-error-light text-[0.95rem] mb-4">
+		<p class="text-error-light text-sm mb-4">
 			Failed to create form: {errorMessage}
 		</p>
-		<a href="/forms" class="text-muted-dark text-[0.975rem] no-underline">
+		<a href="/forms" class="text-muted-dark text-sm no-underline">
 			← Go back to forms
 		</a>
 	{/if}

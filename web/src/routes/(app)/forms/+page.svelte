@@ -36,23 +36,23 @@
 
 <div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-12">
 	<div class="flex items-center justify-between mb-7">
-		<h1 class="text-[1.4rem] sm:text-[1.6rem] m-0 text-[#e2e8f0]">Forms</h1>
+		<h1 class="text-2xl sm:text-2xl m-0 text-[#e2e8f0]">Forms</h1>
 		<button
 			onclick={() => goto('/forms/new')}
-			class="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary-hover text-white border-none rounded cursor-pointer font-mono text-[0.9rem] sm:text-[0.975rem] hover:bg-primary transition-colors duration-100"
+			class="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 bg-primary-hover text-white border-none rounded cursor-pointer font-mono text-sm sm:text-sm hover:bg-primary transition-colors duration-100"
 		>
 			+ New form
 		</button>
 	</div>
 
 	{#if formsStore.loading}
-		<p class="text-[#8899aa] text-[1.025rem]">Loading…</p>
+		<p class="text-[#8899aa] text-base">Loading…</p>
 	{:else if formsStore.error}
-		<p class="text-error-light text-[1.025rem]">{formsStore.error}</p>
+		<p class="text-error-light text-base">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
 		<div class="px-8 py-12 border border-dashed border-border rounded-lg text-center text-[#8899aa]">
-			<p class="m-0 mb-2 text-[1.1rem]">No forms yet</p>
-			<p class="m-0 text-[0.925rem]">Create your first form to get started</p>
+			<p class="m-0 mb-2 text-lg">No forms yet</p>
+			<p class="m-0 text-sm">Create your first form to get started</p>
 		</div>
 	{:else}
 		<!-- Mobile card list -->
@@ -60,33 +60,33 @@
 			{#each formsStore.forms as form (form.formId)}
 				<div class="p-3.5 border border-border-deep rounded-md">
 					<div class="flex items-center justify-between gap-2 mb-2">
-						<span class="text-[#c5d3e0] text-[0.975rem] truncate">
+						<span class="text-[#c5d3e0] text-sm truncate">
 							{formsStore.formNames.get(form.formId) ?? '—'}
 						</span>
-						<span class="shrink-0 px-2 py-0.5 rounded-full text-[0.8rem]
+						<span class="shrink-0 px-2 py-0.5 rounded-full text-xs
 							{form.status === 'open'
 								? 'bg-open-bg text-open-text border border-open-border'
 								: 'bg-closed-bg text-closed-text border border-closed-border'}">
 							{form.status}
 						</span>
 					</div>
-					<p class="m-0 mb-3 text-[#4b6280] text-[0.8rem]">{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}</p>
+					<p class="m-0 mb-3 text-[#4b6280] text-xs">{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}</p>
 					<div class="flex gap-1.5 flex-wrap">
 						<button
 							onclick={() => goto(`/forms/${form.formId}/edit`)}
-							class="px-2.5 py-1 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-[0.825rem] hover:border-border transition-colors duration-100"
+							class="px-2.5 py-1 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 						>Edit</button>
 						<button
 							onclick={() => goto(`/forms/${form.formId}/responses`)}
-							class="px-2.5 py-1 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-[0.825rem] hover:border-border transition-colors duration-100"
+							class="px-2.5 py-1 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 						>Responses</button>
 						<button
 							onclick={() => toggleStatus(form)}
-							class="px-2.5 py-1 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.825rem] hover:border-border transition-colors duration-100"
+							class="px-2.5 py-1 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 						>{form.status === 'open' ? 'Close' : 'Open'}</button>
 						<button
 							onclick={() => handleDelete(form)}
-							class="px-2.5 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-[0.825rem] hover:border-[#7f1d1d] transition-colors duration-100"
+							class="px-2.5 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-[#7f1d1d] transition-colors duration-100"
 						>Delete</button>
 					</div>
 				</div>
@@ -94,7 +94,7 @@
 		</div>
 
 		<!-- Desktop table -->
-		<table class="hidden sm:table w-full border-collapse text-[0.975rem]">
+		<table class="hidden sm:table w-full border-collapse text-sm">
 			<thead>
 				<tr class="border-b border-border-subtle text-muted-blue">
 					<th class="text-left px-3 py-2 font-normal">Title</th>
@@ -108,14 +108,14 @@
 			<tbody>
 				{#each formsStore.forms as form (form.formId)}
 					<tr class="border-b border-border-deep">
-						<td class="p-3 text-[#c5d3e0] text-[0.975rem]">
+						<td class="p-3 text-[#c5d3e0] text-sm">
 							{formsStore.formNames.get(form.formId) ?? '—'}
 						</td>
-						<td class="p-3 text-[#4b6280] text-[0.925rem]">
+						<td class="p-3 text-[#4b6280] text-sm">
 							{form.formId.slice(0, 12)}…
 						</td>
 						<td class="p-3">
-							<span class="px-2 py-0.5 rounded-full text-[0.875rem]
+							<span class="px-2 py-0.5 rounded-full text-sm
 								{form.status === 'open'
 									? 'bg-open-bg text-open-text border border-open-border'
 									: 'bg-closed-bg text-closed-text border border-closed-border'}">
@@ -132,19 +132,19 @@
 							<div class="flex gap-2 justify-end">
 								<button
 									onclick={() => goto(`/forms/${form.formId}/edit`)}
-									class="px-2.5 py-1 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
+									class="px-2.5 py-1 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 								>Edit</button>
 								<button
 									onclick={() => goto(`/forms/${form.formId}/responses`)}
-									class="px-2.5 py-1 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
+									class="px-2.5 py-1 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 								>Responses ({form.responseCount})</button>
 								<button
 									onclick={() => toggleStatus(form)}
-									class="px-2.5 py-1 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-border transition-colors duration-100"
+									class="px-2.5 py-1 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-border transition-colors duration-100"
 								>{form.status === 'open' ? 'Close' : 'Open'}</button>
 								<button
 									onclick={() => handleDelete(form)}
-									class="px-2.5 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-[0.875rem] hover:border-[#7f1d1d] transition-colors duration-100"
+									class="px-2.5 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-sm hover:border-[#7f1d1d] transition-colors duration-100"
 								>Delete</button>
 							</div>
 						</td>

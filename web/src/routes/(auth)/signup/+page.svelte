@@ -101,12 +101,12 @@
 </svelte:head>
 
 <div class="font-mono max-w-[560px] mx-auto mt-[60px] px-6">
-	<h1 class="text-[1.4rem] mb-8">Create your Confide account</h1>
+	<h1 class="text-2xl mb-8">Create your Confide account</h1>
 
 	<!-- Step: checking / PRF error -->
 	{#if step === 'checking'}
 		{#if prfError}
-			<div class="p-5 border border-[#991b1b] rounded-md bg-[#1c0a0a] text-error-muted text-[0.9rem]">
+			<div class="p-5 border border-[#991b1b] rounded-md bg-[#1c0a0a] text-error-muted text-sm">
 				<strong>Unsupported browser or device</strong>
 				<p class="mt-2 text-error-muted">{prfError}</p>
 			</div>
@@ -121,28 +121,28 @@
 			class="h-[360px] overflow-y-scroll border border-border rounded-md p-5 mb-5 bg-[#0d0d0d]"
 		>
 			<h2 class="text-base mt-0 text-text">Before you continue</h2>
-			<p class="text-muted text-[0.85rem] leading-relaxed">
+			<p class="text-muted text-sm leading-relaxed">
 				Confide encrypts your data in your browser before it ever leaves your device.
 				Your passkey (Touch ID, Face ID, or Windows Hello) is used to derive the encryption key —
 				<strong>the server never sees your key.</strong>
 			</p>
-			<h3 class="text-[0.9rem] text-text mt-5">Your recovery code is your backup</h3>
-			<p class="text-muted text-[0.85rem] leading-relaxed">
+			<h3 class="text-sm text-text mt-5">Your recovery code is your backup</h3>
+			<p class="text-muted text-sm leading-relaxed">
 				After signup, you will receive a recovery code. This code is the
 				<strong>only way to recover your account</strong> if you lose your device.
 			</p>
-			<ul class="text-muted text-[0.85rem] leading-[1.8] pl-5">
+			<ul class="text-muted text-sm leading-[1.8] pl-5">
 				<li>Store it somewhere safe (password manager, printed paper).</li>
 				<li>Never share it — anyone with this code can access your account.</li>
 				<li>You cannot recover your account without it.</li>
 			</ul>
-			<h3 class="text-[0.9rem] text-text mt-5">What Confide cannot do</h3>
-			<p class="text-muted text-[0.85rem] leading-relaxed">
+			<h3 class="text-sm text-text mt-5">What Confide cannot do</h3>
+			<p class="text-muted text-sm leading-relaxed">
 				Because encryption happens entirely in your browser, Confide staff
 				<strong>cannot read your data, reset your password, or recover your account</strong>
 				for you. If you lose your passkey device and your recovery code, your data is unrecoverable.
 			</p>
-			<p class="text-muted-dark text-[0.8rem] mt-6 italic">Scroll to the bottom to continue.</p>
+			<p class="text-muted-dark text-xs mt-6 italic">Scroll to the bottom to continue.</p>
 			<div bind:this={sentinelRef} class="h-px"></div>
 		</div>
 
@@ -160,19 +160,19 @@
 	<!-- Step: creating passkey -->
 	{:else if step === 'creating'}
 		<div class="p-6 border border-border rounded-md bg-[#0d0d0d] mb-6">
-			<p class="text-muted text-[0.9rem] m-0 mb-4">
+			<p class="text-muted text-sm m-0 mb-4">
 				Choose a username, then your browser will prompt you to create a passkey.
 			</p>
-			<label class="block text-muted text-[0.85rem] mb-1.5">Username</label>
+			<label class="block text-muted text-sm mb-1.5">Username</label>
 			<input
 				type="text"
 				bind:value={username}
 				placeholder="e.g. alice"
 				disabled={loading}
-				class="input-base mb-4 text-[0.9rem] py-2.5 px-3"
+				class="input-base mb-4 text-sm py-2.5 px-3"
 			/>
 			{#if registerError}
-				<div class="text-error-muted text-[0.85rem] mb-3">{registerError}</div>
+				<div class="text-error-muted text-sm mb-3">{registerError}</div>
 			{/if}
 			<button
 				onclick={startRegistration}
@@ -188,34 +188,34 @@
 	{:else if step === 'recovery'}
 		<div class="mb-6">
 			<h2 class="text-base text-text mb-2">Save your recovery code</h2>
-			<p class="text-[#f59e0b] text-[0.85rem] mb-5">
+			<p class="text-[#f59e0b] text-sm mb-5">
 				This is the only way to recover your account. Save it now — you will not see it again.
 			</p>
 
-			<div class="p-4 px-5 bg-[#111] border border-border rounded-md text-[0.9rem] text-text break-all tracking-[0.05em] mb-3">
+			<div class="p-4 px-5 bg-[#111] border border-border rounded-md text-sm text-text break-all tracking-[0.05em] mb-3">
 				{recoveryCode}
 			</div>
 
 			<button
 				onclick={copyCode}
-				class="px-4 py-2 bg-surface-2 text-muted border border-border rounded cursor-pointer font-mono text-[0.8rem] mb-8 hover:text-text transition-colors duration-100"
+				class="px-4 py-2 bg-surface-2 text-muted border border-border rounded cursor-pointer font-mono text-xs mb-8 hover:text-text transition-colors duration-100"
 			>
 				Copy code
 			</button>
 
-			<h3 class="text-[0.9rem] text-text mb-2">Confirm you've saved it</h3>
-			<p class="text-muted text-[0.8rem] mb-3">Paste your recovery code below to continue.</p>
+			<h3 class="text-sm text-text mb-2">Confirm you've saved it</h3>
+			<p class="text-muted text-xs mb-3">Paste your recovery code below to continue.</p>
 
 			<input
 				type="text"
 				bind:value={verifyInput}
 				oninput={checkVerification}
 				placeholder="GHRK-XXXX-XXXX-…"
-				class="input-base mb-1 text-[0.85rem] py-2.5 px-3
+				class="input-base mb-1 text-sm py-2.5 px-3
 					{verifyError ? '!border-[#991b1b]' : ''}"
 			/>
 			{#if verifyError}
-				<span class="text-error-muted text-[0.75rem] block mb-2">
+				<span class="text-error-muted text-xs block mb-2">
 					Does not match — check what you pasted
 				</span>
 			{/if}
@@ -234,7 +234,7 @@
 
 	<!-- Step: success -->
 	{:else if step === 'success'}
-		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-[0.9rem] text-center">
+		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-sm text-center">
 			Account created. Redirecting…
 		</div>
 	{/if}

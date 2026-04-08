@@ -61,35 +61,35 @@
 </svelte:head>
 
 <div class="font-mono max-w-[560px] mx-auto mt-[60px] px-6">
-	<h1 class="text-[1.4rem] mb-2">Account Recovery</h1>
+	<h1 class="text-2xl mb-2">Account Recovery</h1>
 
 	{#if step === 'enter-code'}
-		<p class="text-[#888] text-[0.85rem] mb-8">
+		<p class="text-[#888] text-sm mb-8">
 			Enter your account ID and recovery code to regain access.
 		</p>
 
 		<div class="mb-4">
-			<label class="block text-muted text-[0.8rem] mb-1">Account ID</label>
+			<label class="block text-muted text-xs mb-1">Account ID</label>
 			<input
 				type="text"
 				bind:value={accountId}
 				placeholder="Your account ID"
-				class="input-base py-2.5 px-3 text-[0.9rem]"
+				class="input-base py-2.5 px-3 text-sm"
 			/>
 		</div>
 
 		<div class="mb-5">
-			<label class="block text-muted text-[0.8rem] mb-1">Recovery code</label>
+			<label class="block text-muted text-xs mb-1">Recovery code</label>
 			<input
 				type="text"
 				bind:value={recoveryCode}
 				placeholder="GHRK-XXXX-XXXX-XXXX-…"
-				class="input-base py-2.5 px-3 text-[0.85rem]"
+				class="input-base py-2.5 px-3 text-sm"
 			/>
 		</div>
 
 		{#if error}
-			<div class="text-error-muted text-[0.85rem] mb-3">{error}</div>
+			<div class="text-error-muted text-sm mb-3">{error}</div>
 		{/if}
 
 		<button
@@ -101,19 +101,19 @@
 			{loading ? 'Verifying…' : 'Verify recovery code'}
 		</button>
 
-		<p class="text-[0.8rem] text-muted-dark mt-4">
+		<p class="text-xs text-muted-dark mt-4">
 			<a href="/login" class="text-[#60a5fa]">Back to sign in</a>
 		</p>
 
 	{:else if step === 'rekey'}
 		<div class="p-5 border border-[#166534] rounded-md bg-[#052e16] mb-6">
-			<p class="text-[#bbf7d0] text-[0.9rem] m-0">
+			<p class="text-[#bbf7d0] text-sm m-0">
 				Recovery code verified. Now register a new passkey on this device.
 			</p>
 		</div>
 
 		{#if error}
-			<div class="text-error-muted text-[0.85rem] mb-3">{error}</div>
+			<div class="text-error-muted text-sm mb-3">{error}</div>
 		{/if}
 
 		<button
@@ -126,7 +126,7 @@
 		</button>
 
 	{:else if step === 'success'}
-		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-[0.9rem] text-center">
+		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-sm text-center">
 			New passkey registered. Redirecting to dashboard…
 		</div>
 	{/if}

@@ -29,16 +29,16 @@
 </svelte:head>
 
 <div class="font-mono max-w-[480px] mx-auto mt-20 px-6">
-	<h1 class="text-[1.4rem] mb-2">Confide</h1>
-	<p class="text-[#888] text-[0.85rem] mb-8">Sign in with your passkey.</p>
+	<h1 class="text-2xl mb-2">Confide</h1>
+	<p class="text-[#888] text-sm mb-8">Sign in with your passkey.</p>
 
-	<label class="block text-muted text-[0.85rem] mb-1.5">Username</label>
+	<label class="block text-muted text-sm mb-1.5">Username</label>
 	<input
 		type="text"
 		bind:value={username}
 		placeholder="your username"
 		disabled={loading}
-		class="input-base mb-4 text-[0.9rem] py-2.5 px-3"
+		class="input-base mb-4 text-sm py-2.5 px-3"
 	/>
 
 	<button
@@ -51,10 +51,10 @@
 	</button>
 
 	{#if error}
-		<div class="text-error-muted text-[0.85rem] mb-4">{error}</div>
+		<div class="text-error-muted text-sm mb-4">{error}</div>
 	{/if}
 
-	<p class="text-[0.8rem] text-muted-dark mt-6">
+	<p class="text-xs text-muted-dark mt-6">
 		Lost your passkey?
 		<a href="/recover" class="text-[#60a5fa]">Recover with recovery codes</a>
 	</p>

@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { listSessions, revokeSession, logout } from '$lib/auth';
-	import { auth } from '$lib/stores/auth.svelte';
+	import { listSessions, revokeSession } from '$lib/auth';
 	import type { SessionInfo } from '$lib/types/auth';
 	import { Smartphone, Monitor } from '@lucide/svelte';
 
@@ -44,11 +42,6 @@
 		}
 	}
 
-	async function handleLogout() {
-		await logout();
-		auth.clearAll();
-		goto('/login');
-	}
 </script>
 
 <svelte:head>
@@ -56,22 +49,16 @@
 </svelte:head>
 
 <div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-12">
-	<div class="flex items-center justify-between mb-7">
-		<h1 class="text-[1.4rem] sm:text-[1.6rem] m-0 text-[#e2e8f0]">Active Sessions</h1>
-		<button
-			onclick={handleLogout}
-			class="shrink-0 px-3 py-1.5 sm:px-4 sm:py-2 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.925rem] sm:text-[0.975rem] hover:text-muted transition-colors duration-100"
-		>
-			Sign out
-		</button>
+	<div class="mb-7">
+		<h1 class="text-2xl m-0 text-[#e2e8f0]">Active Sessions</h1>
 	</div>
 
 	{#if loading}
-		<p class="text-[#8899aa] text-[1.025rem]">Loading sessions…</p>
+		<p class="text-[#8899aa] text-base">Loading sessions…</p>
 	{:else if error}
-		<p class="text-error-light text-[0.975rem]">{error}</p>
+		<p class="text-error-light text-sm">{error}</p>
 	{:else if sessions.length === 0}
-		<p class="text-[#8899aa] text-[1.025rem]">No active sessions.</p>
+		<p class="text-[#8899aa] text-base">No active sessions.</p>
 	{:else}
 		<div class="flex flex-col gap-1.5">
 			{#each sessions as session}
@@ -85,15 +72,15 @@
 							{/if}
 						</div>
 						<div class="min-w-0">
-							<div class="text-[#c5d3e0] text-[0.975rem]">{session.id.slice(0, 12)}…</div>
-							<div class="text-[#4b6280] text-[0.8rem] mt-0.5">Created {session.createdAt}</div>
-							<div class="text-[#4b6280] text-[0.8rem]">Last seen {session.lastSeen}</div>
+							<div class="text-[#c5d3e0] text-sm">{session.id.slice(0, 12)}…</div>
+							<div class="text-[#4b6280] text-xs mt-0.5">Created {session.createdAt}</div>
+							<div class="text-[#4b6280] text-xs">Last seen {session.lastSeen}</div>
 						</div>
 					</div>
 					<button
 						onclick={() => handleRevoke(session.id)}
 						disabled={revoking === session.id}
-						class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-[0.925rem] transition-[color,border-color] duration-100
+						class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 							{revoking === session.id
 								? 'text-[#4b6280] border-border-subtle cursor-not-allowed'
 								: 'text-error-light border-[#7f1d1d] hover:bg-[#1a0e0e]'}"

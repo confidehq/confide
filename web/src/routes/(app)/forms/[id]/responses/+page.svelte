@@ -210,11 +210,11 @@
 
 	<!-- Top bar -->
 	<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0">
-		<span class="text-[0.925rem] text-[#c5d3e0] whitespace-nowrap overflow-hidden text-ellipsis">{formName ?? '—'}</span>
+		<span class="text-sm text-[#c5d3e0] whitespace-nowrap overflow-hidden text-ellipsis">{formName ?? '—'}</span>
 		<div class="w-px h-3 bg-border-subtle shrink-0"></div>
-		<span class="text-[0.82rem] text-[#4b6280] whitespace-nowrap">{formId.slice(0, 16)}…</span>
+		<span class="text-sm text-[#4b6280] whitespace-nowrap">{formId.slice(0, 16)}…</span>
 		<div class="flex-1"></div>
-		<a href="/forms/{formId}/edit" class="font-mono text-[0.82rem] text-[#93c5fd] no-underline px-2.5 py-0.5 border border-border-subtle rounded-sm whitespace-nowrap">→ Edit form</a>
+		<a href="/forms/{formId}/edit" class="font-mono text-sm text-[#93c5fd] no-underline px-2.5 py-0.5 border border-border-subtle rounded-sm whitespace-nowrap">→ Edit form</a>
 	</div>
 
 	<!-- Shell -->
@@ -225,7 +225,7 @@
 
 			<!-- List header -->
 			<div class="px-4 py-3 border-b border-[#243347] shrink-0 flex items-center justify-between gap-2">
-				<p class="text-[0.8rem] font-semibold tracking-[0.1em] uppercase text-[#4b6280] m-0 flex-1">Responses</p>
+				<p class="text-xs font-semibold tracking-[0.1em] uppercase text-[#4b6280] m-0 flex-1">Responses</p>
 				<div class="flex items-center gap-1">
 					<button
 						title="Mark all as read"
@@ -246,16 +246,16 @@
 			</div>
 
 			{#if loading}
-				<div class="flex-1 flex items-center justify-center text-[#4b6280] text-[0.925rem] gap-2.5">
+				<div class="flex-1 flex items-center justify-center text-[#4b6280] text-sm gap-2.5">
 					<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
 					Loading…
 				</div>
 			{:else if loadError}
-				<div class="flex-1 flex items-center justify-center text-error-light text-[0.925rem] p-8 text-center">{loadError}</div>
+				<div class="flex-1 flex items-center justify-center text-error-light text-sm p-8 text-center">{loadError}</div>
 			{:else if responses.length === 0}
 				<div class="flex-1 flex flex-col items-center justify-center text-border-subtle text-center p-12">
-					<div class="text-[2.3rem] mb-3 opacity-40">○</div>
-					<p class="text-[0.925rem] m-0">No responses yet</p>
+					<div class="text-4xl mb-3 opacity-40">○</div>
+					<p class="text-sm m-0">No responses yet</p>
 				</div>
 			{:else}
 				<div class="flex-1 overflow-y-auto overflow-x-hidden">
@@ -266,16 +266,16 @@
 								{selectedId === record.id ? 'bg-[#172030] border-l-2 border-l-[#3b82f6] pl-[14px]' : ''}"
 						>
 							<div class="flex items-center justify-between gap-2">
-								<span class="text-[0.875rem] overflow-hidden text-ellipsis whitespace-nowrap flex-1
+								<span class="text-sm overflow-hidden text-ellipsis whitespace-nowrap flex-1
 									{selectedId === record.id ? 'text-[#93c5fd]' : 'text-[#8899aa]'}">
 									#{i + 1} · {record.id.slice(0, 12)}…
 								</span>
 								{#if decrypted.has(record.id)}
 									<span class="w-[5px] h-[5px] rounded-full bg-[#22c55e] shrink-0" title="Decrypted"></span>
 								{/if}
-								<span class="text-[0.75rem] text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px shrink-0">v{record.schemaVersion}</span>
+								<span class="text-xs text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px shrink-0">v{record.schemaVersion}</span>
 							</div>
-							<div class="text-[0.8rem] text-[#4b6280] mt-0.5">{formatDate(record.receivedAt)}</div>
+							<div class="text-xs text-[#4b6280] mt-0.5">{formatDate(record.receivedAt)}</div>
 						</button>
 					{/each}
 				</div>
@@ -285,7 +285,7 @@
 						<button
 							onclick={() => loadResponses(nextCursor)}
 							disabled={loadMore}
-							class="w-full px-3 py-1.5 bg-transparent text-[#4b6280] border border-[#243347] rounded cursor-pointer font-mono text-[0.875rem] transition-[color,border-color] duration-100 hover:not-disabled:text-[#8899aa] hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+							class="w-full px-3 py-1.5 bg-transparent text-[#4b6280] border border-[#243347] rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:not-disabled:text-[#8899aa] hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
 						>
 							{loadMore ? 'Loading…' : 'Load more'}
 						</button>
@@ -298,42 +298,42 @@
 		<div class="flex-1 min-w-0 flex flex-col min-h-0">
 			{#if !selectedRecord}
 				<div class="flex-1 flex flex-col items-center justify-center text-border-subtle text-center p-12">
-					<div class="text-[2.3rem] mb-3 opacity-40">⊡</div>
-					<p class="text-[0.925rem] m-0">Select a response to view its contents</p>
+					<div class="text-4xl mb-3 opacity-40">⊡</div>
+					<p class="text-sm m-0">Select a response to view its contents</p>
 				</div>
 			{:else}
 				<!-- Detail header -->
 				<div class="px-6 pt-[18px] pb-3.5 border-b border-[#243347] shrink-0 flex items-start justify-between gap-4">
 					<div class="min-w-0">
-						<p class="text-[0.925rem] text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
-						<p class="text-[0.82rem] text-[#4b6280] m-0">
+						<p class="text-sm text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
+						<p class="text-sm text-[#4b6280] m-0">
 							Received {formatDateLong(selectedRecord.receivedAt)}
 							{#if selectedDecrypted}
-								<span class="inline-block text-[0.75rem] text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
+								<span class="inline-block text-xs text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
 							{/if}
 						</p>
 					</div>
 
 					<div class="flex items-center gap-2 shrink-0">
 						{#if confirmDelete === selectedRecord.id}
-							<span class="text-[0.82rem] text-error-light">Delete?</span>
+							<span class="text-sm text-error-light">Delete?</span>
 							<button
 								onclick={() => handleDelete(selectedRecord.id)}
 								disabled={deleting.has(selectedRecord.id)}
-								class="px-3 py-1 bg-[#7f1d1d] text-error-muted border-none rounded cursor-pointer font-mono text-[0.875rem]"
+								class="px-3 py-1 bg-[#7f1d1d] text-error-muted border-none rounded cursor-pointer font-mono text-sm"
 							>
 								{deleting.has(selectedRecord.id) ? '…' : 'Confirm'}
 							</button>
 							<button
 								onclick={() => (confirmDelete = null)}
-								class="px-3 py-1 bg-transparent text-muted-dark border border-border rounded cursor-pointer font-mono text-[0.875rem]"
+								class="px-3 py-1 bg-transparent text-muted-dark border border-border rounded cursor-pointer font-mono text-sm"
 							>
 								Cancel
 							</button>
 						{:else}
 							<button
 								onclick={() => (confirmDelete = selectedRecord.id)}
-								class="px-3 py-1 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
+								class="px-3 py-1 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-sm transition-[background,border-color] duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
 							>
 								Delete
 							</button>
@@ -344,12 +344,12 @@
 				<!-- Detail content -->
 				<div class="flex-1 overflow-y-auto p-6">
 					{#if isDecryptingSelected}
-						<div class="flex items-center gap-2.5 text-[#4b6280] text-[0.925rem] py-8">
+						<div class="flex items-center gap-2.5 text-[#4b6280] text-sm py-8">
 							<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
 							Decrypting…
 						</div>
 					{:else if selectedDecryptError}
-						<p class="text-error-light text-[0.925rem] py-3 m-0">{selectedDecryptError}</p>
+						<p class="text-error-light text-sm py-3 m-0">{selectedDecryptError}</p>
 					{:else if selectedDecrypted}
 						<div class="flex flex-col gap-5">
 							{#each selectedDecrypted.schema.fields as field (field.id)}
@@ -357,7 +357,7 @@
 									{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
 									{@const answer = renderAnswer(field, selectedDecrypted)}
 									<div class="border-b border-border-deep pb-5 last:border-b-0 last:pb-0">
-										<p class="text-[0.8rem] font-semibold tracking-[0.06em] uppercase text-[#4b6280] m-0 mb-1.5">
+										<p class="text-xs font-semibold tracking-[0.06em] uppercase text-[#4b6280] m-0 mb-1.5">
 											{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
 										</p>
 										<p class="text-base text-[#c5d3e0] m-0 leading-relaxed whitespace-pre-wrap break-words

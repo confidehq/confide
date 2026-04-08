@@ -82,11 +82,11 @@
 	{#if store.showFormSettings}
 		<!-- Form settings panel -->
 		<div class="p-4">
-			<p class="m-0 mb-4 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Form settings</p>
+			<p class="m-0 mb-4 text-sm text-muted-dark uppercase tracking-[0.05em]">Form settings</p>
 
 			<div class="flex flex-col gap-3.5">
 				<div>
-					<label class="block text-[0.875rem] text-muted mb-1">Form name</label>
+					<label class="block text-sm text-muted mb-1">Form name</label>
 					<input
 						type="text"
 						placeholder="Internal name…"
@@ -94,12 +94,12 @@
 						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
 						class="input-base"
 					/>
-					<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Used in your dashboard only.</p>
+					<p class="mt-1 m-0 text-xs text-muted-dark">Used in your dashboard only.</p>
 				</div>
 
 				{#if isConvo}
 					<div>
-						<label class="block text-[0.875rem] text-muted mb-1">Completion message</label>
+						<label class="block text-sm text-muted mb-1">Completion message</label>
 						<textarea
 							value={store.activeTranslation?.convoCompletionMessage ?? ''}
 							oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
@@ -109,7 +109,7 @@
 					</div>
 
 					<div class="flex items-center justify-between">
-						<label class="text-[0.925rem] text-text-dim">Allow edit after submit</label>
+						<label class="text-sm text-text-dim">Allow edit after submit</label>
 						<input
 							type="checkbox"
 							checked={store.schema.convoAllowEdit ?? false}
@@ -120,10 +120,10 @@
 
 				<!-- Access section -->
 				<div class="border-t border-border pt-4">
-					<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Access</p>
+					<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Access</p>
 					<div class="flex flex-col gap-3.5">
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Close form on schedule</label>
+							<label class="block text-sm text-muted mb-1">Close form on schedule</label>
 							<div class="flex gap-1.5 items-center">
 								<input
 									type="date"
@@ -137,16 +137,16 @@
 								{#if store.expiresAt}
 									<button
 										onclick={() => applyExpiration(null, store.responseLimit, store.responseTtlDays, store.burnAfterReading)}
-										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-[1.15rem] px-1 shrink-0"
+										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-lg px-1 shrink-0"
 										title="Clear close date"
 									>×</button>
 								{/if}
 							</div>
-							<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Stop accepting new responses after this date.</p>
+							<p class="mt-1 m-0 text-xs text-muted-dark">Stop accepting new responses after this date.</p>
 						</div>
 
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Limit total responses</label>
+							<label class="block text-sm text-muted mb-1">Limit total responses</label>
 							<div class="flex gap-1.5 items-center">
 								<input
 									type="number"
@@ -162,20 +162,20 @@
 								{#if store.responseLimit}
 									<button
 										onclick={() => applyExpiration(store.expiresAt, null, store.responseTtlDays, store.burnAfterReading)}
-										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-[1.15rem] px-1 shrink-0"
+										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-lg px-1 shrink-0"
 										title="Clear submission limit"
 									>×</button>
 								{/if}
 							</div>
-							<p class="mt-1 m-0 text-[0.8rem] text-muted-dark">Stop accepting responses once this many submissions have been received.</p>
+							<p class="mt-1 m-0 text-xs text-muted-dark">Stop accepting responses once this many submissions have been received.</p>
 						</div>
 					</div>
 				</div>
 
 				<!-- Auto delete responses section -->
 				<div class="border-t border-border pt-4">
-					<p class="m-0 mb-1 text-[0.875rem] text-muted tracking-[0.05em]">Auto delete responses</p>
-					<p class="m-0 mb-3 text-[0.8rem] text-muted-dark leading-relaxed">
+					<p class="m-0 mb-1 text-sm text-muted tracking-[0.05em]">Auto delete responses</p>
+					<p class="m-0 mb-3 text-xs text-muted-dark leading-relaxed">
 						Automatically remove a submission from our servers after it has been stored for a set period.
 					</p>
 					<div class="flex flex-col gap-2.5">
@@ -205,18 +205,18 @@
 									}}
 									class="input-base"
 								/>
-								<span class="text-[0.875rem] text-muted shrink-0">days</span>
+								<span class="text-sm text-muted shrink-0">days</span>
 							</div>
 						{:else if responseLifetimePolicy === 'burn'}
-							<p class="m-0 text-[0.8rem] text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
+							<p class="m-0 text-xs text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
 						{/if}
 					</div>
 				</div>
 
 				{#if expirationSaving}
-					<p class="m-0 text-[0.8rem] text-muted-dark">Saving…</p>
+					<p class="m-0 text-xs text-muted-dark">Saving…</p>
 				{:else if expirationError}
-					<p class="m-0 text-[0.8rem] text-error">{expirationError}</p>
+					<p class="m-0 text-xs text-error">{expirationError}</p>
 				{/if}
 			</div>
 		</div>
@@ -227,7 +227,7 @@
 
 			<!-- Translation section -->
 			<div>
-				<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Content</p>
+				<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Content</p>
 				<TranslationEditor {store} fieldId={field.id} />
 			</div>
 
@@ -236,12 +236,12 @@
 
 			<!-- Settings section -->
 			<div>
-				<p class="m-0 mb-3 text-[0.875rem] text-muted-dark uppercase tracking-[0.05em]">Settings</p>
+				<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Settings</p>
 				<div class="flex flex-col gap-3.5">
 
 					<!-- Required toggle -->
 					<div class="flex items-center justify-between">
-						<label class="text-[0.925rem] text-text-dim">Required</label>
+						<label class="text-sm text-text-dim">Required</label>
 						<input
 							type="checkbox"
 							checked={field.required}
@@ -253,7 +253,7 @@
 					{#if field.type === 'short_text'}
 						{@const cfg = field.config as ShortTextConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Max length</label>
+							<label class="block text-sm text-muted mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -268,7 +268,7 @@
 					{#if field.type === 'long_text'}
 						{@const cfg = field.config as LongTextConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Max length</label>
+							<label class="block text-sm text-muted mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -278,7 +278,7 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Min rows</label>
+							<label class="block text-sm text-muted mb-1">Min rows</label>
 							<input
 								type="number"
 								min="1"
@@ -294,12 +294,12 @@
 					{#if field.type === 'multiple_choice' || field.type === 'checkboxes' || field.type === 'dropdown'}
 						{@const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Options</label>
+							<label class="block text-sm text-muted mb-1">Options</label>
 							<div class="flex flex-col gap-1.5">
 								{#each cfg.options ?? [] as opt (opt.id)}
 									<div class="flex items-center gap-1.5">
-										<span class="text-muted-dark text-[0.875rem] min-w-5">{opt.order + 1}.</span>
-										<span class="flex-1 text-[0.925rem] text-muted">Option {opt.order + 1}</span>
+										<span class="text-muted-dark text-sm min-w-5">{opt.order + 1}.</span>
+										<span class="flex-1 text-sm text-muted">Option {opt.order + 1}</span>
 										<button
 											onclick={() => removeOption(opt.id)}
 											class="bg-transparent border-none text-muted-dark cursor-pointer font-mono"
@@ -308,7 +308,7 @@
 								{/each}
 								<button
 									onclick={addOption}
-									class="px-2.5 py-1.5 bg-transparent text-muted-dark border border-dashed border-border rounded cursor-pointer font-mono text-[0.875rem] hover:text-muted transition-colors duration-100"
+									class="px-2.5 py-1.5 bg-transparent text-muted-dark border border-dashed border-border rounded cursor-pointer font-mono text-sm hover:text-muted transition-colors duration-100"
 								>
 									+ Add option
 								</button>
@@ -318,7 +318,7 @@
 						{#if field.type === 'multiple_choice'}
 							{@const mcCfg = field.config as MultipleChoiceConfig}
 							<div class="flex items-center justify-between">
-								<label class="text-[0.925rem] text-text-dim">Allow "Other"</label>
+								<label class="text-sm text-text-dim">Allow "Other"</label>
 								<input
 									type="checkbox"
 									checked={mcCfg.allowOther ?? false}
@@ -330,7 +330,7 @@
 						{#if field.type === 'checkboxes'}
 							{@const cbCfg = field.config as CheckboxesConfig}
 							<div>
-								<label class="block text-[0.875rem] text-muted mb-1">Min selections</label>
+								<label class="block text-sm text-muted mb-1">Min selections</label>
 								<input
 									type="number"
 									min="0"
@@ -340,7 +340,7 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-[0.875rem] text-muted mb-1">Max selections</label>
+								<label class="block text-sm text-muted mb-1">Max selections</label>
 								<input
 									type="number"
 									min="0"
@@ -354,7 +354,7 @@
 						{#if field.type === 'dropdown'}
 							{@const ddCfg = field.config as DropdownConfig}
 							<div class="flex items-center justify-between">
-								<label class="text-[0.925rem] text-text-dim">Searchable</label>
+								<label class="text-sm text-text-dim">Searchable</label>
 								<input
 									type="checkbox"
 									checked={ddCfg.searchable ?? false}
@@ -368,7 +368,7 @@
 					{#if field.type === 'date_time'}
 						{@const cfg = field.config as DateTimeConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Mode</label>
+							<label class="block text-sm text-muted mb-1">Mode</label>
 							<select
 								value={cfg.mode}
 								onchange={(e) => store.updateFieldConfig(field.id, { mode: (e.target as HTMLSelectElement).value as 'date' | 'time' | 'datetime' })}
@@ -380,7 +380,7 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Min</label>
+							<label class="block text-sm text-muted mb-1">Min</label>
 							<input
 								type="text"
 								placeholder="e.g. 2024-01-01"
@@ -390,7 +390,7 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Max</label>
+							<label class="block text-sm text-muted mb-1">Max</label>
 							<input
 								type="text"
 								placeholder="e.g. 2030-12-31"
@@ -405,7 +405,7 @@
 					{#if field.type === 'rating'}
 						{@const cfg = field.config as RatingConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Scale</label>
+							<label class="block text-sm text-muted mb-1">Scale</label>
 							<select
 								value={cfg.scale}
 								onchange={(e) => store.updateFieldConfig(field.id, { scale: parseInt((e.target as HTMLSelectElement).value) as 5 | 10 })}
@@ -416,7 +416,7 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Shape</label>
+							<label class="block text-sm text-muted mb-1">Shape</label>
 							<select
 								value={cfg.shape}
 								onchange={(e) => store.updateFieldConfig(field.id, { shape: (e.target as HTMLSelectElement).value as 'star' | 'number' })}
@@ -432,7 +432,7 @@
 					{#if field.type === 'heading'}
 						{@const cfg = field.config as HeadingConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Level</label>
+							<label class="block text-sm text-muted mb-1">Level</label>
 							<select
 								value={cfg.level}
 								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 })}
@@ -450,7 +450,7 @@
 					{#if field.type === 'accent'}
 						{@const cfg = field.config as AccentConfig}
 						<div>
-							<label class="block text-[0.875rem] text-muted mb-1">Variant</label>
+							<label class="block text-sm text-muted mb-1">Variant</label>
 							<select
 								value={cfg.variant}
 								onchange={(e) => store.updateFieldConfig(field.id, { variant: (e.target as HTMLSelectElement).value as AccentConfig['variant'] })}
@@ -465,13 +465,13 @@
 					{/if}
 
 					{#if field.type === 'section_break'}
-						<p class="text-[0.925rem] text-muted-dark m-0">
+						<p class="text-sm text-muted-dark m-0">
 							Section breaks have no settings. Use the Content section above to add a label.
 						</p>
 					{/if}
 
 					{#if field.type === 'accordion'}
-						<p class="text-[0.925rem] text-muted-dark m-0">
+						<p class="text-sm text-muted-dark m-0">
 							Set the title and body text in the Content section above.
 						</p>
 					{/if}
