@@ -78,3 +78,25 @@ body {
   outline: none;
   border-color: #1d4ed8;
 }
+
+/* On mobile the sidebar overlays content, so remove the left margin */
+@media (max-width: 639px) {
+  .app-main-content { margin-left: 0 !important; }
+}
+
+/* Properties panel: bottom sheet on mobile, right-side drawer on desktop */
+.properties-panel {
+  transform: translateY(100%);
+  transition: transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.properties-panel.is-open {
+  transform: translateY(0);
+}
+@media (min-width: 640px) {
+  .properties-panel {
+    transform: translateX(calc(100% + 16px));
+  }
+  .properties-panel.is-open {
+    transform: translateX(0);
+  }
+}

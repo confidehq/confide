@@ -122,63 +122,63 @@
 {:else if store}
 	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text-dim overflow-hidden">
 		<!-- Toolbar -->
-		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-[#2a3341] shrink-0">
+		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-[#2a3341] shrink-0 overflow-x-auto">
 			<!-- Form name input -->
 			<input
 				type="text"
 				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				class="bg-transparent border-none outline-none text-text font-mono text-base w-[200px] min-w-0 px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
+				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[200px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
 			/>
 
-			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
-
-			<!-- Layout selector -->
-			<div class="relative">
-				{#if layoutOpen}
-					<div onclick={() => layoutOpen = false} class="fixed inset-0 z-10"></div>
-				{/if}
-				<button
-					onclick={() => layoutOpen = !layoutOpen}
-					style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? '#374151' : '#2a3341'};"
-					class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100"
-				>
-					{#each layoutModes as mode}
-						{#if mode.value === store.schema.layout}
-							<svelte:component this={mode.icon} size={13} strokeWidth={1.75} />
-							<span>{mode.label}</span>
-						{/if}
-					{/each}
-					<ChevronDown size={11} strokeWidth={1.75} class="text-muted-dark ml-0.5" />
-				</button>
-
-				{#if layoutOpen}
-					<div class="absolute top-[calc(100%+4px)] left-0 bg-[#1a2233] border border-[#2a3341] rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+			<!-- Layout selector — hidden on mobile -->
+			<div class="hidden sm:flex items-center gap-2 shrink-0">
+				<div class="w-px h-[18px] bg-[#2a3341]"></div>
+				<div class="relative">
+					{#if layoutOpen}
+						<div onclick={() => layoutOpen = false} class="fixed inset-0 z-10"></div>
+					{/if}
+					<button
+						onclick={() => layoutOpen = !layoutOpen}
+						style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? '#374151' : '#2a3341'};"
+						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-[0.875rem] transition-[background,border-color] duration-100"
+					>
 						{#each layoutModes as mode}
-							{@const active = mode.value === store.schema.layout}
-							<button
-								onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
-								class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
-									{active ? 'bg-[#1f2d42] text-text' : 'bg-transparent text-muted hover:bg-[#1e2b3c] hover:text-text-dim'}"
-							>
-								<span class="mt-0.5 shrink-0 {active ? 'text-[#60a5fa]' : 'text-[#4b6280]'}">
-									<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
-								</span>
-								<span>
-									<span class="block text-[0.9rem]">{mode.label}</span>
-									<span class="block text-[0.82rem] text-[#4b6280] mt-0.5">{mode.help}</span>
-								</span>
-							</button>
+							{#if mode.value === store.schema.layout}
+								<svelte:component this={mode.icon} size={13} strokeWidth={1.75} />
+								<span>{mode.label}</span>
+							{/if}
 						{/each}
-					</div>
-				{/if}
+						<ChevronDown size={11} strokeWidth={1.75} class="text-muted-dark ml-0.5" />
+					</button>
+
+					{#if layoutOpen}
+						<div class="absolute top-[calc(100%+4px)] left-0 bg-[#1a2233] border border-[#2a3341] rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+							{#each layoutModes as mode}
+								{@const active = mode.value === store.schema.layout}
+								<button
+									onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
+									class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
+										{active ? 'bg-[#1f2d42] text-text' : 'bg-transparent text-muted hover:bg-[#1e2b3c] hover:text-text-dim'}"
+								>
+									<span class="mt-0.5 shrink-0 {active ? 'text-[#60a5fa]' : 'text-[#4b6280]'}">
+										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
+									</span>
+									<span>
+										<span class="block text-[0.9rem]">{mode.label}</span>
+										<span class="block text-[0.82rem] text-[#4b6280] mt-0.5">{mode.help}</span>
+									</span>
+								</button>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			</div>
 
-			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
-
-			<!-- Locale switcher -->
-			<div class="flex items-center gap-1.5">
+			<!-- Locale switcher — hidden on mobile -->
+			<div class="hidden sm:flex items-center gap-1.5 shrink-0">
+				<div class="w-px h-[18px] bg-[#2a3341]"></div>
 				<div class="relative flex items-center">
 					<select
 						value={store.activeLocale}
@@ -218,11 +218,11 @@
 
 			<!-- Save indicator -->
 			{#if store.saving}
-				<span title="Saving…" class="flex text-muted-dark"><Loader size={14} strokeWidth={2} /></span>
+				<span title="Saving…" class="flex shrink-0 text-muted-dark"><Loader size={14} strokeWidth={2} /></span>
 			{:else if store.dirty}
-				<span title="Unsaved changes" class="flex text-muted-dark"><CloudOff size={14} strokeWidth={2} /></span>
+				<span title="Unsaved changes" class="flex shrink-0 text-muted-dark"><CloudOff size={14} strokeWidth={2} /></span>
 			{:else if store.lastSaved}
-				<span title="Saved" class="flex text-border"><Check size={14} strokeWidth={2} /></span>
+				<span title="Saved" class="flex shrink-0 text-border"><Check size={14} strokeWidth={2} /></span>
 			{/if}
 
 			<!-- Form settings cog -->
@@ -230,7 +230,7 @@
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
 				style="background: {store.showFormSettings ? '#1f2937' : 'transparent'}; color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'}; border-color: {store.showFormSettings ? '#374151' : 'transparent'};"
-				class="px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
+				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
 			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
@@ -239,19 +239,19 @@
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
 				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? '#374151' : '#2a3341'};"
-				class="px-3 h-7 border rounded-md cursor-pointer font-mono text-[0.875rem]"
+				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-[0.875rem]"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
 			<!-- Publish button -->
 			<button
 				onclick={handlePublish}
 				disabled={store.saving || publishing}
-				class="px-3.5 h-7 text-white border-none rounded-md font-mono text-[0.875rem] transition-[background,opacity] duration-100
+				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-[0.875rem] transition-[background,opacity] duration-100
 					{store.saving || publishing ? 'bg-[#1e3a8a] cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
-				<span class="text-error-light text-[0.8rem]">{publishError}</span>
+				<span class="shrink-0 text-error-light text-[0.8rem]">{publishError}</span>
 			{/if}
 		</div>
 

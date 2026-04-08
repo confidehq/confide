@@ -196,7 +196,7 @@
 
 <main
 	style="background: {store.mode === 'preview' ? '#f9fafb' : '#111827'};"
-	class="flex-1 overflow-y-auto px-6 pt-6 pb-24 pr-[320px] min-w-0"
+	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 sm:pr-[320px] min-w-0"
 	onclick={() => { store.setSelectedField(null); closeSlot(); }}
 	role="presentation"
 >
@@ -340,7 +340,7 @@
 						tabindex="0"
 						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
-						style="border-color: {isSelected ? '#1d4ed8' : '#2a3341'}; background: {isSelected ? '#1e3a8a22' : '#1a2233'};"
+						style="border-color: {isSelected ? '#1d4ed8' : '#2a3341'}; background: {isSelected ? '#1e3a8a22' : '#1f2937'};"
 						class="px-3 py-2 border rounded-md cursor-pointer"
 					>
 						<div class="flex items-center gap-2 mb-1.5">

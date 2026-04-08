@@ -38,7 +38,8 @@
 
 <nav
 	style="width: {sidebar.width}px;"
-	class="fixed top-0 left-0 h-screen bg-canvas flex flex-col z-20 overflow-hidden transition-[width] duration-200 ease-linear font-mono"
+	class="fixed top-0 left-0 h-screen bg-canvas flex flex-col z-20 overflow-hidden transition-[width,transform] duration-200 ease-linear font-mono
+		{sidebar.mobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0"
 >
 	<!-- Logo / wordmark + toggle -->
 	<div
@@ -72,6 +73,7 @@
 				{@const active = isActive(link.href)}
 				<a
 					href={link.href}
+					onclick={() => sidebar.closeMobile()}
 					style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 					class="flex items-center gap-2.5 h-10 no-underline whitespace-nowrap overflow-hidden
 						text-[0.95rem] box-border w-full transition-[color,background] duration-100
@@ -95,6 +97,7 @@
 				href="https://feedback.useconfide.app/"
 				target="_blank"
 				rel="noopener noreferrer"
+				onclick={() => sidebar.closeMobile()}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class="flex items-center gap-2.5 h-10 no-underline text-muted-dark bg-transparent
 					border-l-2 border-transparent whitespace-nowrap overflow-hidden

@@ -32,32 +32,32 @@
 	<title>Confide — Dashboard</title>
 </svelte:head>
 
-<div class="font-mono max-w-[720px] p-8 pb-12">
+<div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-12">
 
 	<!-- Header -->
 	<div class="flex items-center justify-between mb-9">
 		<div>
-			<h1 class="text-[1.6rem] m-0 mb-1 text-[#e2e8f0]">Dashboard</h1>
-			<p class="m-0 text-[0.875rem] text-[#4b6280]">{auth.accountId ?? '—'}</p>
+			<h1 class="text-[1.4rem] sm:text-[1.6rem] m-0 mb-1 text-[#e2e8f0]">Dashboard</h1>
+			<p class="m-0 text-[0.875rem] text-[#4b6280] truncate max-w-[180px] sm:max-w-none">{auth.accountId ?? '—'}</p>
 		</div>
 		<button
 			onclick={handleLogout}
-			class="px-3.5 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.925rem] hover:text-muted transition-colors duration-100"
+			class="shrink-0 px-3.5 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-[0.925rem] hover:text-muted transition-colors duration-100"
 		>
 			Sign out
 		</button>
 	</div>
 
 	<!-- Stats row -->
-	<div class="grid grid-cols-3 gap-3 mb-8">
+	<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
 		{#each [
 			{ label: 'Total forms', value: loading ? '…' : String(totalForms) },
 			{ label: 'Open', value: loading ? '…' : String(openForms) },
 			{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
 		] as stat}
-			<div class="px-5 py-4 border border-border-deep rounded-md">
-				<p class="m-0 mb-1.5 text-[0.78rem] font-semibold tracking-[0.08em] uppercase text-[#4b6280]">{stat.label}</p>
-				<p class="m-0 text-[1.85rem] text-[#c5d3e0]">{stat.value}</p>
+			<div class="px-3 py-3 sm:px-5 sm:py-4 border border-border-deep rounded-md">
+				<p class="m-0 mb-1 text-[0.7rem] sm:text-[0.78rem] font-semibold tracking-[0.08em] uppercase text-[#4b6280]">{stat.label}</p>
+				<p class="m-0 text-[1.5rem] sm:text-[1.85rem] text-[#c5d3e0]">{stat.value}</p>
 			</div>
 		{/each}
 	</div>

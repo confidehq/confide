@@ -4,6 +4,7 @@
 	import { reauthenticate } from '$lib/auth';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
+	import { Menu } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -69,10 +70,27 @@
 
 <Sidebar />
 
+<!-- Mobile backdrop -->
+{#if sidebar.mobileOpen}
+	<div
+		class="fixed inset-0 bg-black/60 z-10 sm:hidden"
+		onclick={() => sidebar.closeMobile()}
+	></div>
+{/if}
+
+<!-- Hamburger button — mobile only -->
+<button
+	onclick={() => sidebar.openMobile()}
+	class="sm:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-8 h-8 bg-surface-2 border border-border rounded-md text-muted cursor-pointer hover:text-text transition-colors duration-100"
+	aria-label="Open navigation"
+>
+	<Menu size={16} strokeWidth={1.75} />
+</button>
+
 <!-- Canvas wrapper: fills viewport, provides inset for the floating sheet -->
 <div
 	style="margin-left: {sidebar.width}px;"
-	class="transition-[margin-left] duration-200 ease-linear h-screen overflow-hidden p-3 box-border flex"
+	class="app-main-content transition-[margin-left] duration-200 ease-linear h-screen overflow-hidden p-3 box-border flex"
 >
 	<!-- Elevated sheet: floats above the canvas layer -->
 	<div class="flex-1 min-h-0 bg-surface rounded-xl shadow-[0_0_0_1px_var(--color-border-subtle)] overflow-auto flex flex-col">

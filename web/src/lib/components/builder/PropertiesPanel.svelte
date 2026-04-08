@@ -69,9 +69,16 @@
 </script>
 
 <aside
-	style="transform: translateX({store.showFormSettings || store.selectedField ? '0' : 'calc(100% + 16px)'});"
-	class="absolute top-2 bottom-2 right-2 w-[280px] bg-surface-2 rounded-lg shadow-[0_4px_24px_rgba(0,0,0,0.4)] overflow-y-auto z-20 transition-transform duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+	class="properties-panel {store.showFormSettings || store.selectedField ? 'is-open' : ''}
+		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
+		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-[280px] sm:max-h-none sm:rounded-xl
+		bg-surface-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] overflow-y-auto z-20"
 >
+	<!-- Mobile drag handle — hidden on desktop -->
+	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-surface-2">
+		<div class="w-8 h-1 bg-border rounded-full"></div>
+	</div>
+
 	{#if store.showFormSettings}
 		<!-- Form settings panel -->
 		<div class="p-4">
