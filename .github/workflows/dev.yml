@@ -85,12 +85,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & push Web (dev)
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: deploy/Dockerfile.web
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}-web:dev
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

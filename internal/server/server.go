@@ -2,7 +2,9 @@ package server
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
@@ -37,7 +39,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
 	}
 }
 
-func New(cfg *config.Config, svc *Services, version, commit string) http.Handler {
+func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) http.Handler {
 	guard := botguard.New(cfg.HMACKey)
 	r := chi.NewRouter()
 	r.Use(mw.SecurityHeaders)
@@ -92,5 +94,30 @@ func New(cfg *config.Config, svc *Services, version, commit string) http.Handler
 		mw.RelayRateLimit(cfg.HMACKey),
 	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ, guard))
 
+	// SPA catch-all: serve the embedded frontend for any path not matched above.
+	if uiFS != nil {
+		r.Get("/*", spaHandler(uiFS))
+	}
+
 	return r
+}
+
+// spaHandler serves the embedded SvelteKit static build. Unknown paths fall
+// back to index.html so the client-side router handles navigation.
+func spaHandler(uiFS fs.FS) http.HandlerFunc {
+	sub, _ := fs.Sub(uiFS, "build")
+	index, _ := fs.ReadFile(sub, "index.html")
+	fileServer := http.FileServer(http.FS(sub))
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/")
+		if path != "" {
+			if _, err := fs.Stat(sub, path); err != nil {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				_, _ = w.Write(index)
+				return
+			}
+		}
+		fileServer.ServeHTTP(w, r)
+	}
 }

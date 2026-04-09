@@ -18,6 +18,7 @@ import (
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/server"
 	"github.com/phantompunk/confide/migrations"
+	"github.com/phantompunk/confide/ui"
 )
 
 var (
@@ -63,7 +64,7 @@ func main() {
 	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
 	go reaper.Start(runCtx, svc.Responses, cfg.ReaperInterval)
 
-	h := server.New(cfg, svc, version, commit)
+	h := server.New(cfg, svc, ui.FS, version, commit)
 
 	srv := &http.Server{
 		Addr:         cfg.BindAddr,
