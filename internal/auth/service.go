@@ -398,29 +398,43 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
-	// FinishDiscoverableLogin looks up the account via the userHandle (account ID
-	// set during registration) which is the authoritative identifier for discoverable
-	// login. Falls back to rawID lookup for backward compatibility.
 	var account queries.Account
-	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-		if len(userHandle) > 0 {
-			acc, err := s.db.GetAccountByID(ctx, string(userHandle))
-			if err == nil {
-				account = acc
-				return accountToWAUser(acc), nil
-			}
-		}
-		acc, err := s.db.GetAccountByCredentialID(ctx, rawID)
+	var cred *webauthn.Credential
+
+	if len(sd.AllowedCredentialIDs) > 0 {
+		// Targeted login: session was started with BeginLogin — must use FinishLogin.
+		acc, err := s.db.GetAccountByCredentialID(ctx, sd.AllowedCredentialIDs[0])
 		if err != nil {
 			return nil, ErrNotFound
 		}
 		account = acc
-		return accountToWAUser(acc), nil
-	}
-
-	cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
-	if err != nil {
-		return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+		cred, err = s.wa.FinishLogin(accountToWAUser(acc), *sd, r)
+		if err != nil {
+			return nil, fmt.Errorf("FinishLogin: %w", err)
+		}
+	} else {
+		// Discoverable login: session started with BeginDiscoverableLogin.
+		// Look up account via userHandle (authoritative) or rawID (fallback).
+		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+			if len(userHandle) > 0 {
+				acc, err := s.db.GetAccountByID(ctx, string(userHandle))
+				if err == nil {
+					account = acc
+					return accountToWAUser(acc), nil
+				}
+			}
+			acc, err := s.db.GetAccountByCredentialID(ctx, rawID)
+			if err != nil {
+				return nil, ErrNotFound
+			}
+			account = acc
+			return accountToWAUser(acc), nil
+		}
+		var err error
+		cred, err = s.wa.FinishDiscoverableLogin(handler, *sd, r)
+		if err != nil {
+			return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+		}
 	}
 
 	// Sync BackupEligible if the stored value is stale (accounts created before
