@@ -330,13 +330,15 @@ func (s *Service) loginBeginByUsername(ctx context.Context, username string) (*L
 }
 
 // loginBeginTargeted uses prf.eval.first with the known credential's PRF salt.
-// Requires Chrome 116+. Used when credentialId is stored in localStorage.
+// Uses BeginLogin with allowCredentials set so the browser routes directly to
+// the credential provider (e.g. 1Password) instead of showing the full picker.
 func (s *Service) loginBeginTargeted(ctx context.Context, credentialID []byte) (*LoginBeginResult, error) {
 	account, err := s.db.GetAccountByCredentialID(ctx, credentialID)
 	if err != nil {
 		return nil, ErrNotFound
 	}
-	assertion, sd, err := s.wa.BeginDiscoverableLogin(
+	user := accountToWAUser(account)
+	assertion, sd, err := s.wa.BeginLogin(user,
 		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
 				"eval": map[string]any{
@@ -346,7 +348,7 @@ func (s *Service) loginBeginTargeted(ctx context.Context, credentialID []byte) (
 		}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
+		return nil, fmt.Errorf("BeginLogin: %w", err)
 	}
 	challengeKey := base64.RawURLEncoding.EncodeToString(credentialID)
 	s.challenges.set(challengeKey, sd)
