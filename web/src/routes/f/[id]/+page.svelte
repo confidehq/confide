@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { writable } from 'svelte/store';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { getPublicSchema, importRenderKey, ApiError } from '$lib/forms';
@@ -7,17 +6,19 @@
 	import ScrollRenderer from '$lib/components/form/ScrollRenderer.svelte';
 	import StepsRenderer from '$lib/components/form/StepsRenderer.svelte';
 
-	type State = 'loading' | 'ready' | 'submitted' | 'closed' | 'invalid' | 'error';
+	type FormState = 'loading' | 'ready' | 'submitted' | 'closed' | 'invalid' | 'error';
 
-	const state = writable<State>('loading');
-	const errorMessage = writable('');
+	let formState = $state<FormState>('loading');
+	let errorMessage = $state('');
 
-	let schema: FormSchema | null = null;
-	let publicFormKey: ArrayBuffer | null = null;
-	let schemaVersion = 0;
-	let locale = 'en';
-	let honeypotFields: string[] = [];
-	let loadToken = '';
+	let schema = $state<FormSchema | null>(null);
+	let publicFormKey = $state<ArrayBuffer | null>(null);
+	let schemaVersion = $state(0);
+	let locale = $state('en');
+	let honeypotFields = $state<string[]>([]);
+	let loadToken = $state('');
+
+	const locales = $derived(schema ? (schema.locales ?? [schema.defaultLocale]) : []);
 
 	onMount(async () => {
 		const formId = $page.params.id ?? '';
@@ -29,7 +30,7 @@
 		const rkParam = params.get('rk');
 
 		if (!rkParam || !formId) {
-			state.set('invalid');
+			formState = 'invalid';
 			return;
 		}
 
@@ -41,7 +42,7 @@
 			const result = await getPublicSchema(formId, renderKey);
 
 			if (result.status === 'closed') {
-				state.set('closed');
+				formState = 'closed';
 				return;
 			}
 
@@ -57,19 +58,23 @@
 				? queryLocale
 				: result.schema.defaultLocale;
 
-			state.set('ready');
+			formState = 'ready';
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 404) {
-				state.set('invalid');
+				formState = 'invalid';
 			} else {
-				errorMessage.set(err instanceof Error ? err.message : 'Unknown error');
-				state.set('error');
+				errorMessage = err instanceof Error ? err.message : 'Unknown error';
+				formState = 'error';
 			}
 		}
 	});
 
 	function handleSubmitted() {
-		state.set('submitted');
+		formState = 'submitted';
+	}
+
+	function switchLocale(code: string) {
+		locale = code;
 	}
 </script>
 
@@ -77,28 +82,28 @@
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
-{#if $state === 'loading'}
+{#if formState === 'loading'}
 	<div class="shell">
 		<p class="muted">Loading…</p>
 	</div>
-{:else if $state === 'invalid'}
+{:else if formState === 'invalid'}
 	<div class="shell">
 		<p class="muted">This link is invalid or the form no longer exists.</p>
 	</div>
-{:else if $state === 'closed'}
+{:else if formState === 'closed'}
 	<div class="shell">
 		<p class="muted">This form is no longer accepting responses.</p>
 	</div>
-{:else if $state === 'error'}
+{:else if formState === 'error'}
 	<div class="shell">
 		<p class="muted">Something went wrong. Please try again later.</p>
-		{#if $errorMessage}<p class="muted small">{$errorMessage}</p>{/if}
+		{#if errorMessage}<p class="muted small">{errorMessage}</p>{/if}
 	</div>
-{:else if $state === 'submitted'}
+{:else if formState === 'submitted'}
 	<div class="shell">
 		<p class="muted">{schema?.translations?.[locale]?.convoCompletionMessage ?? 'Your response has been submitted.'}</p>
 	</div>
-{:else if $state === 'ready' && schema && publicFormKey}
+{:else if formState === 'ready' && schema && publicFormKey}
 	{#if schema.layout === 'steps'}
 		<StepsRenderer
 			{schema}
@@ -106,9 +111,11 @@
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
+			{locales}
 			{honeypotFields}
 			{loadToken}
 			onsubmitted={handleSubmitted}
+			onlocalechange={switchLocale}
 		/>
 	{:else}
 		<ScrollRenderer
@@ -117,14 +124,22 @@
 			{publicFormKey}
 			{schemaVersion}
 			{locale}
+			{locales}
 			{honeypotFields}
 			{loadToken}
 			onsubmitted={handleSubmitted}
+			onlocalechange={switchLocale}
 		/>
 	{/if}
 {/if}
 
 <style>
+	:global(html),
+	:global(body) {
+		background: #fff;
+		color: #111;
+	}
+
 	.shell {
 		display: flex;
 		flex-direction: column;

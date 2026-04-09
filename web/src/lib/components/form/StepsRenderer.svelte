@@ -13,12 +13,14 @@
 		publicFormKey: ArrayBuffer;
 		schemaVersion: number;
 		locale: string;
+		locales: string[];
 		honeypotFields: string[];
 		loadToken: string;
 		onsubmitted: () => void;
+		onlocalechange: (code: string) => void;
 	}
 
-	const { schema, formId, publicFormKey, schemaVersion, locale, honeypotFields, loadToken, onsubmitted }: Props = $props();
+	const { schema, formId, publicFormKey, schemaVersion, locale, locales, honeypotFields, loadToken, onsubmitted, onlocalechange }: Props = $props();
 
 	const translation = $derived(
 		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
@@ -120,6 +122,22 @@
 			/>
 		{/each}
 	</div>
+
+	{#if locales.length > 1 && currentStep === 0}
+		<div class="flex justify-center gap-1.5 mb-6">
+			{#each locales as code (code)}
+				<button
+					onclick={() => onlocalechange(code)}
+					class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-100 cursor-pointer border-none
+						{locale === code
+							? 'bg-[#1d4ed8] text-white'
+							: 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb] hover:text-[#374151]'}"
+				>
+					{new Intl.DisplayNames([code, 'en'], { type: 'language' }).of(code) ?? code}
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<p class="text-xs text-[#9ca3af] m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
 

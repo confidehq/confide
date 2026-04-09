@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
 
-	onMount(async () => {
-		if (auth.masterKey) await formsStore.load(auth.masterKey);
+	$effect(() => {
+		if (auth.masterKey) formsStore.load(auth.masterKey);
 	});
 
 	async function toggleStatus(form: FormSummary) {

@@ -67,6 +67,12 @@ export const formsStore = {
 		_formNames = new Map();
 	},
 
+	updateName(formId: string, name: string) {
+		const names = new Map(_formNames);
+		names.set(formId, name);
+		_formNames = names;
+	},
+
 	updateStatus(formId: string, status: 'open' | 'closed') {
 		_forms = _forms.map((f) => (f.formId === formId ? { ...f, status } : f));
 	},

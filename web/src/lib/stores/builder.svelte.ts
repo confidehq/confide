@@ -8,6 +8,7 @@
 import { updateFormSchema, updateFormExpiration, getForm } from '$lib/forms';
 import type { BuilderSchema, BuilderField, FieldType, FieldConfig, TranslationMap } from '$lib/types/builder';
 import { getOrderedFields } from '$lib/types/builder';
+import { formsStore } from '$lib/stores/forms.svelte';
 
 export type BuilderMode = 'edit' | 'preview';
 
@@ -482,6 +483,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			await updateFormSchema(masterKey, formId, schema, currentRenderKeySalt);
 			lastSaved = new Date();
 			dirty = false;
+			if (schema.name) formsStore.updateName(formId, schema.name);
 		} finally {
 			saving = false;
 		}
