@@ -16,6 +16,7 @@ import (
 	"github.com/phantompunk/confide/internal/botguard"
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/forms"
+	"github.com/phantompunk/confide/internal/identity"
 	mw "github.com/phantompunk/confide/internal/middleware"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
@@ -28,6 +29,7 @@ type Services struct {
 	Forms     *forms.Service
 	Responses *responses.Service
 	Workspace *workspace.Service
+	Identity  *identity.Service
 	RelayQ    *relay.Queue
 }
 
@@ -38,6 +40,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
 		Forms:     forms.NewService(pool),
 		Responses: responses.NewService(pool),
 		Workspace: workspace.NewService(pool),
+		Identity:  identity.NewService(pool),
 		RelayQ:    &relay.Queue{},
 	}
 }
@@ -71,13 +74,14 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
 		})
 
-		// Authenticated form + response routes.
+		// Authenticated form, response, and identity routes.
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Authenticator(svc.Auth))
 			r.Mount("/forms", forms.Handler(svc.Forms, svc.Workspace))
 			r.Route("/forms/{formId}/responses", func(r chi.Router) {
 				r.Mount("/", responses.Handler(svc.Responses, svc.Workspace))
 			})
+			r.Mount("/", identity.Handler(svc.Identity))
 		})
 
 		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.
