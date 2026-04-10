@@ -166,6 +166,40 @@ func (q *Queries) GetMembersWithoutWorkspaceKey(ctx context.Context, workspaceID
 	return items, nil
 }
 
+const getMembersWithoutWorkspaceKeyWithUsername = `-- name: GetMembersWithoutWorkspaceKeyWithUsername :many
+SELECT wm.account_id, a.username
+FROM workspace_members wm
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
+JOIN accounts a ON a.id = wm.account_id
+WHERE wm.workspace_id = $1 AND wmk.account_id IS NULL
+`
+
+type GetMembersWithoutWorkspaceKeyWithUsernameRow struct {
+	AccountID string
+	Username  pgtype.Text
+}
+
+func (q *Queries) GetMembersWithoutWorkspaceKeyWithUsername(ctx context.Context, workspaceID string) ([]GetMembersWithoutWorkspaceKeyWithUsernameRow, error) {
+	rows, err := q.db.Query(ctx, getMembersWithoutWorkspaceKeyWithUsername, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMembersWithoutWorkspaceKeyWithUsernameRow
+	for rows.Next() {
+		var i GetMembersWithoutWorkspaceKeyWithUsernameRow
+		if err := rows.Scan(&i.AccountID, &i.Username); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPersonalWorkspace = `-- name: GetPersonalWorkspace :one
 SELECT w.id, w.name, w.slug, w.plan, w.plan_status, w.plan_period_end, w.created_at
 FROM workspaces w
@@ -273,6 +307,39 @@ func (q *Queries) GetWorkspaceMemberKey(ctx context.Context, arg GetWorkspaceMem
 	var i GetWorkspaceMemberKeyRow
 	err := row.Scan(&i.WrappedWorkspaceKey, &i.EphemeralPublicKey)
 	return i, err
+}
+
+const listMemberIdentityKeys = `-- name: ListMemberIdentityKeys :many
+SELECT wm.account_id, aik.identity_public_key
+FROM workspace_members wm
+JOIN account_identity_keys aik ON aik.account_id = wm.account_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC
+`
+
+type ListMemberIdentityKeysRow struct {
+	AccountID         string
+	IdentityPublicKey []byte
+}
+
+func (q *Queries) ListMemberIdentityKeys(ctx context.Context, workspaceID string) ([]ListMemberIdentityKeysRow, error) {
+	rows, err := q.db.Query(ctx, listMemberIdentityKeys, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListMemberIdentityKeysRow
+	for rows.Next() {
+		var i ListMemberIdentityKeysRow
+		if err := rows.Scan(&i.AccountID, &i.IdentityPublicKey); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many

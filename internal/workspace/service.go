@@ -29,6 +29,9 @@ type DB interface {
 	GetWorkspaceMember(ctx context.Context, arg queries.GetWorkspaceMemberParams) (queries.WorkspaceMember, error)
 	CountOwnerWorkspaces(ctx context.Context, accountID string) (int64, error)
 	UpsertWorkspaceMemberKey(ctx context.Context, arg queries.UpsertWorkspaceMemberKeyParams) error
+	GetWorkspaceMemberKey(ctx context.Context, arg queries.GetWorkspaceMemberKeyParams) (queries.GetWorkspaceMemberKeyRow, error)
+	ListMemberIdentityKeys(ctx context.Context, workspaceID string) ([]queries.ListMemberIdentityKeysRow, error)
+	GetMembersWithoutWorkspaceKeyWithUsername(ctx context.Context, workspaceID string) ([]queries.GetMembersWithoutWorkspaceKeyWithUsernameRow, error)
 
 	ListWorkspacesByAccount(ctx context.Context, accountID string) ([]queries.ListWorkspacesByAccountRow, error)
 	RenameWorkspace(ctx context.Context, arg queries.RenameWorkspaceParams) error
@@ -393,6 +396,148 @@ func (s *Service) RemoveMember(ctx context.Context, workspaceID, callerAccountID
 		WorkspaceID: workspaceID,
 		AccountID:   targetAccountID,
 	})
+}
+
+// ─── Phase 5: Collaborative Key Distribution ──────────────────────────────────
+
+// MemberIdentityKey holds a member's account ID and raw identity public key.
+type MemberIdentityKey struct {
+	AccountID         string
+	IdentityPublicKey []byte
+}
+
+// PendingGrant is a member who has no workspace key entry yet.
+type PendingGrant struct {
+	AccountID string
+	Username  string
+}
+
+// MemberKey holds the caller's wrapped workspace key material.
+type MemberKey struct {
+	WrappedWorkspaceKey []byte
+	EphemeralPublicKey  []byte
+}
+
+// ListMemberIdentityKeys returns the identity public key for every member of the
+// workspace. Requires membership (viewer or above).
+func (s *Service) ListMemberIdentityKeys(ctx context.Context, workspaceID, accountID string) ([]MemberIdentityKey, error) {
+	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrForbidden
+		}
+		return nil, err
+	}
+	rows, err := s.db.ListMemberIdentityKeys(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]MemberIdentityKey, len(rows))
+	for i, r := range rows {
+		out[i] = MemberIdentityKey{
+			AccountID:         r.AccountID,
+			IdentityPublicKey: r.IdentityPublicKey,
+		}
+	}
+	return out, nil
+}
+
+// GetMyKey returns the caller's wrapped workspace key entry.
+// Returns ErrNotFound if the key has not been granted yet.
+func (s *Service) GetMyKey(ctx context.Context, workspaceID, accountID string) (MemberKey, error) {
+	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return MemberKey{}, ErrForbidden
+		}
+		return MemberKey{}, err
+	}
+	row, err := s.db.GetWorkspaceMemberKey(ctx, queries.GetWorkspaceMemberKeyParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return MemberKey{}, ErrNotFound
+		}
+		return MemberKey{}, err
+	}
+	return MemberKey{
+		WrappedWorkspaceKey: row.WrappedWorkspaceKey,
+		EphemeralPublicKey:  row.EphemeralPublicKey,
+	}, nil
+}
+
+// GrantMemberKey upserts a wrapped workspace key for a target member.
+// Requires owner or admin role. The caller must be a member of the workspace.
+func (s *Service) GrantMemberKey(ctx context.Context, workspaceID, callerAccountID, targetAccountID string, wrappedKey, ephemeralPub []byte) error {
+	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   callerAccountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrForbidden
+		}
+		return err
+	}
+	if roleRank(caller.Role) < roleRank("admin") {
+		return ErrForbidden
+	}
+	// Ensure the target is actually a member.
+	_, err = s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   targetAccountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	return s.db.UpsertWorkspaceMemberKey(ctx, queries.UpsertWorkspaceMemberKeyParams{
+		WorkspaceID:         workspaceID,
+		AccountID:           targetAccountID,
+		WrappedWorkspaceKey: wrappedKey,
+		EphemeralPublicKey:  ephemeralPub,
+		GrantedByAccountID:  callerAccountID,
+	})
+}
+
+// PendingKeyGrants returns members who have no workspace_member_keys entry.
+// Requires owner or admin role (only they need to act on the result).
+func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID, accountID string) ([]PendingGrant, error) {
+	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrForbidden
+		}
+		return nil, err
+	}
+	if roleRank(caller.Role) < roleRank("admin") {
+		return nil, ErrForbidden
+	}
+	rows, err := s.db.GetMembersWithoutWorkspaceKeyWithUsername(ctx, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]PendingGrant, len(rows))
+	for i, r := range rows {
+		out[i] = PendingGrant{
+			AccountID: r.AccountID,
+			Username:  r.Username.String,
+		}
+	}
+	return out, nil
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

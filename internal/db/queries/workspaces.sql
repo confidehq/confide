@@ -85,3 +85,18 @@ SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owne
 
 -- name: CountWorkspaceMembers :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1;
+
+-- name: ListMemberIdentityKeys :many
+SELECT wm.account_id, aik.identity_public_key
+FROM workspace_members wm
+JOIN account_identity_keys aik ON aik.account_id = wm.account_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC;
+
+-- name: GetMembersWithoutWorkspaceKeyWithUsername :many
+SELECT wm.account_id, a.username
+FROM workspace_members wm
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
+JOIN accounts a ON a.id = wm.account_id
+WHERE wm.workspace_id = $1 AND wmk.account_id IS NULL;

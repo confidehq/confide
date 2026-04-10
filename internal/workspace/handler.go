@@ -20,8 +20,12 @@ func Handler(svc *Service) http.Handler {
 	r.Patch("/{id}", renameWorkspace(svc))
 	r.Delete("/{id}", deleteWorkspace(svc))
 	r.Get("/{id}/members", listMembers(svc))
+	r.Get("/{id}/members/identity-keys", listMemberIdentityKeys(svc))
 	r.Patch("/{id}/members/{accountId}", updateMemberRole(svc))
 	r.Delete("/{id}/members/{accountId}", removeMember(svc))
+	r.Get("/{id}/member-key", getMyKey(svc))
+	r.Post("/{id}/member-key", grantMemberKey(svc))
+	r.Get("/{id}/pending-key-grants", pendingKeyGrants(svc))
 	return r
 }
 
@@ -250,6 +254,132 @@ func removeMember(svc *Service) http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ─── Phase 5: Collaborative Key Distribution ──────────────────────────────────
+
+func listMemberIdentityKeys(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		workspaceID := chi.URLParam(r, "id")
+
+		keys, err := svc.ListMemberIdentityKeys(r.Context(), workspaceID, accountID)
+		if err != nil {
+			if errors.Is(err, ErrForbidden) {
+				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to list identity keys")
+			return
+		}
+
+		out := make([]map[string]any, len(keys))
+		for i, k := range keys {
+			out[i] = map[string]any{
+				"accountId":         k.AccountID,
+				"identityPublicKey": base64.StdEncoding.EncodeToString(k.IdentityPublicKey),
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"members": out})
+	}
+}
+
+func getMyKey(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		workspaceID := chi.URLParam(r, "id")
+
+		key, err := svc.GetMyKey(r.Context(), workspaceID, accountID)
+		if err != nil {
+			if errors.Is(err, ErrForbidden) {
+				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
+				return
+			}
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "workspace key not yet granted")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get workspace key")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"wrappedWorkspaceKey": base64.StdEncoding.EncodeToString(key.WrappedWorkspaceKey),
+			"ephemeralPublicKey":  base64.StdEncoding.EncodeToString(key.EphemeralPublicKey),
+		})
+	}
+}
+
+func grantMemberKey(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		callerID := mw.AccountID(r.Context())
+		workspaceID := chi.URLParam(r, "id")
+
+		var req struct {
+			AccountID           string `json:"accountId"`
+			WrappedWorkspaceKey string `json:"wrappedWorkspaceKey"`
+			EphemeralPublicKey  string `json:"ephemeralPublicKey"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+		if req.AccountID == "" {
+			writeError(w, http.StatusBadRequest, "invalid_field", "accountId is required")
+			return
+		}
+		wrappedKey, err := base64.StdEncoding.DecodeString(req.WrappedWorkspaceKey)
+		if err != nil || len(wrappedKey) == 0 {
+			writeError(w, http.StatusBadRequest, "invalid_field", "wrappedWorkspaceKey must be non-empty base64")
+			return
+		}
+		ephemeralPub, err := base64.StdEncoding.DecodeString(req.EphemeralPublicKey)
+		if err != nil || len(ephemeralPub) == 0 {
+			writeError(w, http.StatusBadRequest, "invalid_field", "ephemeralPublicKey must be non-empty base64")
+			return
+		}
+
+		if err := svc.GrantMemberKey(r.Context(), workspaceID, callerID, req.AccountID, wrappedKey, ephemeralPub); err != nil {
+			if errors.Is(err, ErrForbidden) {
+				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
+				return
+			}
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "member not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to grant workspace key")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func pendingKeyGrants(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		workspaceID := chi.URLParam(r, "id")
+
+		grants, err := svc.PendingKeyGrants(r.Context(), workspaceID, accountID)
+		if err != nil {
+			if errors.Is(err, ErrForbidden) {
+				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to list pending key grants")
+			return
+		}
+
+		out := make([]map[string]any, len(grants))
+		for i, g := range grants {
+			out[i] = map[string]any{
+				"accountId": g.AccountID,
+				"username":  g.Username,
+			}
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"pending": out})
 	}
 }
 
