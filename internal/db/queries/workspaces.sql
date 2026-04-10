@@ -47,3 +47,38 @@ FROM workspace_members wm
 LEFT JOIN workspace_member_keys wmk
   ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
 WHERE wm.workspace_id = $1 AND wmk.account_id IS NULL;
+
+-- name: ListWorkspacesByAccount :many
+SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role
+FROM workspaces w
+JOIN workspace_members wm ON wm.workspace_id = w.id
+WHERE wm.account_id = $1
+ORDER BY w.created_at ASC;
+
+-- name: RenameWorkspace :exec
+UPDATE workspaces SET name = $2 WHERE id = $1;
+
+-- name: DeleteWorkspace :exec
+DELETE FROM workspaces WHERE id = $1;
+
+-- name: ListWorkspaceMembers :many
+SELECT wm.account_id, wm.role, wm.joined_at, a.username
+FROM workspace_members wm
+JOIN accounts a ON a.id = wm.account_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC;
+
+-- name: UpdateWorkspaceMemberRole :exec
+UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND account_id = $2;
+
+-- name: DeleteWorkspaceMember :exec
+DELETE FROM workspace_members WHERE workspace_id = $1 AND account_id = $2;
+
+-- name: DeleteWorkspaceMemberKey :exec
+DELETE FROM workspace_member_keys WHERE workspace_id = $1 AND account_id = $2;
+
+-- name: CountWorkspaceOwners :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'owner';
+
+-- name: CountNonOwnerMembers :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner';

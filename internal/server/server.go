@@ -74,7 +74,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
 		})
 
-		// Authenticated form, response, and identity routes.
+		// Authenticated form, response, identity, and workspace routes.
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Authenticator(svc.Auth))
 			r.Mount("/forms", forms.Handler(svc.Forms, svc.Workspace))
@@ -82,6 +82,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				r.Mount("/", responses.Handler(svc.Responses, svc.Workspace))
 			})
 			r.Mount("/", identity.Handler(svc.Identity))
+			r.Mount("/workspaces", workspace.Handler(svc.Workspace))
 		})
 
 		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.

@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countNonOwnerMembers = `-- name: CountNonOwnerMembers :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner'
+`
+
+func (q *Queries) CountNonOwnerMembers(ctx context.Context, workspaceID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countNonOwnerMembers, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countOwnerWorkspaces = `-- name: CountOwnerWorkspaces :one
 SELECT COUNT(*) FROM workspace_members
 WHERE account_id = $1 AND role = 'owner'
@@ -18,6 +29,17 @@ WHERE account_id = $1 AND role = 'owner'
 
 func (q *Queries) CountOwnerWorkspaces(ctx context.Context, accountID string) (int64, error) {
 	row := q.db.QueryRow(ctx, countOwnerWorkspaces, accountID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countWorkspaceOwners = `-- name: CountWorkspaceOwners :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'owner'
+`
+
+func (q *Queries) CountWorkspaceOwners(ctx context.Context, workspaceID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countWorkspaceOwners, workspaceID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -65,6 +87,43 @@ type CreateWorkspaceMemberParams struct {
 
 func (q *Queries) CreateWorkspaceMember(ctx context.Context, arg CreateWorkspaceMemberParams) error {
 	_, err := q.db.Exec(ctx, createWorkspaceMember, arg.WorkspaceID, arg.AccountID, arg.Role)
+	return err
+}
+
+const deleteWorkspace = `-- name: DeleteWorkspace :exec
+DELETE FROM workspaces WHERE id = $1
+`
+
+func (q *Queries) DeleteWorkspace(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteWorkspace, id)
+	return err
+}
+
+const deleteWorkspaceMember = `-- name: DeleteWorkspaceMember :exec
+DELETE FROM workspace_members WHERE workspace_id = $1 AND account_id = $2
+`
+
+type DeleteWorkspaceMemberParams struct {
+	WorkspaceID string
+	AccountID   string
+}
+
+func (q *Queries) DeleteWorkspaceMember(ctx context.Context, arg DeleteWorkspaceMemberParams) error {
+	_, err := q.db.Exec(ctx, deleteWorkspaceMember, arg.WorkspaceID, arg.AccountID)
+	return err
+}
+
+const deleteWorkspaceMemberKey = `-- name: DeleteWorkspaceMemberKey :exec
+DELETE FROM workspace_member_keys WHERE workspace_id = $1 AND account_id = $2
+`
+
+type DeleteWorkspaceMemberKeyParams struct {
+	WorkspaceID string
+	AccountID   string
+}
+
+func (q *Queries) DeleteWorkspaceMemberKey(ctx context.Context, arg DeleteWorkspaceMemberKeyParams) error {
+	_, err := q.db.Exec(ctx, deleteWorkspaceMemberKey, arg.WorkspaceID, arg.AccountID)
 	return err
 }
 
@@ -203,6 +262,119 @@ func (q *Queries) GetWorkspaceMemberKey(ctx context.Context, arg GetWorkspaceMem
 	var i GetWorkspaceMemberKeyRow
 	err := row.Scan(&i.WrappedWorkspaceKey, &i.EphemeralPublicKey)
 	return i, err
+}
+
+const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many
+SELECT wm.account_id, wm.role, wm.joined_at, a.username
+FROM workspace_members wm
+JOIN accounts a ON a.id = wm.account_id
+WHERE wm.workspace_id = $1
+ORDER BY wm.joined_at ASC
+`
+
+type ListWorkspaceMembersRow struct {
+	AccountID string
+	Role      string
+	JoinedAt  pgtype.Timestamptz
+	Username  pgtype.Text
+}
+
+func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID string) ([]ListWorkspaceMembersRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspaceMembers, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWorkspaceMembersRow
+	for rows.Next() {
+		var i ListWorkspaceMembersRow
+		if err := rows.Scan(
+			&i.AccountID,
+			&i.Role,
+			&i.JoinedAt,
+			&i.Username,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listWorkspacesByAccount = `-- name: ListWorkspacesByAccount :many
+SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role
+FROM workspaces w
+JOIN workspace_members wm ON wm.workspace_id = w.id
+WHERE wm.account_id = $1
+ORDER BY w.created_at ASC
+`
+
+type ListWorkspacesByAccountRow struct {
+	ID         string
+	Name       string
+	Slug       string
+	Plan       string
+	PlanStatus string
+	Role       string
+}
+
+func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string) ([]ListWorkspacesByAccountRow, error) {
+	rows, err := q.db.Query(ctx, listWorkspacesByAccount, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListWorkspacesByAccountRow
+	for rows.Next() {
+		var i ListWorkspacesByAccountRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Slug,
+			&i.Plan,
+			&i.PlanStatus,
+			&i.Role,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const renameWorkspace = `-- name: RenameWorkspace :exec
+UPDATE workspaces SET name = $2 WHERE id = $1
+`
+
+type RenameWorkspaceParams struct {
+	ID   string
+	Name string
+}
+
+func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) error {
+	_, err := q.db.Exec(ctx, renameWorkspace, arg.ID, arg.Name)
+	return err
+}
+
+const updateWorkspaceMemberRole = `-- name: UpdateWorkspaceMemberRole :exec
+UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND account_id = $2
+`
+
+type UpdateWorkspaceMemberRoleParams struct {
+	WorkspaceID string
+	AccountID   string
+	Role        string
+}
+
+func (q *Queries) UpdateWorkspaceMemberRole(ctx context.Context, arg UpdateWorkspaceMemberRoleParams) error {
+	_, err := q.db.Exec(ctx, updateWorkspaceMemberRole, arg.WorkspaceID, arg.AccountID, arg.Role)
+	return err
 }
 
 const upsertWorkspaceMemberKey = `-- name: UpsertWorkspaceMemberKey :exec
