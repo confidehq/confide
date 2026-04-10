@@ -17,6 +17,8 @@ import (
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/forms"
 	"github.com/phantompunk/confide/internal/identity"
+	"github.com/phantompunk/confide/internal/invitation"
+	"github.com/phantompunk/confide/internal/mailer"
 	mw "github.com/phantompunk/confide/internal/middleware"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
@@ -25,23 +27,26 @@ import (
 
 // Services groups the application services passed into the server.
 type Services struct {
-	Auth      *auth.Service
-	Forms     *forms.Service
-	Responses *responses.Service
-	Workspace *workspace.Service
-	Identity  *identity.Service
-	RelayQ    *relay.Queue
+	Auth       *auth.Service
+	Forms      *forms.Service
+	Responses  *responses.Service
+	Workspace  *workspace.Service
+	Identity   *identity.Service
+	Invitation *invitation.Service
+	RelayQ     *relay.Queue
 }
 
 // NewServices constructs all application services from the pool and webauthn instance.
-func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
+func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) *Services {
+	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail)
 	return &Services{
-		Auth:      auth.NewService(pool, wa),
-		Forms:     forms.NewService(pool),
-		Responses: responses.NewService(pool),
-		Workspace: workspace.NewService(pool),
-		Identity:  identity.NewService(pool),
-		RelayQ:    &relay.Queue{},
+		Auth:       auth.NewService(pool, wa),
+		Forms:      forms.NewService(pool),
+		Responses:  responses.NewService(pool),
+		Workspace:  workspace.NewService(pool),
+		Identity:   identity.NewService(pool),
+		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
+		RelayQ:     &relay.Queue{},
 	}
 }
 
@@ -74,7 +79,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
 		})
 
-		// Authenticated form, response, identity, and workspace routes.
+		// Authenticated form, response, identity, workspace, and invitation routes.
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Authenticator(svc.Auth))
 			r.Mount("/forms", forms.Handler(svc.Forms, svc.Workspace))
@@ -83,7 +88,14 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			})
 			r.Mount("/", identity.Handler(svc.Identity))
 			r.Mount("/workspaces", workspace.Handler(svc.Workspace))
+			r.Route("/workspaces/{workspaceId}/invitations", func(r chi.Router) {
+				r.Mount("/", invitation.WorkspaceHandler(svc.Invitation))
+			})
+			r.Post("/invitations/{token}/accept", invitation.AcceptHandler(svc.Invitation))
 		})
+
+		// Public invitation resolve — no auth required.
+		r.Mount("/invitations", invitation.PublicHandler(svc.Invitation))
 
 		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.
 		r.With(mw.FormPageCSP, mw.PublicSchemaRateLimit(cfg.HMACKey)).

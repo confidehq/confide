@@ -82,3 +82,6 @@ SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'owner
 
 -- name: CountNonOwnerMembers :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner';
+
+-- name: CountWorkspaceMembers :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1;

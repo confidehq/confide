@@ -24,6 +24,14 @@ type Config struct {
 	RelayFlushInterval time.Duration
 	ReaperInterval     time.Duration
 	RegistrationOpen   bool
+
+	// SMTP — all optional; if SMTPHost is empty, invitation emails are skipped.
+	SMTPHost    string
+	SMTPPort    string
+	SMTPUser    string
+	SMTPPass    string
+	FromEmail   string
+	AppDomain   string
 }
 
 func Load() (*Config, error) {
@@ -54,6 +62,12 @@ func Load() (*Config, error) {
 		RelayFlushInterval: flushInterval,
 		ReaperInterval:     reaperInterval,
 		RegistrationOpen:   parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
+		SMTPHost:           os.Getenv("CONFIDE_SMTP_HOST"),
+		SMTPPort:           getEnv("CONFIDE_SMTP_PORT", "587"),
+		SMTPUser:           os.Getenv("CONFIDE_SMTP_USER"),
+		SMTPPass:           os.Getenv("CONFIDE_SMTP_PASS"),
+		FromEmail:          os.Getenv("CONFIDE_FROM_EMAIL"),
+		AppDomain:          getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000"),
 	}
 
 	log.Println(cfg.RPOrigin)

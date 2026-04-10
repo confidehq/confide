@@ -34,6 +34,17 @@ func (q *Queries) CountOwnerWorkspaces(ctx context.Context, accountID string) (i
 	return count, err
 }
 
+const countWorkspaceMembers = `-- name: CountWorkspaceMembers :one
+SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1
+`
+
+func (q *Queries) CountWorkspaceMembers(ctx context.Context, workspaceID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countWorkspaceMembers, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countWorkspaceOwners = `-- name: CountWorkspaceOwners :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role = 'owner'
 `

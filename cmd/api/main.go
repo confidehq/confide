@@ -56,7 +56,7 @@ func main() {
 		log.Fatalf("webauthn: %v", err)
 	}
 
-	svc := server.NewServices(pool, wa)
+	svc := server.NewServices(pool, wa, cfg)
 
 	// Start relay flusher and reaper — both run until ctx is cancelled on shutdown.
 	runCtx, runCancel := context.WithCancel(context.Background())
