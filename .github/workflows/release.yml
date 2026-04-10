@@ -85,8 +85,8 @@ jobs:
           file: deploy/Dockerfile.api
           push: true
           tags: |
-            ${{ env.IMAGE_PREFIX }}-app:${{ github.ref_name }}
-            ${{ env.IMAGE_PREFIX }}-app:latest
+            ${{ env.IMAGE_PREFIX }}:${{ github.ref_name }}
+            ${{ env.IMAGE_PREFIX }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
