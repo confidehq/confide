@@ -1,22 +1,22 @@
 -- name: CreateForm :one
 INSERT INTO forms (
-    id, account_id, created_at, updated_at, status, schema_version,
+    id, workspace_id, created_by_account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
 
--- name: GetFormByOwner :one
-SELECT * FROM forms WHERE id = $1 AND account_id = $2;
+-- name: GetFormByWorkspace :one
+SELECT * FROM forms WHERE id = $1 AND workspace_id = $2;
 
 -- name: GetFormPublic :one
 SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit
 FROM forms WHERE id = $1;
 
--- name: ListFormsByAccount :many
+-- name: ListFormsByWorkspace :many
 SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
-FROM forms WHERE account_id = $1 ORDER BY created_at DESC;
+FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateFormSchema :one
 UPDATE forms
@@ -25,15 +25,15 @@ SET encrypted_schema = $3,
     render_key_salt = $5,
     schema_version = schema_version + 1,
     updated_at = CURRENT_DATE
-WHERE id = $1 AND account_id = $2
+WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version;
 
 -- name: UpdateFormStatus :exec
 UPDATE forms SET status = $3, updated_at = CURRENT_DATE
-WHERE id = $1 AND account_id = $2;
+WHERE id = $1 AND workspace_id = $2;
 
 -- name: DeleteForm :exec
-DELETE FROM forms WHERE id = $1 AND account_id = $2;
+DELETE FROM forms WHERE id = $1 AND workspace_id = $2;
 
 -- name: UpdateFormExpiration :exec
 UPDATE forms
@@ -42,7 +42,7 @@ SET expires_at          = $3,
     response_ttl_days   = $5,
     burn_after_reading  = $6,
     updated_at          = CURRENT_DATE
-WHERE id = $1 AND account_id = $2;
+WHERE id = $1 AND workspace_id = $2;
 
 -- name: IncrementResponseCount :one
 UPDATE forms

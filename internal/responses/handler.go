@@ -1,6 +1,7 @@
 package responses
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -12,18 +13,28 @@ import (
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
+// workspaceSvc is the minimal workspace interface the handler needs.
+type workspaceSvc interface {
+	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
+}
+
 // Handler builds the responses sub-router, mounted under /api/forms/{formId}/responses.
-func Handler(svc *Service) http.Handler {
+func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", listResponses(svc))
-	r.Get("/{rid}", getResponse(svc))
-	r.Delete("/{rid}", deleteResponse(svc))
+	r.Get("/", listResponses(svc, wsSvc))
+	r.Get("/{rid}", getResponse(svc, wsSvc))
+	r.Delete("/{rid}", deleteResponse(svc, wsSvc))
 	return r
 }
 
-func listResponses(svc *Service) http.HandlerFunc {
+func listResponses(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "formId")
 
 		var after *string
@@ -32,7 +43,7 @@ func listResponses(svc *Service) http.HandlerFunc {
 		}
 		limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 
-		result, err := svc.ListResponses(r.Context(), accountID, formID, after, limit)
+		result, err := svc.ListResponses(r.Context(), workspaceID, formID, after, limit)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form not found")
@@ -72,13 +83,18 @@ func listResponses(svc *Service) http.HandlerFunc {
 	}
 }
 
-func getResponse(svc *Service) http.HandlerFunc {
+func getResponse(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "formId")
 		responseID := chi.URLParam(r, "rid")
 
-		resp, err := svc.GetResponse(r.Context(), accountID, formID, responseID)
+		resp, err := svc.GetResponse(r.Context(), workspaceID, formID, responseID)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "response not found")
@@ -99,13 +115,18 @@ func getResponse(svc *Service) http.HandlerFunc {
 	}
 }
 
-func deleteResponse(svc *Service) http.HandlerFunc {
+func deleteResponse(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "formId")
 		responseID := chi.URLParam(r, "rid")
 
-		if err := svc.DeleteResponse(r.Context(), accountID, formID, responseID); err != nil {
+		if err := svc.DeleteResponse(r.Context(), workspaceID, formID, responseID); err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "response not found")
 				return

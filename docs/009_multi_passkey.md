@@ -45,9 +45,9 @@ Practical recommendation: discoverable login works reliably only when a single p
 
 ## Step-by-Step Implementation Plan
 
-### Step 1 — Migration `0010_credentials`
+### Step 1 — Migration `0014_credentials`
 
-**`migrations/0010_credentials.up.sql`**
+**`migrations/0014_credentials.up.sql`**
 
 ```sql
 -- Create the new credentials table (1-to-many with accounts)
@@ -89,7 +89,7 @@ ALTER TABLE accounts
     DROP COLUMN backup_eligible;
 ```
 
-**`migrations/0010_credentials.down.sql`**
+**`migrations/0014_credentials.down.sql`**
 
 ```sql
 -- Restore credential columns on accounts
@@ -396,10 +396,10 @@ This fallback makes discoverable multi-credential login work transparently in th
 
 | File | Change |
 |---|---|
-| `migrations/0010_credentials.up.sql` | New — create `credentials` table, migrate data, drop columns from `accounts` |
-| `migrations/0010_credentials.down.sql` | New — reverse migration |
+| `migrations/0014_credentials.up.sql` | New — create `credentials` table, migrate data, drop columns from `accounts` |
+| `migrations/0014_credentials.down.sql` | New — reverse migration |
 | `internal/db/queries/auth.sql` | Remove old credential queries; add `CreateCredential`, `GetCredentialByWebAuthnID`, `GetCredentialForLogin`, `ListCredentialsByAccount`, `GetPrimaryCredentialByAccount`, `UpdateCredentialName`, `DeleteCredential`, `CountCredentialsByAccount`, `DeleteCredentialsByAccount` |
-| `internal/db/gen/` | Regenerate via `sqlc generate` |
+| `internal/db/queries/` | Regenerate via `sqlc generate` |
 | `internal/auth/add_cred.go` | New — `addCredTokenStore` (mirrors `rekeyTokenStore`) |
 | `internal/auth/service.go` | Update `RegisterFinish`, `LoginBeginTargeted`, `LoginBeginDiscoverable`, `LoginFinish`; add `AddCredentialBegin`, `AddCredentialFinish`, `ListCredentials`, `RenameCredential`, `DeleteCredential` |
 | `internal/auth/rekey.go` | Replace `UpdateAccountCredential` with `DeleteCredentialsByAccount` + `CreateCredential` in transaction |

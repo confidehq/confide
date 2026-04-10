@@ -20,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/db/queries"
+	"github.com/phantompunk/confide/internal/workspace"
 )
 
 // Sentinel errors returned from service methods.
@@ -233,7 +234,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 		return nil, err
 	}
 
-	// Write account, recovery codes, and initial session in a transaction.
+	// Write account, personal workspace, recovery codes, and initial session in a transaction.
 	err = s.withTx(ctx, func(tx pgx.Tx) error {
 		q := queries.New(tx)
 
@@ -253,6 +254,10 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 				return ErrDuplicateAccount
 			}
 			return fmt.Errorf("CreateAccount: %w", err)
+		}
+
+		if _, err := workspace.CreatePersonalWorkspace(ctx, q, req.AccountID); err != nil {
+			return fmt.Errorf("CreatePersonalWorkspace: %w", err)
 		}
 
 		today := pgtype.Date{Time: time.Now().UTC(), Valid: true}

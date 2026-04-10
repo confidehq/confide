@@ -21,9 +21,15 @@ type Account struct {
 	Username              pgtype.Text
 }
 
+type AccountIdentityKey struct {
+	AccountID                 string
+	IdentityPublicKey         []byte
+	WrappedIdentityPrivateKey []byte
+	CreatedAt                 pgtype.Timestamptz
+}
+
 type Form struct {
 	ID                    string
-	AccountID             string
 	CreatedAt             pgtype.Date
 	UpdatedAt             pgtype.Date
 	Status                string
@@ -37,6 +43,8 @@ type Form struct {
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
 	BurnAfterReading      bool
+	WorkspaceID           string
+	CreatedByAccountID    string
 }
 
 type FormSchemaVersion struct {
@@ -73,4 +81,44 @@ type Session struct {
 	LastSeen     pgtype.Date
 	CredentialID []byte
 	UserAgent    string
+}
+
+type Workspace struct {
+	ID                   string
+	Name                 string
+	Slug                 string
+	StripeCustomerID     pgtype.Text
+	StripeSubscriptionID pgtype.Text
+	Plan                 string
+	PlanStatus           string
+	PlanPeriodEnd        pgtype.Timestamptz
+	CreatedAt            pgtype.Timestamptz
+}
+
+type WorkspaceInvitation struct {
+	ID                 string
+	WorkspaceID        string
+	InvitedByAccountID string
+	Email              string
+	Role               string
+	TokenHash          string
+	ExpiresAt          pgtype.Timestamptz
+	AcceptedAt         pgtype.Timestamptz
+	CreatedAt          pgtype.Timestamptz
+}
+
+type WorkspaceMember struct {
+	WorkspaceID string
+	AccountID   string
+	Role        string
+	JoinedAt    pgtype.Timestamptz
+}
+
+type WorkspaceMemberKey struct {
+	WorkspaceID         string
+	AccountID           string
+	WrappedWorkspaceKey []byte
+	EphemeralPublicKey  []byte
+	GrantedByAccountID  string
+	CreatedAt           pgtype.Timestamptz
 }

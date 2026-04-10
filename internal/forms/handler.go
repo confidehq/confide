@@ -1,6 +1,7 @@
 package forms
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -15,17 +16,22 @@ import (
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
+// workspaceSvc is the minimal workspace interface the handler needs.
+type workspaceSvc interface {
+	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
+}
+
 // Handler builds the authenticated /api/forms sub-router.
-func Handler(svc *Service) http.Handler {
+func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r := chi.NewRouter()
-	r.Post("/", createForm(svc))
-	r.Get("/", listForms(svc))
-	r.Get("/{id}", getForm(svc))
-	r.Put("/{id}", updateFormSchema(svc))
-	r.Put("/{id}/status", updateFormStatus(svc))
-	r.Put("/{id}/expiration", updateFormExpiration(svc))
-	r.Delete("/{id}", deleteForm(svc))
-	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc))
+	r.Post("/", createForm(svc, wsSvc))
+	r.Get("/", listForms(svc, wsSvc))
+	r.Get("/{id}", getForm(svc, wsSvc))
+	r.Put("/{id}", updateFormSchema(svc, wsSvc))
+	r.Put("/{id}/status", updateFormStatus(svc, wsSvc))
+	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
+	r.Delete("/{id}", deleteForm(svc, wsSvc))
+	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
 	return r
 }
 
@@ -57,9 +63,14 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard) http.HandlerFunc {
 
 // ─── Authenticated handlers ────────────────────────────────────────────────────
 
-func createForm(svc *Service) http.HandlerFunc {
+func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 
 		var req struct {
 			FormID                string  `json:"formId"`
@@ -107,7 +118,7 @@ func createForm(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		formID, err := svc.CreateForm(r.Context(), accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, expiresAt, responseLimit, responseTtlDays, burnAfterReading)
+		formID, err := svc.CreateForm(r.Context(), workspaceID, accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, expiresAt, responseLimit, responseTtlDays, burnAfterReading)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create form")
 			return
@@ -117,11 +128,16 @@ func createForm(svc *Service) http.HandlerFunc {
 	}
 }
 
-func listForms(svc *Service) http.HandlerFunc {
+func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 
-		forms, err := svc.ListForms(r.Context(), accountID)
+		forms, err := svc.ListForms(r.Context(), workspaceID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to list forms")
 			return
@@ -158,12 +174,17 @@ func listForms(svc *Service) http.HandlerFunc {
 	}
 }
 
-func getForm(svc *Service) http.HandlerFunc {
+func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 
-		form, err := svc.GetForm(r.Context(), accountID, formID)
+		form, err := svc.GetForm(r.Context(), workspaceID, formID)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form not found")
@@ -201,9 +222,14 @@ func getForm(svc *Service) http.HandlerFunc {
 	}
 }
 
-func updateFormSchema(svc *Service) http.HandlerFunc {
+func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 
 		var req struct {
@@ -235,7 +261,7 @@ func updateFormSchema(svc *Service) http.HandlerFunc {
 			}
 		}
 
-		version, err := svc.UpdateFormSchema(r.Context(), accountID, formID, encSchema, renderSchema, renderKeySalt)
+		version, err := svc.UpdateFormSchema(r.Context(), workspaceID, formID, encSchema, renderSchema, renderKeySalt)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form not found")
@@ -249,9 +275,14 @@ func updateFormSchema(svc *Service) http.HandlerFunc {
 	}
 }
 
-func updateFormStatus(svc *Service) http.HandlerFunc {
+func updateFormStatus(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 
 		var req struct {
@@ -262,7 +293,7 @@ func updateFormStatus(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.UpdateFormStatus(r.Context(), accountID, formID, req.Status); err != nil {
+		if err := svc.UpdateFormStatus(r.Context(), workspaceID, formID, req.Status); err != nil {
 			if err.Error() == "status must be 'open' or 'closed'" {
 				writeError(w, http.StatusBadRequest, "invalid_field", err.Error())
 				return
@@ -275,12 +306,17 @@ func updateFormStatus(svc *Service) http.HandlerFunc {
 	}
 }
 
-func deleteForm(svc *Service) http.HandlerFunc {
+func deleteForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 
-		if err := svc.DeleteForm(r.Context(), accountID, formID); err != nil {
+		if err := svc.DeleteForm(r.Context(), workspaceID, formID); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to delete form")
 			return
 		}
@@ -289,9 +325,14 @@ func deleteForm(svc *Service) http.HandlerFunc {
 	}
 }
 
-func getSchemaVersion(svc *Service) http.HandlerFunc {
+func getSchemaVersion(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 		versionStr := chi.URLParam(r, "version")
 
@@ -301,7 +342,7 @@ func getSchemaVersion(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		blob, err := svc.GetSchemaVersion(r.Context(), accountID, formID, int32(version64))
+		blob, err := svc.GetSchemaVersion(r.Context(), workspaceID, formID, int32(version64))
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form or version not found")
@@ -318,9 +359,14 @@ func getSchemaVersion(svc *Service) http.HandlerFunc {
 	}
 }
 
-func updateFormExpiration(svc *Service) http.HandlerFunc {
+func updateFormExpiration(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
+		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+			return
+		}
 		formID := chi.URLParam(r, "id")
 
 		var req struct {
@@ -340,7 +386,7 @@ func updateFormExpiration(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.UpdateExpiration(r.Context(), accountID, formID, expiresAt, responseLimit, responseTtlDays, burnAfterReading); err != nil {
+		if err := svc.UpdateExpiration(r.Context(), workspaceID, formID, expiresAt, responseLimit, responseTtlDays, burnAfterReading); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to update expiration")
 			return
 		}

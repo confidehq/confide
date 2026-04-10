@@ -8,30 +8,30 @@ FROM forms f
 WHERE f.id = $2;
 
 -- name: ListResponsesFirst :many
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
 FROM responses
-WHERE form_id = $1
-  AND (expires_at IS NULL OR expires_at > NOW())
-  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true))
-ORDER BY received_at DESC, id DESC
+WHERE responses.form_id = $1
+  AND (responses.expires_at IS NULL OR responses.expires_at > NOW())
+  AND (responses.read_at IS NULL OR responses.form_id NOT IN (SELECT f.id FROM forms f WHERE f.burn_after_reading = true))
+ORDER BY responses.received_at DESC, responses.id DESC
 LIMIT $2;
 
 -- name: ListResponsesAfter :many
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
 FROM responses
-WHERE form_id = $1
-  AND (received_at < $2 OR (received_at = $2 AND id < $3))
-  AND (expires_at IS NULL OR expires_at > NOW())
-  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true))
-ORDER BY received_at DESC, id DESC
+WHERE responses.form_id = $1
+  AND (responses.received_at < $2 OR (responses.received_at = $2 AND responses.id < $3))
+  AND (responses.expires_at IS NULL OR responses.expires_at > NOW())
+  AND (responses.read_at IS NULL OR responses.form_id NOT IN (SELECT f.id FROM forms f WHERE f.burn_after_reading = true))
+ORDER BY responses.received_at DESC, responses.id DESC
 LIMIT $4;
 
 -- name: GetResponse :one
-SELECT id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at, read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
 FROM responses
-WHERE id = $1 AND form_id = $2
-  AND (expires_at IS NULL OR expires_at > NOW())
-  AND (read_at IS NULL OR form_id NOT IN (SELECT id FROM forms WHERE burn_after_reading = true));
+WHERE responses.id = $1 AND responses.form_id = $2
+  AND (responses.expires_at IS NULL OR responses.expires_at > NOW())
+  AND (responses.read_at IS NULL OR responses.form_id NOT IN (SELECT f.id FROM forms f WHERE f.burn_after_reading = true));
 
 -- name: MarkResponsesRead :exec
 UPDATE responses

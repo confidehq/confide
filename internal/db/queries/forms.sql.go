@@ -13,17 +13,18 @@ import (
 
 const createForm = `-- name: CreateForm :one
 INSERT INTO forms (
-    id, account_id, created_at, updated_at, status, schema_version,
+    id, workspace_id, created_by_account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
 ) VALUES (
-    $1, $2, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
+    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11
+) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id
 `
 
 type CreateFormParams struct {
 	ID                    string
-	AccountID             string
+	WorkspaceID           string
+	CreatedByAccountID    string
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
@@ -37,7 +38,8 @@ type CreateFormParams struct {
 func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, error) {
 	row := q.db.QueryRow(ctx, createForm,
 		arg.ID,
-		arg.AccountID,
+		arg.WorkspaceID,
+		arg.CreatedByAccountID,
 		arg.EncryptedSchema,
 		arg.RenderEncryptedSchema,
 		arg.PublicFormKey,
@@ -50,7 +52,6 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 	var i Form
 	err := row.Scan(
 		&i.ID,
-		&i.AccountID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
@@ -64,39 +65,40 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.ResponseLimit,
 		&i.ResponseTtlDays,
 		&i.BurnAfterReading,
+		&i.WorkspaceID,
+		&i.CreatedByAccountID,
 	)
 	return i, err
 }
 
 const deleteForm = `-- name: DeleteForm :exec
-DELETE FROM forms WHERE id = $1 AND account_id = $2
+DELETE FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
 type DeleteFormParams struct {
-	ID        string
-	AccountID string
+	ID          string
+	WorkspaceID string
 }
 
 func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
-	_, err := q.db.Exec(ctx, deleteForm, arg.ID, arg.AccountID)
+	_, err := q.db.Exec(ctx, deleteForm, arg.ID, arg.WorkspaceID)
 	return err
 }
 
-const getFormByOwner = `-- name: GetFormByOwner :one
-SELECT id, account_id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading FROM forms WHERE id = $1 AND account_id = $2
+const getFormByWorkspace = `-- name: GetFormByWorkspace :one
+SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
-type GetFormByOwnerParams struct {
-	ID        string
-	AccountID string
+type GetFormByWorkspaceParams struct {
+	ID          string
+	WorkspaceID string
 }
 
-func (q *Queries) GetFormByOwner(ctx context.Context, arg GetFormByOwnerParams) (Form, error) {
-	row := q.db.QueryRow(ctx, getFormByOwner, arg.ID, arg.AccountID)
+func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspaceParams) (Form, error) {
+	row := q.db.QueryRow(ctx, getFormByWorkspace, arg.ID, arg.WorkspaceID)
 	var i Form
 	err := row.Scan(
 		&i.ID,
-		&i.AccountID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Status,
@@ -110,6 +112,8 @@ func (q *Queries) GetFormByOwner(ctx context.Context, arg GetFormByOwnerParams) 
 		&i.ResponseLimit,
 		&i.ResponseTtlDays,
 		&i.BurnAfterReading,
+		&i.WorkspaceID,
+		&i.CreatedByAccountID,
 	)
 	return i, err
 }
@@ -196,12 +200,12 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 	return err
 }
 
-const listFormsByAccount = `-- name: ListFormsByAccount :many
+const listFormsByWorkspace = `-- name: ListFormsByWorkspace :many
 SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
-FROM forms WHERE account_id = $1 ORDER BY created_at DESC
+FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC
 `
 
-type ListFormsByAccountRow struct {
+type ListFormsByWorkspaceRow struct {
 	ID               string
 	Status           string
 	SchemaVersion    int32
@@ -214,15 +218,15 @@ type ListFormsByAccountRow struct {
 	BurnAfterReading bool
 }
 
-func (q *Queries) ListFormsByAccount(ctx context.Context, accountID string) ([]ListFormsByAccountRow, error) {
-	rows, err := q.db.Query(ctx, listFormsByAccount, accountID)
+func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]ListFormsByWorkspaceRow, error) {
+	rows, err := q.db.Query(ctx, listFormsByWorkspace, workspaceID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []ListFormsByAccountRow
+	var items []ListFormsByWorkspaceRow
 	for rows.Next() {
-		var i ListFormsByAccountRow
+		var i ListFormsByWorkspaceRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Status,
@@ -277,17 +281,17 @@ func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]List
 
 const updateFormExpiration = `-- name: UpdateFormExpiration :exec
 UPDATE forms
-SET expires_at         = $3,
-    response_limit     = $4,
-    response_ttl_days  = $5,
-    burn_after_reading = $6,
-    updated_at         = CURRENT_DATE
-WHERE id = $1 AND account_id = $2
+SET expires_at          = $3,
+    response_limit      = $4,
+    response_ttl_days   = $5,
+    burn_after_reading  = $6,
+    updated_at          = CURRENT_DATE
+WHERE id = $1 AND workspace_id = $2
 `
 
 type UpdateFormExpirationParams struct {
 	ID               string
-	AccountID        string
+	WorkspaceID      string
 	ExpiresAt        pgtype.Date
 	ResponseLimit    pgtype.Int4
 	ResponseTtlDays  pgtype.Int4
@@ -297,7 +301,7 @@ type UpdateFormExpirationParams struct {
 func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpirationParams) error {
 	_, err := q.db.Exec(ctx, updateFormExpiration,
 		arg.ID,
-		arg.AccountID,
+		arg.WorkspaceID,
 		arg.ExpiresAt,
 		arg.ResponseLimit,
 		arg.ResponseTtlDays,
@@ -313,13 +317,13 @@ SET encrypted_schema = $3,
     render_key_salt = $5,
     schema_version = schema_version + 1,
     updated_at = CURRENT_DATE
-WHERE id = $1 AND account_id = $2
+WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version
 `
 
 type UpdateFormSchemaParams struct {
 	ID                    string
-	AccountID             string
+	WorkspaceID           string
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	RenderKeySalt         []byte
@@ -328,7 +332,7 @@ type UpdateFormSchemaParams struct {
 func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaParams) (int32, error) {
 	row := q.db.QueryRow(ctx, updateFormSchema,
 		arg.ID,
-		arg.AccountID,
+		arg.WorkspaceID,
 		arg.EncryptedSchema,
 		arg.RenderEncryptedSchema,
 		arg.RenderKeySalt,
@@ -340,16 +344,16 @@ func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaPara
 
 const updateFormStatus = `-- name: UpdateFormStatus :exec
 UPDATE forms SET status = $3, updated_at = CURRENT_DATE
-WHERE id = $1 AND account_id = $2
+WHERE id = $1 AND workspace_id = $2
 `
 
 type UpdateFormStatusParams struct {
-	ID        string
-	AccountID string
-	Status    string
+	ID          string
+	WorkspaceID string
+	Status      string
 }
 
 func (q *Queries) UpdateFormStatus(ctx context.Context, arg UpdateFormStatusParams) error {
-	_, err := q.db.Exec(ctx, updateFormStatus, arg.ID, arg.AccountID, arg.Status)
+	_, err := q.db.Exec(ctx, updateFormStatus, arg.ID, arg.WorkspaceID, arg.Status)
 	return err
 }

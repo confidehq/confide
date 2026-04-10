@@ -18,9 +18,9 @@ var ErrNotFound = errors.New("form not found")
 // DB is the subset of queries.Queries used by forms.Service.
 type DB interface {
 	CreateForm(ctx context.Context, arg queries.CreateFormParams) (queries.Form, error)
-	GetFormByOwner(ctx context.Context, arg queries.GetFormByOwnerParams) (queries.Form, error)
+	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
 	GetFormPublic(ctx context.Context, id string) (queries.GetFormPublicRow, error)
-	ListFormsByAccount(ctx context.Context, accountID string) ([]queries.ListFormsByAccountRow, error)
+	ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]queries.ListFormsByWorkspaceRow, error)
 	UpdateFormSchema(ctx context.Context, arg queries.UpdateFormSchemaParams) (int32, error)
 	UpdateFormStatus(ctx context.Context, arg queries.UpdateFormStatusParams) error
 	UpdateFormExpiration(ctx context.Context, arg queries.UpdateFormExpirationParams) error
@@ -50,7 +50,7 @@ type FormRecord struct {
 	EncryptedSchema       []byte
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
-	RenderKeySalt         []byte // nil if never published
+	RenderKeySalt         []byte
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
@@ -84,10 +84,9 @@ type PublicFormRecord struct {
 }
 
 // CreateForm stores a new form and returns its ID.
-// If clientID is non-empty it is used as the form ID (client-proposed, for key derivation);
-// otherwise a random ID is generated server-side.
+// If clientID is non-empty it is used as the form ID; otherwise a random ID is generated.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -107,7 +106,8 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 
 	_, err = qtx.CreateForm(ctx, queries.CreateFormParams{
 		ID:                    id,
-		AccountID:             accountID,
+		WorkspaceID:           workspaceID,
+		CreatedByAccountID:    createdByAccountID,
 		EncryptedSchema:       encryptedSchema,
 		RenderEncryptedSchema: renderEncryptedSchema,
 		PublicFormKey:         publicFormKey,
@@ -136,12 +136,10 @@ func (s *Service) CreateForm(ctx context.Context, accountID, clientID string, en
 }
 
 // UpdateExpiration sets the sunset date, response cap, and/or response TTL policy for a form.
-// Passing zero-value pgtype.Date/pgtype.Int4 (Valid=false) clears the respective limit.
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) UpdateExpiration(ctx context.Context, accountID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) error {
+func (s *Service) UpdateExpiration(ctx context.Context, workspaceID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) error {
 	return s.db.UpdateFormExpiration(ctx, queries.UpdateFormExpirationParams{
 		ID:               formID,
-		AccountID:        accountID,
+		WorkspaceID:      workspaceID,
 		ExpiresAt:        expiresAt,
 		ResponseLimit:    responseLimit,
 		ResponseTtlDays:  responseTtlDays,
@@ -149,12 +147,12 @@ func (s *Service) UpdateExpiration(ctx context.Context, accountID, formID string
 	})
 }
 
-// GetForm returns the full form record for the owner. Returns ErrNotFound if
-// the form does not exist or belongs to a different account.
-func (s *Service) GetForm(ctx context.Context, accountID, formID string) (FormRecord, error) {
-	row, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
-		ID:        formID,
-		AccountID: accountID,
+// GetForm returns the full form record for the workspace. Returns ErrNotFound if
+// the form does not exist or belongs to a different workspace.
+func (s *Service) GetForm(ctx context.Context, workspaceID, formID string) (FormRecord, error) {
+	row, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -165,9 +163,9 @@ func (s *Service) GetForm(ctx context.Context, accountID, formID string) (FormRe
 	return formRecordFromDB(row), nil
 }
 
-// ListForms returns summary rows for all forms owned by accountID.
-func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummary, error) {
-	rows, err := s.db.ListFormsByAccount(ctx, accountID)
+// ListForms returns summary rows for all forms in the workspace.
+func (s *Service) ListForms(ctx context.Context, workspaceID string) ([]FormSummary, error) {
+	rows, err := s.db.ListFormsByWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -190,10 +188,7 @@ func (s *Service) ListForms(ctx context.Context, accountID string) ([]FormSummar
 }
 
 // UpdateFormSchema replaces the encrypted schema blobs and bumps schema_version.
-// renderKeySalt may be unchanged (regular edit) or new (key rotation) — always stored.
-// Both the forms row update and the new schema version snapshot are done in a transaction.
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string, encryptedSchema, renderEncryptedSchema, renderKeySalt []byte) (int32, error) {
+func (s *Service) UpdateFormSchema(ctx context.Context, workspaceID, formID string, encryptedSchema, renderEncryptedSchema, renderKeySalt []byte) (int32, error) {
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return 0, err
@@ -204,7 +199,7 @@ func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string
 
 	newVersion, err := qtx.UpdateFormSchema(ctx, queries.UpdateFormSchemaParams{
 		ID:                    formID,
-		AccountID:             accountID,
+		WorkspaceID:           workspaceID,
 		EncryptedSchema:       encryptedSchema,
 		RenderEncryptedSchema: renderEncryptedSchema,
 		RenderKeySalt:         renderKeySalt,
@@ -231,29 +226,26 @@ func (s *Service) UpdateFormSchema(ctx context.Context, accountID, formID string
 }
 
 // UpdateFormStatus sets status to "open" or "closed".
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) UpdateFormStatus(ctx context.Context, accountID, formID, status string) error {
+func (s *Service) UpdateFormStatus(ctx context.Context, workspaceID, formID, status string) error {
 	if status != "open" && status != "closed" {
 		return errors.New("status must be 'open' or 'closed'")
 	}
 	return s.db.UpdateFormStatus(ctx, queries.UpdateFormStatusParams{
-		ID:        formID,
-		AccountID: accountID,
-		Status:    status,
+		ID:          formID,
+		WorkspaceID: workspaceID,
+		Status:      status,
 	})
 }
 
 // DeleteForm hard-deletes the form and all its responses (via CASCADE).
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) DeleteForm(ctx context.Context, accountID, formID string) error {
+func (s *Service) DeleteForm(ctx context.Context, workspaceID, formID string) error {
 	return s.db.DeleteForm(ctx, queries.DeleteFormParams{
-		ID:        formID,
-		AccountID: accountID,
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	})
 }
 
 // GetPublicSchema returns render-encrypted schema for unauthenticated respondents.
-// Returns ErrNotFound if the form does not exist.
 func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFormRecord, error) {
 	row, err := s.db.GetFormPublic(ctx, formID)
 	if err != nil {
@@ -275,13 +267,10 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 }
 
 // GetSchemaVersion returns the owner-encrypted schema for a specific version snapshot.
-// Verifies ownership via GetFormByOwner before fetching the snapshot.
-// Returns ErrNotFound if the form or version doesn't exist or isn't owned by accountID.
-func (s *Service) GetSchemaVersion(ctx context.Context, accountID, formID string, version int32) ([]byte, error) {
-	// Verify ownership first.
-	_, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
-		ID:        formID,
-		AccountID: accountID,
+func (s *Service) GetSchemaVersion(ctx context.Context, workspaceID, formID string, version int32) ([]byte, error) {
+	_, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

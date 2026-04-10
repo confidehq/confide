@@ -19,6 +19,7 @@ import (
 	mw "github.com/phantompunk/confide/internal/middleware"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
+	"github.com/phantompunk/confide/internal/workspace"
 )
 
 // Services groups the application services passed into the server.
@@ -26,6 +27,7 @@ type Services struct {
 	Auth      *auth.Service
 	Forms     *forms.Service
 	Responses *responses.Service
+	Workspace *workspace.Service
 	RelayQ    *relay.Queue
 }
 
@@ -35,6 +37,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Services {
 		Auth:      auth.NewService(pool, wa),
 		Forms:     forms.NewService(pool),
 		Responses: responses.NewService(pool),
+		Workspace: workspace.NewService(pool),
 		RelayQ:    &relay.Queue{},
 	}
 }
@@ -71,9 +74,9 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 		// Authenticated form + response routes.
 		r.Group(func(r chi.Router) {
 			r.Use(mw.Authenticator(svc.Auth))
-			r.Mount("/forms", forms.Handler(svc.Forms))
+			r.Mount("/forms", forms.Handler(svc.Forms, svc.Workspace))
 			r.Route("/forms/{formId}/responses", func(r chi.Router) {
-				r.Mount("/", responses.Handler(svc.Responses))
+				r.Mount("/", responses.Handler(svc.Responses, svc.Workspace))
 			})
 		})
 

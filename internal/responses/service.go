@@ -20,7 +20,7 @@ var ErrNotFound = errors.New("response not found")
 
 // DB is the subset of queries.Queries used by responses.Service.
 type DB interface {
-	GetFormByOwner(ctx context.Context, arg queries.GetFormByOwnerParams) (queries.Form, error)
+	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
 	ListResponsesFirst(ctx context.Context, arg queries.ListResponsesFirstParams) ([]queries.Response, error)
 	ListResponsesAfter(ctx context.Context, arg queries.ListResponsesAfterParams) ([]queries.Response, error)
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
@@ -65,12 +65,12 @@ type ListResult struct {
 
 const defaultPageSize = 50
 
-// ListResponses returns a page of responses for a form owned by accountID.
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) ListResponses(ctx context.Context, accountID, formID string, after *string, limit int) (ListResult, error) {
-	if _, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
-		ID:        formID,
-		AccountID: accountID,
+// ListResponses returns a page of responses for a form in the given workspace.
+// Returns ErrNotFound if the form doesn't exist or isn't in the workspace.
+func (s *Service) ListResponses(ctx context.Context, workspaceID, formID string, after *string, limit int) (ListResult, error) {
+	if _, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ListResult{}, ErrNotFound
@@ -122,8 +122,8 @@ func (s *Service) ListResponses(ctx context.Context, accountID, formID string, a
 	// until the next list call or the reaper runs.
 	if len(ids) > 0 {
 		_ = s.db.MarkResponsesRead(ctx, queries.MarkResponsesReadParams{
-			FormID: formID,
-			Ids:    ids,
+			FormID:  formID,
+			Column2: ids,
 		})
 	}
 
@@ -141,11 +141,11 @@ func (s *Service) ListResponses(ctx context.Context, accountID, formID string, a
 }
 
 // GetResponse returns a single response for the given form and response ID.
-// Returns ErrNotFound if the form or response doesn't exist or isn't owned by accountID.
-func (s *Service) GetResponse(ctx context.Context, accountID, formID, responseID string) (ResponseRecord, error) {
-	if _, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
-		ID:        formID,
-		AccountID: accountID,
+// Returns ErrNotFound if the form or response doesn't exist or isn't in the workspace.
+func (s *Service) GetResponse(ctx context.Context, workspaceID, formID, responseID string) (ResponseRecord, error) {
+	if _, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ResponseRecord{}, ErrNotFound
@@ -167,11 +167,11 @@ func (s *Service) GetResponse(ctx context.Context, accountID, formID, responseID
 }
 
 // DeleteResponse hard-deletes a single response.
-// Returns ErrNotFound if the form doesn't exist or isn't owned by accountID.
-func (s *Service) DeleteResponse(ctx context.Context, accountID, formID, responseID string) error {
-	if _, err := s.db.GetFormByOwner(ctx, queries.GetFormByOwnerParams{
-		ID:        formID,
-		AccountID: accountID,
+// Returns ErrNotFound if the form doesn't exist or isn't in the workspace.
+func (s *Service) DeleteResponse(ctx context.Context, workspaceID, formID, responseID string) error {
+	if _, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
 	}); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound

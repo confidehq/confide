@@ -1,7 +1,7 @@
 # Workspaces — Design & Implementation Plan
 
 **Status:** Planning  
-**Scope:** Multi-phase feature. Adds workspace-based multi-tenancy, collaborative E2E encryption, email-based invitations, role-based access control, and Stripe billing.
+**Scope:** Multi-phase feature. Adds workspace-based multi-tenancy, collaborative E2E encryption, token-based invitations, role-based access control, and Stripe billing.
 
 ---
 
@@ -13,7 +13,7 @@ Key decisions:
 
 - Forms belong to a workspace, not to an individual account.
 - The server never sees plaintext form keys — all key distribution is done client-side in the browser.
-- Invitations are email-based with short-lived tokens.
+- Invitations are token-based with short-lived links sent to an email address. The email is stored only on the invitation, never on the account.
 - Every existing account gets a personal workspace auto-created during migration.
 - Billing is per-workspace via Stripe.
 
@@ -33,7 +33,7 @@ masterKey  (derived from passkey PRF + prf_salt)
 
 This works for solo users but cannot be shared. Another user has no way to derive `formKey` from their own `masterKey`.
 
-### Solution: Identity Keypairs + Per-Member Wrapped Form Keys
+### Solution: Identity Keypairs + Per-Member Wrapped Workspace Key
 
 Add an **X25519 identity keypair** to each account. The private half is wrapped with the user's `masterKey` and stored on the server. The public half is stored plaintext.
 
@@ -43,34 +43,43 @@ masterKey  (unchanged)
 └── identityPublicKey   → stored plaintext server-side (safe to expose)
 ```
 
-When a form is created in a workspace, the creator wraps `formKey` for each member using ECIES:
+Each workspace has a single **workspace key** — a random 256-bit symmetric key. All form keys are derived from it. Access to the workspace key means access to all forms in the workspace; there is no per-form access control.
+
+```
+workspaceKey  (random 256-bit AES key, generated at workspace creation)
+└── formKey = HKDF(workspaceKey, "confide-form-v1" || formId)
+    └── used to encrypt/decrypt form schemas and responses
+```
+
+The workspace key is wrapped once per member using ECIES with their identity public key:
 
 ```
 For each workspace member:
   ephemeral  = X25519.generateKeypair()
   shared     = ECDH(ephemeral.private, member.identityPublicKey)
-  wrapKey    = HKDF(shared, "confide-form-key-wrap-v1")
-  wrapped    = AES-KW(wrapKey, formKey)
-  store → form_member_keys { form_id, account_id, wrapped_form_key, ephemeral_public_key }
+  wrapKey    = HKDF(shared, "confide-workspace-key-wrap-v1")
+  wrapped    = AES-KW(wrapKey, workspaceKey)
+  store → workspace_member_keys { workspace_id, account_id, wrapped_workspace_key, ephemeral_public_key }
 ```
 
 A member decrypts by reversing:
 
 ```
-shared   = ECDH(identityPrivateKey, ephemeral_public_key)
-wrapKey  = HKDF(shared, "confide-form-key-wrap-v1")
-formKey  = AES-KW-unwrap(wrapKey, wrapped_form_key)
+shared         = ECDH(identityPrivateKey, ephemeral_public_key)
+wrapKey        = HKDF(shared, "confide-workspace-key-wrap-v1")
+workspaceKey   = AES-KW-unwrap(wrapKey, wrapped_workspace_key)
+formKey        = HKDF(workspaceKey, "confide-form-v1" || formId)
 ```
 
 ### Key Distribution on New Member Join
 
-When a new member accepts an invitation, they have no `form_member_keys` entries. The server cannot distribute keys — it only has ciphertext. Instead:
+When a new member accepts an invitation, they have no `workspace_member_keys` entry. The server cannot distribute keys — it only has ciphertext. Instead:
 
 1. Server records the new member in `workspace_members`.
-2. Any admin or owner who logs in sees a "pending key grants" notification.
-3. Their browser fetches the list of (form, member) pairs missing keys.
-4. For each pair: unwrap own `formKey` using own identity key, re-wrap for the new member's identity public key, upload wrapped copy.
-5. No real-time coordination is required between admin and new member.
+2. Any admin or owner who logs in sees a "pending key grant" notification.
+3. Their browser unwraps their own `workspaceKey` using their identity key, then wraps it for the new member's identity public key.
+4. Upload the single wrapped copy: `POST /api/workspaces/{id}/member-keys`.
+5. No real-time coordination required. No per-form enumeration — one key grants access to all forms.
 
 ### Existing Account Migration
 
@@ -84,15 +93,17 @@ On first login after deploy, the client detects a missing identity key, generate
 
 **`workspaces`**
 ```sql
-id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-name             TEXT NOT NULL,
-slug             TEXT UNIQUE NOT NULL,
-stripe_customer_id         TEXT,
-stripe_subscription_id     TEXT,
-plan             TEXT NOT NULL DEFAULT 'free',   -- 'free' | 'pro' | 'team'
-plan_status      TEXT NOT NULL DEFAULT 'active', -- 'active' | 'trialing' | 'past_due' | 'canceled'
-plan_period_end  TIMESTAMPTZ,
-created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+name                   TEXT NOT NULL,
+slug                   TEXT UNIQUE NOT NULL,
+stripe_customer_id     TEXT UNIQUE,              -- NULL until first upgrade; set lazily on subscribe
+stripe_subscription_id TEXT UNIQUE,              -- NULL while on free plan
+plan                   TEXT NOT NULL DEFAULT 'free'
+                         CHECK (plan IN ('free', 'pro')),
+plan_status            TEXT NOT NULL DEFAULT 'active'
+                         CHECK (plan_status IN ('active', 'past_due', 'canceled')),
+plan_period_end        TIMESTAMPTZ,              -- NULL for free; set from Stripe subscription period
+created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
 **`workspace_members`**
@@ -125,20 +136,20 @@ wrapped_identity_private_key BYTEA NOT NULL,  -- AES-KW wrapped with masterKey
 created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 ```
 
-**`form_member_keys`**
+**`workspace_member_keys`**
 ```sql
-form_id               UUID NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
-account_id            UUID NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
-wrapped_form_key      BYTEA NOT NULL,
-ephemeral_public_key  BYTEA NOT NULL,  -- 32-byte X25519 ephemeral public key
-granted_by_account_id UUID NOT NULL REFERENCES accounts(id),
-created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
-PRIMARY KEY (form_id, account_id)
+workspace_id           TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+account_id             TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+wrapped_workspace_key  BYTEA NOT NULL,
+ephemeral_public_key   BYTEA NOT NULL,  -- 32-byte X25519 ephemeral public key
+granted_by_account_id  TEXT NOT NULL REFERENCES accounts(id),
+created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+PRIMARY KEY (workspace_id, account_id)
 ```
 
 ### Modified Tables
 
-**`accounts`** — add `email TEXT UNIQUE` (nullable initially; required to receive invitations)
+**`accounts`** — no changes. Email is not stored on accounts.
 
 **`forms`** — add `workspace_id UUID NOT NULL REFERENCES workspaces(id)` and `created_by_account_id UUID NOT NULL REFERENCES accounts(id)`. The existing `account_id` column is removed after data migration (see Phase 1).
 
@@ -162,11 +173,12 @@ Roles are enforced server-side via a `RequireWorkspaceRole` middleware that reso
 
 ## Billing Tiers
 
-| Plan | Members | Forms | Responses/mo | Pricing |
-|---|---|---|---|---|
-| Free | 1 | 3 | 100 | $0 |
-| Pro | 10 | 50 | 2,000 | flat monthly fee |
-| Team | Unlimited | Unlimited | Unlimited | flat + metered |
+| Plan | Workspaces | Members | Forms | Responses/mo | Pricing |
+|---|---|---|---|---|---|
+| Free | 1 | 1 | Unlimited | Unlimited | $0 |
+| Pro | Unlimited | Unlimited | Unlimited | Unlimited | flat rate |
+
+The free plan's single workspace is the personal workspace auto-created at registration. Free users who want a second workspace (e.g. for a team) must upgrade to Pro.
 
 Stripe integration:
 
@@ -174,7 +186,7 @@ Stripe integration:
 - Subscriptions are created/updated via the Stripe API.
 - A Stripe Billing Portal session handles self-service plan changes and payment method updates.
 - A webhook endpoint (`POST /api/stripe/webhook`) handles `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed` to keep `plan` and `plan_status` in sync.
-- The Team plan uses Stripe Metered Billing to report monthly response counts.
+- Both plans are flat-rate. Response limits are enforced server-side against the local database; no usage data is reported to Stripe.
 
 ---
 
@@ -188,16 +200,15 @@ Stripe integration:
 
 **Migrations (in order):**
 
-1. Add `email TEXT UNIQUE` to `accounts` (nullable).
-2. Create `workspaces` table.
-3. Create `workspace_members` table.
-4. Create `workspace_invitations` table.
-5. Create `account_identity_keys` table.
-6. Create `form_member_keys` table.
-7. Add `workspace_id` and `created_by_account_id` to `forms` (nullable initially).
-8. Data migration: for each existing account, create a workspace named `"{username}'s Workspace"` with a generated slug, assign the account as `owner`, and set `forms.workspace_id` to that workspace and `forms.created_by_account_id` to `forms.account_id`.
-9. Add `NOT NULL` constraints to `forms.workspace_id` and `forms.created_by_account_id`.
-10. Drop `forms.account_id`.
+1. Create `workspaces` table.
+2. Create `workspace_members` table.
+3. Create `workspace_invitations` table.
+4. Create `account_identity_keys` table.
+5. Create `workspace_member_keys` table.
+6. Add `workspace_id` and `created_by_account_id` to `forms` (nullable initially).
+7. Data migration: for each existing account, create a workspace named `"Private"` with a generated slug, assign the account as `owner`, and set `forms.workspace_id` to that workspace and `forms.created_by_account_id` to `forms.account_id`.
+8. Add `NOT NULL` constraints to `forms.workspace_id` and `forms.created_by_account_id`.
+9. Drop `forms.account_id`.
 
 **Go changes:**
 
@@ -234,17 +245,26 @@ unwrapIdentityPrivateKey(
   masterKey: CryptoKey
 ): Promise<CryptoKey>
 
-// Wrap a formKey for a recipient using their identity public key (ECIES).
-wrapFormKey(
-  formKey: CryptoKey,
-  recipientPublicKey: Uint8Array
-): Promise<{ wrappedFormKey: Uint8Array, ephemeralPublicKey: Uint8Array }>
+// Generate a new workspace key (random 256-bit AES key).
+generateWorkspaceKey(): Promise<CryptoKey>
 
-// Unwrap a formKey using the caller's identity private key.
-unwrapFormKey(
-  wrappedFormKey: Uint8Array,
+// Wrap a workspaceKey for a recipient using their identity public key (ECIES).
+wrapWorkspaceKey(
+  workspaceKey: CryptoKey,
+  recipientPublicKey: Uint8Array
+): Promise<{ wrappedWorkspaceKey: Uint8Array, ephemeralPublicKey: Uint8Array }>
+
+// Unwrap a workspaceKey using the caller's identity private key.
+unwrapWorkspaceKey(
+  wrappedWorkspaceKey: Uint8Array,
   ephemeralPublicKey: Uint8Array,
   identityPrivateKey: CryptoKey
+): Promise<CryptoKey>
+
+// Derive a form-specific key from the workspace key.
+deriveFormKey(
+  workspaceKey: CryptoKey,
+  formId: string
 ): Promise<CryptoKey>
 ```
 
@@ -264,7 +284,7 @@ unwrapFormKey(
 
 **Backend API:**
 
-- `POST /api/workspaces` — create a workspace; auto-creates a Stripe Customer; initializes the `free` plan; adds caller as `owner`.
+- `POST /api/workspaces` — create a workspace; enforces the 1-workspace limit for free-plan accounts (returns 402 if exceeded); initializes `plan = 'free'` in the local database; adds caller as `owner`; accepts the owner's `wrappedWorkspaceKey` and `ephemeralPublicKey` (generated client-side before the request). No Stripe call is made.
 - `GET /api/workspaces` — list workspaces the caller belongs to, including their role.
 - `GET /api/workspaces/{id}` — workspace detail and caller's role.
 - `PATCH /api/workspaces/{id}` — rename (owner/admin only).
@@ -299,15 +319,15 @@ func RequireWorkspaceRole(svc *workspace.Service, minimum Role) func(http.Handle
 
 ### Phase 4 — Invitation System
 
-**Goal:** Admins can invite people by email; recipients can accept and join the workspace.
+**Goal:** Admins can invite people by email address; recipients follow a secret link to accept and join the workspace. No email is stored on accounts — possession of the token is sufficient proof of identity.
 
 **Backend API:**
 
-- `POST /api/workspaces/{id}/invitations` — create an invitation (owner/admin only). Generates a random 32-byte token, stores its SHA-256 hash, sends the invite email, returns the invitation metadata. Enforces the plan's member limit.
+- `POST /api/workspaces/{id}/invitations` — create an invitation (owner/admin only). Generates a random 32-byte token, stores its SHA-256 hash, sends the invite email to the provided address (stored only on the invitation record), returns the invitation metadata. Enforces the plan's member limit.
 - `GET /api/workspaces/{id}/invitations` — list pending (unaccepted, unexpired) invitations (owner/admin only).
 - `DELETE /api/workspaces/{id}/invitations/{inviteId}` — revoke an invitation (owner/admin only).
 - `GET /api/invitations/{token}` — **public, no auth required**. Resolves token to invitation metadata (workspace name, inviting user's username, role, expiry). Returns 404 if token is invalid, expired, or already accepted.
-- `POST /api/invitations/{token}/accept` — **requires auth**. Validates that the caller's email matches the invitation's email (or sets the email on the account if not yet set). Creates the `workspace_members` record. Returns 409 if already a member.
+- `POST /api/invitations/{token}/accept` — **requires auth**. Validates that the token is valid and unexpired. Creates the `workspace_members` record. Returns 409 if already a member. No email check is performed — the 256-bit token is the proof of receipt.
 
 **Email infrastructure:**
 
@@ -330,54 +350,70 @@ New internal `mailer` package with a single `SendInvitation(to, workspaceName, i
 - Pending invitations list: shows email, role, expiry, and a revoke button.
 - After acceptance, the new workspace appears in the workspace switcher and the user is navigated there.
 
-**Exit criterion:** An admin can invite an email address, the recipient receives an email, follows the link, registers or logs in, and lands in the workspace with the correct role.
+**Exit criterion:** An admin can invite an email address, the recipient receives the link, registers or logs in, follows the link, and lands in the workspace with the correct role. No email is stored on the account at any point.
 
 ---
 
 ### Phase 5 — Collaborative Key Distribution
 
-**Goal:** All workspace members can decrypt all workspace forms through client-side key distribution.
+**Goal:** All workspace members can decrypt all workspace forms through a single client-side workspace key distribution.
+
+**On workspace creation (frontend change):**
+
+Before calling `POST /api/workspaces`:
+
+1. Call `generateWorkspaceKey()` → `workspaceKey`.
+2. Fetch the creator's own `identityPublicKey`.
+3. Call `wrapWorkspaceKey(workspaceKey, creator.identityPublicKey)` → `{ wrappedWorkspaceKey, ephemeralPublicKey }`.
+4. Include both in the `POST /api/workspaces` body. The server stores them in `workspace_member_keys` for the owner.
 
 **On form creation (frontend change):**
 
-After a form is created (server returns `formId`):
+No per-form key work is needed. The workspace key is already in memory (unwrapped at login). The form ID is used to derive the form key client-side:
 
-1. Derive `formKey` from `masterKey` (as today).
-2. Fetch identity public keys for all current workspace members: `GET /api/workspaces/{id}/members/identity-keys`.
-3. For each member (including self), call `wrapFormKey(formKey, member.identityPublicKey)`.
-4. Upload all wrapped copies: `POST /api/forms/{formId}/member-keys` with body `[{ accountId, wrappedFormKey, ephemeralPublicKey }]`.
+```
+formKey = deriveFormKey(workspaceKey, formId)
+```
 
 **On form response view (frontend change):**
 
-Instead of deriving `formKey` directly from `masterKey`:
+Same derivation:
 
-1. `GET /api/forms/{formId}/member-key` — fetches the caller's `form_member_keys` entry.
-2. Call `unwrapFormKey(wrappedFormKey, ephemeralPublicKey, identityPrivateKey)` → `formKey`.
-3. Proceed to decrypt responses as before.
+```
+workspaceKey = (already in memory from login)
+formKey = deriveFormKey(workspaceKey, formId)
+```
 
-If the entry is missing, show: *"An admin needs to grant you access to this form's responses."*
+Decrypt responses as before. No server round-trip for the key.
 
 **New API endpoints:**
 
 - `GET /api/workspaces/{id}/members/identity-keys` — returns `[{ accountId, identityPublicKey }]` for all members (auth required, member or above).
-- `POST /api/forms/{formId}/member-keys` — bulk upsert wrapped form keys (auth required, member or above, must already have a key for this form or be the creator).
-- `GET /api/forms/{formId}/member-key` — returns the caller's own `form_member_keys` entry.
-- `GET /api/workspaces/{id}/pending-key-grants` — returns `[{ accountId, username, formIds[] }]` for members who are missing keys on one or more workspace forms (owner/admin only).
-- `POST /api/workspaces/{id}/key-grants` — bulk upload wrapped keys for multiple (form, member) pairs (owner/admin only).
+- `GET /api/workspaces/{id}/member-key` — returns the caller's own `workspace_member_keys` entry `{ wrappedWorkspaceKey, ephemeralPublicKey }`.
+- `POST /api/workspaces/{id}/member-key` — upsert a wrapped workspace key for a specific member (owner/admin only). Body: `{ accountId, wrappedWorkspaceKey, ephemeralPublicKey }`.
+- `GET /api/workspaces/{id}/pending-key-grants` — returns `[{ accountId, username }]` for members who have no `workspace_member_keys` entry (owner/admin only).
+
+**Login flow change:**
+
+After the session is established:
+
+1. Fetch `wrappedIdentityPrivateKey` and `{ wrappedWorkspaceKey, ephemeralPublicKey }` for the current workspace.
+2. Unwrap `identityPrivateKey` with `masterKey`.
+3. Unwrap `workspaceKey` with `identityPrivateKey`.
+4. Hold both `identityPrivateKey` and `workspaceKey` in memory for the session.
 
 **Admin key distribution flow (frontend):**
 
 When a workspace loads, owners and admins call `GET /api/workspaces/{id}/pending-key-grants`. If the response is non-empty:
 
-- Show a dismissible banner: *"{Name} joined but can't read {N} form(s) yet — Grant access"*.
-- Clicking opens a modal. For each missing (form, member) pair:
-  1. Fetch caller's own `form_member_keys` entry for that form and unwrap `formKey`.
-  2. Fetch the new member's `identityPublicKey`.
-  3. Call `wrapFormKey(formKey, newMember.identityPublicKey)`.
-  4. Batch upload via `POST /api/workspaces/{id}/key-grants`.
-- On completion, dismiss the banner.
+- Show a dismissible banner: *"{Name} joined but doesn't have workspace access yet — Grant access"*.
+- Clicking opens a confirmation. For each pending member:
+  1. Fetch their `identityPublicKey`.
+  2. Call `wrapWorkspaceKey(workspaceKey, member.identityPublicKey)`.
+  3. Upload via `POST /api/workspaces/{id}/member-key`.
+- One request per pending member. No form enumeration.
 
-**Exit criterion:** A member invited to a workspace with existing forms can, after an admin completes key distribution, decrypt and read all responses in those forms.
+**Exit criterion:** A member invited to a workspace can, after an admin grants them the workspace key, derive and decrypt all form keys and responses. The admin performs one wrap operation per new member regardless of how many forms exist.
 
 ---
 
@@ -394,16 +430,16 @@ New config values:
 ```
 CONFIDE_STRIPE_SECRET_KEY
 CONFIDE_STRIPE_WEBHOOK_SECRET
-CONFIDE_STRIPE_PRICE_PRO        (Stripe Price ID for Pro plan)
-CONFIDE_STRIPE_PRICE_TEAM_FLAT  (Stripe Price ID for Team flat fee)
-CONFIDE_STRIPE_PRICE_TEAM_USAGE (Stripe Price ID for Team metered usage)
+CONFIDE_STRIPE_PRICE_PRO   (Stripe Price ID for Pro flat-rate plan)
 ```
+
+**Privacy principle:** Stripe is contacted only when a workspace actively upgrades to a paid plan. Free workspaces have no Stripe presence. No usage data is ever sent to Stripe — all limits are enforced server-side against the local database.
 
 **Backend API:**
 
-- `GET /api/workspaces/{id}/billing` — returns current plan, plan status, member count, form count, and monthly response count (owner only).
-- `POST /api/workspaces/{id}/billing/subscribe` — create or update a Stripe subscription to the specified plan (owner only). Returns a Stripe Checkout Session URL for initial payment.
-- `POST /api/workspaces/{id}/billing/portal` — create a Stripe Billing Portal session and return its URL (owner only). Used for self-service plan changes, payment methods, and invoice history.
+- `GET /api/workspaces/{id}/billing` — returns current plan, plan status, member count, form count, and monthly response count (owner only). All data comes from the local database; no Stripe call is made.
+- `POST /api/workspaces/{id}/billing/subscribe` — upgrade or change plan (owner only). If `stripe_customer_id` is NULL, creates a Stripe Customer at this point (lazy creation) passing only `metadata: { workspace_id }` — no name or email. Then creates or updates a Stripe Checkout Session and returns its URL.
+- `POST /api/workspaces/{id}/billing/portal` — create a Stripe Billing Portal session and return its URL (owner only). Used for payment method updates and invoice history. Only available once a Stripe Customer exists (i.e., workspace has been on a paid plan).
 - `POST /api/stripe/webhook` — **public, no auth**. Verifies `Stripe-Signature` header using `CONFIDE_STRIPE_WEBHOOK_SECRET`. Handles:
   - `customer.subscription.updated` → update `plan`, `plan_status`, `plan_period_end`
   - `customer.subscription.deleted` → set `plan = 'free'`, `plan_status = 'canceled'`
@@ -411,28 +447,42 @@ CONFIDE_STRIPE_PRICE_TEAM_USAGE (Stripe Price ID for Team metered usage)
 
 **Workspace creation change:**
 
-When a workspace is created, call `stripe.Customer.New` to create a Stripe Customer and store `stripe_customer_id`. Initialize `plan = 'free'`, `plan_status = 'active'`.
+No Stripe call is made at workspace creation. `stripe_customer_id` starts `NULL`. Initialize `plan = 'free'`, `plan_status = 'active'` in the local database only.
+
+**Lazy Stripe Customer creation:**
+
+```go
+// In the subscribe handler, before creating a Checkout Session:
+if workspace.StripeCustomerID == nil {
+    customer, err := stripe.Customer.New(&stripe.CustomerParams{
+        Params: stripe.Params{
+            Metadata: map[string]string{"workspace_id": workspace.ID},
+        },
+    })
+    // store customer.ID in workspaces.stripe_customer_id
+}
+```
+
+No workspace name, owner email, or any other identifying data is passed to Stripe.
 
 **Plan enforcement (service-layer checks):**
 
 | Operation | Enforcement |
 |---|---|
+| Create a workspace | Check workspace count for the owner's account; free plan is limited to 1 workspace; return 402 if at limit |
 | Invite a member | Check current member count against plan limit; return 402 if at limit |
-| Create a form | Check current form count against plan limit; return 402 if at limit |
-| Submit a response (relay) | Check monthly response count against plan limit; return 429 if at limit |
+| Create a form | No limit on either plan |
+| Submit a response (relay) | No limit on either plan |
 
-Enforcement is implemented as early-return checks in the relevant service methods, not as middleware, to keep the logic close to the business rules.
-
-**Usage reporting for Team plan:**
-
-A background job (daily, added to the existing scheduler in `main.go`) queries monthly response counts per workspace on the Team plan and reports them to Stripe Metered Billing via `stripe.UsageRecord.New`.
+Enforcement is implemented as early-return checks in the relevant service methods against the local database — Stripe is never queried at request time.
 
 **Frontend:**
 
-- Billing page (owner only, under workspace settings): shows current plan, usage meters (members, forms, responses), upgrade/downgrade buttons, and a "Manage Billing →" link that redirects to the Stripe Portal.
+- Billing page (owner only, under workspace settings): shows current plan, usage meters (members, forms, responses), and upgrade/downgrade buttons. If a Stripe Customer exists, a "Manage Billing →" link opens the Stripe Portal for payment method and invoice management.
 - Plan limit error states: when the API returns 402, show an inline message in the invite modal or form creation flow with a link to the billing page.
+- Stripe.js is never loaded on any app page. Stripe is only encountered on Stripe-hosted Checkout and Portal pages during billing flows.
 
-**Exit criterion:** A workspace on the free plan cannot exceed 1 member, 3 forms, or 100 responses/month. Upgrading via Stripe Checkout moves the workspace to the Pro plan. The Stripe Portal allows plan changes and payment updates. Subscription lifecycle events are correctly reflected in the database.
+**Exit criterion:** Free workspaces have no Stripe Customer and no data in Stripe. A user on the free plan cannot create a second workspace (blocked with a 402) and cannot exceed 1 member per workspace. Upgrading via Stripe Checkout lazily creates a Stripe Customer (with only the workspace ID as metadata) and moves the workspace to Pro. Subscription lifecycle events are correctly reflected in the local database. No usage data is reported to Stripe.
 
 ---
 
