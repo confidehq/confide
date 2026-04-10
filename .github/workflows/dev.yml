@@ -81,7 +81,7 @@ jobs:
           build-args: |
             VERSION=dev
             COMMIT=${{ github.sha }}
-          tags: ${{ env.IMAGE_PREFIX }}-api:dev
+          tags: ${{ env.IMAGE_PREFIX }}-app:dev
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
