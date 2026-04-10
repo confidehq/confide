@@ -20,6 +20,9 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.api
+      args:
+        VERSION: ${VERSION:-dev}
+        COMMIT: ${COMMIT:-unknown}
     restart: unless-stopped
     depends_on:
       db:
@@ -34,24 +37,10 @@ services:
       CONFIDE_RP_DISPLAY_NAME: ${CONFIDE_RP_DISPLAY_NAME:-Confide}
       CONFIDE_ENV: ${CONFIDE_ENV:-development}
       CONFIDE_REGISTRATION_OPEN: ${CONFIDE_REGISTRATION_OPEN:-false}
-    networks: 
-      - internal
-
-  # relay:
-  #   image: busybox
-  #   command: ["sh", "-c", "echo 'relay: Phase 4' && sleep infinity"]
-  #   networks: [external]
-
-  web:
-    build:
-      context: ..
-      dockerfile: deploy/Dockerfile.web
-    restart: unless-stopped
-    environment:
-      ORIGIN: https://${CONFIDE_DOMAIN}
-      PUBLIC_API_URL: ""
-      BODY_SIZE_LIMIT: 1M
+    ports:
+      - "8080:8080"
     networks:
+      - internal
       - external
 
   caddy:
@@ -64,11 +53,11 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+      - ./certs:/certs:ro
     environment:
       CONFIDE_DOMAIN: ${CONFIDE_DOMAIN}
     depends_on:
       - api
-      - web
     networks:
       - internal
       - external
