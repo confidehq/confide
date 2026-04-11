@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { createForm } from '$lib/forms';
 	import { emptySchema } from '$lib/stores/builder.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -16,9 +17,11 @@
 			return;
 		}
 
+		const workspaceId = $page.url.searchParams.get('workspaceId') ?? undefined;
+
 		try {
 			const schema = emptySchema();
-			const { formId } = await createForm(masterKey, schema);
+			const { formId } = await createForm(masterKey, schema, workspaceId);
 			formsStore.invalidate();
 			goto(`/forms/${formId}/edit`);
 		} catch (err) {

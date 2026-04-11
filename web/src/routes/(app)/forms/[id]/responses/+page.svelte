@@ -13,6 +13,7 @@
 	} from '$lib/forms';
 	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
 	import { CheckCheck, RefreshCw } from '@lucide/svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	type AnswerValue = string | string[] | number | null | undefined;
 
@@ -205,6 +206,15 @@
 	.spinner { animation: spin 0.7s linear infinite; }
 </style>
 
+<ConfirmDialog
+	open={!!confirmDelete}
+	title="Delete response?"
+	description="This will permanently delete this response. This cannot be undone."
+	loading={confirmDelete ? deleting.has(confirmDelete) : false}
+	onconfirm={() => confirmDelete && handleDelete(confirmDelete)}
+	oncancel={() => (confirmDelete = null)}
+/>
+
 <!-- Root -->
 <div class="flex flex-col flex-1 min-h-0 h-full font-mono">
 
@@ -315,29 +325,12 @@
 					</div>
 
 					<div class="flex items-center gap-2 shrink-0">
-						{#if confirmDelete === selectedRecord.id}
-							<span class="text-sm text-error-light">Delete?</span>
-							<button
-								onclick={() => handleDelete(selectedRecord.id)}
-								disabled={deleting.has(selectedRecord.id)}
-								class="px-3 py-1 bg-[#7f1d1d] text-error-muted border-none rounded cursor-pointer font-mono text-sm"
-							>
-								{deleting.has(selectedRecord.id) ? '…' : 'Confirm'}
-							</button>
-							<button
-								onclick={() => (confirmDelete = null)}
-								class="px-3 py-1 bg-transparent text-muted-dark border border-border rounded cursor-pointer font-mono text-sm"
-							>
-								Cancel
-							</button>
-						{:else}
-							<button
-								onclick={() => (confirmDelete = selectedRecord.id)}
-								class="px-3 py-1 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-sm transition-[background,border-color] duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
-							>
-								Delete
-							</button>
-						{/if}
+						<button
+							onclick={() => (confirmDelete = selectedRecord.id)}
+							class="px-3 py-1 bg-transparent text-[#f87171] border border-[#1e3048] rounded cursor-pointer font-mono text-sm transition-colors duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
+						>
+							Delete
+						</button>
 					</div>
 				</div>
 
