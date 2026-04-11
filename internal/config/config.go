@@ -32,6 +32,11 @@ type Config struct {
 	SMTPPass    string
 	FromEmail   string
 	AppDomain   string
+
+	// Stripe — all optional; if StripeSecretKey is empty, billing endpoints return 503.
+	StripeSecretKey     string
+	StripeWebhookSecret string
+	StripePriceIDPro    string
 }
 
 func Load() (*Config, error) {
@@ -68,6 +73,9 @@ func Load() (*Config, error) {
 		SMTPPass:           os.Getenv("CONFIDE_SMTP_PASS"),
 		FromEmail:          os.Getenv("CONFIDE_FROM_EMAIL"),
 		AppDomain:          getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000"),
+		StripeSecretKey:     os.Getenv("CONFIDE_STRIPE_SECRET_KEY"),
+		StripeWebhookSecret: os.Getenv("CONFIDE_STRIPE_WEBHOOK_SECRET"),
+		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
 	}
 
 	log.Println(cfg.RPOrigin)

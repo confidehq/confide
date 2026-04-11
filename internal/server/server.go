@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/auth"
+	"github.com/phantompunk/confide/internal/billing"
 	"github.com/phantompunk/confide/internal/botguard"
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/forms"
@@ -33,6 +34,7 @@ type Services struct {
 	Workspace  *workspace.Service
 	Identity   *identity.Service
 	Invitation *invitation.Service
+	Billing    *billing.Service
 	RelayQ     *relay.Queue
 }
 
@@ -46,6 +48,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		Workspace:  workspace.NewService(pool),
 		Identity:   identity.NewService(pool),
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
+		Billing:    billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro),
 		RelayQ:     &relay.Queue{},
 	}
 }
@@ -92,6 +95,9 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				r.Mount("/", invitation.WorkspaceHandler(svc.Invitation))
 			})
 			r.Post("/invitations/{token}/accept", invitation.AcceptHandler(svc.Invitation))
+			r.Route("/workspaces/{workspaceId}/billing", func(r chi.Router) {
+				r.Mount("/", billing.Handler(svc.Billing))
+			})
 		})
 
 		// Public invitation resolve — no auth required.
@@ -101,6 +107,9 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 		r.With(mw.FormPageCSP, mw.PublicSchemaRateLimit(cfg.HMACKey)).
 			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms, guard))
 	})
+
+	// Stripe webhook — public, no auth, signature verified inside handler.
+	r.Post("/api/stripe/webhook", billing.WebhookHandler(svc.Billing))
 
 	// Relay submit — open CORS (respondents arrive from arbitrary origins), rate limited.
 	r.With(
