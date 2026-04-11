@@ -18,6 +18,7 @@ var ErrNotFound = errors.New("form not found")
 // DB is the subset of queries.Queries used by forms.Service.
 type DB interface {
 	CreateForm(ctx context.Context, arg queries.CreateFormParams) (queries.Form, error)
+	GetFormWorkspaceID(ctx context.Context, id string) (string, error)
 	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
 	GetFormPublic(ctx context.Context, id string) (queries.GetFormPublicRow, error)
 	ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]queries.ListFormsByWorkspaceRow, error)
@@ -145,6 +146,18 @@ func (s *Service) UpdateExpiration(ctx context.Context, workspaceID, formID stri
 		ResponseTtlDays:  responseTtlDays,
 		BurnAfterReading: burnAfterReading,
 	})
+}
+
+// GetFormWorkspace returns the workspace ID that owns the given form, or ErrNotFound.
+func (s *Service) GetFormWorkspace(ctx context.Context, formID string) (string, error) {
+	wsID, err := s.db.GetFormWorkspaceID(ctx, formID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrNotFound
+		}
+		return "", err
+	}
+	return wsID, nil
 }
 
 // GetForm returns the full form record for the workspace. Returns ErrNotFound if

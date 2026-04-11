@@ -43,7 +43,8 @@ const INFO = {
 	keypairSeed: () => encode('wisp-form-keypair-seed-v1'),
 	recoveryKey: () => encode('wisp-recovery-key-v1'),
 	responseEncKey: () => encode('wisp-response-enc-key-v1'),
-	renderKey: () => encode('wisp-render-key-v1')
+	renderKey: () => encode('wisp-render-key-v1'),
+	workspaceKey: () => encode('confide-workspace-key-v1')
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -462,6 +463,74 @@ export async function decryptResponse(
  */
 export async function hashForVerification(data: BufferSource): Promise<ArrayBuffer> {
 	return crypto.subtle.digest('SHA-256', data);
+}
+
+// ---------------------------------------------------------------------------
+// Public interface — workspace key wrapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a fresh AES-256-GCM workspace key and wrap it for a recipient's
+ * X25519 identity public key using ECIES (ephemeral X25519 + ECDH + HKDF + AES-GCM).
+ *
+ * Returns:
+ *   wrappedWorkspaceKey — [12-byte IV][AES-GCM ciphertext+tag] containing the raw workspace key
+ *   ephemeralPublicKey  — raw 32-byte X25519 public key used in the ECDH exchange
+ */
+export async function generateAndWrapWorkspaceKey(
+	recipientPublicKeyBytes: ArrayBuffer
+): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
+	// Generate workspace AES-256-GCM key and export raw bytes
+	const workspaceKey = await crypto.subtle.generateKey(
+		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
+		true,
+		['encrypt', 'decrypt']
+	);
+	const workspaceKeyRaw = await crypto.subtle.exportKey('raw', workspaceKey);
+
+	// Import recipient identity public key as X25519
+	const recipientKey = await crypto.subtle.importKey(
+		'raw',
+		recipientPublicKeyBytes,
+		{ name: 'X25519' },
+		false,
+		[]
+	);
+
+	// Ephemeral X25519 keypair for ECIES
+	const ephemeral = (await crypto.subtle.generateKey(
+		{ name: 'X25519' },
+		true,
+		['deriveKey', 'deriveBits']
+	)) as CryptoKeyPair;
+
+	// ECDH → HKDF → AES-256-GCM encryption key
+	const sharedSecret = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: recipientKey },
+		ephemeral.privateKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const encKey = await hkdfDeriveAesKey(sharedSecret, INFO.workspaceKey(), ['encrypt'], false);
+
+	// AES-GCM encrypt the raw workspace key bytes → [IV][ciphertext]
+	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		encKey,
+		workspaceKeyRaw
+	);
+	const wrappedWorkspaceKey = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
+	wrappedWorkspaceKey.set(iv, 0);
+	wrappedWorkspaceKey.set(new Uint8Array(ciphertext), AES_IV_BYTES);
+
+	const ephemeralPublicKey = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+
+	return {
+		wrappedWorkspaceKey: wrappedWorkspaceKey.buffer as ArrayBuffer,
+		ephemeralPublicKey: ephemeralPublicKey as ArrayBuffer
+	};
 }
 
 // ---------------------------------------------------------------------------

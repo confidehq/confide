@@ -19,6 +19,7 @@ import (
 // workspaceSvc is the minimal workspace interface the handler needs.
 type workspaceSvc interface {
 	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
+	ValidateMember(ctx context.Context, workspaceID, accountID string) error
 }
 
 // Handler builds the authenticated /api/forms sub-router.
@@ -33,6 +34,26 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Delete("/{id}", deleteForm(svc, wsSvc))
 	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
 	return r
+}
+
+// resolveFormWorkspace returns the workspace ID that owns formID, after verifying
+// that accountID is a member. Returns (workspaceID, true) on success, or writes
+// an error response and returns ("", false) on failure.
+func resolveFormWorkspace(w http.ResponseWriter, r *http.Request, svc *Service, wsSvc workspaceSvc, accountID, formID string) (string, bool) {
+	workspaceID, err := svc.GetFormWorkspace(r.Context(), formID)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			writeError(w, http.StatusNotFound, "not_found", "form not found")
+		} else {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve form workspace")
+		}
+		return "", false
+	}
+	if err := wsSvc.ValidateMember(r.Context(), workspaceID, accountID); err != nil {
+		writeError(w, http.StatusForbidden, "forbidden", "access denied")
+		return "", false
+	}
+	return workspaceID, true
 }
 
 // PublicSchemaHandler handles GET /api/f/{id}/schema — no authentication.
@@ -66,13 +87,9 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard) http.HandlerFunc {
 func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
-			return
-		}
 
 		var req struct {
+			WorkspaceID           string  `json:"workspaceId"`
 			FormID                string  `json:"formId"`
 			EncryptedSchema       string  `json:"encryptedSchema"`
 			RenderEncryptedSchema string  `json:"renderEncryptedSchema"`
@@ -86,6 +103,22 @@ func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
+		}
+
+		var workspaceID string
+		var err error
+		if req.WorkspaceID != "" {
+			if err = wsSvc.ValidateMember(r.Context(), req.WorkspaceID, accountID); err != nil {
+				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
+				return
+			}
+			workspaceID = req.WorkspaceID
+		} else {
+			workspaceID, err = wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+				return
+			}
 		}
 
 		encSchema, err := base64.StdEncoding.DecodeString(req.EncryptedSchema)
@@ -131,10 +164,21 @@ func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
-			return
+
+		var workspaceID string
+		var err error
+		if wsID := r.URL.Query().Get("workspaceId"); wsID != "" {
+			if err = wsSvc.ValidateMember(r.Context(), wsID, accountID); err != nil {
+				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
+				return
+			}
+			workspaceID = wsID
+		} else {
+			workspaceID, err = wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+				return
+			}
 		}
 
 		forms, err := svc.ListForms(r.Context(), workspaceID)
@@ -177,12 +221,11 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 
 		form, err := svc.GetForm(r.Context(), workspaceID, formID)
 		if err != nil {
@@ -225,12 +268,11 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 
 		var req struct {
 			EncryptedSchema       string `json:"encryptedSchema"`
@@ -278,12 +320,11 @@ func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func updateFormStatus(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 
 		var req struct {
 			Status string `json:"status"`
@@ -309,12 +350,11 @@ func updateFormStatus(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func deleteForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 
 		if err := svc.DeleteForm(r.Context(), workspaceID, formID); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to delete form")
@@ -328,12 +368,11 @@ func deleteForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func getSchemaVersion(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 		versionStr := chi.URLParam(r, "version")
 
 		version64, err := strconv.ParseInt(versionStr, 10, 32)
@@ -362,12 +401,11 @@ func getSchemaVersion(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 func updateFormExpiration(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "id")
 
 		var req struct {
 			ExpiresAt        *string `json:"expiresAt"`

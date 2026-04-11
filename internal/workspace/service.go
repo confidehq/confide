@@ -117,6 +117,21 @@ func CreatePersonalWorkspace(ctx context.Context, q *queries.Queries, accountID 
 	return ws.ID, nil
 }
 
+// ValidateMember returns nil if accountID is a member of workspaceID, ErrForbidden if not.
+func (s *Service) ValidateMember(ctx context.Context, workspaceID, accountID string) error {
+	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrForbidden
+		}
+		return err
+	}
+	return nil
+}
+
 // GetPersonalWorkspaceID returns the workspace ID for the account's first owned workspace.
 func (s *Service) GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error) {
 	row, err := s.db.GetPersonalWorkspace(ctx, accountID)
@@ -136,7 +151,7 @@ func (s *Service) Create(ctx context.Context, accountID, name string, wrappedWor
 	if err != nil {
 		return Workspace{}, err
 	}
-	if count >= 1 {
+	if count >= 5 {
 		return Workspace{}, ErrPlanLimit
 	}
 

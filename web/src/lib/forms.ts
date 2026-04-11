@@ -65,7 +65,8 @@ export interface ListResponsesResult {
  */
 export async function createForm(
 	masterKey: CryptoKey,
-	schema: FormSchema
+	schema: FormSchema,
+	workspaceId?: string
 ): Promise<{ formId: string; renderKey: CryptoKey; renderKeySalt: Uint8Array }> {
 	// Generate a stable form ID client-side so we can derive the formKey.
 	const formId = randomBase64url(16);
@@ -84,16 +85,19 @@ export async function createForm(
 	// Export public key as raw bytes (32 bytes for X25519).
 	const publicFormKeyBytes = await crypto.subtle.exportKey('raw', keypair.publicKey);
 
+	const body: Record<string, unknown> = {
+		formId,
+		encryptedSchema: arrayBufferToBase64(encryptedSchema),
+		renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
+		publicFormKey: arrayBufferToBase64(publicFormKeyBytes),
+		renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
+	};
+	if (workspaceId) body.workspaceId = workspaceId;
+
 	const res = await fetch('/api/forms', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			formId,
-			encryptedSchema: arrayBufferToBase64(encryptedSchema),
-			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
-			publicFormKey: arrayBufferToBase64(publicFormKeyBytes),
-			renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
-		})
+		body: JSON.stringify(body)
 	});
 
 	if (!res.ok) throw new ApiError(res.status, await res.json());
@@ -120,9 +124,11 @@ export async function getForm(
 
 /**
  * List all forms for the authenticated account (no schema decryption).
+ * Pass workspaceId to list forms for a specific workspace instead of the personal one.
  */
-export async function listForms(): Promise<FormSummary[]> {
-	const res = await fetch('/api/forms');
+export async function listForms(workspaceId?: string): Promise<FormSummary[]> {
+	const url = workspaceId ? `/api/forms?workspaceId=${encodeURIComponent(workspaceId)}` : '/api/forms';
+	const res = await fetch(url);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 	const body = await res.json();
 	return body.forms ?? [];

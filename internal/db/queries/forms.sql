@@ -7,6 +7,9 @@ INSERT INTO forms (
     $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11
 ) RETURNING *;
 
+-- name: GetFormWorkspaceID :one
+SELECT workspace_id FROM forms WHERE id = $1;
+
 -- name: GetFormByWorkspace :one
 SELECT * FROM forms WHERE id = $1 AND workspace_id = $2;
 

@@ -85,6 +85,17 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 	return err
 }
 
+const getFormWorkspaceID = `-- name: GetFormWorkspaceID :one
+SELECT workspace_id FROM forms WHERE id = $1
+`
+
+func (q *Queries) GetFormWorkspaceID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getFormWorkspaceID, id)
+	var workspaceID string
+	err := row.Scan(&workspaceID)
+	return workspaceID, err
+}
+
 const getFormByWorkspace = `-- name: GetFormByWorkspace :one
 SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id FROM forms WHERE id = $1 AND workspace_id = $2
 `
