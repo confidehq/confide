@@ -3,6 +3,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { reauthenticate } from '$lib/auth';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
 	import { Menu } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
@@ -18,6 +19,13 @@
 			showReauth = true;
 		} else if (auth.masterKey === null && auth.credentialId === null) {
 			goto('/login');
+		}
+	});
+
+	// Load workspaces eagerly — only needs a valid session cookie, no masterKey
+	$effect(() => {
+		if (auth.credentialId !== null) {
+			workspacesStore.load().catch(() => {});
 		}
 	});
 

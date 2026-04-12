@@ -15,27 +15,53 @@ import (
 
 // workspaceSvc is the minimal workspace interface the handler needs.
 type workspaceSvc interface {
-	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
+	ValidateMember(ctx context.Context, workspaceID, accountID string) error
+}
+
+// formsSvc is the minimal forms interface the handler needs.
+type formsSvc interface {
+	GetFormWorkspace(ctx context.Context, formID string) (string, error)
+}
+
+var errFormNotFound = errors.New("form not found")
+
+// resolveFormWorkspace returns the workspace ID that owns formID, after verifying
+// that accountID is a member. Returns (workspaceID, true) on success, or writes
+// an error response and returns ("", false) on failure.
+func resolveFormWorkspace(w http.ResponseWriter, r *http.Request, fSvc formsSvc, wsSvc workspaceSvc, accountID, formID string) (string, bool) {
+	workspaceID, err := fSvc.GetFormWorkspace(r.Context(), formID)
+	if err != nil {
+		if errors.Is(err, errFormNotFound) || err.Error() == "form not found" {
+			writeError(w, http.StatusNotFound, "not_found", "form not found")
+		} else {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve form workspace")
+		}
+		return "", false
+	}
+	if err := wsSvc.ValidateMember(r.Context(), workspaceID, accountID); err != nil {
+		writeError(w, http.StatusForbidden, "forbidden", "access denied")
+		return "", false
+	}
+	return workspaceID, true
 }
 
 // Handler builds the responses sub-router, mounted under /api/forms/{formId}/responses.
-func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
+func Handler(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/", listResponses(svc, wsSvc))
-	r.Get("/{rid}", getResponse(svc, wsSvc))
-	r.Delete("/{rid}", deleteResponse(svc, wsSvc))
+	r.Get("/", listResponses(svc, fSvc, wsSvc))
+	r.Get("/{rid}", getResponse(svc, fSvc, wsSvc))
+	r.Delete("/{rid}", deleteResponse(svc, fSvc, wsSvc))
 	return r
 }
 
-func listResponses(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+func listResponses(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
+		formID := chi.URLParam(r, "formId")
+		workspaceID, ok := resolveFormWorkspace(w, r, fSvc, wsSvc, accountID, formID)
+		if !ok {
 			return
 		}
-		formID := chi.URLParam(r, "formId")
 
 		var after *string
 		if v := r.URL.Query().Get("after"); v != "" {
@@ -83,16 +109,15 @@ func listResponses(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	}
 }
 
-func getResponse(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+func getResponse(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
-			return
-		}
 		formID := chi.URLParam(r, "formId")
 		responseID := chi.URLParam(r, "rid")
+		workspaceID, ok := resolveFormWorkspace(w, r, fSvc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
 
 		resp, err := svc.GetResponse(r.Context(), workspaceID, formID, responseID)
 		if err != nil {
@@ -115,16 +140,15 @@ func getResponse(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 	}
 }
 
-func deleteResponse(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+func deleteResponse(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accountID := mw.AccountID(r.Context())
-		workspaceID, err := wsSvc.GetPersonalWorkspaceID(r.Context(), accountID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to resolve workspace")
-			return
-		}
 		formID := chi.URLParam(r, "formId")
 		responseID := chi.URLParam(r, "rid")
+		workspaceID, ok := resolveFormWorkspace(w, r, fSvc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
 
 		if err := svc.DeleteResponse(r.Context(), workspaceID, formID, responseID); err != nil {
 			if errors.Is(err, ErrNotFound) {

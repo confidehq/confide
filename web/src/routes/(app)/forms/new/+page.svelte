@@ -6,6 +6,7 @@
 	import { emptySchema } from '$lib/stores/builder.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 
 	let status = $state<'creating' | 'error'>('creating');
 	let errorMessage = $state('');
@@ -17,7 +18,9 @@
 			return;
 		}
 
-		const workspaceId = $page.url.searchParams.get('workspaceId') ?? undefined;
+		// Prefer explicit query param, then fall back to active workspace
+		const workspaceId =
+			$page.url.searchParams.get('workspaceId') ?? workspacesStore.active?.id ?? undefined;
 
 		try {
 			const schema = emptySchema();

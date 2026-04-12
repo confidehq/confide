@@ -1,14 +1,13 @@
 /**
  * Confide forms cache store (Svelte 5 runes).
  *
- * Caches the decrypted forms list in memory so navigating back to /forms
- * is instant. Cache is invalidated on create/delete and cleared whenever
- * the master key is cleared (zero-knowledge constraint: decrypted data
- * must never outlive the in-memory key).
+ * Workspace-aware: the cache is keyed to the currently-active workspace.
+ * Switching workspaces resets the cache and triggers a fresh load.
  */
 
 import { listForms, getForm, type FormSummary } from '$lib/forms';
 
+let _workspaceId = $state<string | null>(null);
 let _forms = $state<FormSummary[]>([]);
 let _formNames = $state<Map<string, string>>(new Map());
 let _loaded = $state(false);
@@ -31,30 +30,46 @@ export const formsStore = {
 	get error() {
 		return _error;
 	},
+	get workspaceId() {
+		return _workspaceId;
+	},
 
-	/** Load forms list and decrypt names. No-ops if already loaded. */
-	async load(masterKey: CryptoKey) {
-		if (_loaded || _loading) return;
+	/** Load forms for a workspace. No-ops if already loaded for the same workspace. */
+	async load(masterKey: CryptoKey, workspaceId: string) {
+		if (_workspaceId === workspaceId && (_loaded || _loading)) return;
+
+		// New workspace — reset state before loading
+		_workspaceId = workspaceId;
+		_loaded = false;
 		_loading = true;
 		_error = '';
+		_forms = [];
+		_formNames = new Map();
+
 		try {
-			_forms = await listForms();
+			const forms = await listForms(workspaceId);
+			// Guard against a concurrent workspace switch overtaking this load
+			if (_workspaceId !== workspaceId) return;
+			_forms = forms;
 			_loaded = true;
 		} catch (err) {
+			if (_workspaceId !== workspaceId) return;
 			_error = err instanceof Error ? err.message : 'Failed to load forms';
 		} finally {
-			_loading = false;
+			if (_workspaceId === workspaceId) _loading = false;
 		}
 
 		// Decrypt names in parallel (best-effort; failures silently ignored)
-		if (_loaded && masterKey && _forms.length > 0) {
-			const results = await Promise.allSettled(_forms.map((f) => getForm(masterKey, f.formId)));
+		if (_loaded && _forms.length > 0 && _workspaceId === workspaceId) {
+			const snap = _forms;
+			const results = await Promise.allSettled(snap.map((f) => getForm(masterKey, f.formId)));
+			if (_workspaceId !== workspaceId) return; // stale
 			const names = new Map(_formNames);
 			results.forEach((r, i) => {
 				if (r.status === 'fulfilled') {
 					const { schema } = r.value;
 					const name = schema.name || schema.translations[schema.defaultLocale]?.formTitle;
-					if (name) names.set(_forms[i].formId, name);
+					if (name) names.set(snap[i].formId, name);
 				}
 			});
 			_formNames = names;
@@ -86,6 +101,7 @@ export const formsStore = {
 
 	/** Wipe everything — must be called when master key is cleared. */
 	clear() {
+		_workspaceId = null;
 		_forms = [];
 		_formNames = new Map();
 		_loaded = false;

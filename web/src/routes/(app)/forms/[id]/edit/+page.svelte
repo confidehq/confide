@@ -129,7 +129,7 @@
 				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[200px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
+				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
 			/>
 
 			<!-- Layout selector — hidden on mobile -->

@@ -87,7 +87,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			r.Use(mw.Authenticator(svc.Auth))
 			r.Mount("/forms", forms.Handler(svc.Forms, svc.Workspace))
 			r.Route("/forms/{formId}/responses", func(r chi.Router) {
-				r.Mount("/", responses.Handler(svc.Responses, svc.Workspace))
+				r.Mount("/", responses.Handler(svc.Responses, svc.Forms, svc.Workspace))
 			})
 			r.Mount("/", identity.Handler(svc.Identity))
 			r.Mount("/workspaces", workspace.Handler(svc.Workspace))

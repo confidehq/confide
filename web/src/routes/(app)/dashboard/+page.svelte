@@ -1,58 +1,39 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import { listForms, getForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces } from '$lib/workspaces';
 	import { goto } from '$app/navigation';
 	import { ArrowRight } from '@lucide/svelte';
 
-	interface DashboardForm extends FormSummary {
-		workspaceId: string;
-		workspaceName: string;
-	}
-
 	let loading = $state(false);
-	let loaded = $state(false);
-	let error = $state('');
-	let allForms = $state<DashboardForm[]>([]);
+	let currentWorkspaceId = $state<string | null>(null);
+	let allForms = $state<FormSummary[]>([]);
 	let formNames = $state<Map<string, string>>(new Map());
 
 	$effect(() => {
-		if (auth.masterKey && !loaded && !loading) {
-			loadAll(auth.masterKey);
+		const workspace = workspacesStore.active;
+		const masterKey = auth.masterKey;
+		if (masterKey && workspace && workspace.id !== currentWorkspaceId) {
+			loadWorkspace(masterKey, workspace.id);
 		}
 	});
 
-	async function loadAll(masterKey: CryptoKey) {
+	async function loadWorkspace(masterKey: CryptoKey, workspaceId: string) {
 		loading = true;
-		error = '';
+		currentWorkspaceId = workspaceId;
+		allForms = [];
+		formNames = new Map();
 		try {
-			const workspaces = await listWorkspaces();
+			const forms = await listForms(workspaceId);
+			if (currentWorkspaceId !== workspaceId) return;
 
-			// Fetch forms from every workspace in parallel (personal workspace is included in the list)
-			const sources = workspaces.map(w => ({ workspaceId: w.id, workspaceName: w.name }));
+			forms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+			allForms = forms;
 
-			const results = await Promise.allSettled(
-				sources.map(s => listForms(s.workspaceId))
-			);
-
-			const merged: DashboardForm[] = [];
-			results.forEach((r, i) => {
-				if (r.status === 'fulfilled') {
-					for (const f of r.value) {
-						merged.push({ ...f, workspaceId: sources[i].workspaceId, workspaceName: sources[i].workspaceName });
-					}
-				}
-			});
-
-			// Sort by updatedAt descending
-			merged.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-			allForms = merged;
-			loaded = true;
-
-			// Decrypt names best-effort
-			if (merged.length > 0) {
-				const top = merged.slice(0, 10);
+			if (forms.length > 0) {
+				const top = forms.slice(0, 10);
 				const nameResults = await Promise.allSettled(top.map(f => getForm(masterKey, f.formId)));
+				if (currentWorkspaceId !== workspaceId) return;
 				const names = new Map<string, string>();
 				nameResults.forEach((r, i) => {
 					if (r.status === 'fulfilled') {
@@ -63,10 +44,10 @@
 				});
 				formNames = names;
 			}
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load';
+		} catch {
+			// non-fatal
 		} finally {
-			loading = false;
+			if (currentWorkspaceId === workspaceId) loading = false;
 		}
 	}
 
@@ -79,15 +60,16 @@
 		return formNames.get(formId) ?? '—';
 	}
 
-	function shortId(id: string): string {
-		return id.slice(0, 8) + '…';
-	}
-
 	const stats = $derived([
-		{ label: 'Total forms', value: loading ? '…' : String(totalForms) },
+		{ label: 'Forms', value: loading ? '…' : String(totalForms) },
 		{ label: 'Open', value: loading ? '…' : String(openForms) },
 		{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
 	]);
+
+	function newFormHref(): string {
+		const ws = workspacesStore.active;
+		return ws ? `/forms/new?workspaceId=${ws.id}` : '/forms/new';
+	}
 </script>
 
 <svelte:head>
@@ -100,13 +82,24 @@
 	<!-- Header -->
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div class="min-w-0">
-			<h1 class="text-2xl m-0 mb-1.5 text-[#e2e8f0] font-semibold">Dashboard</h1>
-			<p class="m-0 text-base text-[#374d63] truncate" title={auth.accountId ?? undefined}>
-				{auth.accountId ? shortId(auth.accountId) : '—'}
-			</p>
+			<h1 class="text-2xl m-0 mb-1 text-[#e2e8f0] font-semibold">Dashboard</h1>
+			{#if workspacesStore.active}
+				<p class="m-0 text-sm text-[#4b6280] flex items-center gap-1.5">
+					<span>{workspacesStore.active.name}</span>
+					<span class="text-[#1e3347]">·</span>
+					<span class="capitalize
+						{workspacesStore.active.plan === 'pro' && workspacesStore.active.planStatus === 'active'
+							? 'text-[#4ade80]'
+							: 'text-[#4b6280]'}">
+						{workspacesStore.active.plan}
+					</span>
+				</p>
+			{:else if workspacesStore.loading}
+				<p class="m-0 text-sm text-[#374d63]">Loading…</p>
+			{/if}
 		</div>
 		<button
-			onclick={() => goto('/forms/new')}
+			onclick={() => goto(newFormHref())}
 			class="shrink-0 px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100"
 		>+ New form</button>
 	</div>
@@ -132,16 +125,14 @@
 			{/if}
 		</div>
 
-		{#if loading}
+		{#if loading && recentForms.length === 0}
 			<div class="py-6 text-center text-[#374d63] text-base">Loading…</div>
-		{:else if error}
-			<div class="py-6 text-center text-error-muted text-base">{error}</div>
-		{:else if recentForms.length === 0}
+		{:else if recentForms.length === 0 && !loading}
 			<div class="py-10 border border-dashed border-border rounded-lg text-center">
 				<p class="m-0 mb-1 text-[#4b6280] text-base">No forms yet</p>
 				<p class="m-0 text-[#374d63] text-base">Create your first form to start collecting responses</p>
 				<button
-					onclick={() => goto('/forms/new')}
+					onclick={() => goto(newFormHref())}
 					class="mt-4 px-4 py-2 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 				>+ New form</button>
 			</div>
@@ -151,30 +142,23 @@
 					<div
 						class="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-[#1a2840] transition-colors duration-100
 							{i < recentForms.length - 1 ? 'border-b border-border-deep' : ''}"
-						onclick={() => goto(`/forms/${form.formId}/edit`)}
+						onclick={() => goto(`/forms/${form.formId}`)}
 						role="button"
 						tabindex="0"
-						onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}/edit`)}
+						onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}`)}
 					>
-						<!-- Status dot -->
 						<span class="shrink-0 w-2 h-2 rounded-full
 							{form.status === 'open' ? 'bg-[#4ade80]' : 'bg-[#374d63]'}">
 						</span>
 
-						<!-- Name + workspace -->
-						<span class="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-							<span class="text-base text-[#c5d3e0] truncate">{formName(form.formId)}</span>
-							<span class="shrink-0 hidden sm:inline px-2 py-0.5 rounded text-xs text-[#4b6280] bg-[#0f1e2e] border border-border-deep">
-								{form.workspaceName}
-							</span>
+						<span class="flex-1 min-w-0 overflow-hidden">
+							<span class="text-base text-[#c5d3e0] truncate block">{formName(form.formId)}</span>
 						</span>
 
-						<!-- Responses -->
 						<span class="shrink-0 text-base text-[#4b6280] tabular-nums hidden sm:block">
 							{form.responseCount} {form.responseCount === 1 ? 'response' : 'responses'}
 						</span>
 
-						<!-- Status badge -->
 						<span class="shrink-0 hidden sm:inline px-2.5 py-0.5 rounded-full text-base
 							{form.status === 'open'
 								? 'bg-open-bg text-open-text border border-open-border'
@@ -182,7 +166,6 @@
 							{form.status}
 						</span>
 
-						<!-- Responses (mobile) -->
 						<span class="shrink-0 text-base text-[#4b6280] tabular-nums sm:hidden">
 							{form.responseCount}r
 						</span>

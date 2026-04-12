@@ -14,6 +14,7 @@
 	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
 	import { CheckCheck, RefreshCw } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 
 	type AnswerValue = string | string[] | number | null | undefined;
 
@@ -219,12 +220,13 @@
 <div class="flex flex-col flex-1 min-h-0 h-full font-mono">
 
 	<!-- Top bar -->
-	<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0">
-		<span class="text-sm text-[#c5d3e0] whitespace-nowrap overflow-hidden text-ellipsis">{formName ?? '—'}</span>
-		<div class="w-px h-3 bg-border-subtle shrink-0"></div>
-		<span class="text-sm text-[#4b6280] whitespace-nowrap">{formId.slice(0, 16)}…</span>
-		<div class="flex-1"></div>
-		<a href="/forms/{formId}/edit" class="font-mono text-sm text-[#93c5fd] no-underline px-2.5 py-0.5 border border-border-subtle rounded-sm whitespace-nowrap">→ Edit form</a>
+	<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-hidden">
+		<Breadcrumb items={[
+			{ label: 'Forms', href: '/forms' },
+			{ label: formName || formId.slice(0, 12) + '…', href: `/forms/${formId}` },
+			...(selectedRecord ? [{ label: selectedRecord.id }] : [])
+		]} />
+		<div class="flex-1 shrink-0"></div>
 	</div>
 
 	<!-- Shell -->
@@ -313,9 +315,9 @@
 				</div>
 			{:else}
 				<!-- Detail header -->
-				<div class="px-6 pt-[18px] pb-3.5 border-b border-[#243347] shrink-0 flex items-start justify-between gap-4">
+				<div class="px-6 pt-5 pb-4 border-b border-[#243347] shrink-0 flex items-start justify-between gap-4">
 					<div class="min-w-0">
-						<p class="text-sm text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
+						<p class="text-base text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
 						<p class="text-sm text-[#4b6280] m-0">
 							Received {formatDateLong(selectedRecord.receivedAt)}
 							{#if selectedDecrypted}
@@ -327,7 +329,7 @@
 					<div class="flex items-center gap-2 shrink-0">
 						<button
 							onclick={() => (confirmDelete = selectedRecord.id)}
-							class="px-3 py-1 bg-transparent text-[#f87171] border border-[#1e3048] rounded cursor-pointer font-mono text-sm transition-colors duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
+							class="px-4 py-2 bg-transparent text-[#f87171] border border-[#1e3048] rounded cursor-pointer font-mono text-base transition-colors duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
 						>
 							Delete
 						</button>
@@ -337,20 +339,20 @@
 				<!-- Detail content -->
 				<div class="flex-1 overflow-y-auto p-6">
 					{#if isDecryptingSelected}
-						<div class="flex items-center gap-2.5 text-[#4b6280] text-sm py-8">
+						<div class="flex items-center gap-2.5 text-[#4b6280] text-base py-8">
 							<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
 							Decrypting…
 						</div>
 					{:else if selectedDecryptError}
-						<p class="text-error-light text-sm py-3 m-0">{selectedDecryptError}</p>
+						<p class="text-error-light text-base py-3 m-0">{selectedDecryptError}</p>
 					{:else if selectedDecrypted}
-						<div class="flex flex-col gap-5">
+						<div class="flex flex-col gap-6">
 							{#each selectedDecrypted.schema.fields as field (field.id)}
 								{#if field.type !== 'section_break'}
 									{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
 									{@const answer = renderAnswer(field, selectedDecrypted)}
-									<div class="border-b border-border-deep pb-5 last:border-b-0 last:pb-0">
-										<p class="text-xs font-semibold tracking-[0.06em] uppercase text-[#4b6280] m-0 mb-1.5">
+									<div class="border-b border-border-deep pb-6 last:border-b-0 last:pb-0">
+										<p class="text-sm font-semibold tracking-[0.08em] uppercase text-[#4b6280] m-0 mb-2">
 											{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
 										</p>
 										<p class="text-base text-[#c5d3e0] m-0 leading-relaxed whitespace-pre-wrap break-words

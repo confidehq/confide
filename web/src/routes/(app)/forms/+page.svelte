@@ -3,10 +3,13 @@
 	import { updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	$effect(() => {
-		if (auth.masterKey) formsStore.load(auth.masterKey);
+		const workspace = workspacesStore.active;
+		const masterKey = auth.masterKey;
+		if (masterKey && workspace) formsStore.load(masterKey, workspace.id);
 	});
 
 	let pendingDelete = $state<FormSummary | null>(null);
@@ -63,10 +66,18 @@
 <div class="flex justify-center w-full">
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
-	<div class="flex items-center justify-between mb-8 gap-4">
-		<h1 class="text-2xl m-0 text-[#e2e8f0] font-semibold">Forms</h1>
+	<div class="flex items-start justify-between mb-8 gap-4">
+		<div class="min-w-0">
+			<h1 class="text-2xl m-0 mb-1 text-[#e2e8f0] font-semibold">Forms</h1>
+			{#if workspacesStore.active}
+				<p class="m-0 text-sm text-[#4b6280]">{workspacesStore.active.name}</p>
+			{/if}
+		</div>
 		<button
-			onclick={() => goto('/forms/new')}
+			onclick={() => {
+				const ws = workspacesStore.active;
+				goto(ws ? `/forms/new?workspaceId=${ws.id}` : '/forms/new');
+			}}
 			class="shrink-0 px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100"
 		>+ New form</button>
 	</div>
@@ -104,19 +115,19 @@
 					<div class="flex gap-2 flex-wrap">
 						<button
 							onclick={() => goto(`/forms/${form.formId}/edit`)}
-							class="px-3 py-1.5 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							class="px-4 py-2 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 						>Edit</button>
 						<button
 							onclick={() => goto(`/forms/${form.formId}/responses`)}
-							class="px-3 py-1.5 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							class="px-4 py-2 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 						>Responses</button>
 						<button
 							onclick={() => toggleStatus(form)}
-							class="px-3 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							class="px-4 py-2 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 						>{form.status === 'open' ? 'Close' : 'Open'}</button>
 						<button
 							onclick={() => handleDelete(form)}
-							class="px-3 py-1.5 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-[#7f1d1d] transition-colors duration-100"
+							class="px-4 py-2 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-[#7f1d1d] transition-colors duration-100"
 						>Delete</button>
 					</div>
 				</div>
@@ -162,19 +173,19 @@
 							<div class="flex gap-2 justify-end">
 								<button
 									onclick={() => goto(`/forms/${form.formId}/edit`)}
-									class="px-3 py-1.5 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+									class="px-4 py-2 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 								>Edit</button>
 								<button
 									onclick={() => goto(`/forms/${form.formId}/responses`)}
-									class="px-3 py-1.5 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+									class="px-4 py-2 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 								>Responses ({form.responseCount})</button>
 								<button
 									onclick={() => toggleStatus(form)}
-									class="px-3 py-1.5 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+									class="px-4 py-2 bg-transparent text-[#8899aa] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 								>{form.status === 'open' ? 'Close' : 'Open'}</button>
 								<button
 									onclick={() => handleDelete(form)}
-									class="px-3 py-1.5 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-[#7f1d1d] transition-colors duration-100"
+									class="px-4 py-2 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-[#7f1d1d] transition-colors duration-100"
 								>Delete</button>
 							</div>
 						</td>

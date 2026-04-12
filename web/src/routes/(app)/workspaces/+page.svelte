@@ -4,7 +4,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { listForms, getForm, type FormSummary } from '$lib/forms';
 	import { listWorkspaces, createWorkspace, deleteWorkspace, type Workspace, WorkspaceError } from '$lib/workspaces';
-	import { ArrowRight, Building2, MoreHorizontal, X } from '@lucide/svelte';
+	import { ArrowRight, Building2, MoreHorizontal, Trash2, X } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	let workspaces = $state<Workspace[]>([]);
@@ -21,9 +21,11 @@
 	let creating = $state(false);
 	let createError = $state('');
 
-	// Settings dialog
-	let settingsWs = $state<Workspace | null>(null);
-	let deleteConfirm = $state(false);
+	// Dropdown menu
+	let openMenuId = $state<string | null>(null);
+
+	// Delete confirm
+	let deleteTarget = $state<Workspace | null>(null);
 	let deleting = $state(false);
 	let deleteError = $state('');
 
@@ -75,29 +77,16 @@
 		createError = '';
 	}
 
-	// ─── Settings dialog ──────────────────────────────────────────────────────
-
-	function openSettings(ws: Workspace) {
-		settingsWs = ws;
-		deleteConfirm = false;
-		deleteError = '';
-	}
-
-	function closeSettings() {
-		settingsWs = null;
-		deleteConfirm = false;
-		deleteError = '';
-		deleting = false;
-	}
+	// ─── Delete workspace ─────────────────────────────────────────────────────
 
 	async function handleDelete() {
-		if (!settingsWs) return;
+		if (!deleteTarget) return;
 		deleting = true;
 		deleteError = '';
 		try {
-			await deleteWorkspace(settingsWs.id);
-			workspaces = workspaces.filter(w => w.id !== settingsWs!.id);
-			closeSettings();
+			await deleteWorkspace(deleteTarget.id);
+			workspaces = workspaces.filter(w => w.id !== deleteTarget!.id);
+			deleteTarget = null;
 		} catch (e) {
 			deleteError = e instanceof Error ? e.message : 'Failed to delete workspace.';
 		} finally {
@@ -142,40 +131,14 @@
 </svelte:head>
 
 <ConfirmDialog
-	open={deleteConfirm && !!settingsWs}
+	open={!!deleteTarget}
 	title="Delete workspace?"
-	description={settingsWs ? `This will permanently delete "${settingsWs.name}" and all its forms. This cannot be undone.` : ''}
+	description={deleteTarget ? `This will permanently delete "${deleteTarget.name}" and all its forms. This cannot be undone.` : ''}
 	loading={deleting}
 	error={deleteError}
 	onconfirm={handleDelete}
-	oncancel={() => { deleteConfirm = false; deleteError = ''; }}
+	oncancel={() => { deleteTarget = null; deleteError = ''; }}
 />
-
-<!-- Settings dialog -->
-{#if settingsWs}
-	<div
-		class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-		onclick={e => { if (e.target === e.currentTarget) closeSettings(); }}
-		role="dialog"
-		aria-modal="true"
-	>
-		<div class="font-mono w-full max-w-sm bg-[#111827] border border-border rounded-lg p-6 flex flex-col gap-5">
-			<div class="flex items-center justify-between gap-3">
-				<span class="text-base font-semibold text-[#e2e8f0] truncate">{settingsWs.name}</span>
-				<button
-					onclick={closeSettings}
-					class="shrink-0 bg-transparent border-none cursor-pointer text-[#4b6280] hover:text-[#c5d3e0] transition-colors duration-100 p-1 rounded"
-					aria-label="Close"
-				><X size={16} strokeWidth={1.75} /></button>
-			</div>
-
-			<button
-				onclick={() => { deleteConfirm = true; }}
-				class="w-full px-4 py-2.5 bg-transparent text-[#f87171] border border-[#1e3048] rounded cursor-pointer font-mono text-sm text-left hover:bg-[#2d1515] hover:border-[#7f1d1d] transition-colors duration-100"
-			>Delete workspace…</button>
-		</div>
-	</div>
-{/if}
 
 <div class="flex justify-center w-full">
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
@@ -274,12 +237,37 @@
 								class="px-3 py-1.5 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>+ New form</button>
 
-							<!-- Settings (three dots) -->
-							<button
-								onclick={() => openSettings(ws)}
-								class="flex items-center justify-center w-8 h-8 bg-transparent border border-border-deep rounded cursor-pointer text-[#4b6280] hover:text-[#c5d3e0] hover:border-border-subtle transition-colors duration-100"
-								aria-label="Workspace settings"
-							><MoreHorizontal size={16} strokeWidth={1.75} /></button>
+							<!-- Dropdown menu -->
+							<div class="relative">
+								{#if openMenuId === ws.id}
+									<div
+										class="fixed inset-0 z-10"
+										onclick={() => (openMenuId = null)}
+										role="presentation"
+									></div>
+								{/if}
+								<button
+									onclick={() => (openMenuId = openMenuId === ws.id ? null : ws.id)}
+									class="flex items-center justify-center w-8 h-8 bg-transparent border rounded cursor-pointer text-[#4b6280] transition-colors duration-100
+										{openMenuId === ws.id
+											? 'text-[#c5d3e0] border-border-subtle bg-[#1e2c3d]'
+											: 'border-border-deep hover:text-[#c5d3e0] hover:border-border-subtle'}"
+									aria-label="Workspace options"
+									aria-expanded={openMenuId === ws.id}
+								><MoreHorizontal size={16} strokeWidth={1.75} /></button>
+
+								{#if openMenuId === ws.id}
+									<div class="absolute right-0 top-[calc(100%+5px)] z-20 min-w-[180px] bg-[#111e2d] border border-[#243347] rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.5)] overflow-hidden py-1">
+										<button
+											onclick={() => { openMenuId = null; deleteTarget = ws; deleteError = ''; }}
+											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-[#f87171] text-left transition-colors duration-100 hover:bg-[#2d1515]"
+										>
+											<Trash2 size={13} strokeWidth={1.75} />
+											Delete workspace…
+										</button>
+									</div>
+								{/if}
+							</div>
 						</div>
 					</div>
 
@@ -296,10 +284,10 @@
 								<div
 									class="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-[#1a2840] transition-colors duration-100
 										{i < forms.length - 1 ? 'border-b border-border-deep' : ''}"
-									onclick={() => goto(`/forms/${form.formId}/edit`)}
+									onclick={() => goto(`/forms/${form.formId}`)}
 									role="button"
 									tabindex="0"
-									onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}/edit`)}
+									onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}`)}
 								>
 									<span class="shrink-0 w-2 h-2 rounded-full
 										{form.status === 'open' ? 'bg-[#4ade80]' : 'bg-[#374d63]'}">
