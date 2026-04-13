@@ -9,6 +9,15 @@ export interface Workspace {
 	role: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
+export interface WorkspaceMember {
+	accountId: string;
+	username: string;
+	role: 'owner' | 'admin' | 'member' | 'viewer';
+	joinedAt: string;
+	status: 'active' | 'pending';
+	lastSeen: string; // ISO date string, empty if never logged in
+}
+
 export class WorkspaceError extends Error {
 	constructor(
 		public code: string,
@@ -100,6 +109,102 @@ export async function listWorkspaces(): Promise<Workspace[]> {
 	if (!res.ok) throw new WorkspaceError('list_failed', `Failed to load workspaces (${res.status})`);
 	const body = await res.json();
 	return body.workspaces ?? [];
+}
+
+export async function listMembers(workspaceId: string): Promise<WorkspaceMember[]> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/members`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'list_failed';
+		const message = (body as { message?: string }).message ?? `Failed to load members (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	const body = await res.json();
+	return body.members ?? [];
+}
+
+export async function updateMemberRole(
+	workspaceId: string,
+	accountId: string,
+	role: string
+): Promise<void> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ role })
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'update_failed';
+		const message = (body as { message?: string }).message ?? `Failed to update role (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
+export async function removeMember(workspaceId: string, accountId: string): Promise<void> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
+		method: 'DELETE'
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'remove_failed';
+		const message = (body as { message?: string }).message ?? `Failed to remove member (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
+// ─── Invitations ──────────────────────────────────────────────────────────────
+
+export interface WorkspaceInvitation {
+	id: string;
+	workspaceId: string;
+	email: string;
+	role: 'owner' | 'admin' | 'member' | 'viewer';
+	expiresAt: string;
+	createdAt: string;
+}
+
+export async function createInvitation(
+	workspaceId: string,
+	email: string,
+	role: string
+): Promise<WorkspaceInvitation> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ email, role })
+	});
+	const body = await res.json().catch(() => ({}));
+	if (!res.ok) {
+		const code = (body as { code?: string }).code ?? 'invite_failed';
+		const message = (body as { message?: string }).message ?? `Failed to send invitation (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return body as WorkspaceInvitation;
+}
+
+export async function listInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'list_failed';
+		const message = (body as { message?: string }).message ?? `Failed to load invitations (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	const body = await res.json();
+	return body.invitations ?? [];
+}
+
+export async function revokeInvitation(workspaceId: string, inviteId: string): Promise<void> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/invitations/${inviteId}`, {
+		method: 'DELETE'
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'revoke_failed';
+		const message = (body as { message?: string }).message ?? `Failed to revoke invitation (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
 }
 
 /**

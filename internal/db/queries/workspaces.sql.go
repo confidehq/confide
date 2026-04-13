@@ -343,9 +343,17 @@ func (q *Queries) ListMemberIdentityKeys(ctx context.Context, workspaceID string
 }
 
 const listWorkspaceMembers = `-- name: ListWorkspaceMembers :many
-SELECT wm.account_id, wm.role, wm.joined_at, a.username
+SELECT
+  wm.account_id,
+  wm.role,
+  wm.joined_at,
+  a.username,
+  CASE WHEN wmk.account_id IS NOT NULL THEN 'active' ELSE 'pending' END AS status,
+  (SELECT MAX(s.last_seen) FROM sessions s WHERE s.account_id = wm.account_id) AS last_seen
 FROM workspace_members wm
 JOIN accounts a ON a.id = wm.account_id
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
 WHERE wm.workspace_id = $1
 ORDER BY wm.joined_at ASC
 `
@@ -355,6 +363,8 @@ type ListWorkspaceMembersRow struct {
 	Role      string
 	JoinedAt  pgtype.Timestamptz
 	Username  pgtype.Text
+	Status    string
+	LastSeen  pgtype.Date
 }
 
 func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID string) ([]ListWorkspaceMembersRow, error) {
@@ -371,6 +381,8 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID string) 
 			&i.Role,
 			&i.JoinedAt,
 			&i.Username,
+			&i.Status,
+			&i.LastSeen,
 		); err != nil {
 			return nil, err
 		}

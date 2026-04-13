@@ -62,9 +62,17 @@ UPDATE workspaces SET name = $2 WHERE id = $1;
 DELETE FROM workspaces WHERE id = $1;
 
 -- name: ListWorkspaceMembers :many
-SELECT wm.account_id, wm.role, wm.joined_at, a.username
+SELECT
+  wm.account_id,
+  wm.role,
+  wm.joined_at,
+  a.username,
+  CASE WHEN wmk.account_id IS NOT NULL THEN 'active' ELSE 'pending' END AS status,
+  (SELECT MAX(s.last_seen) FROM sessions s WHERE s.account_id = wm.account_id) AS last_seen
 FROM workspace_members wm
 JOIN accounts a ON a.id = wm.account_id
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
 WHERE wm.workspace_id = $1
 ORDER BY wm.joined_at ASC;
 

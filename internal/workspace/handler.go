@@ -185,6 +185,8 @@ func listMembers(svc *Service) http.HandlerFunc {
 				"username":  m.Username,
 				"role":      m.Role,
 				"joinedAt":  m.JoinedAt,
+				"status":    m.Status,
+				"lastSeen":  m.LastSeen,
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"members": out})

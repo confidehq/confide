@@ -74,6 +74,8 @@ type Member struct {
 	Username  string
 	Role      string
 	JoinedAt  string
+	Status    string // "active" | "pending"
+	LastSeen  string // ISO date, empty if never logged in
 }
 
 // roleRank returns a numeric rank for comparison (higher = more privileged).
@@ -306,11 +308,17 @@ func (s *Service) ListMembers(ctx context.Context, workspaceID, accountID string
 	}
 	out := make([]Member, len(rows))
 	for i, r := range rows {
+		lastSeen := ""
+		if r.LastSeen.Valid {
+			lastSeen = r.LastSeen.Time.Format("2006-01-02")
+		}
 		out[i] = Member{
 			AccountID: r.AccountID,
 			Username:  r.Username.String,
 			Role:      r.Role,
 			JoinedAt:  r.JoinedAt.Time.Format("2006-01-02"),
+			Status:    r.Status,
+			LastSeen:  lastSeen,
 		}
 	}
 	return out, nil
