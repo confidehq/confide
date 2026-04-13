@@ -62,7 +62,7 @@
 		publishError = '';
 		try {
 			await store.flushSave();
-			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt);
+			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined);
 			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 			publishModalOpen = true;
@@ -78,7 +78,7 @@
 		publishing = true;
 		publishError = '';
 		try {
-			const result = await rotateRenderKey(auth.masterKey, formId, store.schema);
+			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined);
 			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 		} catch (err) {

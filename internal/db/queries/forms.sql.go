@@ -15,24 +15,26 @@ const createForm = `-- name: CreateForm :one
 INSERT INTO forms (
     id, workspace_id, created_by_account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
-    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
+    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
+    workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id
+    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key
 `
 
 type CreateFormParams struct {
-	ID                    string
-	WorkspaceID           string
-	CreatedByAccountID    string
-	EncryptedSchema       []byte
-	RenderEncryptedSchema []byte
-	PublicFormKey         []byte
-	RenderKeySalt         []byte
-	ExpiresAt             pgtype.Date
-	ResponseLimit         pgtype.Int4
-	ResponseTtlDays       pgtype.Int4
-	BurnAfterReading      bool
+	ID                      string
+	WorkspaceID             string
+	CreatedByAccountID      string
+	EncryptedSchema         []byte
+	RenderEncryptedSchema   []byte
+	PublicFormKey           []byte
+	RenderKeySalt           []byte
+	ExpiresAt               pgtype.Date
+	ResponseLimit           pgtype.Int4
+	ResponseTtlDays         pgtype.Int4
+	BurnAfterReading        bool
+	WorkspaceWrappedFormKey []byte
 }
 
 func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, error) {
@@ -48,6 +50,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		arg.ResponseLimit,
 		arg.ResponseTtlDays,
 		arg.BurnAfterReading,
+		arg.WorkspaceWrappedFormKey,
 	)
 	var i Form
 	err := row.Scan(
@@ -67,6 +70,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.BurnAfterReading,
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
+		&i.WorkspaceWrappedFormKey,
 	)
 	return i, err
 }
@@ -97,7 +101,7 @@ func (q *Queries) GetFormWorkspaceID(ctx context.Context, id string) (string, er
 }
 
 const getFormByWorkspace = `-- name: GetFormByWorkspace :one
-SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id FROM forms WHERE id = $1 AND workspace_id = $2
+SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
 type GetFormByWorkspaceParams struct {
@@ -125,8 +129,26 @@ func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspace
 		&i.BurnAfterReading,
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
+		&i.WorkspaceWrappedFormKey,
 	)
 	return i, err
+}
+
+const setWorkspaceFormKey = `-- name: SetWorkspaceFormKey :exec
+UPDATE forms
+SET workspace_wrapped_form_key = $3
+WHERE id = $1 AND workspace_id = $2
+`
+
+type SetWorkspaceFormKeyParams struct {
+	ID                      string
+	WorkspaceID             string
+	WorkspaceWrappedFormKey []byte
+}
+
+func (q *Queries) SetWorkspaceFormKey(ctx context.Context, arg SetWorkspaceFormKeyParams) error {
+	_, err := q.db.Exec(ctx, setWorkspaceFormKey, arg.ID, arg.WorkspaceID, arg.WorkspaceWrappedFormKey)
+	return err
 }
 
 const getFormPublic = `-- name: GetFormPublic :one

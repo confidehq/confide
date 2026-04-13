@@ -31,6 +31,7 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Put("/{id}", updateFormSchema(svc, wsSvc))
 	r.Put("/{id}/status", updateFormStatus(svc, wsSvc))
 	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
+	r.Put("/{id}/workspace-form-key", setWorkspaceFormKey(svc, wsSvc))
 	r.Delete("/{id}", deleteForm(svc, wsSvc))
 	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
 	return r
@@ -89,16 +90,17 @@ func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		accountID := mw.AccountID(r.Context())
 
 		var req struct {
-			WorkspaceID           string  `json:"workspaceId"`
-			FormID                string  `json:"formId"`
-			EncryptedSchema       string  `json:"encryptedSchema"`
-			RenderEncryptedSchema string  `json:"renderEncryptedSchema"`
-			PublicFormKey         string  `json:"publicFormKey"`
-			RenderKeySalt         string  `json:"renderKeySalt"`
-			ExpiresAt             *string `json:"expiresAt"`
-			ResponseLimit         *int32  `json:"responseLimit"`
-			ResponseTtlDays       *int32  `json:"responseTtlDays"`
-			BurnAfterReading      bool    `json:"burnAfterReading"`
+			WorkspaceID             string  `json:"workspaceId"`
+			FormID                  string  `json:"formId"`
+			EncryptedSchema         string  `json:"encryptedSchema"`
+			RenderEncryptedSchema   string  `json:"renderEncryptedSchema"`
+			PublicFormKey           string  `json:"publicFormKey"`
+			RenderKeySalt           string  `json:"renderKeySalt"`
+			WorkspaceWrappedFormKey string  `json:"workspaceWrappedFormKey"`
+			ExpiresAt               *string `json:"expiresAt"`
+			ResponseLimit           *int32  `json:"responseLimit"`
+			ResponseTtlDays         *int32  `json:"responseTtlDays"`
+			BurnAfterReading        bool    `json:"burnAfterReading"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -145,13 +147,22 @@ func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			}
 		}
 
+		var wsWrappedFormKey []byte
+		if req.WorkspaceWrappedFormKey != "" {
+			wsWrappedFormKey, err = base64.StdEncoding.DecodeString(req.WorkspaceWrappedFormKey)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_field", "workspaceWrappedFormKey must be base64")
+				return
+			}
+		}
+
 		expiresAt, responseLimit, responseTtlDays, burnAfterReading, parseErr := parseExpirationFields(req.ExpiresAt, req.ResponseLimit, req.ResponseTtlDays, req.BurnAfterReading)
 		if parseErr != nil {
 			writeError(w, http.StatusBadRequest, "invalid_field", parseErr.Error())
 			return
 		}
 
-		formID, err := svc.CreateForm(r.Context(), workspaceID, accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, expiresAt, responseLimit, responseTtlDays, burnAfterReading)
+		formID, err := svc.CreateForm(r.Context(), workspaceID, accountID, req.FormID, encSchema, renderSchema, pubKey, renderKeySalt, wsWrappedFormKey, expiresAt, responseLimit, responseTtlDays, burnAfterReading)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create form")
 			return
@@ -239,6 +250,7 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 
 		resp := map[string]any{
 			"formId":                form.ID,
+			"workspaceId":           workspaceID,
 			"status":                effectiveStatus(form.Status, form.ResponseCount, form.ExpiresAt, form.ResponseLimit),
 			"schemaVersion":         form.SchemaVersion,
 			"responseCount":         form.ResponseCount,
@@ -251,6 +263,9 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
+		}
+		if len(form.WorkspaceWrappedFormKey) > 0 {
+			resp["workspaceWrappedFormKey"] = base64.StdEncoding.EncodeToString(form.WorkspaceWrappedFormKey)
 		}
 		if d := nullableDateString(form.ExpiresAt); d != nil {
 			resp["expiresAt"] = *d
@@ -395,6 +410,41 @@ func getSchemaVersion(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"encryptedSchema": base64.StdEncoding.EncodeToString(blob),
 			"version":         int32(version64),
 		})
+	}
+}
+
+func setWorkspaceFormKey(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
+
+		var req struct {
+			WorkspaceWrappedFormKey string `json:"workspaceWrappedFormKey"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+		if req.WorkspaceWrappedFormKey == "" {
+			writeError(w, http.StatusBadRequest, "invalid_field", "workspaceWrappedFormKey is required")
+			return
+		}
+		wrappedKey, err := base64.StdEncoding.DecodeString(req.WorkspaceWrappedFormKey)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "workspaceWrappedFormKey must be base64")
+			return
+		}
+
+		if err := svc.SetWorkspaceFormKey(r.Context(), workspaceID, formID, wrappedKey); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to set workspace form key")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

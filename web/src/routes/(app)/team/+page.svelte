@@ -4,10 +4,11 @@
 	import {
 		listMembers, updateMemberRole, removeMember,
 		listInvitations, createInvitation, revokeInvitation,
+		listMemberIdentityKeys, grantKey,
 		WorkspaceError,
-		type WorkspaceMember, type WorkspaceInvitation
+		type WorkspaceMember, type WorkspaceInvitation, type MemberIdentityKey
 	} from '$lib/workspaces';
-	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail } from '@lucide/svelte';
+	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	// ─── Members state ──────────────────────────────────────────────────────────
@@ -42,6 +43,12 @@
 	let removing = $state(false);
 	let removeError = $state('');
 
+	// ─── Key grant state ────────────────────────────────────────────────────────
+
+	let identityKeys = $state<Map<string, string>>(new Map());
+	let grantingId = $state<string | null>(null);
+	let grantError = $state('');
+
 	// ─── Load on workspace change ───────────────────────────────────────────────
 
 	$effect(() => {
@@ -55,19 +62,27 @@
 		loading = true;
 		invitationsLoading = true;
 		error = '';
+		grantError = '';
 		currentWorkspaceId = workspaceId;
 		members = [];
 		invitations = [];
+		identityKeys = new Map();
 
-		const [membersResult, invitationsResult] = await Promise.allSettled([
+		const ws = workspacesStore.active;
+		const isAdmin = ws && (ws.role === 'owner' || ws.role === 'admin');
+
+		const tasks: Promise<unknown>[] = [
 			listMembers(workspaceId),
 			listInvitations(workspaceId)
-		]);
+		];
+		if (isAdmin) tasks.push(listMemberIdentityKeys(workspaceId));
+
+		const [membersResult, invitationsResult, keysResult] = await Promise.allSettled(tasks);
 
 		if (currentWorkspaceId !== workspaceId) return;
 
 		if (membersResult.status === 'fulfilled') {
-			members = membersResult.value;
+			members = membersResult.value as WorkspaceMember[];
 		} else {
 			error = membersResult.reason instanceof Error
 				? membersResult.reason.message
@@ -75,9 +90,14 @@
 		}
 
 		if (invitationsResult.status === 'fulfilled') {
-			invitations = invitationsResult.value;
+			invitations = invitationsResult.value as WorkspaceInvitation[];
 		}
 		// invitations failing silently is fine (viewer role can't see them)
+
+		if (keysResult?.status === 'fulfilled') {
+			const keyList = keysResult.value as MemberIdentityKey[];
+			identityKeys = new Map(keyList.map(k => [k.accountId, k.identityPublicKey]));
+		}
 
 		loading = false;
 		invitationsLoading = false;
@@ -139,6 +159,30 @@
 			invitations = invitations.filter(i => i.id !== inv.id);
 		} catch { /* non-fatal */ } finally {
 			revokingId = null;
+		}
+	}
+
+	// ─── Key grant ──────────────────────────────────────────────────────────────
+
+	async function handleGrant(member: WorkspaceMember) {
+		const ws = workspacesStore.active;
+		const masterKey = auth.masterKey;
+		if (!ws || !masterKey) return;
+
+		const targetPubKey = identityKeys.get(member.accountId);
+		if (!targetPubKey) return;
+
+		grantingId = member.accountId;
+		grantError = '';
+		try {
+			await grantKey(ws.id, member.accountId, targetPubKey, masterKey);
+			members = members.map(m =>
+				m.accountId === member.accountId ? { ...m, status: 'active' as const } : m
+			);
+		} catch (e) {
+			grantError = e instanceof Error ? e.message : 'Failed to grant access.';
+		} finally {
+			grantingId = null;
 		}
 	}
 
@@ -361,6 +405,12 @@
 		</div>
 	{/if}
 
+	{#if grantError}
+		<div class="mb-4 px-4 py-3 border border-[#7f1d1d] rounded-lg text-sm text-error-muted bg-[#1a0e0e]">
+			{grantError}
+		</div>
+	{/if}
+
 	{#if loading && members.length === 0}
 		<p class="text-[#4b6280] text-base">Loading…</p>
 	{:else if error}
@@ -385,7 +435,9 @@
 						<div class="flex items-center gap-2 shrink-0">
 							<span class="inline-flex items-center gap-1 text-xs">
 								<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-[#4ade80]' : 'bg-[#a16207]'}"></span>
-								<span class="{member.status === 'active' ? 'text-[#4b6280]' : 'text-[#a16207]'} capitalize">{member.status}</span>
+								<span class="{member.status === 'active' ? 'text-[#4b6280]' : 'text-[#a16207]'} capitalize">
+									{member.status === 'pending' && !identityKeys.has(member.accountId) ? 'awaiting setup' : member.status}
+								</span>
 							</span>
 							<span class="px-2 py-0.5 rounded-full text-xs text-[#4b6280] border border-border-deep capitalize">
 								{member.role}
@@ -398,6 +450,16 @@
 					</p>
 					{#if canManage && member.accountId !== auth.accountId}
 						<div class="mt-3 flex gap-2 flex-wrap">
+							{#if member.status === 'pending' && identityKeys.has(member.accountId)}
+								<button
+									onclick={() => handleGrant(member)}
+									disabled={grantingId === member.accountId}
+									class="px-3 py-1.5 bg-[#0a1f10] text-[#4ade80] border border-[#166534] rounded cursor-pointer font-mono text-xs hover:bg-[#052e16] transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+								>
+									<KeyRound size={11} strokeWidth={1.75} />
+									{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
+								</button>
+							{/if}
 							{#each availableRoles(member) as role}
 								<button
 									onclick={() => handleRoleChange(member, role)}
@@ -416,16 +478,16 @@
 		</div>
 
 		<!-- Desktop table -->
-		<div class="hidden sm:block border border-border-deep rounded-lg overflow-hidden">
+		<div class="hidden sm:block border border-border-deep rounded-lg overflow-visible">
 			<table class="w-full border-collapse text-sm">
 				<thead>
 					<tr class="border-b border-border-deep">
-						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs">Member</th>
+						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs rounded-tl-lg">Member</th>
 						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs">Role</th>
 						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs">Status</th>
 						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs">Last login</th>
 						<th class="text-left px-4 py-3 font-normal text-[#374d63] tracking-[0.06em] uppercase text-xs">Joined</th>
-						<th class="px-4 py-3"></th>
+						<th class="px-4 py-3 rounded-tr-lg"></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -456,10 +518,31 @@
 
 							<!-- Status -->
 							<td class="px-4 py-3.5">
-								<span class="inline-flex items-center gap-1.5 text-xs">
-									<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-[#4ade80]' : 'bg-[#a16207]'}"></span>
-									<span class="{member.status === 'active' ? 'text-[#4b6280]' : 'text-[#a16207]'} capitalize">{member.status}</span>
-								</span>
+								{#if member.status === 'pending' && canManage && member.accountId !== auth.accountId}
+									{#if identityKeys.has(member.accountId)}
+										<button
+											onclick={() => handleGrant(member)}
+											disabled={grantingId === member.accountId}
+											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-colors duration-100 cursor-pointer
+												{grantingId === member.accountId
+													? 'bg-transparent text-[#4b6280] border-border-deep cursor-not-allowed'
+													: 'bg-[#0a1f10] text-[#4ade80] border-[#166534] hover:bg-[#052e16]'}"
+										>
+											<KeyRound size={11} strokeWidth={1.75} />
+											{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
+										</button>
+									{:else}
+										<span class="inline-flex items-center gap-1.5 text-xs text-[#a16207]">
+											<span class="w-1.5 h-1.5 rounded-full bg-[#a16207]"></span>
+											Awaiting setup
+										</span>
+									{/if}
+								{:else}
+									<span class="inline-flex items-center gap-1.5 text-xs">
+										<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-[#4ade80]' : 'bg-[#a16207]'}"></span>
+										<span class="{member.status === 'active' ? 'text-[#4b6280]' : 'text-[#a16207]'} capitalize">{member.status}</span>
+									</span>
+								{/if}
 							</td>
 
 							<!-- Last login -->
@@ -550,7 +633,7 @@
 			</div>
 
 			<!-- Desktop -->
-			<div class="hidden sm:block border border-border-deep rounded-lg overflow-hidden">
+			<div class="hidden sm:block border border-border-deep rounded-lg">
 				<table class="w-full border-collapse text-sm">
 					<thead>
 						<tr class="border-b border-border-deep">

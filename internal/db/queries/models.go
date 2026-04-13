@@ -29,22 +29,23 @@ type AccountIdentityKey struct {
 }
 
 type Form struct {
-	ID                    string
-	CreatedAt             pgtype.Date
-	UpdatedAt             pgtype.Date
-	Status                string
-	SchemaVersion         int32
-	ResponseCount         int32
-	EncryptedSchema       []byte
-	RenderEncryptedSchema []byte
-	PublicFormKey         []byte
-	RenderKeySalt         []byte
-	ExpiresAt             pgtype.Date
-	ResponseLimit         pgtype.Int4
-	ResponseTtlDays       pgtype.Int4
-	BurnAfterReading      bool
-	WorkspaceID           string
-	CreatedByAccountID    string
+	ID                      string
+	CreatedAt               pgtype.Date
+	UpdatedAt               pgtype.Date
+	Status                  string
+	SchemaVersion           int32
+	ResponseCount           int32
+	EncryptedSchema         []byte
+	RenderEncryptedSchema   []byte
+	PublicFormKey           []byte
+	RenderKeySalt           []byte
+	ExpiresAt               pgtype.Date
+	ResponseLimit           pgtype.Int4
+	ResponseTtlDays         pgtype.Int4
+	BurnAfterReading        bool
+	WorkspaceID             string
+	CreatedByAccountID      string
+	WorkspaceWrappedFormKey []byte // nullable; nil if not yet set
 }
 
 type FormSchemaVersion struct {

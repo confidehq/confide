@@ -3,8 +3,8 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { listForms, getForm, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, type Workspace } from '$lib/workspaces';
+	import { listForms, getForm, setWorkspaceFormKey, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
+	import { listWorkspaces, loadWorkspaceKey, type Workspace } from '$lib/workspaces';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	const workspaceId = $derived($page.params.id);
@@ -32,8 +32,12 @@
 
 			// Decrypt names in background (best-effort)
 			if (auth.masterKey && rawForms.length > 0) {
+				// Try to load the workspace key (non-owners may have it via key grant)
+				let wsKey: CryptoKey | undefined;
+				try { wsKey = await loadWorkspaceKey(workspaceId as string, auth.masterKey); } catch { /* not granted yet */ }
+
 				const results = await Promise.allSettled(
-					rawForms.map(f => getForm(auth.masterKey!, f.formId))
+					rawForms.map(f => getForm(auth.masterKey!, f.formId, wsKey))
 				);
 				const names = new Map<string, string>();
 				results.forEach((r, i) => {
@@ -44,6 +48,18 @@
 					}
 				});
 				formNames = names;
+
+				// Lazy migration: set workspaceWrappedFormKey for forms that don't have it yet
+				// Only the form creator can do this (deriveFormKey only works with creator's masterKey)
+				if (wsKey) {
+					for (let i = 0; i < rawForms.length; i++) {
+						const result = results[i];
+						const rawForm = rawForms[i];
+						if (result.status === 'fulfilled' && !result.value.record.workspaceWrappedFormKey) {
+							setWorkspaceFormKey(auth.masterKey!, rawForm.formId, wsKey).catch(() => {});
+						}
+					}
+				}
 			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to load workspace';

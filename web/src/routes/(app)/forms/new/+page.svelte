@@ -7,6 +7,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { loadWorkspaceKey } from '$lib/workspaces';
 
 	let status = $state<'creating' | 'error'>('creating');
 	let errorMessage = $state('');
@@ -24,7 +25,11 @@
 
 		try {
 			const schema = emptySchema();
-			const { formId } = await createForm(masterKey, schema, workspaceId);
+			let wsKey: CryptoKey | undefined;
+			if (workspaceId) {
+				try { wsKey = await loadWorkspaceKey(workspaceId, masterKey); } catch { /* not yet granted */ }
+			}
+			const { formId } = await createForm(masterKey, schema, workspaceId, wsKey);
 			formsStore.invalidate();
 			goto(`/forms/${formId}/edit`);
 		} catch (err) {

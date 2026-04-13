@@ -12,8 +12,11 @@ import {
 	encryptSchema,
 	decryptSchema,
 	encryptResponse,
-	decryptResponse
+	decryptResponse,
+	wrapFormKey,
+	unwrapFormKey
 } from './crypto';
+import { loadWorkspaceKey } from './workspaces';
 import type { FormSchema, ResponsePayload } from './types/crypto';
 import type { BuilderSchema } from './types/builder';
 
@@ -35,10 +38,12 @@ export interface FormSummary {
 }
 
 export interface FormRecord extends FormSummary {
+	workspaceId?: string;
 	encryptedSchema: string;
 	renderEncryptedSchema: string;
 	publicFormKey: string;
 	renderKeySalt: string | null; // base64, null if never published
+	workspaceWrappedFormKey?: string | null; // base64, null if not yet set
 }
 
 export interface EncryptedResponseRecord {
@@ -66,7 +71,8 @@ export interface ListResponsesResult {
 export async function createForm(
 	masterKey: CryptoKey,
 	schema: FormSchema,
-	workspaceId?: string
+	workspaceId?: string,
+	workspaceKey?: CryptoKey
 ): Promise<{ formId: string; renderKey: CryptoKey; renderKeySalt: Uint8Array }> {
 	// Generate a stable form ID client-side so we can derive the formKey.
 	const formId = randomBase64url(16);
@@ -93,6 +99,10 @@ export async function createForm(
 		renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
 	};
 	if (workspaceId) body.workspaceId = workspaceId;
+	if (workspaceKey) {
+		const wrapped = await wrapFormKey(formKey, workspaceKey);
+		body.workspaceWrappedFormKey = arrayBufferToBase64(wrapped);
+	}
 
 	const res = await fetch('/api/forms', {
 		method: 'POST',
@@ -106,20 +116,44 @@ export async function createForm(
 }
 
 /**
- * Fetch and decrypt a form's schema. Only the owner can call this.
+ * Fetch and decrypt a form's schema.
+ *
+ * Tries the creator path first (deriveFormKey from masterKey). If that fails
+ * (non-creator, wrong key) and the record has workspaceId + workspaceWrappedFormKey,
+ * automatically loads the workspace key and decrypts via that path.
  */
 export async function getForm(
 	masterKey: CryptoKey,
-	formId: string
-): Promise<{ schema: FormSchema; record: FormRecord }> {
+	formId: string,
+	workspaceKey?: CryptoKey
+): Promise<{ schema: FormSchema; record: FormRecord; formKey: CryptoKey }> {
 	const res = await fetch(`/api/forms/${formId}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const record: FormRecord = await res.json();
-	const formKey = await deriveFormKey(masterKey, formId);
-	const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
 
-	return { schema, record };
+	// If a workspace key was provided and the record has a wrapped form key, use it directly.
+	if (workspaceKey && record.workspaceWrappedFormKey) {
+		const formKey = await unwrapFormKey(base64ToArrayBuffer(record.workspaceWrappedFormKey), workspaceKey);
+		const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+		return { schema, record, formKey };
+	}
+
+	// Try creator path (derive from masterKey).
+	try {
+		const formKey = await deriveFormKey(masterKey, formId);
+		const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+		return { schema, record, formKey };
+	} catch {
+		// Creator path failed. If there's a workspace key path available, try it.
+		if (record.workspaceId && record.workspaceWrappedFormKey) {
+			const wsKey = await loadWorkspaceKey(record.workspaceId, masterKey);
+			const formKey = await unwrapFormKey(base64ToArrayBuffer(record.workspaceWrappedFormKey), wsKey);
+			const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+			return { schema, record, formKey };
+		}
+		throw new Error('Unable to decrypt form: no workspace key available');
+	}
 }
 
 /**
@@ -143,11 +177,12 @@ export async function updateFormSchema(
 	masterKey: CryptoKey,
 	formId: string,
 	schema: FormSchema,
-	renderKeySalt: Uint8Array
+	renderKeySalt: Uint8Array,
+	formKey?: CryptoKey
 ): Promise<{ schemaVersion: number }> {
-	const formKey = await deriveFormKey(masterKey, formId);
-	const encryptedSchema = await encryptSchema(schema, formKey);
-	const renderKey = await deriveRenderKey(formKey, renderKeySalt.buffer as ArrayBuffer);
+	const key = formKey ?? (await deriveFormKey(masterKey, formId));
+	const encryptedSchema = await encryptSchema(schema, key);
+	const renderKey = await deriveRenderKey(key, renderKeySalt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema, renderKey);
 
 	const res = await fetch(`/api/forms/${formId}`, {
@@ -235,13 +270,16 @@ export async function getResponseRecord(
 
 /**
  * Decrypt an encrypted response record using the form's X25519 private key.
+ * Pass formKeyOverride (from getForm) to skip re-derivation when the form
+ * was already loaded via workspace key.
  */
 export async function decryptResponseRecord(
 	masterKey: CryptoKey,
 	formId: string,
-	record: EncryptedResponseRecord
+	record: EncryptedResponseRecord,
+	formKeyOverride?: CryptoKey
 ): Promise<ResponsePayload> {
-	const formKey = await deriveFormKey(masterKey, formId);
+	const formKey = formKeyOverride ?? (await deriveFormKey(masterKey, formId));
 	const keypair = await deriveFormKeypair(formKey);
 
 	return decryptResponse(
@@ -249,6 +287,25 @@ export async function decryptResponseRecord(
 		base64ToArrayBuffer(record.ephemeralPublicKey),
 		keypair.privateKey
 	);
+}
+
+/**
+ * Store the workspace-encrypted form key for an existing form.
+ * Called lazily when the workspace owner loads forms that predate the migration.
+ */
+export async function setWorkspaceFormKey(
+	masterKey: CryptoKey,
+	formId: string,
+	workspaceKey: CryptoKey
+): Promise<void> {
+	const formKey = await deriveFormKey(masterKey, formId);
+	const wrapped = await wrapFormKey(formKey, workspaceKey);
+	const res = await fetch(`/api/forms/${formId}/workspace-form-key`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ workspaceWrappedFormKey: arrayBufferToBase64(wrapped) })
+	});
+	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
 /**
@@ -342,13 +399,14 @@ export async function publishForm(
 	masterKey: CryptoKey,
 	formId: string,
 	schema: BuilderSchema,
-	existingRenderKeySalt: Uint8Array | null
+	existingRenderKeySalt: Uint8Array | null,
+	formKey?: CryptoKey
 ): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
 	const salt = existingRenderKeySalt ?? crypto.getRandomValues(new Uint8Array(16));
-	const formKey = await deriveFormKey(masterKey, formId);
+	const key = formKey ?? (await deriveFormKey(masterKey, formId));
 
-	const encryptedSchema = await encryptSchema(schema as FormSchema, formKey);
-	const renderKey = await deriveRenderKey(formKey, salt.buffer as ArrayBuffer);
+	const encryptedSchema = await encryptSchema(schema as FormSchema, key);
+	const renderKey = await deriveRenderKey(key, salt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey);
 
 	const res = await fetch(`/api/forms/${formId}`, {
@@ -376,9 +434,10 @@ export async function publishForm(
 export async function rotateRenderKey(
 	masterKey: CryptoKey,
 	formId: string,
-	schema: BuilderSchema
+	schema: BuilderSchema,
+	formKey?: CryptoKey
 ): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
-	return publishForm(masterKey, formId, schema, null);
+	return publishForm(masterKey, formId, schema, null, formKey);
 }
 
 /**

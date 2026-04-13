@@ -1,11 +1,14 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { login } from '$lib/auth';
 
 	let error = $state<string | null>(null);
 	let loading = $state(false);
 	let username = $state('');
+
+	const next = $derived(page.url.searchParams.get('next') ?? '/dashboard');
 
 	async function handleLogin() {
 		error = null;
@@ -15,7 +18,7 @@
 			// Fall back to stored credentialId if username is blank.
 			const result = await login(auth.credentialId, username.trim() || undefined);
 			auth.setSession(result.masterKey, result.accountId, result.credentialId);
-			goto('/dashboard');
+			goto(next);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed.';
 		} finally {

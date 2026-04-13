@@ -22,6 +22,7 @@ export interface BuilderStore {
 	readonly selectedFieldId: string | null;
 	readonly mode: BuilderMode;
 	readonly renderKeySalt: Uint8Array | null;
+	readonly formKey: CryptoKey | null;
 	readonly expiresAt: string | null;
 	readonly responseLimit: number | null;
 	readonly responseTtlDays: number | null;
@@ -119,6 +120,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 	// Stable salt for the render key (loaded from server or generated on first save)
 	let currentRenderKeySalt: Uint8Array | null = null;
+	// The resolved form key — may come from workspace key path for non-owners
+	let resolvedFormKey: CryptoKey | null = null;
 
 	// Computed via getters in the returned object — no $derived needed.
 	// Svelte tracks these reactively because they read $state variables.
@@ -446,7 +449,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	}
 
 	async function load(): Promise<void> {
-		const { schema: loaded, record } = await getForm(masterKey, formId);
+		const { schema: loaded, record, formKey } = await getForm(masterKey, formId);
+		resolvedFormKey = formKey;
 		const s = loaded as BuilderSchema;
 		// Migrate pre-name schemas: seed name from the default locale's formTitle
 		if (!s.name) {
@@ -480,7 +484,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			if (!currentRenderKeySalt) {
 				currentRenderKeySalt = crypto.getRandomValues(new Uint8Array(16));
 			}
-			await updateFormSchema(masterKey, formId, schema, currentRenderKeySalt);
+			await updateFormSchema(masterKey, formId, schema, currentRenderKeySalt, resolvedFormKey ?? undefined);
 			lastSaved = new Date();
 			dirty = false;
 			if (schema.name) formsStore.updateName(formId, schema.name);
@@ -523,6 +527,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		},
 		get renderKeySalt() {
 			return currentRenderKeySalt;
+		},
+		get formKey() {
+			return resolvedFormKey;
 		},
 		get expiresAt() {
 			return expiresAt;

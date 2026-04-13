@@ -534,6 +534,178 @@ export async function generateAndWrapWorkspaceKey(
 }
 
 // ---------------------------------------------------------------------------
+// Public interface — identity key unwrapping + workspace key re-wrapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Decrypt a stored identity private key blob and import as an X25519 CryptoKey.
+ *
+ * Blob layout: [12-byte IV][AES-256-GCM ciphertext of PKCS8 private key]
+ * The blob was encrypted with the account's master key at identity key creation time.
+ */
+export async function unwrapIdentityPrivateKey(
+	blob: ArrayBuffer,
+	masterKey: CryptoKey
+): Promise<CryptoKey> {
+	const bytes = new Uint8Array(blob);
+	const iv = bytes.slice(0, AES_IV_BYTES);
+	const ciphertext = bytes.slice(AES_IV_BYTES);
+
+	const pkcs8 = await crypto.subtle.decrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		masterKey,
+		ciphertext
+	);
+
+	return crypto.subtle.importKey(
+		'pkcs8',
+		pkcs8,
+		{ name: 'X25519' },
+		true,
+		['deriveKey', 'deriveBits']
+	);
+}
+
+/**
+ * ECIES-decrypt a wrapped workspace key with the caller's identity private key,
+ * then ECIES-re-encrypt it for a new recipient's identity public key.
+ *
+ * Both halves use the same scheme as generateAndWrapWorkspaceKey:
+ *   ECDH(X25519) → HKDF(SHA-256, info="confide-workspace-key-v1") → AES-256-GCM
+ *
+ * Returns the new wrapped key and a fresh ephemeral public key for the recipient.
+ */
+export async function rewrapWorkspaceKey(
+	wrappedKey: ArrayBuffer,
+	ephPubBytes: ArrayBuffer,
+	identityPrivKey: CryptoKey,
+	recipientPubKeyBytes: ArrayBuffer
+): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
+	// ── Decrypt ──────────────────────────────────────────────────────────────
+
+	const ephPubKey = await crypto.subtle.importKey(
+		'raw',
+		ephPubBytes,
+		{ name: 'X25519' },
+		false,
+		[]
+	);
+
+	const decShared = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: ephPubKey },
+		identityPrivKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const decKey = await hkdfDeriveAesKey(decShared, INFO.workspaceKey(), ['decrypt'], false);
+
+	const wrappedBytes = new Uint8Array(wrappedKey);
+	const decIv = wrappedBytes.slice(0, AES_IV_BYTES);
+	const decCiphertext = wrappedBytes.slice(AES_IV_BYTES);
+	const rawWorkspaceKey = await crypto.subtle.decrypt(
+		{ name: AES_ALGORITHM, iv: decIv, tagLength: 128 },
+		decKey,
+		decCiphertext
+	);
+
+	// ── Re-encrypt for recipient ──────────────────────────────────────────────
+
+	const recipientPubKey = await crypto.subtle.importKey(
+		'raw',
+		recipientPubKeyBytes,
+		{ name: 'X25519' },
+		false,
+		[]
+	);
+
+	const ephemeral = (await crypto.subtle.generateKey(
+		{ name: 'X25519' },
+		true,
+		['deriveKey', 'deriveBits']
+	)) as CryptoKeyPair;
+
+	const encShared = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: recipientPubKey },
+		ephemeral.privateKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const encKey = await hkdfDeriveAesKey(encShared, INFO.workspaceKey(), ['encrypt'], false);
+
+	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		encKey,
+		rawWorkspaceKey
+	);
+
+	const out = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
+	out.set(iv, 0);
+	out.set(new Uint8Array(ciphertext), AES_IV_BYTES);
+
+	const newEphPub = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+	return {
+		wrappedWorkspaceKey: out.buffer as ArrayBuffer,
+		ephemeralPublicKey: newEphPub as ArrayBuffer
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Public interface — form key wrapping with workspace key
+// ---------------------------------------------------------------------------
+
+/**
+ * Wrap a form key's raw bytes with a workspace AES-256-GCM key.
+ *
+ * Stores [12-byte IV][AES-GCM ciphertext+tag] so workspace members can
+ * recover the formKey without knowing the creator's master key.
+ */
+export async function wrapFormKey(
+	formKey: CryptoKey,
+	workspaceKey: CryptoKey
+): Promise<ArrayBuffer> {
+	const rawFormKey = await crypto.subtle.exportKey('raw', formKey);
+	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
+	const ciphertext = await crypto.subtle.encrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		workspaceKey,
+		rawFormKey
+	);
+	const out = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
+	out.set(iv, 0);
+	out.set(new Uint8Array(ciphertext), AES_IV_BYTES);
+	return out.buffer as ArrayBuffer;
+}
+
+/**
+ * Unwrap a form key blob that was encrypted with wrapFormKey.
+ *
+ * Returns an AES-256-GCM CryptoKey suitable for schema/response decryption.
+ */
+export async function unwrapFormKey(
+	blob: ArrayBuffer,
+	workspaceKey: CryptoKey
+): Promise<CryptoKey> {
+	const bytes = new Uint8Array(blob);
+	const iv = bytes.slice(0, AES_IV_BYTES);
+	const ciphertext = bytes.slice(AES_IV_BYTES);
+	const rawFormKey = await crypto.subtle.decrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		workspaceKey,
+		ciphertext
+	);
+	return crypto.subtle.importKey(
+		'raw',
+		rawFormKey,
+		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
+		true, // extractable — same requirement as deriveFormKey
+		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+	);
+}
+
+// ---------------------------------------------------------------------------
 // Internal — recovery code generation
 // ---------------------------------------------------------------------------
 

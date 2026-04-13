@@ -43,6 +43,7 @@
 
 	let schemaCache = $state<Map<number, BuilderSchema>>(new Map());
 	let formName = $state<string | null>(null);
+	let resolvedFormKey = $state<CryptoKey | null>(null);
 
 	onMount(async () => {
 		if (!auth.masterKey) {
@@ -50,8 +51,9 @@
 			return;
 		}
 		await loadResponses();
-		getForm(auth.masterKey, formId).then(({ schema }) => {
+		getForm(auth.masterKey, formId).then(({ schema, formKey }) => {
 			formName = schema.translations[schema.defaultLocale]?.formTitle ?? null;
+			resolvedFormKey = formKey;
 		}).catch(() => {});
 	});
 
@@ -100,7 +102,7 @@
 				schemaCache = new Map([...schemaCache, [record.schemaVersion, schema]]);
 			}
 
-			const payload = await decryptResponseRecord(auth.masterKey, formId, record);
+			const payload = await decryptResponseRecord(auth.masterKey, formId, record, resolvedFormKey ?? undefined);
 			decrypted = new Map([...decrypted, [record.id, {
 				submittedAt: payload.submittedAt,
 				locale: payload.locale,

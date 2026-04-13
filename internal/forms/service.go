@@ -28,6 +28,7 @@ type DB interface {
 	DeleteForm(ctx context.Context, arg queries.DeleteFormParams) error
 	InsertSchemaVersion(ctx context.Context, arg queries.InsertSchemaVersionParams) error
 	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
+	SetWorkspaceFormKey(ctx context.Context, arg queries.SetWorkspaceFormKeyParams) error
 }
 
 // Service handles form CRUD operations.
@@ -42,20 +43,21 @@ func NewService(pool *pgxpool.Pool) *Service {
 
 // FormRecord is the full form including encrypted blobs, returned to the owner.
 type FormRecord struct {
-	ID                    string
-	Status                string
-	SchemaVersion         int32
-	ResponseCount         int32
-	CreatedAt             pgtype.Date
-	UpdatedAt             pgtype.Date
-	EncryptedSchema       []byte
-	RenderEncryptedSchema []byte
-	PublicFormKey         []byte
-	RenderKeySalt         []byte
-	ExpiresAt             pgtype.Date
-	ResponseLimit         pgtype.Int4
-	ResponseTtlDays       pgtype.Int4
-	BurnAfterReading      bool
+	ID                      string
+	Status                  string
+	SchemaVersion           int32
+	ResponseCount           int32
+	CreatedAt               pgtype.Date
+	UpdatedAt               pgtype.Date
+	EncryptedSchema         []byte
+	RenderEncryptedSchema   []byte
+	PublicFormKey           []byte
+	RenderKeySalt           []byte
+	ExpiresAt               pgtype.Date
+	ResponseLimit           pgtype.Int4
+	ResponseTtlDays         pgtype.Int4
+	BurnAfterReading        bool
+	WorkspaceWrappedFormKey []byte // nil if not yet set
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -87,7 +89,7 @@ type PublicFormRecord struct {
 // CreateForm stores a new form and returns its ID.
 // If clientID is non-empty it is used as the form ID; otherwise a random ID is generated.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt, workspaceWrappedFormKey []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -106,17 +108,18 @@ func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountI
 	qtx := queries.New(tx)
 
 	_, err = qtx.CreateForm(ctx, queries.CreateFormParams{
-		ID:                    id,
-		WorkspaceID:           workspaceID,
-		CreatedByAccountID:    createdByAccountID,
-		EncryptedSchema:       encryptedSchema,
-		RenderEncryptedSchema: renderEncryptedSchema,
-		PublicFormKey:         publicFormKey,
-		RenderKeySalt:         renderKeySalt,
-		ExpiresAt:             expiresAt,
-		ResponseLimit:         responseLimit,
-		ResponseTtlDays:       responseTtlDays,
-		BurnAfterReading:      burnAfterReading,
+		ID:                      id,
+		WorkspaceID:             workspaceID,
+		CreatedByAccountID:      createdByAccountID,
+		EncryptedSchema:         encryptedSchema,
+		RenderEncryptedSchema:   renderEncryptedSchema,
+		PublicFormKey:           publicFormKey,
+		RenderKeySalt:           renderKeySalt,
+		ExpiresAt:               expiresAt,
+		ResponseLimit:           responseLimit,
+		ResponseTtlDays:         responseTtlDays,
+		BurnAfterReading:        burnAfterReading,
+		WorkspaceWrappedFormKey: workspaceWrappedFormKey,
 	})
 	if err != nil {
 		return "", err
@@ -279,6 +282,15 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 	}, nil
 }
 
+// SetWorkspaceFormKey stores the workspace-encrypted form key for a form.
+func (s *Service) SetWorkspaceFormKey(ctx context.Context, workspaceID, formID string, wrappedKey []byte) error {
+	return s.db.SetWorkspaceFormKey(ctx, queries.SetWorkspaceFormKeyParams{
+		ID:                      formID,
+		WorkspaceID:             workspaceID,
+		WorkspaceWrappedFormKey: wrappedKey,
+	})
+}
+
 // GetSchemaVersion returns the owner-encrypted schema for a specific version snapshot.
 func (s *Service) GetSchemaVersion(ctx context.Context, workspaceID, formID string, version int32) ([]byte, error) {
 	_, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
@@ -317,19 +329,20 @@ func randomID() (string, error) {
 
 func formRecordFromDB(f queries.Form) FormRecord {
 	return FormRecord{
-		ID:                    f.ID,
-		Status:                f.Status,
-		SchemaVersion:         f.SchemaVersion,
-		ResponseCount:         f.ResponseCount,
-		CreatedAt:             f.CreatedAt,
-		UpdatedAt:             f.UpdatedAt,
-		EncryptedSchema:       f.EncryptedSchema,
-		RenderEncryptedSchema: f.RenderEncryptedSchema,
-		PublicFormKey:         f.PublicFormKey,
-		RenderKeySalt:         f.RenderKeySalt,
-		ExpiresAt:             f.ExpiresAt,
-		ResponseLimit:         f.ResponseLimit,
-		ResponseTtlDays:       f.ResponseTtlDays,
-		BurnAfterReading:      f.BurnAfterReading,
+		ID:                      f.ID,
+		Status:                  f.Status,
+		SchemaVersion:           f.SchemaVersion,
+		ResponseCount:           f.ResponseCount,
+		CreatedAt:               f.CreatedAt,
+		UpdatedAt:               f.UpdatedAt,
+		EncryptedSchema:         f.EncryptedSchema,
+		RenderEncryptedSchema:   f.RenderEncryptedSchema,
+		PublicFormKey:           f.PublicFormKey,
+		RenderKeySalt:           f.RenderKeySalt,
+		ExpiresAt:               f.ExpiresAt,
+		ResponseLimit:           f.ResponseLimit,
+		ResponseTtlDays:         f.ResponseTtlDays,
+		BurnAfterReading:        f.BurnAfterReading,
+		WorkspaceWrappedFormKey: f.WorkspaceWrappedFormKey,
 	}
 }

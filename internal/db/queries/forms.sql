@@ -2,9 +2,10 @@
 INSERT INTO forms (
     id, workspace_id, created_by_account_id, created_at, updated_at, status, schema_version,
     response_count, encrypted_schema, render_encrypted_schema, public_form_key,
-    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading
+    render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
+    workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11
+    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
 
 -- name: GetFormWorkspaceID :one
@@ -30,6 +31,11 @@ SET encrypted_schema = $3,
     updated_at = CURRENT_DATE
 WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version;
+
+-- name: SetWorkspaceFormKey :exec
+UPDATE forms
+SET workspace_wrapped_form_key = $3
+WHERE id = $1 AND workspace_id = $2;
 
 -- name: UpdateFormStatus :exec
 UPDATE forms SET status = $3, updated_at = CURRENT_DATE

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { detectPRFSupport } from '$lib/prf-detection';
 	import { register } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { acceptInvitation, ensureIdentityKey } from '$lib/workspaces';
 
 	type Step = 'checking' | 'briefing' | 'creating' | 'recovery' | 'success';
 
@@ -84,11 +86,26 @@
 		}
 	}
 
-	function completeSetup() {
+	async function completeSetup() {
 		if (!verifyPassed || !pendingMasterKey || !pendingAccountId || !pendingCredentialId) return;
 		auth.setSession(pendingMasterKey, pendingAccountId, pendingCredentialId);
 		step = 'success';
-		setTimeout(() => goto('/dashboard'), 1500);
+
+		// Always create the identity keypair at registration so admins can grant
+		// workspace keys immediately without waiting for the user to create a workspace.
+		try {
+			await ensureIdentityKey(pendingMasterKey);
+		} catch { /* non-fatal */ }
+
+		const inviteToken = page.url.searchParams.get('invite');
+		if (inviteToken) {
+			try {
+				await acceptInvitation(inviteToken);
+			} catch { /* non-fatal */ }
+			setTimeout(() => goto('/dashboard'), 1500);
+		} else {
+			setTimeout(() => goto('/dashboard'), 1500);
+		}
 	}
 
 	function copyCode() {

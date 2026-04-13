@@ -34,6 +34,7 @@
 
 	// ── Form ──────────────────────────────────────────────────────────────────
 	let record = $state<FormRecord | null>(null);
+	let resolvedFormKey = $state<CryptoKey | null>(null);
 	let formName = $state('');
 	let loading = $state(true);
 	let loadError = $state('');
@@ -88,8 +89,9 @@
 		loading = true;
 		loadError = '';
 		try {
-			const { schema, record: r } = await getForm(auth.masterKey, formId);
+			const { schema, record: r, formKey } = await getForm(auth.masterKey, formId);
 			record = r;
+			resolvedFormKey = formKey;
 			formName = schema.translations[schema.defaultLocale]?.formTitle ?? '';
 			expiresAt = r.expiresAt ?? '';
 			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
@@ -152,8 +154,8 @@
 			const salt = record.renderKeySalt
 				? Uint8Array.from(atob(record.renderKeySalt), c => c.charCodeAt(0))
 				: null;
-			const { schema } = await getForm(auth.masterKey, formId);
-			const result = await publishForm(auth.masterKey, formId, schema as any, salt);
+			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
+			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey);
 			shareUrl = result.shareUrl;
 		} catch (e) {
 			publishError = e instanceof Error ? e.message : 'Publish failed';
@@ -221,7 +223,7 @@
 				schema = await getSchemaVersion(auth.masterKey, formId, rec.schemaVersion);
 				schemaCache = new Map([...schemaCache, [rec.schemaVersion, schema]]);
 			}
-			const payload = await decryptResponseRecord(auth.masterKey, formId, rec);
+			const payload = await decryptResponseRecord(auth.masterKey, formId, rec, resolvedFormKey ?? undefined);
 			decrypted = new Map([...decrypted, [rec.id, {
 				submittedAt: payload.submittedAt,
 				locale: payload.locale,
