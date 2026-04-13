@@ -173,21 +173,39 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *h
 		return "", fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
 	}
 
-	// Update account + replace recovery codes in a transaction.
+	credRowID, err := randomBase64URL(16)
+	if err != nil {
+		return "", err
+	}
+
+	// Wipe all existing credentials, insert the single new one, update recovery
+	// data, and replace recovery codes — all in one transaction.
 	err = s.withTx(ctx, func(tx pgx.Tx) error {
 		q := queries.New(tx)
 
-		if err := q.UpdateAccountCredential(ctx, queries.UpdateAccountCredentialParams{
+		if err := q.DeleteCredentialsByAccount(ctx, accountID); err != nil {
+			return fmt.Errorf("DeleteCredentialsByAccount: %w", err)
+		}
+
+		if _, err := q.CreateCredential(ctx, queries.CreateCredentialParams{
+			ID:               credRowID,
+			AccountID:        accountID,
+			CredentialID:     cred.ID,
+			PublicKey:        cred.PublicKey,
+			PrfSalt:          req.PRFSalt,
+			WrappedMasterKey: req.WrappedMasterKey,
+			BackupEligible:   cred.Flags.BackupEligible,
+			Name:             "",
+		}); err != nil {
+			return fmt.Errorf("CreateCredential: %w", err)
+		}
+
+		if err := q.UpdateAccountRecovery(ctx, queries.UpdateAccountRecoveryParams{
 			ID:                    accountID,
-			CredentialID:          cred.ID,
-			PublicKey:             cred.PublicKey,
-			PrfSalt:               req.PRFSalt,
-			WrappedMasterKey:      req.WrappedMasterKey,
 			RecoveryWrappedMaster: req.RecoveryWrappedMaster,
 			RecoveryVerifier:      req.RecoveryVerifier,
-			BackupEligible:        cred.Flags.BackupEligible,
 		}); err != nil {
-			return fmt.Errorf("UpdateAccountCredential: %w", err)
+			return fmt.Errorf("UpdateAccountRecovery: %w", err)
 		}
 
 		if err := q.DeleteRecoveryCodesByAccount(ctx, accountID); err != nil {

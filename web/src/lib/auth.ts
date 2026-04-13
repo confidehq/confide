@@ -37,7 +37,10 @@ import type {
 	ReauthFinishResponse,
 	RecoverResponse,
 	RekeyBeginResponse,
-	RekeyFinishResponse
+	RekeyFinishResponse,
+	AddCredentialBeginResponse,
+	AddCredentialFinishResponse,
+	CredentialSummary
 } from '$lib/types/auth';
 
 // ─── Base64 Helpers ───────────────────────────────────────────────────────────
@@ -443,4 +446,98 @@ export async function revokeSession(sessionId: string): Promise<void> {
 
 export async function logout(): Promise<void> {
 	await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+}
+
+// ─── Reauth for Add Credential ────────────────────────────────────────────────
+
+/**
+ * Re-authenticate with an existing passkey to obtain a short-lived token
+ * authorizing a new passkey registration.
+ *
+ * Returns the addCredentialToken to pass to addCredential().
+ */
+export async function reauthenticateForAddCredential(): Promise<string> {
+	const begin = await apiPost<ReauthBeginResponse>('/api/auth/reauth/begin', {});
+
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startAuthentication({ optionsJSON });
+
+	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
+		challengeKey: begin.challengeKey,
+		credential: JSON.parse(JSON.stringify(credential)),
+		purpose: 'add-credential'
+	});
+
+	if (!finish.addCredentialToken) {
+		throw new Error('Server did not return an add-credential token');
+	}
+	return finish.addCredentialToken;
+}
+
+// ─── Add Credential ───────────────────────────────────────────────────────────
+
+/**
+ * Register a new passkey for the current account.
+ *
+ * Requires a valid addCredentialToken from reauthenticateForAddCredential().
+ * The masterKey is the currently unlocked key — it will be wrapped under the
+ * new credential's PRF output.
+ */
+export async function addCredential(
+	masterKey: CryptoKey,
+	addCredentialToken: string,
+	name: string
+): Promise<AddCredentialFinishResponse> {
+	// Step 1: begin — server generates a fresh PRF salt
+	const begin = await apiPost<AddCredentialBeginResponse>('/api/auth/credentials/add/begin', {
+		addCredentialToken
+	});
+
+	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startRegistration({ optionsJSON });
+
+	// Step 3: PRF → KEK; wrap the existing master key under the new credential
+	const kek = await extractRegistrationKek(credential);
+	const wrappedMasterKey = await wrapKey(masterKey, kek);
+
+	// Step 4: finish
+	return apiPost<AddCredentialFinishResponse>('/api/auth/credentials/add/finish', {
+		addCredentialToken,
+		prfSalt: begin.prfSalt,
+		wrappedMasterKey: bufToBase64(wrappedMasterKey),
+		name,
+		credential: JSON.parse(JSON.stringify(credential))
+	});
+}
+
+// ─── Credential Management ────────────────────────────────────────────────────
+
+export async function listCredentials(): Promise<CredentialSummary[]> {
+	return apiGet<CredentialSummary[]>('/api/auth/credentials');
+}
+
+export async function renameCredential(id: string, name: string): Promise<void> {
+	const res = await fetch(`/api/auth/credentials/${id}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		credentials: 'include',
+		body: JSON.stringify({ name })
+	});
+	if (!res.ok && res.status !== 204) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+	}
+}
+
+export async function deleteCredential(id: string): Promise<void> {
+	return apiDelete(`/api/auth/credentials/${id}`);
 }

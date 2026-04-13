@@ -16,6 +16,7 @@ import (
 
 type mockDB struct {
 	accounts       map[string]queries.Account
+	credentials    map[string]queries.Credential // key = credential row ID
 	sessions       map[string]queries.Session
 	sessionsByHash map[string]queries.GetSessionByTokenHashRow
 	recoveryCodes  map[string]queries.RecoveryCode
@@ -24,6 +25,7 @@ type mockDB struct {
 func newMockDB() *mockDB {
 	return &mockDB{
 		accounts:       make(map[string]queries.Account),
+		credentials:    make(map[string]queries.Credential),
 		sessions:       make(map[string]queries.Session),
 		sessionsByHash: make(map[string]queries.GetSessionByTokenHashRow),
 		recoveryCodes:  make(map[string]queries.RecoveryCode),
@@ -36,24 +38,12 @@ func (m *mockDB) CreateAccount(_ context.Context, arg queries.CreateAccountParam
 	}
 	a := queries.Account{
 		ID:                    arg.ID,
-		CredentialID:          arg.CredentialID,
-		PublicKey:             arg.PublicKey,
-		PrfSalt:               arg.PrfSalt,
-		WrappedMasterKey:      arg.WrappedMasterKey,
 		RecoveryWrappedMaster: arg.RecoveryWrappedMaster,
 		RecoveryVerifier:      arg.RecoveryVerifier,
+		Username:              arg.Username,
 	}
 	m.accounts[arg.ID] = a
 	return a, nil
-}
-
-func (m *mockDB) GetAccountByCredentialID(_ context.Context, credentialID []byte) (queries.Account, error) {
-	for _, a := range m.accounts {
-		if string(a.CredentialID) == string(credentialID) {
-			return a, nil
-		}
-	}
-	return queries.Account{}, errors.New("no rows")
 }
 
 func (m *mockDB) GetAccountByID(_ context.Context, id string) (queries.Account, error) {
@@ -62,6 +52,26 @@ func (m *mockDB) GetAccountByID(_ context.Context, id string) (queries.Account, 
 		return queries.Account{}, errors.New("no rows")
 	}
 	return a, nil
+}
+
+func (m *mockDB) GetAccountByUsername(_ context.Context, username pgtype.Text) (queries.Account, error) {
+	for _, a := range m.accounts {
+		if a.Username.Valid && a.Username.String == username.String {
+			return a, nil
+		}
+	}
+	return queries.Account{}, errors.New("no rows")
+}
+
+func (m *mockDB) UpdateAccountRecovery(_ context.Context, arg queries.UpdateAccountRecoveryParams) error {
+	a, ok := m.accounts[arg.ID]
+	if !ok {
+		return errors.New("no rows")
+	}
+	a.RecoveryWrappedMaster = arg.RecoveryWrappedMaster
+	a.RecoveryVerifier = arg.RecoveryVerifier
+	m.accounts[arg.ID] = a
+	return nil
 }
 
 func (m *mockDB) CreateSession(_ context.Context, arg queries.CreateSessionParams) (queries.Session, error) {
@@ -141,41 +151,6 @@ func (m *mockDB) CountUnusedRecoveryCodes(_ context.Context, accountID string) (
 	return n, nil
 }
 
-func (m *mockDB) UpdateAccountCredential(_ context.Context, arg queries.UpdateAccountCredentialParams) error {
-	a, ok := m.accounts[arg.ID]
-	if !ok {
-		return errors.New("no rows")
-	}
-	a.CredentialID = arg.CredentialID
-	a.PublicKey = arg.PublicKey
-	a.PrfSalt = arg.PrfSalt
-	a.WrappedMasterKey = arg.WrappedMasterKey
-	a.RecoveryWrappedMaster = arg.RecoveryWrappedMaster
-	a.RecoveryVerifier = arg.RecoveryVerifier
-	a.BackupEligible = arg.BackupEligible
-	m.accounts[arg.ID] = a
-	return nil
-}
-
-func (m *mockDB) ListCredentials(_ context.Context) ([]queries.ListCredentialsRow, error) {
-	rows := make([]queries.ListCredentialsRow, 0, len(m.accounts))
-	for _, a := range m.accounts {
-		rows = append(rows, queries.ListCredentialsRow{CredentialID: a.CredentialID, PrfSalt: a.PrfSalt})
-	}
-	return rows, nil
-}
-
-func (m *mockDB) UpdateAccountBackupEligible(_ context.Context, arg queries.UpdateAccountBackupEligibleParams) error {
-	for id, a := range m.accounts {
-		if string(a.CredentialID) == string(arg.CredentialID) {
-			a.BackupEligible = arg.BackupEligible
-			m.accounts[id] = a
-			return nil
-		}
-	}
-	return nil
-}
-
 func (m *mockDB) DeleteRecoveryCodesByAccount(_ context.Context, accountID string) error {
 	for id, rc := range m.recoveryCodes {
 		if rc.AccountID == accountID {
@@ -185,13 +160,152 @@ func (m *mockDB) DeleteRecoveryCodesByAccount(_ context.Context, accountID strin
 	return nil
 }
 
-func (m *mockDB) GetAccountByUsername(_ context.Context, username pgtype.Text) (queries.Account, error) {
-	for _, a := range m.accounts {
-		if a.Username.Valid && a.Username.String == username.String {
-			return a, nil
+func (m *mockDB) CreateCredential(_ context.Context, arg queries.CreateCredentialParams) (queries.Credential, error) {
+	for _, c := range m.credentials {
+		if string(c.CredentialID) == string(arg.CredentialID) {
+			return queries.Credential{}, errors.New("duplicate key value violates unique constraint")
 		}
 	}
-	return queries.Account{}, errors.New("no rows")
+	c := queries.Credential{
+		ID:               arg.ID,
+		AccountID:        arg.AccountID,
+		CredentialID:     arg.CredentialID,
+		PublicKey:        arg.PublicKey,
+		PrfSalt:          arg.PrfSalt,
+		WrappedMasterKey: arg.WrappedMasterKey,
+		BackupEligible:   arg.BackupEligible,
+		Name:             arg.Name,
+	}
+	m.credentials[arg.ID] = c
+	return c, nil
+}
+
+func (m *mockDB) GetCredentialByWebAuthnID(_ context.Context, credentialID []byte) (queries.GetCredentialByWebAuthnIDRow, error) {
+	for rowID, c := range m.credentials {
+		if string(c.CredentialID) == string(credentialID) {
+			acc := m.accounts[c.AccountID]
+			return queries.GetCredentialByWebAuthnIDRow{
+				ID:                    rowID,
+				AccountID:             c.AccountID,
+				CredentialID:          c.CredentialID,
+				PublicKey:             c.PublicKey,
+				PrfSalt:               c.PrfSalt,
+				WrappedMasterKey:      c.WrappedMasterKey,
+				BackupEligible:        c.BackupEligible,
+				Name:                  c.Name,
+				CreatedAt:             c.CreatedAt,
+				RecoveryWrappedMaster: acc.RecoveryWrappedMaster,
+				RecoveryVerifier:      acc.RecoveryVerifier,
+				Username:              acc.Username,
+			}, nil
+		}
+	}
+	return queries.GetCredentialByWebAuthnIDRow{}, errors.New("no rows")
+}
+
+func (m *mockDB) GetCredentialForLogin(_ context.Context, credentialID []byte) (queries.GetCredentialForLoginRow, error) {
+	for _, c := range m.credentials {
+		if string(c.CredentialID) == string(credentialID) {
+			return queries.GetCredentialForLoginRow{
+				WrappedMasterKey: c.WrappedMasterKey,
+				PrfSalt:          c.PrfSalt,
+				AccountID:        c.AccountID,
+			}, nil
+		}
+	}
+	return queries.GetCredentialForLoginRow{}, errors.New("no rows")
+}
+
+func (m *mockDB) GetPrimaryCredentialByAccount(_ context.Context, accountID string) ([]byte, error) {
+	for _, c := range m.credentials {
+		if c.AccountID == accountID {
+			return c.PrfSalt, nil
+		}
+	}
+	return nil, errors.New("no rows")
+}
+
+func (m *mockDB) GetPrimaryCredentialIDByAccount(_ context.Context, accountID string) ([]byte, error) {
+	for _, c := range m.credentials {
+		if c.AccountID == accountID {
+			return c.CredentialID, nil
+		}
+	}
+	return nil, errors.New("no rows")
+}
+
+func (m *mockDB) GetAllPrfSalts(_ context.Context) ([]queries.GetAllPrfSaltsRow, error) {
+	rows := make([]queries.GetAllPrfSaltsRow, 0, len(m.credentials))
+	for _, c := range m.credentials {
+		rows = append(rows, queries.GetAllPrfSaltsRow{CredentialID: c.CredentialID, PrfSalt: c.PrfSalt})
+	}
+	return rows, nil
+}
+
+func (m *mockDB) ListCredentialsByAccount(_ context.Context, accountID string) ([]queries.ListCredentialsByAccountRow, error) {
+	var out []queries.ListCredentialsByAccountRow
+	for _, c := range m.credentials {
+		if c.AccountID == accountID {
+			out = append(out, queries.ListCredentialsByAccountRow{
+				ID:             c.ID,
+				AccountID:      c.AccountID,
+				CredentialID:   c.CredentialID,
+				BackupEligible: c.BackupEligible,
+				Name:           c.Name,
+				CreatedAt:      c.CreatedAt,
+			})
+		}
+	}
+	return out, nil
+}
+
+func (m *mockDB) UpdateCredentialName(_ context.Context, arg queries.UpdateCredentialNameParams) error {
+	c, ok := m.credentials[arg.ID]
+	if !ok || c.AccountID != arg.AccountID {
+		return errors.New("no rows")
+	}
+	c.Name = arg.Name
+	m.credentials[arg.ID] = c
+	return nil
+}
+
+func (m *mockDB) UpdateCredentialBackupEligible(_ context.Context, arg queries.UpdateCredentialBackupEligibleParams) error {
+	for id, c := range m.credentials {
+		if string(c.CredentialID) == string(arg.CredentialID) {
+			c.BackupEligible = arg.BackupEligible
+			m.credentials[id] = c
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *mockDB) DeleteCredential(_ context.Context, arg queries.DeleteCredentialParams) error {
+	c, ok := m.credentials[arg.ID]
+	if !ok || c.AccountID != arg.AccountID {
+		return errors.New("no rows")
+	}
+	delete(m.credentials, arg.ID)
+	return nil
+}
+
+func (m *mockDB) CountCredentialsByAccount(_ context.Context, accountID string) (int64, error) {
+	var n int64
+	for _, c := range m.credentials {
+		if c.AccountID == accountID {
+			n++
+		}
+	}
+	return n, nil
+}
+
+func (m *mockDB) DeleteCredentialsByAccount(_ context.Context, accountID string) error {
+	for id, c := range m.credentials {
+		if c.AccountID == accountID {
+			delete(m.credentials, id)
+		}
+	}
+	return nil
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────

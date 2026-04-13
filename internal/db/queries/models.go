@@ -11,13 +11,8 @@ import (
 type Account struct {
 	ID                    string
 	CreatedAt             pgtype.Date
-	CredentialID          []byte
-	PublicKey             []byte
-	PrfSalt               []byte
-	WrappedMasterKey      []byte
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
-	BackupEligible        bool
 	Username              pgtype.Text
 }
 
@@ -26,6 +21,18 @@ type AccountIdentityKey struct {
 	IdentityPublicKey         []byte
 	WrappedIdentityPrivateKey []byte
 	CreatedAt                 pgtype.Timestamptz
+}
+
+type Credential struct {
+	ID               string
+	AccountID        string
+	CredentialID     []byte
+	PublicKey        []byte
+	PrfSalt          []byte
+	WrappedMasterKey []byte
+	BackupEligible   bool
+	Name             string
+	CreatedAt        pgtype.Timestamptz
 }
 
 type Form struct {

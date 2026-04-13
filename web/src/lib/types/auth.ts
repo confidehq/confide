@@ -28,6 +28,26 @@ export interface ReauthBeginResponse {
 export interface ReauthFinishResponse {
 	accountId: string;
 	wrappedMasterKey: string; // base64 standard
+	addCredentialToken?: string; // present when purpose == "add-credential"
+}
+
+export interface AddCredentialBeginResponse {
+	options: unknown; // PublicKeyCredentialCreationOptionsJSON
+	prfSalt: string; // base64 standard
+}
+
+export interface AddCredentialFinishResponse {
+	id: string;
+	name: string;
+	createdAt: string;
+}
+
+export interface CredentialSummary {
+	id: string;
+	name: string;
+	createdAt: string;
+	backupEligible: boolean;
+	isCurrentSession: boolean;
 }
 
 export interface RecoverResponse {

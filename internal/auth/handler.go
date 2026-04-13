@@ -39,6 +39,11 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bo
 		r.Delete("/sessions/{id}", deleteSession(svc))
 		r.Post("/reauth/begin", reauthBegin(svc))
 		r.Post("/reauth/finish", reauthFinish(svc))
+		r.Post("/credentials/add/begin", addCredentialBegin(svc))
+		r.Post("/credentials/add/finish", addCredentialFinish(svc))
+		r.Get("/credentials", listCredentials(svc))
+		r.Patch("/credentials/{id}", renameCredential(svc))
+		r.Delete("/credentials/{id}", deleteCredential(svc))
 	})
 
 	return r
@@ -480,6 +485,7 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 		var envelope struct {
 			ChallengeKey string          `json:"challengeKey"`
 			Credential   json.RawMessage `json:"credential"`
+			Purpose      string          `json:"purpose"`
 		}
 		if err := json.Unmarshal(body, &envelope); err != nil || envelope.ChallengeKey == "" {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -496,7 +502,7 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 		}
 		newReq.Header.Set("Content-Type", "application/json")
 
-		res, err := svc.ReauthFinish(r.Context(), envelope.ChallengeKey, accountID, newReq)
+		res, err := svc.ReauthFinish(r.Context(), envelope.ChallengeKey, accountID, envelope.Purpose, newReq)
 		if err != nil {
 			log.Printf("reauth_finish_failed: %v", err)
 			status := http.StatusInternalServerError
@@ -507,10 +513,180 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{
+		resp := map[string]any{
 			"accountId":        res.AccountID,
 			"wrappedMasterKey": base64.StdEncoding.EncodeToString(res.WrappedMasterKey),
+		}
+		if res.AddCredToken != "" {
+			resp["addCredentialToken"] = res.AddCredToken
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+// ─── Credential Management ─────────────────────────────────────────────────────
+
+func addCredentialBegin(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		var req struct {
+			AddCredentialToken string `json:"addCredentialToken"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.AddCredentialToken == "" {
+			writeError(w, http.StatusBadRequest, "invalid_request", "addCredentialToken required")
+			return
+		}
+
+		res, err := svc.AddCredentialBegin(r.Context(), accountID, req.AddCredentialToken)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "add_cred_begin_failed", safeErr(err))
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"options": res.Creation,
+			"prfSalt": base64.StdEncoding.EncodeToString(res.PRFSalt),
 		})
+	}
+}
+
+func addCredentialFinish(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "read_body", "failed to read body")
+			return
+		}
+
+		var req struct {
+			AddCredentialToken string          `json:"addCredentialToken"`
+			PRFSalt            string          `json:"prfSalt"`
+			WrappedMasterKey   string          `json:"wrappedMasterKey"`
+			Name               string          `json:"name"`
+			Credential         json.RawMessage `json:"credential"`
+		}
+		if err := json.Unmarshal(body, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		prfSalt, err := base64.StdEncoding.DecodeString(req.PRFSalt)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "prfSalt must be base64")
+			return
+		}
+		wmk, err := base64.StdEncoding.DecodeString(req.WrappedMasterKey)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "wrappedMasterKey must be base64")
+			return
+		}
+
+		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
+			io.NopCloser(bytes.NewReader(req.Credential)))
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to rebuild request")
+			return
+		}
+		newReq.Header.Set("Content-Type", "application/json")
+
+		svcReq := &AddCredentialFinishRequest{
+			AddCredToken:     req.AddCredentialToken,
+			WrappedMasterKey: wmk,
+			PRFSalt:          prfSalt,
+			Name:             req.Name,
+		}
+
+		result, err := svc.AddCredentialFinish(r.Context(), accountID, svcReq, newReq)
+		if err != nil {
+			status := http.StatusInternalServerError
+			code := "add_cred_finish_failed"
+			if err == ErrDuplicateAccount {
+				status = http.StatusConflict
+				code = "credential_exists"
+			}
+			writeError(w, status, code, safeErr(err))
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"id":        result.ID,
+			"name":      result.Name,
+			"createdAt": result.CreatedAt,
+		})
+	}
+}
+
+func listCredentials(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		sessionCredIDBase64 := r.Header.Get("X-Session-Credential-ID")
+
+		creds, err := svc.ListCredentials(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "list_creds_failed", safeErr(err))
+			return
+		}
+
+		type credInfo struct {
+			ID               string `json:"id"`
+			Name             string `json:"name"`
+			CreatedAt        string `json:"createdAt"`
+			BackupEligible   bool   `json:"backupEligible"`
+			IsCurrentSession bool   `json:"isCurrentSession"`
+		}
+		out := make([]credInfo, len(creds))
+		for i, c := range creds {
+			credB64 := base64.StdEncoding.EncodeToString(c.CredentialID)
+			out[i] = credInfo{
+				ID:               c.ID,
+				Name:             c.Name,
+				CreatedAt:        c.CreatedAt,
+				BackupEligible:   c.BackupEligible,
+				IsCurrentSession: credB64 == sessionCredIDBase64,
+			}
+		}
+		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+func renameCredential(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		credID := chi.URLParam(r, "id")
+
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request", "name required")
+			return
+		}
+
+		if err := svc.RenameCredential(r.Context(), accountID, credID, req.Name); err != nil {
+			writeError(w, http.StatusInternalServerError, "rename_cred_failed", safeErr(err))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func deleteCredential(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		credID := chi.URLParam(r, "id")
+
+		if err := svc.DeleteCredential(r.Context(), accountID, credID); err != nil {
+			if err == ErrLastCredential {
+				writeError(w, http.StatusConflict, "last_credential", err.Error())
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "delete_cred_failed", safeErr(err))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
