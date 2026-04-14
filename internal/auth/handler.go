@@ -34,6 +34,7 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bo
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
 		r.Use(mw.Authenticator(svc))
+		r.Get("/me", getMe(svc))
 		r.Post("/logout", logout(svc))
 		r.Get("/sessions", listSessions(svc))
 		r.Delete("/sessions/{id}", deleteSession(svc))
@@ -397,6 +398,28 @@ func rekeyFinish(svc *Service) http.HandlerFunc {
 }
 
 // ─── Authenticated ─────────────────────────────────────────────────────────────
+
+// ─── Me ──────────────────────────────────────────────────────────────────────
+
+func getMe(svc *Service) http.HandlerFunc {
+	type meResponse struct {
+		AccountID string `json:"accountId"`
+		Username  string `json:"username,omitempty"`
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		account, err := svc.db.GetAccountByID(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", safeErr(err))
+			return
+		}
+		resp := meResponse{AccountID: accountID}
+		if account.Username.Valid {
+			resp.Username = account.Username.String
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
 
 func logout(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

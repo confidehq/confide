@@ -19,6 +19,7 @@ function readStorage(key: string): string | null {
 let _masterKey = $state<CryptoKey | null>(null);
 let _accountId = $state<string | null>(readStorage(ACCOUNT_ID_KEY));
 let _credentialId = $state<string | null>(readStorage(CREDENTIAL_ID_KEY));
+let _username = $state<string | null>(null);
 
 export const auth = {
 	get masterKey() {
@@ -34,6 +35,13 @@ export const auth = {
 	get hasStoredCredential() {
 		return _credentialId !== null;
 	},
+	get username() {
+		return _username;
+	},
+
+	setUsername(username: string | null) {
+		_username = username;
+	},
 
 	setSession(masterKey: CryptoKey, accountId: string, credentialId: string) {
 		_masterKey = masterKey;
@@ -45,6 +53,7 @@ export const auth = {
 
 	clearMasterKey() {
 		_masterKey = null;
+		_username = null;
 		formsStore.clear();
 		workspacesStore.clear();
 	},
@@ -58,6 +67,7 @@ export const auth = {
 		_masterKey = null;
 		_accountId = null;
 		_credentialId = null;
+		_username = null;
 		localStorage.removeItem(ACCOUNT_ID_KEY);
 		localStorage.removeItem(CREDENTIAL_ID_KEY);
 		formsStore.clear();

@@ -34,8 +34,14 @@
 	}
 
 	function accountInitials(): string {
+		const name = auth.username ?? auth.accountId ?? '';
+		return name.slice(0, 2).toUpperCase() || '??';
+	}
+
+	function accountLabel(): string {
+		if (auth.username) return auth.username;
 		const id = auth.accountId ?? '';
-		return id.slice(0, 2).toUpperCase() || '??';
+		return id ? id.slice(0, 12) + '…' : 'Account';
 	}
 
 	import { onMount } from 'svelte';
@@ -201,9 +207,7 @@
 						{accountInitials()}
 					</span>
 					{#if !sidebar.collapsed}
-						<span class="overflow-hidden text-ellipsis">
-							{auth.accountId ? auth.accountId.slice(0, 12) + '…' : 'Account'}
-						</span>
+						<span class="overflow-hidden text-ellipsis">{accountLabel()}</span>
 					{/if}
 				</button>
 			</div>

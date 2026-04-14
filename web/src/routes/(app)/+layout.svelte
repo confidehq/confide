@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { reauthenticate } from '$lib/auth';
+	import { reauthenticate, getMe } from '$lib/auth';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
@@ -26,6 +26,13 @@
 	$effect(() => {
 		if (auth.credentialId !== null) {
 			workspacesStore.load().catch(() => {});
+		}
+	});
+
+	// Fetch username once on session start
+	$effect(() => {
+		if (auth.credentialId !== null && auth.username === null) {
+			getMe().then((me) => auth.setUsername(me.username ?? null)).catch(() => {});
 		}
 	});
 

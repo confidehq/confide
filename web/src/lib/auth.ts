@@ -448,6 +448,10 @@ export async function logout(): Promise<void> {
 	await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 
+export async function getMe(): Promise<{ accountId: string; username?: string }> {
+	return apiGet<{ accountId: string; username?: string }>('/api/auth/me');
+}
+
 // ─── Reauth for Add Credential ────────────────────────────────────────────────
 
 /**
