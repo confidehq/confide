@@ -1,13 +1,11 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: confide
       POSTGRES_PASSWORD: confide
       POSTGRES_DB: confide
-    ports:
-      - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,62 +13,19 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
-    networks:
-      - internal
-      - external
 
-  api:
+  app:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile.api
-      args:
-        VERSION: ${VERSION:-dev}
-        COMMIT: ${COMMIT:-unknown}
+      dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
-    environment:
-      CONFIDE_DATABASE_URL: ${CONFIDE_DATABASE_URL}
-      CONFIDE_BIND_ADDR: ${CONFIDE_BIND_ADDR:-:8080}
-      CONFIDE_CORS_ORIGIN: ${CONFIDE_CORS_ORIGIN:-http://localhost:3000}
-      CONFIDE_HMAC_KEY: ${CONFIDE_HMAC_KEY}
-      CONFIDE_RP_ID: ${CONFIDE_RP_ID:-localhost}
-      CONFIDE_RP_ORIGIN: ${CONFIDE_RP_ORIGIN:-http://localhost:3000}
-      CONFIDE_RP_DISPLAY_NAME: ${CONFIDE_RP_DISPLAY_NAME:-Confide}
-      CONFIDE_ENV: ${CONFIDE_ENV:-development}
-      CONFIDE_REGISTRATION_OPEN: ${CONFIDE_REGISTRATION_OPEN:-false}
-    ports:
+    ports:                                                                                                                     
       - "8080:8080"
-    networks:
-      - internal
-      - external
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-      - ./certs:/certs:ro
-    environment:
-      CONFIDE_DOMAIN: ${CONFIDE_DOMAIN}
-    depends_on:
-      - api
-    networks:
-      - internal
-      - external
+    env_file:
+      - ../.env.example
 
 volumes:
   pgdata:
-  caddy_data:
-  caddy_config:
-
-networks:
-  internal:
-    internal: true
-  external:
