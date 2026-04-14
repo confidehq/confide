@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
@@ -15,11 +15,16 @@ services:
       retries: 10
 
   app:
-    image: ghcr.io/phantompunk/confide-api:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    #image: ghcr.io/phantompunk/confide
     restart: unless-stopped
     depends_on:
-      db:
+      postgres:
         condition: service_healthy
+    ports:                                                                                                                     
+      - "8080:8080"
     env_file:
       - .env
 

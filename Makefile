@@ -1,4 +1,4 @@
-.PHONY: help run dev up down build clean secrets
+.PHONY: help run dev up down ui 
 
 DOCKER_COMPOSE := $(shell docker compose version > /dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
@@ -23,7 +23,7 @@ ui:
 
 ## db: Start local docker db
 db:
-	cd deploy && $(DOCKER_COMPOSE) -f db.yml up
+	$(DOCKER_COMPOSE) -p confide -f deploy/database.yml up
 
 up:
 	VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo dev) \
