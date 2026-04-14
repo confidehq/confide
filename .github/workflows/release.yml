@@ -87,6 +87,9 @@ jobs:
           tags: |
             ${{ env.IMAGE_PREFIX }}:${{ github.ref_name }}
             ${{ env.IMAGE_PREFIX }}:latest
+          build-args: |
+            VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
