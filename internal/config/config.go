@@ -78,8 +78,6 @@ func Load() (*Config, error) {
 		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
 	}
 
-	log.Println(cfg.RPOrigin)
-
 	var errs []error
 
 	dbURL := os.Getenv("CONFIDE_DATABASE_URL")
