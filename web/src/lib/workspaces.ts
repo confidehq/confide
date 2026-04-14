@@ -449,3 +449,30 @@ export async function createWorkspace(name: string, masterKey: CryptoKey): Promi
 
 	return body as Workspace;
 }
+
+/**
+ * Generate and upload a workspace key for the caller's personal workspace.
+ * Called once during registration after the identity key is created.
+ */
+export async function setupPersonalWorkspaceKey(masterKey: CryptoKey, accountId: string): Promise<void> {
+	const workspaces = await listWorkspaces();
+	const personal = workspaces.find((w) => w.role === 'owner');
+	if (!personal) return;
+
+	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
+	const { wrappedWorkspaceKey, ephemeralPublicKey } =
+		await generateAndWrapWorkspaceKey(identityPublicKey);
+
+	const res = await fetch(`/api/workspaces/${personal.id}/member-key`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			accountId,
+			wrappedWorkspaceKey: bytesToBase64(new Uint8Array(wrappedWorkspaceKey)),
+			ephemeralPublicKey: bytesToBase64(new Uint8Array(ephemeralPublicKey))
+		})
+	});
+	if (!res.ok && res.status !== 204) {
+		throw new WorkspaceError('setup_key_failed', `Failed to set up workspace key (${res.status})`);
+	}
+}

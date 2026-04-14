@@ -5,7 +5,7 @@
 	import { detectPRFSupport } from '$lib/prf-detection';
 	import { register } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { acceptInvitation, ensureIdentityKey } from '$lib/workspaces';
+	import { acceptInvitation, ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
 
 	type Step = 'checking' | 'briefing' | 'creating' | 'recovery' | 'success';
 
@@ -91,10 +91,11 @@
 		auth.setSession(pendingMasterKey, pendingAccountId, pendingCredentialId);
 		step = 'success';
 
-		// Always create the identity keypair at registration so admins can grant
-		// workspace keys immediately without waiting for the user to create a workspace.
+		// Create the identity keypair and provision the personal workspace key so
+		// the owner shows as active (not pending) in the members list.
 		try {
 			await ensureIdentityKey(pendingMasterKey);
+			await setupPersonalWorkspaceKey(pendingMasterKey, pendingAccountId);
 		} catch { /* non-fatal */ }
 
 		const inviteToken = page.url.searchParams.get('invite');

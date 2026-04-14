@@ -103,7 +103,7 @@ func CreatePersonalWorkspace(ctx context.Context, q *queries.Queries, accountID 
 	}
 	ws, err := q.CreateWorkspace(ctx, queries.CreateWorkspaceParams{
 		ID:   id,
-		Name: "Private",
+		Name: "Workspace",
 		Slug: id,
 	})
 	if err != nil {
