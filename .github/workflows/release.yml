@@ -82,7 +82,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: deploy/Dockerfile.api
+          file: Dockerfile
           push: true
           tags: |
             ${{ env.IMAGE_PREFIX }}:${{ github.ref_name }}
