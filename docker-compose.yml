@@ -27,7 +27,11 @@ services:
     ports:                                                                                                                     
       - "8080:8080"
     env_file:
-      - .env.docker
+      - .env
+    environment:
+      CONFIDE_DATABASE_URL: postgresql://confide:confide@postgres:5432/confide
+      CONFIDE_RP_ORIGIN: http://localhost:8080                                                                                 
+      CONFIDE_CORS_ORIGIN: http://localhost:8080
 
 volumes:
   pgdata:

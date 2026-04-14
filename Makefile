@@ -14,7 +14,7 @@ help:
 ## dev: Run locally with Air
 dev: 
 	@echo "Starting local dev with Air..."
-	@set -a && source .env.local && set +a && air
+	air
 
 ## ui: Start frontend
 ui: 
@@ -22,14 +22,14 @@ ui:
 
 ## db: Start local docker db
 db:
-	$(DOCKER_COMPOSE) -p confide -f deploy/database.yml up --remove-orphans 
+	$(DOCKER_COMPOSE) -p confide -f database.yml up --remove-orphans 
 
 ## up: Start the application using Docker Compose
 up:
 	VERSION=$(shell git describe --tags --abbrev=0 2>/dev/null || echo dev) \
 	COMMIT=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown) \
-	$(DOCKER_COMPOSE) -p confide --env-file .env.docker -f docker-compose.yml up --build --remove-orphans
+	$(DOCKER_COMPOSE) -p confide --env-file .env -f docker-compose.yml up --build --remove-orphans
 
 ## down: Stop the application using Docker Compose
 down:
-	$(DOCKER_COMPOSE) -p confide --env-file .env.docker -f docker-compose.yml down
+	$(DOCKER_COMPOSE) -p confide --env-file .env -f docker-compose.yml down

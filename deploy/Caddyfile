@@ -1,4 +1,0 @@
-{$CONFIDE_DOMAIN} {
-  tls /certs/{$CONFIDE_DOMAIN}.crt /certs/{$CONFIDE_DOMAIN}.key
-  reverse_proxy /* api:8080
-}
