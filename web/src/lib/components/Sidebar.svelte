@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
-	import { ChevronLeft, ChevronRight, MessageSquare, LogOut, LayoutGrid, FileText, Users, User } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, MessageSquare, LogOut, LayoutGrid, FileText, Users, User, Settings } from '@lucide/svelte';
 	import { logout } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
@@ -142,6 +142,21 @@
 				</span>
 				{#if !sidebar.collapsed}
 					<span class="overflow-hidden text-ellipsis">Team</span>
+				{/if}
+			</a>
+
+			<!-- Settings -->
+			<a
+				href="/settings"
+				onclick={() => sidebar.closeMobile()}
+				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
+				class={linkClass(isActive('/settings'))}
+			>
+				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-[#93c5fd]' : 'text-muted-dark'}">
+					<Settings size={18} strokeWidth={1.75} />
+				</span>
+				{#if !sidebar.collapsed}
+					<span class="overflow-hidden text-ellipsis">Settings</span>
 				{/if}
 			</a>
 
