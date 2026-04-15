@@ -47,12 +47,12 @@
 
 <style>
 	.menu {
-		background: #0d1b2a;
-		border: 1px solid #1e3048;
+		background: var(--color-surface-subtle);
+		border: 1px solid var(--color-border-deep);
 		border-radius: 8px;
 		padding: 4px;
 		box-shadow:
-			0 4px 12px -2px rgba(0, 0, 0, 0.3),
+			0 4px 12px -2px var(--color-overlay-light),
 			0 2px 4px -1px rgba(0, 0, 0, 0.2);
 		animation: dropdown-in 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
 		transform-origin: top right;

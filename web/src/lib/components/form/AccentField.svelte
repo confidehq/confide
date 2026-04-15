@@ -11,10 +11,10 @@
 	const variant = $derived((field.config as AccentConfig).variant ?? 'note');
 
 	const styles = $derived({
-		note:    { border: '#3b82f6', bg: '#eff6ff', color: '#1e40af' },
-		warning: { border: '#f59e0b', bg: '#fffbeb', color: '#92400e' },
-		danger:  { border: '#ef4444', bg: '#fef2f2', color: '#991b1b' },
-		success: { border: '#22c55e', bg: '#f0fdf4', color: '#166534' },
+		note:    { border: 'var(--color-info-border)',    bg: 'var(--color-info-bg)',    color: 'var(--color-info-text)' },
+		warning: { border: 'var(--color-warning-border)', bg: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' },
+		danger:  { border: 'var(--color-danger-border)',  bg: 'var(--color-danger-bg)',  color: 'var(--color-danger-text)' },
+		success: { border: 'var(--color-success-border)', bg: 'var(--color-success-bg)', color: 'var(--color-success-text)' },
 	}[variant]);
 </script>
 

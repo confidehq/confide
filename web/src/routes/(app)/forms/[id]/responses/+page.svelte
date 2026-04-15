@@ -235,16 +235,16 @@
 	<div class="flex flex-1 min-h-0 font-mono">
 
 		<!-- Left panel: response list -->
-		<div class="w-[280px] shrink-0 flex flex-col border-r border-[#243347] min-h-0">
+		<div class="w-[280px] shrink-0 flex flex-col border-r border-surface-card min-h-0">
 
 			<!-- List header -->
-			<div class="px-4 py-3 border-b border-[#243347] shrink-0 flex items-center justify-between gap-2">
-				<p class="text-xs font-semibold tracking-[0.1em] uppercase text-[#4b6280] m-0 flex-1">Responses</p>
+			<div class="px-4 py-3 border-b border-surface-card shrink-0 flex items-center justify-between gap-2">
+				<p class="text-xs font-semibold tracking-[0.1em] uppercase text-muted-dim m-0 flex-1">Responses</p>
 				<div class="flex items-center gap-1">
 					<button
 						title="Mark all as read"
 						onclick={() => {}}
-						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-[#4b6280] transition-[color,background] duration-100 hover:text-[#8899aa] hover:bg-border-deep"
+						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-muted-dim transition-[color,background] duration-100 hover:text-muted-blue hover:bg-border-deep"
 					>
 						<CheckCheck size={15} strokeWidth={2} />
 					</button>
@@ -252,7 +252,7 @@
 						title="Refresh"
 						disabled={loading || loadMore}
 						onclick={() => loadResponses()}
-						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-[#4b6280] transition-[color,background] duration-100 hover:text-[#8899aa] hover:bg-border-deep disabled:opacity-30 disabled:cursor-not-allowed"
+						class="flex items-center justify-center w-7 h-7 bg-transparent border-none rounded cursor-pointer text-muted-dim transition-[color,background] duration-100 hover:text-muted-blue hover:bg-border-deep disabled:opacity-30 disabled:cursor-not-allowed"
 					>
 						<RefreshCw size={15} strokeWidth={2} />
 					</button>
@@ -260,8 +260,8 @@
 			</div>
 
 			{#if loading}
-				<div class="flex-1 flex items-center justify-center text-[#4b6280] text-sm gap-2.5">
-					<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
+				<div class="flex-1 flex items-center justify-center text-muted-dim text-sm gap-2.5">
+					<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
 					Loading…
 				</div>
 			{:else if loadError}
@@ -276,20 +276,20 @@
 					{#each responses as record, i (record.id)}
 						<button
 							onclick={() => selectResponse(record)}
-							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-deep cursor-pointer transition-[background] duration-100 font-mono hover:bg-[#1e2c3d]
+							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-deep cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface-3
 								{selectedId === record.id ? 'bg-[#172030] border-l-2 border-l-[#3b82f6] pl-[14px]' : ''}"
 						>
 							<div class="flex items-center justify-between gap-2">
 								<span class="text-sm overflow-hidden text-ellipsis whitespace-nowrap flex-1
-									{selectedId === record.id ? 'text-[#93c5fd]' : 'text-[#8899aa]'}">
+									{selectedId === record.id ? 'text-text-blue' : 'text-muted-blue'}">
 									#{i + 1} · {record.id.slice(0, 12)}…
 								</span>
 								{#if decrypted.has(record.id)}
-									<span class="w-[5px] h-[5px] rounded-full bg-[#22c55e] shrink-0" title="Decrypted"></span>
+									<span class="w-[5px] h-[5px] rounded-full bg-success-border shrink-0" title="Decrypted"></span>
 								{/if}
-								<span class="text-xs text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px shrink-0">v{record.schemaVersion}</span>
+								<span class="text-xs text-muted-dim bg-canvas border border-surface-card rounded-sm px-1.5 py-px shrink-0">v{record.schemaVersion}</span>
 							</div>
-							<div class="text-xs text-[#4b6280] mt-0.5">{formatDate(record.receivedAt)}</div>
+							<div class="text-xs text-muted-dim mt-0.5">{formatDate(record.receivedAt)}</div>
 						</button>
 					{/each}
 				</div>
@@ -299,7 +299,7 @@
 						<button
 							onclick={() => loadResponses(nextCursor)}
 							disabled={loadMore}
-							class="w-full px-3 py-1.5 bg-transparent text-[#4b6280] border border-[#243347] rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:not-disabled:text-[#8899aa] hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+							class="w-full px-3 py-1.5 bg-transparent text-muted-dim border border-surface-card rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:not-disabled:text-muted-blue hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
 						>
 							{loadMore ? 'Loading…' : 'Load more'}
 						</button>
@@ -317,13 +317,13 @@
 				</div>
 			{:else}
 				<!-- Detail header -->
-				<div class="px-6 pt-5 pb-4 border-b border-[#243347] shrink-0 flex items-start justify-between gap-4">
+				<div class="px-6 pt-5 pb-4 border-b border-surface-card shrink-0 flex items-start justify-between gap-4">
 					<div class="min-w-0">
-						<p class="text-base text-[#8899aa] m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
-						<p class="text-sm text-[#4b6280] m-0">
+						<p class="text-base text-muted-blue m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
+						<p class="text-sm text-muted-dim m-0">
 							Received {formatDateLong(selectedRecord.receivedAt)}
 							{#if selectedDecrypted}
-								<span class="inline-block text-xs text-[#4b6280] bg-[#111e2d] border border-[#243347] rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
+								<span class="inline-block text-xs text-muted-dim bg-canvas border border-surface-card rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
 							{/if}
 						</p>
 					</div>
@@ -331,7 +331,7 @@
 					<div class="flex items-center gap-2 shrink-0">
 						<button
 							onclick={() => (confirmDelete = selectedRecord.id)}
-							class="px-4 py-2 bg-transparent text-[#f87171] border border-[#1e3048] rounded cursor-pointer font-mono text-base transition-colors duration-100 hover:bg-[#1a0e0e] hover:border-[#7f1d1d]"
+							class="px-4 py-2 bg-transparent text-error-light border border-border-deep rounded cursor-pointer font-mono text-base transition-colors duration-100 hover:bg-danger-hover hover:border-border-danger-dark"
 						>
 							Delete
 						</button>
@@ -341,8 +341,8 @@
 				<!-- Detail content -->
 				<div class="flex-1 overflow-y-auto p-6">
 					{#if isDecryptingSelected}
-						<div class="flex items-center gap-2.5 text-[#4b6280] text-base py-8">
-							<div class="spinner w-3.5 h-3.5 border-2 border-[#243347] border-t-[#3b82f6] rounded-full"></div>
+						<div class="flex items-center gap-2.5 text-muted-dim text-base py-8">
+							<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
 							Decrypting…
 						</div>
 					{:else if selectedDecryptError}
@@ -354,10 +354,10 @@
 									{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
 									{@const answer = renderAnswer(field, selectedDecrypted)}
 									<div class="border-b border-border-deep pb-6 last:border-b-0 last:pb-0">
-										<p class="text-sm font-semibold tracking-[0.08em] uppercase text-[#4b6280] m-0 mb-2">
+										<p class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-dim m-0 mb-2">
 											{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
 										</p>
-										<p class="text-base text-[#c5d3e0] m-0 leading-relaxed whitespace-pre-wrap break-words
+										<p class="text-base text-text-body m-0 leading-relaxed whitespace-pre-wrap break-words
 											{answer === '—' ? 'text-[#3a4f63] italic' : ''}">
 											{answer}
 										</p>

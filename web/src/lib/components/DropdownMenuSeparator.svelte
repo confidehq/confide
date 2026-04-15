@@ -3,7 +3,7 @@
 <style>
 	.separator {
 		height: 1px;
-		background: #1e3048;
+		background: var(--color-border-deep);
 		margin: 4px -4px;
 	}
 </style>

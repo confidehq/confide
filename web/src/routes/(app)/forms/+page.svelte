@@ -71,9 +71,9 @@
 
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div class="min-w-0">
-			<h1 class="text-2xl m-0 mb-1 text-[#e2e8f0] font-semibold">Forms</h1>
+			<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Forms</h1>
 			{#if workspacesStore.active}
-				<p class="m-0 text-sm text-[#4b6280]">{workspacesStore.active.name}</p>
+				<p class="m-0 text-sm text-muted-dim">{workspacesStore.active.name}</p>
 			{/if}
 		</div>
 		<button
@@ -86,27 +86,27 @@
 	</div>
 
 	{#if formsStore.loading && !formsStore.loaded}
-		<p class="text-[#4b6280] text-base">Loading…</p>
+		<p class="text-muted-dim text-base">Loading…</p>
 	{:else if formsStore.error}
 		<p class="text-error-light text-base">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
 		<div class="py-12 border border-dashed border-border rounded-lg text-center">
-			<p class="m-0 mb-1 text-[#4b6280] text-base">No forms yet</p>
-			<p class="m-0 text-[#374d63] text-base">Create your first form to get started</p>
+			<p class="m-0 mb-1 text-muted-dim text-base">No forms yet</p>
+			<p class="m-0 text-muted-mid text-base">Create your first form to get started</p>
 			<button
 				onclick={() => goto('/forms/new')}
-				class="mt-4 px-4 py-2 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+				class="mt-4 px-4 py-2 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 			>+ New form</button>
 		</div>
 	{:else}
 		<!-- Mobile card list -->
 		<div class="flex flex-col gap-2 sm:hidden">
 			{#each formsStore.forms as form (form.formId)}
-				<div class="p-4 border border-border-deep rounded-lg hover:bg-[#0d1926] transition-colors duration-75">
+				<div class="p-4 border border-border-deep rounded-lg hover:bg-surface-4 transition-colors duration-75">
 					<div class="flex items-center justify-between gap-2 mb-2">
 						<button
 						onclick={() => goto(`/forms/${form.formId}`)}
-						class="text-[#c5d3e0] text-base truncate bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
+						class="text-text-body text-base truncate bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
 					>
 						{formsStore.formNames.get(form.formId) ?? '—'}
 					</button>
@@ -117,13 +117,13 @@
 							{form.status}
 						</span>
 					</div>
-					<p class="m-0 mb-3 text-[#4b6280] text-base">{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}</p>
+					<p class="m-0 mb-3 text-muted-dim text-base">{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}</p>
 					<div class="flex justify-end">
 						<DropdownMenu>
 							{#snippet trigger(attrs)}
 								<button
 									{...attrs}
-									class="px-2 py-1 bg-transparent text-[#4b6280] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-[#c5d3e0] transition-colors duration-100"
+									class="px-2 py-1 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-text-body transition-colors duration-100"
 								>···</button>
 							{/snippet}
 							{#snippet children({ close })}
@@ -142,7 +142,7 @@
 		<!-- Desktop table -->
 		<table class="hidden sm:table w-full border-collapse text-base">
 			<thead>
-				<tr class="border-b border-border-subtle text-[#4b6280]">
+				<tr class="border-b border-border-subtle text-muted-dim">
 					<th class="text-left px-3 py-2.5 font-normal">Title</th>
 					<th class="text-left px-3 py-2.5 font-normal">Form ID</th>
 					<th class="text-left px-3 py-2.5 font-normal">Status</th>
@@ -153,16 +153,16 @@
 			</thead>
 			<tbody>
 				{#each formsStore.forms as form (form.formId)}
-					<tr class="border-b border-border-deep hover:bg-[#0d1926] transition-colors duration-75">
+					<tr class="border-b border-border-deep hover:bg-surface-4 transition-colors duration-75">
 						<td class="p-3">
 							<button
 								onclick={() => goto(`/forms/${form.formId}`)}
-								class="text-[#c5d3e0] text-base bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
+								class="text-text-body text-base bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
 							>
 								{formsStore.formNames.get(form.formId) ?? '—'}
 							</button>
 						</td>
-						<td class="p-3 text-[#4b6280] text-base">
+						<td class="p-3 text-muted-dim text-base">
 							{form.formId.slice(0, 12)}…
 						</td>
 						<td class="p-3">
@@ -173,10 +173,10 @@
 								{form.status}
 							</span>
 						</td>
-						<td class="p-3 text-right text-[#c5d3e0] text-base tabular-nums">
+						<td class="p-3 text-right text-text-body text-base tabular-nums">
 							{form.responseCount}
 						</td>
-						<td class="p-3 text-[#4b6280] text-base">
+						<td class="p-3 text-muted-dim text-base">
 							{form.createdAt}
 						</td>
 						<td class="p-3">
@@ -185,7 +185,7 @@
 									{#snippet trigger(attrs)}
 										<button
 											{...attrs}
-											class="px-2 py-1 bg-transparent text-[#4b6280] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-[#c5d3e0] transition-colors duration-100"
+											class="px-2 py-1 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-text-body transition-colors duration-100"
 										>···</button>
 									{/snippet}
 									{#snippet children({ close })}

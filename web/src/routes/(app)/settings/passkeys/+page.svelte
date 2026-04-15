@@ -136,11 +136,11 @@
 
 <div class="font-mono max-w-7xl mx-auto px-4 pt-12 pb-12 sm:p-8 sm:pb-12">
 	<div class="mb-7 flex items-center justify-between gap-4">
-		<h1 class="text-2xl m-0 text-[#e2e8f0]">Passkeys</h1>
+		<h1 class="text-2xl m-0 text-text-bright">Passkeys</h1>
 		{#if addStep === 'idle'}
 			<button
 				onclick={() => (addStep = 'naming')}
-				class="flex items-center gap-1.5 px-3 py-1.5 border border-border-deep rounded-md text-sm text-[#c5d3e0] hover:bg-[#1a2535] transition-colors cursor-pointer bg-transparent font-mono"
+				class="flex items-center gap-1.5 px-3 py-1.5 border border-border-deep rounded-md text-sm text-text-body hover:bg-surface-mid transition-colors cursor-pointer bg-transparent font-mono"
 			>
 				<Plus size={14} strokeWidth={2} />
 				Add passkey
@@ -155,12 +155,12 @@
 	<!-- Add passkey panel -->
 	{#if addStep === 'naming'}
 		<div class="mb-6 p-4 border border-border-deep rounded-md flex flex-col gap-3">
-			<p class="text-[#c5d3e0] text-sm m-0">Name your new passkey (optional):</p>
+			<p class="text-text-body text-sm m-0">Name your new passkey (optional):</p>
 			<input
 				type="text"
 				bind:value={newName}
 				placeholder="e.g. MacBook Touch ID"
-				class="font-mono bg-[#0d1520] border border-border-subtle rounded px-3 py-1.5 text-sm text-[#c5d3e0] placeholder-[#4b6280] focus:outline-none focus:border-[#3a5070]"
+				class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-1.5 text-sm text-text-body placeholder-muted-dim focus:outline-none focus:border-border-focus"
 			/>
 			{#if addError}
 				<p class="text-error-light text-xs m-0">{addError}</p>
@@ -168,13 +168,13 @@
 			<div class="flex gap-2">
 				<button
 					onclick={handleAddPasskey}
-					class="px-3 py-1.5 bg-[#1a2f4a] border border-[#2a4a6a] rounded text-sm text-[#c5d3e0] hover:bg-[#1e3555] transition-colors cursor-pointer font-mono"
+					class="px-3 py-1.5 bg-[#1a2f4a] border border-surface-3 rounded text-sm text-text-body hover:bg-[#1e3555] transition-colors cursor-pointer font-mono"
 				>
 					Continue
 				</button>
 				<button
 					onclick={() => { addStep = 'idle'; addError = null; newName = ''; }}
-					class="px-3 py-1.5 bg-transparent border border-border-subtle rounded text-sm text-[#4b6280] hover:text-[#8899aa] transition-colors cursor-pointer font-mono"
+					class="px-3 py-1.5 bg-transparent border border-border-subtle rounded text-sm text-muted-dim hover:text-muted-blue transition-colors cursor-pointer font-mono"
 				>
 					Cancel
 				</button>
@@ -182,25 +182,25 @@
 		</div>
 	{:else if addStep === 'reauth'}
 		<div class="mb-6 p-4 border border-border-deep rounded-md">
-			<p class="text-[#8899aa] text-sm animate-pulse m-0">Verifying your existing passkey…</p>
+			<p class="text-muted-blue text-sm animate-pulse m-0">Verifying your existing passkey…</p>
 		</div>
 	{:else if addStep === 'registering'}
 		<div class="mb-6 p-4 border border-border-deep rounded-md">
-			<p class="text-[#8899aa] text-sm animate-pulse m-0">Registering new passkey…</p>
+			<p class="text-muted-blue text-sm animate-pulse m-0">Registering new passkey…</p>
 		</div>
 	{/if}
 
 	<!-- Passkey list -->
 	{#if loading}
-		<p class="text-[#8899aa] text-base">Loading passkeys…</p>
+		<p class="text-muted-blue text-base">Loading passkeys…</p>
 	{:else if credentials.length === 0}
-		<p class="text-[#8899aa] text-base">No passkeys found.</p>
+		<p class="text-muted-blue text-base">No passkeys found.</p>
 	{:else}
 		<div class="flex flex-col gap-1.5">
 			{#each credentials as cred (cred.id)}
 				<div class="flex items-start justify-between gap-3 px-4 py-3 border border-border-deep rounded-md">
 					<div class="flex items-start gap-3 min-w-0">
-						<div class="text-[#4b6280] shrink-0 mt-0.5">
+						<div class="text-muted-dim shrink-0 mt-0.5">
 							<KeyRound size={18} strokeWidth={1.75} />
 						</div>
 						<div class="min-w-0">
@@ -212,7 +212,7 @@
 										if (e.key === 'Enter') saveEdit(cred.id);
 										if (e.key === 'Escape') cancelEdit();
 									}}
-									class="font-mono bg-[#0d1520] border border-[#2a4a6a] rounded px-2 py-0.5 text-sm text-[#c5d3e0] focus:outline-none"
+									class="font-mono bg-surface-input border border-surface-3 rounded px-2 py-0.5 text-sm text-text-body focus:outline-none"
 								/>
 								<div class="flex gap-2 mt-1">
 									<button
@@ -224,18 +224,18 @@
 									</button>
 									<button
 										onclick={cancelEdit}
-										class="text-xs text-[#4b6280] hover:text-[#8899aa] cursor-pointer bg-transparent border-none font-mono p-0"
+										class="text-xs text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0"
 									>
 										Cancel
 									</button>
 								</div>
 							{:else}
 								<div class="flex items-center gap-2">
-									<span class="text-[#c5d3e0] text-sm">
+									<span class="text-text-body text-sm">
 										{cred.name || 'Unnamed passkey'}
 									</span>
 									{#if cred.isCurrentSession}
-										<span class="text-[10px] px-1.5 py-0.5 bg-[#0d2a1a] border border-[#1a5030] rounded text-[#4a9060] leading-none">
+										<span class="text-[10px] px-1.5 py-0.5 bg-[#0d2a1a] border border-border-success-dark rounded text-[#4a9060] leading-none">
 											This session
 										</span>
 									{/if}
@@ -245,7 +245,7 @@
 										</span>
 									{/if}
 								</div>
-								<div class="text-[#4b6280] text-xs mt-0.5">Added {formatDate(cred.createdAt)}</div>
+								<div class="text-muted-dim text-xs mt-0.5">Added {formatDate(cred.createdAt)}</div>
 							{/if}
 						</div>
 					</div>
@@ -255,7 +255,7 @@
 							<button
 								onclick={() => startEdit(cred)}
 								title="Rename"
-								class="p-1.5 text-[#4b6280] hover:text-[#8899aa] transition-colors cursor-pointer bg-transparent border-none rounded"
+								class="p-1.5 text-muted-dim hover:text-muted-blue transition-colors cursor-pointer bg-transparent border-none rounded"
 							>
 								<Pencil size={14} strokeWidth={1.75} />
 							</button>
@@ -263,17 +263,17 @@
 
 						{#if confirmDeleteId === cred.id}
 							<div class="flex items-center gap-1.5">
-								<span class="text-xs text-[#8899aa]">Delete?</span>
+								<span class="text-xs text-muted-blue">Delete?</span>
 								<button
 									onclick={() => confirmDelete(cred.id)}
 									disabled={deletingId === cred.id}
-									class="px-2 py-0.5 border border-[#7f1d1d] rounded text-xs text-error-light hover:bg-[#1a0e0e] transition-colors cursor-pointer bg-transparent font-mono"
+									class="px-2 py-0.5 border border-border-danger-dark rounded text-xs text-error-light hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
 								>
 									{deletingId === cred.id ? '…' : 'Yes'}
 								</button>
 								<button
 									onclick={cancelDelete}
-									class="px-2 py-0.5 border border-border-subtle rounded text-xs text-[#4b6280] hover:text-[#8899aa] transition-colors cursor-pointer bg-transparent font-mono"
+									class="px-2 py-0.5 border border-border-subtle rounded text-xs text-muted-dim hover:text-muted-blue transition-colors cursor-pointer bg-transparent font-mono"
 								>
 									No
 								</button>
@@ -285,8 +285,8 @@
 								title={credentials.length <= 1 ? 'You must have at least one passkey' : 'Delete passkey'}
 								class="p-1.5 transition-colors cursor-pointer bg-transparent border-none rounded
 									{credentials.length <= 1
-										? 'text-[#2a3a4a] cursor-not-allowed'
-										: 'text-[#4b6280] hover:text-error-light'}"
+										? 'text-muted-mid cursor-not-allowed'
+										: 'text-muted-dim hover:text-error-light'}"
 							>
 								<Trash2 size={14} strokeWidth={1.75} />
 							</button>

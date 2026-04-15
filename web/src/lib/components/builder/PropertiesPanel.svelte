@@ -72,10 +72,10 @@
 	class="properties-panel {store.showFormSettings || store.selectedField ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-[280px] sm:max-h-none sm:rounded-xl
-		bg-surface-2 shadow-[0_4px_24px_rgba(0,0,0,0.4)] overflow-y-auto z-20"
+		bg-surface shadow-[0_4px_24px_var(--color-overlay-light)] overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
-	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-surface-2">
+	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-surface">
 		<div class="w-8 h-1 bg-border rounded-full"></div>
 	</div>
 

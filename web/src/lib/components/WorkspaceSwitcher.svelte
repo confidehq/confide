@@ -99,7 +99,7 @@
 			title={workspacesStore.active?.name ?? 'Workspace'}
 			class="w-full flex items-center justify-center py-1"
 		>
-			<span class="w-8 h-8 rounded-md flex items-center justify-center bg-[#0f1e30] border border-[#1e3347] text-[#93c5fd] text-xs font-semibold select-none">
+			<span class="w-8 h-8 rounded-md flex items-center justify-center bg-surface-deep border border-border text-text-blue text-xs font-semibold select-none">
 				{workspacesStore.active ? initials(workspacesStore.active.name) : '…'}
 			</span>
 		</button>
@@ -108,9 +108,9 @@
 		<button
 			bind:this={triggerEl}
 			onclick={openDropdown}
-			class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface-2 transition-colors duration-100 group text-left"
+			class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface transition-colors duration-100 group text-left"
 		>
-			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-[#0f1e30] border border-[#1e3347] text-[#93c5fd] text-xs font-semibold select-none">
+			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-surface-deep border border-border text-text-blue text-xs font-semibold select-none">
 				{#if workspacesStore.loading && !workspacesStore.loaded}
 					…
 				{:else}
@@ -119,16 +119,16 @@
 			</span>
 
 			<span class="flex-1 min-w-0">
-				<span class="block text-sm text-[#c5d3e0] truncate leading-tight font-medium">
+				<span class="block text-sm text-text-body truncate leading-tight font-medium">
 					{workspacesStore.active?.name ?? (workspacesStore.loading ? 'Loading…' : 'No workspace')}
 				</span>
 				{#if workspacesStore.active}
 					<span class="block text-xs leading-tight capitalize
 						{workspacesStore.active.plan === 'pro'
 							? workspacesStore.active.planStatus === 'active'
-								? 'text-[#4ade80]'
-								: 'text-[#f87171]'
-							: 'text-[#4b6280]'}">
+								? 'text-success-text-dark'
+								: 'text-error-light'
+							: 'text-muted-dim'}">
 						{planLabel(workspacesStore.active.plan, workspacesStore.active.planStatus)}
 					</span>
 				{/if}
@@ -137,7 +137,7 @@
 			<ChevronsUpDown
 				size={13}
 				strokeWidth={1.75}
-				class="shrink-0 text-[#374d63] group-hover:text-[#4b6280] transition-colors duration-100"
+				class="shrink-0 text-muted-mid group-hover:text-muted-dim transition-colors duration-100"
 			/>
 		</button>
 	{/if}
@@ -147,13 +147,13 @@
 {#if dropdownOpen && !sidebar.collapsed}
 	<div
 		style="position: fixed; left: {dropdownPos.left}px; top: {dropdownPos.top}px; width: {dropdownPos.width}px;"
-		class="z-50 bg-[#0b1623] border border-[#1e3347] rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.7)] overflow-hidden"
+		class="z-50 bg-canvas border border-border rounded-lg shadow-[0_8px_32px_var(--color-overlay)] overflow-hidden"
 	>
 		{#if showUpgradePrompt}
 			<!-- Upgrade prompt -->
 			<div class="px-3.5 py-3.5">
-				<p class="m-0 mb-1 text-sm text-[#c5d3e0] font-medium">Upgrade required</p>
-				<p class="m-0 mb-3 text-xs text-[#4b6280] leading-relaxed">
+				<p class="m-0 mb-1 text-sm text-text-body font-medium">Upgrade required</p>
+				<p class="m-0 mb-3 text-xs text-muted-dim leading-relaxed">
 					Free plan is limited to one workspace. Upgrade to Pro to create additional workspaces.
 				</p>
 				<div class="flex gap-2">
@@ -164,7 +164,7 @@
 					>Upgrade to Pro</a>
 					<button
 						onclick={() => { showUpgradePrompt = false; }}
-						class="px-3 py-1.5 text-xs text-[#4b6280] bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-[#c5d3e0] hover:border-border-subtle transition-colors duration-100"
+						class="px-3 py-1.5 text-xs text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body hover:border-border-subtle transition-colors duration-100"
 					>Cancel</button>
 				</div>
 			</div>
@@ -172,7 +172,7 @@
 		{:else if showCreate}
 			<!-- Create workspace form -->
 			<div class="p-3">
-				<p class="m-0 mb-2.5 text-[10px] text-[#374d63] uppercase tracking-widest font-medium">New workspace</p>
+				<p class="m-0 mb-2.5 text-[10px] text-muted-mid uppercase tracking-widest font-medium">New workspace</p>
 				<input
 					type="text"
 					placeholder="Workspace name"
@@ -190,11 +190,11 @@
 						onclick={handleCreate}
 						disabled={creating || !newName.trim()}
 						class="flex-1 py-1.5 text-xs text-white border-none rounded cursor-pointer font-mono transition-colors duration-100
-							{creating || !newName.trim() ? 'bg-[#374d63] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
+							{creating || !newName.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
 					>{creating ? 'Creating…' : 'Create'}</button>
 					<button
 						onclick={() => { showCreate = false; createError = ''; newName = ''; }}
-						class="px-3 py-1.5 text-xs text-[#4b6280] bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-[#c5d3e0] hover:border-border-subtle transition-colors duration-100"
+						class="px-3 py-1.5 text-xs text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body hover:border-border-subtle transition-colors duration-100"
 					>Cancel</button>
 				</div>
 			</div>
@@ -203,22 +203,22 @@
 			<!-- Workspace list -->
 			<div class="py-1 max-h-[220px] overflow-y-auto">
 				{#if workspacesStore.workspaces.length === 0}
-					<p class="px-3 py-2 text-xs text-[#374d63]">No workspaces</p>
+					<p class="px-3 py-2 text-xs text-muted-mid">No workspaces</p>
 				{:else}
 					{#each workspacesStore.workspaces as ws (ws.id)}
 						{@const isActive = ws.id === workspacesStore.active?.id}
 						<button
 							onclick={() => selectWorkspace(ws.id)}
 							class="w-full flex items-center gap-2.5 px-3 py-2 text-left bg-transparent border-none cursor-pointer font-mono text-sm transition-colors duration-100
-								{isActive ? 'bg-[#0f1e2e]' : 'hover:bg-[#0f1e2e]'}"
+								{isActive ? 'bg-surface-hover' : 'hover:bg-surface-hover'}"
 						>
-							<span class="shrink-0 w-6 h-6 rounded flex items-center justify-center bg-[#0b1623] border border-[#1e3347] text-[#4b6280] text-xs font-semibold">
+							<span class="shrink-0 w-6 h-6 rounded flex items-center justify-center bg-canvas border border-border text-muted-dim text-xs font-semibold">
 								{initials(ws.name)}
 							</span>
-							<span class="flex-1 min-w-0 text-[#c5d3e0] truncate">{ws.name}</span>
-							<span class="shrink-0 text-[10px] text-[#374d63] capitalize">{ws.plan}</span>
+							<span class="flex-1 min-w-0 text-text-body truncate">{ws.name}</span>
+							<span class="shrink-0 text-[10px] text-muted-mid capitalize">{ws.plan}</span>
 							{#if isActive}
-								<Check size={12} strokeWidth={2.5} class="shrink-0 text-[#93c5fd]" />
+								<Check size={12} strokeWidth={2.5} class="shrink-0 text-text-blue" />
 							{:else}
 								<span class="shrink-0 w-3"></span>
 							{/if}
@@ -228,10 +228,10 @@
 			</div>
 
 			<!-- New workspace -->
-			<div class="border-t border-[#1e3347]">
+			<div class="border-t border-border">
 				<button
 					onclick={() => { showCreate = true; }}
-					class="w-full flex items-center gap-2 px-3 py-2.5 text-left bg-transparent border-none cursor-pointer font-mono text-xs text-[#4b6280] hover:text-[#c5d3e0] hover:bg-[#0f1e2e] transition-colors duration-100"
+					class="w-full flex items-center gap-2 px-3 py-2.5 text-left bg-transparent border-none cursor-pointer font-mono text-xs text-muted-dim hover:text-text-body hover:bg-surface-hover transition-colors duration-100"
 				>
 					<Plus size={13} strokeWidth={1.75} class="shrink-0" />
 					New workspace

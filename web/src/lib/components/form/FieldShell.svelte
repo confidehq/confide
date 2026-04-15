@@ -13,14 +13,14 @@
 </script>
 
 <div class="flex flex-col gap-1.5 w-full">
-	<label class="text-sm font-semibold text-[#111]">
-		{label}{#if required}<span class="text-[#ef4444] ml-0.5" aria-hidden="true">*</span>{/if}
+	<label class="text-sm font-semibold text-form-text">
+		{label}{#if required}<span class="text-danger-border ml-0.5" aria-hidden="true">*</span>{/if}
 	</label>
 	{#if helpText}
-		<p class="m-0 text-xs text-[#6b7280]">{helpText}</p>
+		<p class="m-0 text-xs text-form-muted">{helpText}</p>
 	{/if}
 	{@render children()}
 	{#if error}
-		<p class="m-0 text-xs text-[#ef4444]" role="alert">{error}</p>
+		<p class="m-0 text-xs text-danger-border" role="alert">{error}</p>
 	{/if}
 </div>

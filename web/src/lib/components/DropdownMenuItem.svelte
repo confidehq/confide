@@ -30,7 +30,7 @@
 		background: transparent;
 		border: none;
 		border-radius: 5px;
-		color: #c5d3e0;
+		color: var(--color-text-body);
 		font-family: monospace;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
@@ -42,17 +42,17 @@
 
 	.item:hover,
 	.item:focus-visible {
-		background: #1a2840;
-		color: #e2e8f0;
+		background: var(--color-surface-hover);
+		color: var(--color-text-bright);
 	}
 
 	.item.destructive {
-		color: #f87171;
+		color: var(--color-error-light);
 	}
 
 	.item.destructive:hover,
 	.item.destructive:focus-visible {
-		background: #2d1515;
-		color: #fca5a5;
+		background: var(--color-danger-bg-dark);
+		color: var(--color-danger-text-dark);
 	}
 </style>

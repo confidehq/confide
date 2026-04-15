@@ -62,12 +62,12 @@
 		<p class="text-muted text-sm">Loading invitation…</p>
 
 	{:else if pageState ==='error'}
-		<div class="p-5 border border-[#991b1b] rounded-md bg-[#1c0a0a] text-error-muted text-sm">
+		<div class="p-5 border border-danger-text rounded-md bg-danger-dark text-error-muted text-sm">
 			{errorMsg}
 		</div>
 		<p class="text-xs text-muted-dark mt-6">
-			<a href="/login" class="text-[#60a5fa]">Sign in</a> or
-			<a href="/signup" class="text-[#60a5fa]">create an account</a>
+			<a href="/login" class="text-text-blue">Sign in</a> or
+			<a href="/signup" class="text-text-blue">create an account</a>
 		</p>
 
 	{:else if pageState ==='already_member'}
@@ -75,11 +75,11 @@
 			You're already a member of <strong class="text-text">{preview?.workspaceName}</strong>.
 		</div>
 		<p class="text-xs text-muted-dark mt-4">
-			<a href="/dashboard" class="text-[#60a5fa]">Go to dashboard</a>
+			<a href="/dashboard" class="text-text-blue">Go to dashboard</a>
 		</p>
 
 	{:else if pageState ==='pending'}
-		<div class="p-5 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-sm">
+		<div class="p-5 border border-success-text rounded-md bg-success-bg-deep text-success-text-dark text-sm">
 			<strong>You've joined {preview?.workspaceName}.</strong>
 			<p class="mt-2 text-[#86efac]">
 				Your access is pending approval from a workspace admin. You'll be able to view workspace
@@ -87,7 +87,7 @@
 			</p>
 		</div>
 		<p class="text-xs text-muted-dark mt-4">
-			<a href="/dashboard" class="text-[#60a5fa]">Go to dashboard</a>
+			<a href="/dashboard" class="text-text-blue">Go to dashboard</a>
 		</p>
 
 	{:else if preview}
@@ -124,7 +124,7 @@
 					</a>
 					<a
 						href="/login?next=/invite/{token}"
-						class="flex-1 py-3 text-center text-muted bg-surface-2 hover:text-text border border-border rounded-md font-mono text-sm no-underline transition-colors duration-100"
+						class="flex-1 py-3 text-center text-muted bg-surface hover:text-text border border-border rounded-md font-mono text-sm no-underline transition-colors duration-100"
 					>
 						Sign in
 					</a>

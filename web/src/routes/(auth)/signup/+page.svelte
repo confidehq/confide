@@ -124,12 +124,12 @@
 	<!-- Step: checking / PRF error -->
 	{#if step === 'checking'}
 		{#if prfError}
-			<div class="p-5 border border-[#991b1b] rounded-md bg-[#1c0a0a] text-error-muted text-sm">
+			<div class="p-5 border border-danger-text rounded-md bg-danger-dark text-error-muted text-sm">
 				<strong>Unsupported browser or device</strong>
 				<p class="mt-2 text-error-muted">{prfError}</p>
 			</div>
 		{:else}
-			<p class="text-[#888]">Checking browser compatibility…</p>
+			<p class="text-muted">Checking browser compatibility…</p>
 		{/if}
 
 	<!-- Step: briefing (mandatory scroll-through) -->
@@ -170,7 +170,7 @@
 			class="w-full py-3.5 border-none rounded-md font-mono text-base
 				{briefingScrolled
 					? 'bg-primary text-white cursor-pointer hover:bg-primary-hover'
-					: 'bg-[#1e3a5f] text-[#4b6583] cursor-not-allowed'}"
+					: 'bg-surface-active text-[#4b6583] cursor-not-allowed'}"
 		>
 			I understand — continue
 		</button>
@@ -206,7 +206,7 @@
 	{:else if step === 'recovery'}
 		<div class="mb-6">
 			<h2 class="text-base text-text mb-2">Save your recovery code</h2>
-			<p class="text-[#f59e0b] text-sm mb-5">
+			<p class="text-warning-border text-sm mb-5">
 				This is the only way to recover your account. Save it now — you will not see it again.
 			</p>
 
@@ -216,7 +216,7 @@
 
 			<button
 				onclick={copyCode}
-				class="px-4 py-2 bg-surface-2 text-muted border border-border rounded cursor-pointer font-mono text-xs mb-8 hover:text-text transition-colors duration-100"
+				class="px-4 py-2 bg-surface text-muted border border-border rounded cursor-pointer font-mono text-xs mb-8 hover:text-text transition-colors duration-100"
 			>
 				Copy code
 			</button>
@@ -230,7 +230,7 @@
 				oninput={checkVerification}
 				placeholder="GHRK-XXXX-XXXX-…"
 				class="input-base mb-1 text-sm py-2.5 px-3
-					{verifyError ? '!border-[#991b1b]' : ''}"
+					{verifyError ? '!border-danger-text' : ''}"
 			/>
 			{#if verifyError}
 				<span class="text-error-muted text-xs block mb-2">
@@ -243,8 +243,8 @@
 				disabled={!verifyPassed}
 				class="w-full py-3.5 mt-3 border-none rounded-md font-mono text-base
 					{verifyPassed
-						? 'bg-[#166534] text-[#bbf7d0] cursor-pointer'
-						: 'bg-surface-2 text-muted-dark cursor-not-allowed'}"
+						? 'bg-success-text text-success-text-dark cursor-pointer'
+						: 'bg-surface text-muted-dark cursor-not-allowed'}"
 			>
 				Complete setup
 			</button>
@@ -252,7 +252,7 @@
 
 	<!-- Step: success -->
 	{:else if step === 'success'}
-		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-sm text-center">
+		<div class="p-6 border border-success-text rounded-md bg-success-bg-deep text-success-text-dark text-sm text-center">
 			Account created. Redirecting…
 		</div>
 	{/if}

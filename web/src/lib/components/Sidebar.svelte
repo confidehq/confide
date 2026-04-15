@@ -28,7 +28,7 @@
 			'flex items-center gap-2.5 h-10 no-underline whitespace-nowrap overflow-hidden',
 			'text-sm box-border w-full transition-[color,background] duration-100 border-l-2',
 			active
-				? 'text-[#f9fafb] bg-surface-2 border-primary-hover'
+				? 'text-text-bright bg-surface border-primary-hover'
 				: 'text-muted-dark bg-transparent border-transparent hover:text-muted'
 		].join(' ');
 	}
@@ -70,7 +70,7 @@
 		{sidebar.mobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0"
 >
 	<!-- Logo / wordmark + collapse toggle -->
-	<div class="h-[52px] relative flex items-center justify-center shrink-0 border-b border-surface-2 overflow-hidden whitespace-nowrap">
+	<div class="h-[52px] relative flex items-center justify-center shrink-0 border-b border-surface overflow-hidden whitespace-nowrap">
 		{#if sidebar.collapsed}
 			<button
 				onclick={() => sidebar.toggle()}
@@ -92,7 +92,7 @@
 	</div>
 
 	<!-- Workspace switcher -->
-	<div class="shrink-0 border-b border-surface-2">
+	<div class="shrink-0 border-b border-surface">
 		<WorkspaceSwitcher />
 	</div>
 
@@ -107,7 +107,7 @@
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/dashboard'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-[#93c5fd]' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-text-blue' : 'text-muted-dark'}">
 					<LayoutGrid size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
@@ -122,7 +122,7 @@
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/forms'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-[#93c5fd]' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-text-blue' : 'text-muted-dark'}">
 					<FileText size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
@@ -137,7 +137,7 @@
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/team'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-[#93c5fd]' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-text-blue' : 'text-muted-dark'}">
 					<Users size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
@@ -152,7 +152,7 @@
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/settings'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-[#93c5fd]' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-text-blue' : 'text-muted-dark'}">
 					<Settings size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
@@ -186,20 +186,20 @@
 			<div class="relative">
 				{#if accountMenuOpen}
 					<div
-						class="absolute bottom-full left-2 right-2 mb-1.5 bg-[#0d1520] border border-[#1e3347] rounded-md shadow-lg overflow-hidden z-50"
+						class="absolute bottom-full left-2 right-2 mb-1.5 bg-surface-input border border-border-mid rounded-md shadow-lg overflow-hidden z-50"
 					>
 						<a
 							href="/me"
 							onclick={() => { accountMenuOpen = false; sidebar.closeMobile(); }}
-							class="flex items-center gap-2.5 px-3 py-2.5 text-sm text-[#c5d3e0] hover:bg-[#1a2535] no-underline transition-colors duration-100 w-full"
+							class="flex items-center gap-2.5 px-3 py-2.5 text-sm text-text-body hover:bg-surface-mid no-underline transition-colors duration-100 w-full"
 						>
-							<User size={15} strokeWidth={1.75} class="text-[#4b6280] shrink-0" />
+							<User size={15} strokeWidth={1.75} class="text-muted-dim shrink-0" />
 							Profile
 						</a>
-						<div class="border-t border-[#1e3347]"></div>
+						<div class="border-t border-border-mid"></div>
 						<button
 							onclick={handleLogout}
-							class="flex items-center gap-2.5 px-3 py-2.5 text-sm text-[#f87171] hover:bg-[#1a0e0e] w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
+							class="flex items-center gap-2.5 px-3 py-2.5 text-sm text-error-light hover:bg-danger-hover w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
 						>
 							<LogOut size={15} strokeWidth={1.75} class="shrink-0" />
 							Sign out
@@ -213,11 +213,11 @@
 					class="flex items-center gap-2.5 h-10 w-full bg-transparent border-none border-l-2 border-transparent
 						whitespace-nowrap overflow-hidden text-sm box-border cursor-pointer font-mono
 						text-muted-dark hover:text-muted transition-colors duration-100
-						{isActive('/me') ? 'text-[#f9fafb] bg-surface-2 border-l-2 border-primary-hover' : ''}"
+						{isActive('/me') ? 'text-text-bright bg-surface border-l-2 border-primary-hover' : ''}"
 				>
 					<span
 						class="shrink-0 w-[18px] h-[18px] rounded flex items-center justify-center text-[9px] font-semibold leading-none
-							{isActive('/me') ? 'bg-[#1e3a5f] text-[#93c5fd]' : 'bg-[#0f1e30] text-[#4b6280]'}"
+							{isActive('/me') ? 'bg-surface-active text-text-blue' : 'bg-surface-deep text-muted-dim'}"
 					>
 						{accountInitials()}
 					</span>

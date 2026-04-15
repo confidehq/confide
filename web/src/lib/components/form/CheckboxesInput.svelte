@@ -34,12 +34,12 @@
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
 	<div class="flex flex-col gap-2">
 		{#each cfg.options as opt, i (opt.id)}
-			<label class="flex items-center gap-2.5 cursor-pointer text-sm text-[#374151]">
+			<label class="flex items-center gap-2.5 cursor-pointer text-sm text-form-text-mid">
 				<input
 					type="checkbox"
 					checked={checked.includes(opt.id)}
 					onchange={() => toggle(opt.id)}
-					class="accent-[#1d4ed8] w-4 h-4 shrink-0"
+					class="accent-form-primary w-4 h-4 shrink-0"
 				/>
 				{getLabel(i)}
 			</label>

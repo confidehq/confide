@@ -64,7 +64,7 @@
 	<h1 class="text-2xl mb-2">Account Recovery</h1>
 
 	{#if step === 'enter-code'}
-		<p class="text-[#888] text-sm mb-8">
+		<p class="text-muted text-sm mb-8">
 			Enter your account ID and recovery code to regain access.
 		</p>
 
@@ -102,12 +102,12 @@
 		</button>
 
 		<p class="text-xs text-muted-dark mt-4">
-			<a href="/login" class="text-[#60a5fa]">Back to sign in</a>
+			<a href="/login" class="text-text-blue">Back to sign in</a>
 		</p>
 
 	{:else if step === 'rekey'}
-		<div class="p-5 border border-[#166534] rounded-md bg-[#052e16] mb-6">
-			<p class="text-[#bbf7d0] text-sm m-0">
+		<div class="p-5 border border-success-text rounded-md bg-success-bg-deep mb-6">
+			<p class="text-success-text-dark text-sm m-0">
 				Recovery code verified. Now register a new passkey on this device.
 			</p>
 		</div>
@@ -126,7 +126,7 @@
 		</button>
 
 	{:else if step === 'success'}
-		<div class="p-6 border border-[#166534] rounded-md bg-[#052e16] text-[#bbf7d0] text-sm text-center">
+		<div class="p-6 border border-success-text rounded-md bg-success-bg-deep text-success-text-dark text-sm text-center">
 			New passkey registered. Redirecting to dashboard…
 		</div>
 	{/if}

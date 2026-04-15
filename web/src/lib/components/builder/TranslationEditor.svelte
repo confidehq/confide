@@ -61,13 +61,13 @@
 	<!-- Label -->
 	<div>
 		<label class="block text-xs text-muted mb-1">
-			Label {#if !currentFieldTranslation?.label}<span class="text-[#f59e0b]">*</span>{/if}
+			Label {#if !currentFieldTranslation?.label}<span class="text-warning-border">*</span>{/if}
 		</label>
 		<textarea
 			value={currentFieldTranslation?.label ?? ''}
 			oninput={(e) => fieldId && store.updateTranslation(fieldId, 'label', (e.target as HTMLTextAreaElement).value)}
 			rows={2}
-			class="input-base {!currentFieldTranslation?.label ? '!border-[#92400e]' : ''}"
+			class="input-base {!currentFieldTranslation?.label ? '!border-warning-text' : ''}"
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.label}
 			<p class="mt-1 m-0 text-sm text-muted-dark">
@@ -122,7 +122,7 @@
 							placeholder="Option {i + 1}"
 							value={getOptionLabel(i)}
 							oninput={(e) => setOptionLabel(i, (e.target as HTMLInputElement).value)}
-							class="input-base text-xs {!getOptionLabel(i) ? '!border-[#92400e]' : ''}"
+							class="input-base text-xs {!getOptionLabel(i) ? '!border-warning-text' : ''}"
 						/>
 						{#if isNonDefaultLocale && getDefaultOptionLabel(i)}
 							<p class="mt-0.5 m-0 text-sm text-muted-dark">

@@ -33,7 +33,7 @@
 
 <div class="font-mono max-w-[480px] mx-auto mt-20 px-6">
 	<h1 class="text-2xl mb-2">Confide</h1>
-	<p class="text-[#888] text-sm mb-8">Sign in with your passkey.</p>
+	<p class="text-muted text-sm mb-8">Sign in with your passkey.</p>
 
 	<label class="block text-muted text-sm mb-1.5">Username</label>
 	<input
@@ -59,6 +59,6 @@
 
 	<p class="text-xs text-muted-dark mt-6">
 		Lost your passkey?
-		<a href="/recover" class="text-[#60a5fa]">Recover with recovery codes</a>
+		<a href="/recover" class="text-text-blue">Recover with recovery codes</a>
 	</p>
 </div>

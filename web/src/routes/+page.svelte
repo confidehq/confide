@@ -91,8 +91,8 @@
 
 <style>
 	:global(body) {
-		background-color: #080810;
-		color: #e8e8f0;
+		background-color: var(--color-brand-bg);
+		color: var(--color-brand-text);
 		font-family: 'IBM Plex Sans', sans-serif;
 		margin: 0;
 	}
@@ -157,7 +157,7 @@
 		font-weight: 700;
 		letter-spacing: 0.12em;
 		text-transform: uppercase;
-		color: #e8e8f0;
+		color: var(--color-brand-text);
 		text-decoration: none;
 	}
 
@@ -212,9 +212,9 @@
 		animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 	}
 
-	.word-1 { animation-delay: 0.1s;  color: #e8e8f0; }
-	.word-2 { animation-delay: 0.28s; color: #c8d8d6; }
-	.word-3 { animation-delay: 0.46s; color: #81bfbb; }
+	.word-1 { animation-delay: 0.1s;  color: var(--color-brand-text); }
+	.word-2 { animation-delay: 0.28s; color: var(--color-brand-text-mid); }
+	.word-3 { animation-delay: 0.46s; color: var(--color-brand-accent); }
 
 	@keyframes rise {
 		from { opacity: 0; transform: translateY(18px); }
@@ -261,14 +261,14 @@
 	}
 
 	.btn-primary {
-		background: #81bfbb;
-		color: #080810;
-		border: 1px solid #81bfbb;
+		background: var(--color-brand-accent);
+		color: var(--color-brand-bg);
+		border: 1px solid var(--color-brand-accent);
 	}
 
 	.btn-primary:hover {
-		background: #9dd0cc;
-		border-color: #9dd0cc;
+		background: var(--color-brand-accent-hover);
+		border-color: var(--color-brand-accent-hover);
 		box-shadow: 0 0 20px rgba(129, 191, 187, 0.3);
 	}
 
@@ -280,7 +280,7 @@
 
 	.btn-ghost:hover {
 		border-color: rgba(232, 232, 240, 0.35);
-		color: #e8e8f0;
+		color: var(--color-brand-text);
 	}
 
 	/* ── Prose sections ── */
@@ -312,7 +312,7 @@
 		font-weight: 600;
 		letter-spacing: 0.07em;
 		text-transform: uppercase;
-		color: #81bfbb;
+		color: var(--color-brand-accent);
 		margin: 0;
 		padding-top: 0.25rem;
 		line-height: 1.6;

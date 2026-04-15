@@ -49,19 +49,19 @@
 			<!-- Header -->
 			<div class="flex items-start justify-between gap-3">
 				<div class="flex items-center gap-2.5 min-w-0">
-					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-[#2d1515] border border-[#7f1d1d]">
-						<TriangleAlert size={14} strokeWidth={1.75} class="text-[#f87171]" />
+					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-danger-bg-dark border border-danger-bg">
+						<TriangleAlert size={14} strokeWidth={1.75} class="text-error-light" />
 					</span>
 					<h2
 						id="confirm-dialog-title"
-						class="m-0 text-base font-semibold text-[#e2e8f0] leading-snug"
+						class="m-0 text-base font-semibold text-text-bright leading-snug"
 					>{title}</h2>
 				</div>
 				<button
 					onclick={oncancel}
 					disabled={loading}
 					class="shrink-0 w-7 h-7 flex items-center justify-center rounded bg-transparent border-none cursor-pointer
-						text-[#374d63] hover:text-[#c5d3e0] hover:bg-[#1a2840] transition-colors duration-100
+						text-muted-mid hover:text-text-body hover:bg-surface transition-colors duration-100
 						disabled:pointer-events-none"
 					aria-label="Cancel"
 				>
@@ -71,24 +71,24 @@
 
 			<!-- Description -->
 			{#if description}
-				<p class="m-0 text-sm text-[#4b6280] leading-relaxed">{description}</p>
+				<p class="m-0 text-sm text-muted-dim leading-relaxed">{description}</p>
 			{/if}
 
 			<!-- Error -->
 			{#if error}
-				<p class="m-0 text-sm text-[#f87171]">{error}</p>
+				<p class="m-0 text-sm text-error-light">{error}</p>
 			{/if}
 
 			<!-- Divider -->
-			<div class="h-px bg-[#1e3048]"></div>
+			<div class="h-px bg-border-deep"></div>
 
 			<!-- Actions -->
 			<div class="flex gap-2 justify-end">
 				<button
 					onclick={oncancel}
 					disabled={loading}
-					class="px-4 py-2 bg-transparent text-[#4b6280] border border-[#1e3048] rounded cursor-pointer
-						font-mono text-sm hover:text-[#c5d3e0] hover:border-[#374d63] transition-colors duration-100
+					class="px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded cursor-pointer
+						font-mono text-sm hover:text-text-body hover:border-muted-mid transition-colors duration-100
 						disabled:pointer-events-none"
 				>Cancel</button>
 				<button
@@ -96,8 +96,8 @@
 					disabled={loading}
 					class="px-4 py-2 border-none rounded cursor-pointer font-mono text-sm transition-colors duration-100
 						{loading
-							? 'bg-[#374d63] text-[#4b6280] cursor-not-allowed'
-							: 'bg-[#991b1b] text-[#fecaca] hover:bg-[#b91c1c]'}"
+							? 'bg-muted-mid text-muted-dim cursor-not-allowed'
+							: 'bg-danger-text text-danger-text-dark hover:bg-danger-border'}"
 				>{loading ? 'Deleting…' : confirmLabel}</button>
 			</div>
 		</div>
@@ -106,20 +106,20 @@
 
 <style>
 	.backdrop {
-		background: rgba(0, 0, 0, 0.65);
+		background: var(--color-overlay);
 		backdrop-filter: blur(2px);
 		animation: fade-in 120ms ease-out both;
 	}
 
 	.dialog {
-		background: #0d1b2a;
-		border: 1px solid #1e3048;
+		background: var(--color-surface-subtle);
+		border: 1px solid var(--color-border-deep);
 		border-radius: 10px;
 		padding: 1.25rem;
 		box-shadow:
 			0 0 0 1px rgba(255,255,255,0.04) inset,
 			0 24px 48px -12px rgba(0, 0, 0, 0.7),
-			0 8px 16px -4px rgba(0, 0, 0, 0.4);
+			0 8px 16px -4px var(--color-overlay-light);
 		animation: slide-up 150ms cubic-bezier(0.34, 1.3, 0.64, 1) both;
 	}
 

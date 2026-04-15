@@ -96,7 +96,7 @@
 <!-- Hamburger button — mobile only -->
 <button
 	onclick={() => sidebar.openMobile()}
-	class="sm:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-8 h-8 bg-surface-2 border border-border rounded-md text-muted cursor-pointer hover:text-text transition-colors duration-100"
+	class="sm:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-8 h-8 bg-surface border border-border rounded-md text-muted cursor-pointer hover:text-text transition-colors duration-100"
 	aria-label="Open navigation"
 >
 	<Menu size={16} strokeWidth={1.75} />

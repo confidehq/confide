@@ -80,7 +80,7 @@
 	}
 </script>
 
-<div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-[#111]">
+<div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-form-text">
 	{#if locales.length > 1}
 		<div class="flex justify-center gap-1.5 mb-6">
 			{#each locales as code (code)}
@@ -88,8 +88,8 @@
 					onclick={() => onlocalechange(code)}
 					class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-100 cursor-pointer border-none
 						{locale === code
-							? 'bg-[#1d4ed8] text-white'
-							: 'bg-[#f3f4f6] text-[#6b7280] hover:bg-[#e5e7eb] hover:text-[#374151]'}"
+							? 'bg-form-primary text-white'
+							: 'bg-form-surface text-form-muted hover:bg-form-border-light hover:text-form-text-mid'}"
 				>
 					{new Intl.DisplayNames([code, 'en'], { type: 'language' }).of(code) ?? code}
 				</button>
@@ -98,7 +98,7 @@
 	{/if}
 	<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 	{#if translation?.formDescription}
-		<p class="m-0 mb-8 text-[#4b5563]">{translation.formDescription}</p>
+		<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>
 	{/if}
 
 	<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} novalidate>
@@ -128,14 +128,14 @@
 		</div>
 
 		{#if submitError}
-			<p class="mt-6 m-0 text-[#ef4444] text-sm">{submitError}</p>
+			<p class="mt-6 m-0 text-danger-border text-sm">{submitError}</p>
 		{/if}
 
 		<button
 			type="submit"
 			disabled={submitting}
 			class="mt-8 px-8 py-3 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
-				{submitting ? 'bg-[#9ca3af] cursor-not-allowed' : 'bg-[#1d4ed8] hover:bg-[#1e40af] cursor-pointer'}"
+				{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 		>
 			{submitting ? 'Submitting…' : 'Submit'}
 		</button>

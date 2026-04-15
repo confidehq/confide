@@ -1,39 +1,126 @@
 @import "tailwindcss";
 
 @theme {
-  /* Backgrounds */
-  --color-canvas: #111827;
-  --color-surface: #1a2332;
-  --color-surface-2: #1f2937;
+  /* ── Primitive scale ── */
+  --black-100: #263555;
+  --black-200: #1F2B46;
+  --black-300: #172136;
+  --black-400: #111827;
+  --green-100: #a2d198;
+  --green-200: #64b352;
+  --green-300: #5ba44a;
+  --green-400: #407534;
+  --green-500: #203e19;
+  --red-100: #ffb0ac;
+  --red-200: #f77a77;
+  --red-300: #e46f6d;
+  --red-400: #a34f4d;
+  --red-500: #582827;
+  --orange-100: #edbc83;
+  --orange-200: #de8f08;
+  --orange-300: #cd8301;
+  --orange-400: #935d05;
+  --orange-500: #4e3002;
+  --blue-100: #96c9fe;
+  --blue-200: #4aa5fb;
+  --blue-300: #4397e8;
+  --blue-400: #2e6ca6;
+  --blue-500: #15385a;
 
-  /* Borders */
+  /* ── Surfaces ── */
+  --color-canvas: var(--black-400);
+  --color-surface: var(--black-300);
+  --color-surface-hover: var(--black-200);
+  --color-surface-card: var(--black-100);
+  --color-surface-3: var(--black-200);
+  --color-surface-deep: var(--black-400);
+  --color-surface-read: var(--black-400);
+  --color-surface-active: var(--black-100);
+  --color-surface-input: var(--black-400);
+  --color-surface-subtle: var(--black-400);
+  --color-surface-selected: rgba(30, 58, 138, 0.13);
+
+  /* ── Borders ── */
   --color-border: #374151;
+  --color-border-mid: #2a3341;
   --color-border-subtle: #2d3f55;
   --color-border-deep: #1e2d3e;
+  --color-border-field: #2a3341;
+  --color-border-focus: #3a5070;
+  --color-border-card: #1a2840;
 
-  /* Text */
+  /* ── Text ── */
   --color-text: #e5e7eb;
+  --color-text-bright: #e2e8f0;
+  --color-text-body: #c5d3e0;
   --color-text-dim: #d1d5db;
+  --color-text-note: #cbd5e1;
+  --color-text-blue: var(--blue-100);
+  --color-text-subtle: #4b5563;
   --color-muted: #9ca3af;
   --color-muted-dark: #6b7280;
+  --color-muted-mid: #374d63;
+  --color-muted-dim: #4b6280;
   --color-muted-blue: #7a90a8;
 
-  /* Actions */
+  /* ── Actions ── */
   --color-primary: #2563eb;
   --color-primary-hover: #1d4ed8;
 
-  /* Status */
-  --color-error: #ef4444;
-  --color-error-light: #f87171;
-  --color-error-muted: #fca5a5;
+  /* ── Overlays ── */
+  --color-overlay: rgba(0, 0, 0, 0.65);
+  --color-overlay-light: rgba(0, 0, 0, 0.4);
 
-  /* Form badges */
-  --color-open-bg: #14532d;
-  --color-open-text: #86efac;
-  --color-open-border: #166534;
-  --color-closed-bg: #1a2332;
-  --color-closed-text: #7a90a8;
-  --color-closed-border: #2d3f55;
+  /* ── Status — error ── */
+  --color-error-light: #f87171;
+
+  /* ── Status — success ── */
+  --color-success-bg: #f0fdf4;
+  --color-success-bg-subtle: rgba(5, 46, 22, 0.13);
+  --color-success-bg-deep: #052e16;
+  --color-success-text: #166534;
+  --color-success-text-dark: #4ade80;
+  --color-success-border: #22c55e;
+
+  /* ── Status — warning ── */
+  --color-warning-bg: #fffbeb;
+  --color-warning-bg-subtle: rgba(69, 26, 3, 0.13);
+  --color-warning-bg-dark: #451a03;
+  --color-warning-text: #92400e;
+  --color-warning-border: #f59e0b;
+
+  /* ── Status — info ── */
+  --color-info-bg: #eff6ff;
+  --color-info-bg-dark: #1e3a8a;
+  --color-info-bg-subtle: rgba(30, 58, 95, 0.13);
+  --color-info-border-subtle: rgba(59, 130, 246, 0.27);
+  --color-info-text: #1e40af;
+  --color-info-border: #3b82f6;
+
+  /* ── Status — danger ── */
+  --color-danger-bg: #fef2f2;
+  --color-danger-bg-dark: #2d1515;
+  --color-danger-bg-deep: #450a0a;
+  --color-danger-bg-subtle: rgba(69, 10, 10, 0.13);
+  --color-danger-text: #991b1b;
+  --color-danger-text-dark: #fca5a5;
+  --color-danger-border: #ef4444;
+
+  /* ── Form renderer ── */
+  --color-form-bg: #ffffff;
+  --color-form-surface: #f9fafb;
+  --color-form-border: #d1d5db;
+  --color-form-border-focus: #1d4ed8;
+  --color-form-text: #111827;
+  --color-form-text-mid: #374151;
+  --color-form-primary: #1d4ed8;
+
+  /* ── Brand / landing ── */
+  --color-brand-bg: #080810;
+  --color-brand-text: #e8e8f0;
+  --color-brand-text-mid: #c8d8d6;
+  --color-brand-accent: #81bfbb;
+  --color-brand-accent-hover: #9dd0cc;
 }
 
 html,
@@ -67,7 +154,7 @@ body {
 .form-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1.5px solid #d1d5db;
+  border: 1.5px solid var(--color-form-border);
   border-radius: 6px;
   font-size: 0.9rem;
   font-family: inherit;
@@ -76,7 +163,7 @@ body {
 
 .form-input:focus {
   outline: none;
-  border-color: #1d4ed8;
+  border-color: var(--color-form-border-focus);
 }
 
 /* On mobile the sidebar overlays content, so remove the left margin */

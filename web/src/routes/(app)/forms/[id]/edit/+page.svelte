@@ -122,14 +122,14 @@
 {:else if store}
 	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text-dim overflow-hidden">
 		<!-- Toolbar -->
-		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-[#2a3341] shrink-0 overflow-x-auto">
+		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-border-field shrink-0 overflow-x-auto">
 			<!-- Form name input -->
 			<input
 				type="text"
 				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface-2"
+				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface"
 			/>
 
 			<!-- Layout selector — hidden on mobile -->
@@ -154,7 +154,7 @@
 					</button>
 
 					{#if layoutOpen}
-						<div class="absolute top-[calc(100%+4px)] left-0 bg-[#1a2233] border border-[#2a3341] rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+						<div class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border-field rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
 							{#each layoutModes as mode}
 								{@const active = mode.value === store.schema.layout}
 								<button
@@ -162,12 +162,12 @@
 									class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
 										{active ? 'bg-[#1f2d42] text-text' : 'bg-transparent text-muted hover:bg-[#1e2b3c] hover:text-text-dim'}"
 								>
-									<span class="mt-0.5 shrink-0 {active ? 'text-[#60a5fa]' : 'text-[#4b6280]'}">
+									<span class="mt-0.5 shrink-0 {active ? 'text-text-blue' : 'text-muted-dim'}">
 										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
 									</span>
 									<span>
 										<span class="block text-sm">{mode.label}</span>
-										<span class="block text-sm text-[#4b6280] mt-0.5">{mode.help}</span>
+										<span class="block text-sm text-muted-dim mt-0.5">{mode.help}</span>
 									</span>
 								</button>
 							{/each}
@@ -183,7 +183,7 @@
 					<select
 						value={store.activeLocale}
 						onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-						class="appearance-none pl-2.5 pr-7 h-7 bg-surface-2 text-muted border border-[#2a3341] rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
+						class="appearance-none pl-2.5 pr-7 h-7 bg-surface text-muted border border-border-field rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
 					>
 						{#each store.schema.locales as locale}
 							<option value={locale}>{locale}</option>
@@ -199,7 +199,7 @@
 						placeholder="e.g. fr"
 						bind:value={newLocaleInput}
 						onkeydown={(e) => { if (e.key === 'Enter') handleAddLocale(); if (e.key === 'Escape') showLocaleInput = false; }}
-						class="w-14 px-2 h-7 bg-surface-2 border border-[#2a3341] text-text-dim rounded-md font-mono text-sm outline-none box-border"
+						class="w-14 px-2 h-7 bg-surface border border-border-field text-text-dim rounded-md font-mono text-sm outline-none box-border"
 					/>
 					<button
 						onclick={handleAddLocale}
@@ -208,7 +208,7 @@
 				{:else}
 					<button
 						onclick={() => (showLocaleInput = true)}
-						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-[#2a3341] rounded-md cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
+						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-border-field rounded-md cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
 					>+ lang</button>
 				{/if}
 			</div>
@@ -247,7 +247,7 @@
 				onclick={handlePublish}
 				disabled={store.saving || publishing}
 				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm transition-[background,opacity] duration-100
-					{store.saving || publishing ? 'bg-[#1e3a8a] cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
+					{store.saving || publishing ? 'bg-info-bg-dark cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>{publishing ? 'Publishing…' : 'Publish'}</button>
 
 			{#if publishError}
@@ -278,8 +278,8 @@
 			class="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]"
 			onclick={(e) => { if (e.target === e.currentTarget) publishModalOpen = false; }}
 		>
-			<div class="bg-surface-2 border border-border rounded-lg p-8 max-w-[540px] w-[90%] font-mono">
-				<h2 class="m-0 mb-2 text-xl text-[#f9fafb]">Your form is live.</h2>
+			<div class="bg-surface border border-border rounded-lg p-8 max-w-[540px] w-[90%] font-mono">
+				<h2 class="m-0 mb-2 text-xl text-text-bright">Your form is live.</h2>
 				<p class="m-0 mb-5 text-sm text-muted">Share this link with respondents:</p>
 
 				<div class="flex gap-2 mb-6">

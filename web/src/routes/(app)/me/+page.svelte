@@ -189,13 +189,13 @@
 	const roleBadge: Record<string, { label: string; color: string; border: string }> = {
 		owner:  { label: 'owner',  color: '#a78bfa', border: '#4c1d95' },
 		admin:  { label: 'admin',  color: '#60a5fa', border: '#1e3a5f' },
-		member: { label: 'member', color: '#4b6280', border: '#243447' },
-		viewer: { label: 'viewer', color: '#4b6280', border: '#243447' }
+		member: { label: 'member', color: 'var(--color-muted-dim)', border: '#243447' },
+		viewer: { label: 'viewer', color: 'var(--color-muted-dim)', border: '#243447' }
 	};
 
 	const planBadge: Record<string, { label: string; color: string }> = {
-		pro:  { label: 'Pro',  color: '#f59e0b' },
-		free: { label: 'Free', color: '#4b6280' }
+		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
+		free: { label: 'Free', color: 'var(--color-muted-dim)' }
 	};
 </script>
 
@@ -208,13 +208,13 @@
 
 	<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 	<div class="flex items-center gap-4 mb-8">
-		<div class="w-12 h-12 rounded-lg bg-[#0f1e30] border border-border-deep flex items-center justify-center text-base font-semibold text-[#4b6280] shrink-0 select-none">
+		<div class="w-12 h-12 rounded-lg bg-surface-deep border border-border-deep flex items-center justify-center text-base font-semibold text-muted-dim shrink-0 select-none">
 			{avatarInitials()}
 		</div>
 		<div>
-			<h1 class="text-2xl m-0 mb-0.5 text-[#e2e8f0] font-semibold">{auth.username ?? 'Account'}</h1>
+			<h1 class="text-2xl m-0 mb-0.5 text-text-bright font-semibold">{auth.username ?? 'Account'}</h1>
 			{#if auth.accountId}
-				<p class="m-0 text-sm text-[#4b6280]">{auth.accountId}</p>
+				<p class="m-0 text-sm text-muted-dim">{auth.accountId}</p>
 			{/if}
 		</div>
 	</div>
@@ -226,7 +226,7 @@
 		<div>
 			<!-- Workspaces -->
 			<div class="flex items-center justify-between mb-3">
-				<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-[#374d63]">
+				<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 					<span class="inline-flex items-center gap-2">
 						<LayoutGrid size={14} strokeWidth={1.75} />
 						Workspaces
@@ -235,10 +235,10 @@
 			</div>
 
 			{#if !workspacesStore.loaded && workspacesStore.loading}
-				<p class="text-[#4b6280] text-base">Loading…</p>
+				<p class="text-muted-dim text-base">Loading…</p>
 			{:else if workspacesStore.workspaces.length === 0}
 				<div class="py-10 border border-dashed border-border rounded-lg text-center">
-					<p class="m-0 text-[#4b6280] text-base">No workspaces</p>
+					<p class="m-0 text-muted-dim text-base">No workspaces</p>
 				</div>
 			{:else}
 				<div class="border border-border-deep rounded-lg overflow-hidden">
@@ -249,7 +249,7 @@
 							{i < workspacesStore.workspaces.length - 1 ? 'border-b border-border-deep' : ''}">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2">
-									<span class="text-base text-[#c5d3e0] truncate">{ws.name}</span>
+									<span class="text-base text-text-body truncate">{ws.name}</span>
 									<span
 										class="text-[10px] px-1.5 py-0.5 rounded border leading-none shrink-0"
 										style="color: {role.color}; border-color: {role.border}; background: {role.border}22;"
@@ -257,7 +257,7 @@
 										{role.label}
 									</span>
 								</div>
-								<p class="m-0 text-sm text-[#4b6280] mt-0.5">{ws.slug}</p>
+								<p class="m-0 text-sm text-muted-dim mt-0.5">{ws.slug}</p>
 							</div>
 							<span class="text-sm shrink-0 font-semibold" style="color: {plan.color};">{plan.label}</span>
 						</div>
@@ -272,7 +272,7 @@
 			<!-- Sessions -->
 			<div>
 				<div class="flex items-center justify-between mb-3">
-					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-[#374d63]">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 						<span class="inline-flex items-center gap-2">
 							<Monitor size={14} strokeWidth={1.75} />
 							Active Sessions
@@ -285,17 +285,17 @@
 				{/if}
 
 				{#if sessionsLoading}
-					<p class="text-[#4b6280] text-base">Loading…</p>
+					<p class="text-muted-dim text-base">Loading…</p>
 				{:else if sessions.length === 0}
 					<div class="py-10 border border-dashed border-border rounded-lg text-center">
-						<p class="m-0 text-[#4b6280] text-base">No active sessions</p>
+						<p class="m-0 text-muted-dim text-base">No active sessions</p>
 					</div>
 				{:else}
 					<div class="border border-border-deep rounded-lg overflow-hidden">
 						{#each sessions as session, i (session.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
 								{i < sessions.length - 1 ? 'border-b border-border-deep' : ''}">
-								<div class="text-[#4b6280] shrink-0" title={session.userAgent ?? 'Unknown device'}>
+								<div class="text-muted-dim shrink-0" title={session.userAgent ?? 'Unknown device'}>
 									{#if isMobile(session.userAgent)}
 										<Smartphone size={16} strokeWidth={1.75} />
 									{:else}
@@ -303,8 +303,8 @@
 									{/if}
 								</div>
 								<div class="flex-1 min-w-0">
-									<span class="text-base text-[#c5d3e0] truncate block">{session.id.slice(0, 16)}…</span>
-									<p class="m-0 text-sm text-[#4b6280] mt-0.5">
+									<span class="text-base text-text-body truncate block">{session.id.slice(0, 16)}…</span>
+									<p class="m-0 text-sm text-muted-dim mt-0.5">
 										Created {session.createdAt} · Last seen {session.lastSeen}
 									</p>
 								</div>
@@ -314,8 +314,8 @@
 									title={sessions.length <= 1 ? 'Cannot revoke your only session' : 'Revoke session'}
 									class="shrink-0 px-3 py-1.5 bg-transparent border rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100
 										{revoking === session.id || sessions.length <= 1
-											? 'text-[#2a3a4a] border-[#243447] cursor-not-allowed'
-											: 'text-error-light border-[#7f1d1d] hover:bg-[#1a0e0e]'}"
+											? 'text-muted-mid border-border-mid cursor-not-allowed'
+											: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
 								>
 									{revoking === session.id ? '…' : 'Revoke'}
 								</button>
@@ -328,7 +328,7 @@
 			<!-- Passkeys -->
 			<div>
 				<div class="flex items-center justify-between mb-3">
-					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-[#374d63]">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 						<span class="inline-flex items-center gap-2">
 							<KeyRound size={14} strokeWidth={1.75} />
 							Passkeys
@@ -337,7 +337,7 @@
 					{#if addStep === 'idle'}
 						<button
 							onclick={() => (addStep = 'naming')}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-[#93c5fd] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 						>
 							<Plus size={13} strokeWidth={2} />
 							Add passkey
@@ -352,12 +352,12 @@
 				<!-- Add passkey panel -->
 				{#if addStep === 'naming'}
 					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-3">
-						<p class="text-[#c5d3e0] text-base m-0">Name your new passkey (optional):</p>
+						<p class="text-text-body text-base m-0">Name your new passkey (optional):</p>
 						<input
 							type="text"
 							bind:value={newName}
 							placeholder="e.g. MacBook Touch ID"
-							class="font-mono bg-[#0d1520] border border-border-subtle rounded px-3 py-2 text-base text-[#c5d3e0] placeholder-[#4b6280] focus:outline-none focus:border-[#3a5070]"
+							class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2 text-base text-text-body placeholder-muted-dim focus:outline-none focus:border-border-focus"
 						/>
 						{#if addError}
 							<p class="text-error-light text-base m-0">{addError}</p>
@@ -371,7 +371,7 @@
 							</button>
 							<button
 								onclick={() => { addStep = 'idle'; addError = null; newName = ''; }}
-								class="px-4 py-2 bg-transparent text-[#4b6280] border border-border-subtle rounded cursor-pointer font-mono text-base hover:text-[#8899aa] hover:border-border transition-colors duration-100"
+								class="px-4 py-2 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:text-muted-blue hover:border-border transition-colors duration-100"
 							>
 								Cancel
 							</button>
@@ -379,26 +379,26 @@
 					</div>
 				{:else if addStep === 'reauth'}
 					<div class="mb-3 p-4 border border-border-deep rounded-lg">
-						<p class="text-[#4b6280] text-base animate-pulse m-0">Verifying your existing passkey…</p>
+						<p class="text-muted-dim text-base animate-pulse m-0">Verifying your existing passkey…</p>
 					</div>
 				{:else if addStep === 'registering'}
 					<div class="mb-3 p-4 border border-border-deep rounded-lg">
-						<p class="text-[#4b6280] text-base animate-pulse m-0">Registering new passkey…</p>
+						<p class="text-muted-dim text-base animate-pulse m-0">Registering new passkey…</p>
 					</div>
 				{/if}
 
 				{#if credsLoading}
-					<p class="text-[#4b6280] text-base">Loading…</p>
+					<p class="text-muted-dim text-base">Loading…</p>
 				{:else if credentials.length === 0}
 					<div class="py-10 border border-dashed border-border rounded-lg text-center">
-						<p class="m-0 text-[#4b6280] text-base">No passkeys</p>
+						<p class="m-0 text-muted-dim text-base">No passkeys</p>
 					</div>
 				{:else}
 					<div class="border border-border-deep rounded-lg overflow-hidden">
 						{#each credentials as cred, i (cred.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
 								{i < credentials.length - 1 ? 'border-b border-border-deep' : ''}">
-								<div class="text-[#4b6280] shrink-0">
+								<div class="text-muted-dim shrink-0">
 									<KeyRound size={16} strokeWidth={1.75} />
 								</div>
 
@@ -411,7 +411,7 @@
 												if (e.key === 'Enter') saveEdit(cred.id);
 												if (e.key === 'Escape') cancelEdit();
 											}}
-											class="font-mono bg-[#0d1520] border border-[#2a4a6a] rounded px-2 py-1 text-base text-[#c5d3e0] focus:outline-none w-full"
+											class="font-mono bg-surface-input border border-surface-3 rounded px-2 py-1 text-base text-text-body focus:outline-none w-full"
 										/>
 										<div class="flex gap-3 mt-1.5">
 											<button
@@ -423,16 +423,16 @@
 											</button>
 											<button
 												onclick={cancelEdit}
-												class="text-sm text-[#4b6280] hover:text-[#8899aa] cursor-pointer bg-transparent border-none font-mono p-0"
+												class="text-sm text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0"
 											>
 												Cancel
 											</button>
 										</div>
 									{:else}
 										<div class="flex items-center gap-2 flex-wrap">
-											<span class="text-base text-[#c5d3e0]">{cred.name || 'Unnamed passkey'}</span>
+											<span class="text-base text-text-body">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
-												<span class="text-[10px] px-1.5 py-0.5 bg-[#0d2a1a] border border-[#1a5030] rounded text-[#4a9060] leading-none shrink-0">
+												<span class="text-[10px] px-1.5 py-0.5 bg-[#0d2a1a] border border-border-success-dark rounded text-[#4a9060] leading-none shrink-0">
 													This session
 												</span>
 											{/if}
@@ -442,7 +442,7 @@
 												</span>
 											{/if}
 										</div>
-										<p class="m-0 text-sm text-[#4b6280] mt-0.5">Added {formatDate(cred.createdAt)}</p>
+										<p class="m-0 text-sm text-muted-dim mt-0.5">Added {formatDate(cred.createdAt)}</p>
 									{/if}
 								</div>
 
@@ -451,7 +451,7 @@
 										<button
 											onclick={() => startEdit(cred)}
 											title="Rename"
-											class="p-2 text-[#374d63] hover:text-[#8899aa] transition-colors cursor-pointer bg-transparent border-none rounded"
+											class="p-2 text-muted-mid hover:text-muted-blue transition-colors cursor-pointer bg-transparent border-none rounded"
 										>
 											<Pencil size={14} strokeWidth={1.75} />
 										</button>
@@ -459,17 +459,17 @@
 
 									{#if confirmDeleteId === cred.id}
 										<div class="flex items-center gap-1.5 ml-1">
-											<span class="text-sm text-[#4b6280]">Delete?</span>
+											<span class="text-sm text-muted-dim">Delete?</span>
 											<button
 												onclick={() => confirmDelete(cred.id)}
 												disabled={deletingId === cred.id}
-												class="px-2 py-1 border border-[#7f1d1d] rounded text-sm text-error-light hover:bg-[#1a0e0e] transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border-danger-dark rounded text-sm text-error-light hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												{deletingId === cred.id ? '…' : 'Yes'}
 											</button>
 											<button
 												onclick={cancelDelete}
-												class="px-2 py-1 border border-border-subtle rounded text-sm text-[#4b6280] hover:text-[#8899aa] transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border-subtle rounded text-sm text-muted-dim hover:text-muted-blue transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												No
 											</button>
@@ -481,8 +481,8 @@
 											title={credentials.length <= 1 ? 'You must have at least one passkey' : 'Delete passkey'}
 											class="p-2 transition-colors cursor-pointer bg-transparent border-none rounded
 												{credentials.length <= 1
-													? 'text-[#2a3a4a] cursor-not-allowed'
-													: 'text-[#374d63] hover:text-error-light'}"
+													? 'text-muted-mid cursor-not-allowed'
+													: 'text-muted-mid hover:text-error-light'}"
 										>
 											<Trash2 size={14} strokeWidth={1.75} />
 										</button>
