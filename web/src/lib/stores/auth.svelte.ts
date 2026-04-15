@@ -6,6 +6,7 @@
  */
 
 import { formsStore } from './forms.svelte';
+import { teamStore } from './team.svelte';
 import { workspacesStore } from './workspaces.svelte';
 
 const ACCOUNT_ID_KEY = 'confide.accountId';
@@ -55,6 +56,7 @@ export const auth = {
 		_masterKey = null;
 		_username = null;
 		formsStore.clear();
+		teamStore.clear();
 		workspacesStore.clear();
 	},
 
@@ -71,6 +73,7 @@ export const auth = {
 		localStorage.removeItem(ACCOUNT_ID_KEY);
 		localStorage.removeItem(CREDENTIAL_ID_KEY);
 		formsStore.clear();
+		teamStore.clear();
 		workspacesStore.clear();
 	}
 };

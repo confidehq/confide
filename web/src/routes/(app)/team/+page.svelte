@@ -1,29 +1,19 @@
 <script lang="ts">
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { teamStore } from '$lib/stores/team.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
-		listMembers, updateMemberRole, removeMember,
-		listInvitations, createInvitation, revokeInvitation,
-		listMemberIdentityKeys, grantKey,
+		updateMemberRole, removeMember,
+		createInvitation, revokeInvitation,
+		grantKey,
 		WorkspaceError,
-		type WorkspaceMember, type WorkspaceInvitation, type MemberIdentityKey
+		type WorkspaceMember, type WorkspaceInvitation
 	} from '$lib/workspaces';
 	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
-	// ─── Members state ──────────────────────────────────────────────────────────
+	// ─── Invite form state ───────────────────────────────────────────────────────
 
-	let members = $state<WorkspaceMember[]>([]);
-	let loading = $state(false);
-	let error = $state('');
-	let currentWorkspaceId = $state<string | null>(null);
-
-	// ─── Invitations state ──────────────────────────────────────────────────────
-
-	let invitations = $state<WorkspaceInvitation[]>([]);
-	let invitationsLoading = $state(false);
-
-	// Add member form
 	let showInviteForm = $state(false);
 	let inviteEmail = $state('');
 	let inviteRole = $state<'admin' | 'member' | 'viewer'>('member');
@@ -31,76 +21,33 @@
 	let inviteError = $state('');
 	let inviteSuccess = $state('');
 
-	// Revoke
+	// ─── Revoke / actions state ──────────────────────────────────────────────────
+
 	let revokingId = $state<string | null>(null);
-
-	// ─── Member actions state ────────────────────────────────────────────────────
-
 	let openMenuId = $state<string | null>(null);
 	let roleLoading = $state(false);
 	let roleError = $state('');
 	let removeTarget = $state<WorkspaceMember | null>(null);
 	let removing = $state(false);
 	let removeError = $state('');
-
-	// ─── Key grant state ────────────────────────────────────────────────────────
-
-	let identityKeys = $state<Map<string, string>>(new Map());
 	let grantingId = $state<string | null>(null);
 	let grantError = $state('');
 
-	// ─── Load on workspace change ───────────────────────────────────────────────
+	// ─── Load on workspace change (cached — no re-fetch on back-navigation) ─────
 
 	$effect(() => {
 		const ws = workspacesStore.active;
-		if (ws && ws.id !== currentWorkspaceId) {
-			loadAll(ws.id);
+		if (ws) {
+			const isAdmin = ws.role === 'owner' || ws.role === 'admin';
+			teamStore.load(ws.id, isAdmin);
 		}
 	});
 
-	async function loadAll(workspaceId: string) {
-		loading = true;
-		invitationsLoading = true;
-		error = '';
-		grantError = '';
-		currentWorkspaceId = workspaceId;
-		members = [];
-		invitations = [];
-		identityKeys = new Map();
-
+	async function refresh() {
 		const ws = workspacesStore.active;
-		const isAdmin = ws && (ws.role === 'owner' || ws.role === 'admin');
-
-		const tasks: Promise<unknown>[] = [
-			listMembers(workspaceId),
-			listInvitations(workspaceId)
-		];
-		if (isAdmin) tasks.push(listMemberIdentityKeys(workspaceId));
-
-		const [membersResult, invitationsResult, keysResult] = await Promise.allSettled(tasks);
-
-		if (currentWorkspaceId !== workspaceId) return;
-
-		if (membersResult.status === 'fulfilled') {
-			members = membersResult.value as WorkspaceMember[];
-		} else {
-			error = membersResult.reason instanceof Error
-				? membersResult.reason.message
-				: 'Failed to load members';
-		}
-
-		if (invitationsResult.status === 'fulfilled') {
-			invitations = invitationsResult.value as WorkspaceInvitation[];
-		}
-		// invitations failing silently is fine (viewer role can't see them)
-
-		if (keysResult?.status === 'fulfilled') {
-			const keyList = keysResult.value as MemberIdentityKey[];
-			identityKeys = new Map(keyList.map(k => [k.accountId, k.identityPublicKey]));
-		}
-
-		loading = false;
-		invitationsLoading = false;
+		if (!ws) return;
+		teamStore.invalidate();
+		teamStore.load(ws.id, ws.role === 'owner' || ws.role === 'admin');
 	}
 
 	// ─── Invite ─────────────────────────────────────────────────────────────────
@@ -132,7 +79,7 @@
 
 		try {
 			const inv = await createInvitation(ws.id, email, inviteRole);
-			invitations = [...invitations, inv];
+			teamStore.addInvitation(inv);
 			inviteSuccess = `Invitation sent to ${email}`;
 			inviteEmail = '';
 		} catch (e) {
@@ -156,7 +103,7 @@
 		revokingId = inv.id;
 		try {
 			await revokeInvitation(ws.id, inv.id);
-			invitations = invitations.filter(i => i.id !== inv.id);
+			teamStore.removeInvitation(inv.id);
 		} catch { /* non-fatal */ } finally {
 			revokingId = null;
 		}
@@ -169,16 +116,14 @@
 		const masterKey = auth.masterKey;
 		if (!ws || !masterKey) return;
 
-		const targetPubKey = identityKeys.get(member.accountId);
+		const targetPubKey = teamStore.identityKeys.get(member.accountId);
 		if (!targetPubKey) return;
 
 		grantingId = member.accountId;
 		grantError = '';
 		try {
 			await grantKey(ws.id, member.accountId, targetPubKey, masterKey);
-			members = members.map(m =>
-				m.accountId === member.accountId ? { ...m, status: 'active' as const } : m
-			);
+			teamStore.updateMember(member.accountId, { status: 'active' });
 		} catch (e) {
 			grantError = e instanceof Error ? e.message : 'Failed to grant access.';
 		} finally {
@@ -196,9 +141,7 @@
 		openMenuId = null;
 		try {
 			await updateMemberRole(ws.id, member.accountId, newRole);
-			members = members.map(m =>
-				m.accountId === member.accountId ? { ...m, role: newRole as WorkspaceMember['role'] } : m
-			);
+			teamStore.updateMember(member.accountId, { role: newRole as WorkspaceMember['role'] });
 		} catch (e) {
 			roleError =
 				e instanceof WorkspaceError && e.code === 'last_owner'
@@ -218,7 +161,7 @@
 		removeError = '';
 		try {
 			await removeMember(ws.id, removeTarget.accountId);
-			members = members.filter(m => m.accountId !== removeTarget!.accountId);
+			teamStore.removeMember(removeTarget.accountId);
 			removeTarget = null;
 		} catch (e) {
 			removeError =
@@ -234,6 +177,13 @@
 
 	const myRole = $derived(workspacesStore.active?.role ?? 'viewer');
 	const canManage = $derived(myRole === 'owner' || myRole === 'admin');
+
+	// Alias store references for template conciseness
+	const members = $derived(teamStore.members);
+	const invitations = $derived(teamStore.invitations);
+	const identityKeys = $derived(teamStore.identityKeys);
+	const loading = $derived(teamStore.loading);
+	const error = $derived(teamStore.error);
 
 	function roleRank(role: string): number {
 		return { owner: 4, admin: 3, member: 2, viewer: 1 }[role] ?? 0;
@@ -297,7 +247,7 @@
 		</div>
 		<div class="flex items-center gap-2 shrink-0">
 			<button
-				onclick={() => currentWorkspaceId && loadAll(currentWorkspaceId)}
+				onclick={refresh}
 				disabled={loading}
 				title="Refresh"
 				class="flex items-center justify-center w-9 h-9 bg-transparent border border-border-deep rounded cursor-pointer text-[#4b6280] hover:text-[#c5d3e0] hover:border-border-subtle transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
