@@ -1,11 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Primitive scale ── */
+  /* ────────────────────────────────────────────
+     Primitive scale — navy/midnight dark palette.
+     These are not Tailwind utilities; they are
+     raw values referenced by semantic tokens.
+     To add a light theme, override the --color-*
+     tokens in a [data-theme="light"] {} block —
+     do NOT change these primitives.
+  ──────────────────────────────────────────── */
   --black-100: #263555;
   --black-200: #1F2B46;
   --black-300: #172136;
   --black-400: #111827;
+
   --green-100: #a2d198;
   --green-200: #64b352;
   --green-300: #5ba44a;
@@ -27,99 +35,139 @@
   --blue-400: #2e6ca6;
   --blue-500: #15385a;
 
-  /* ── Surfaces ── */
-  --color-canvas: var(--black-400);
-  --color-surface: var(--black-300);
-  --color-surface-hover: var(--black-200);
-  --color-surface-card: var(--black-100);
-  --color-surface-3: var(--black-200);
-  --color-surface-deep: var(--black-400);
-  --color-surface-read: var(--black-400);
-  --color-surface-active: var(--black-100);
-  --color-surface-input: var(--black-400);
-  --color-surface-subtle: var(--black-400);
-  --color-surface-selected: rgba(30, 58, 138, 0.13);
+  /* ── Surfaces ──────────────────────────────────
+     Elevation hierarchy (darkest → lightest):
+       canvas < surface-mid < surface < surface-hover ≡ surface-3 < surface-card ≡ surface-active
+     Several tokens share values in dark mode but
+     will diverge in a light theme (e.g. surface-input
+     = white in light, same as canvas in dark).
+  ────────────────────────────────────────────── */
+  --color-canvas:             var(--black-400);  /* #111827 — page background */
+  --color-surface:            var(--black-300);  /* #172136 — panels, sidebar */
+  --color-surface-mid:        #192840;           /* between canvas & surface — nav item hover */
+  --color-surface-4:          #1a2940;           /* table row / card hover */
+  --color-surface-hover:      var(--black-200);  /* #1F2B46 — hover on surface items */
+  --color-surface-3:          var(--black-200);  /* #1F2B46 — alt name (≡ surface-hover) */
+  --color-surface-card:       var(--black-100);  /* #263555 — cards, raised elements */
+  --color-surface-active:     var(--black-100);  /* #263555 — selected item bg (≡ surface-card) */
+  --color-surface-item-hover: #1c2a44;           /* list / option item hover */
+  --color-surface-popover-hover: #1d2e4a;        /* popover / toolbar item hover */
+  --color-surface-deep:       var(--black-400);  /* #111827 — inset deep bg (≡ canvas) */
+  --color-surface-read:       var(--black-400);  /* #111827 — read-only field bg (≡ canvas) */
+  --color-surface-input:      var(--black-400);  /* #111827 — text input bg (≡ canvas) */
+  --color-surface-subtle:     var(--black-400);  /* #111827 — floating element bg (≡ canvas) */
+  --color-surface-selected:   rgba(30, 58, 138, 0.13); /* selection highlight */
 
-  /* ── Borders ── */
-  --color-border: #374151;
-  --color-border-mid: #2a3341;
-  --color-border-subtle: #2d3f55;
-  --color-border-deep: #1e2d3e;
-  --color-border-field: #2a3341;
-  --color-border-focus: #3a5070;
-  --color-border-card: #1a2840;
+  /* ── Borders ────────────────────────────────── */
+  --color-border:              #374151;  /* default border */
+  --color-border-subtle:       #2d3f55;  /* subtle / secondary border */
+  --color-border-mid:          #2a3341;  /* mid border (≡ border-field) */
+  --color-border-field:        #2a3341;  /* input / form field border (≡ border-mid) */
+  --color-border-focus:        #3a5070;  /* focused input border */
+  --color-border-deep:         #1e2d3e;  /* deep / separator border */
+  --color-border-card:         #1a2840;  /* card outline */
+  --color-border-danger-dark:  #7f1d1d;  /* danger zone section border */
+  --color-border-danger-deep:  #450a0a;  /* deeper danger border */
+  --color-border-danger-muted: #3d1515;  /* softer danger border */
+  --color-border-success-dark: #166534;  /* dark-bg success border */
 
-  /* ── Text ── */
-  --color-text: #e5e7eb;
-  --color-text-bright: #e2e8f0;
-  --color-text-body: #c5d3e0;
-  --color-text-dim: #d1d5db;
-  --color-text-note: #cbd5e1;
-  --color-text-blue: var(--blue-100);
-  --color-text-subtle: #4b5563;
-  --color-muted: #9ca3af;
-  --color-muted-dark: #6b7280;
-  --color-muted-mid: #374d63;
-  --color-muted-dim: #4b6280;
-  --color-muted-blue: #7a90a8;
+  /* ── Text ───────────────────────────────────── */
+  --color-text:        #e5e7eb;  /* primary text */
+  --color-text-bright: #e2e8f0;  /* highlighted / active text */
+  --color-text-body:   #c5d3e0;  /* body / secondary text */
+  --color-text-dim:    #d1d5db;  /* de-emphasised text */
+  --color-text-note:   #cbd5e1;  /* footnote / caption text */
+  --color-text-blue:   var(--blue-100);  /* #96c9fe — link / accent text */
+  --color-text-subtle: #4b5563;  /* very low-contrast text */
 
-  /* ── Actions ── */
-  --color-primary: #2563eb;
+  /* ── Muted text ─────────────────────────────── */
+  --color-muted:      #9ca3af;  /* placeholder, meta text */
+  --color-muted-dark: #6b7280;  /* darker muted */
+  --color-muted-mid:  #374d63;  /* mid blue-gray muted */
+  --color-muted-dim:  #4b6280;  /* dim blue-gray muted */
+  --color-muted-blue: #7a90a8;  /* blue-tinted muted */
+
+  /* ── Actions ────────────────────────────────── */
+  --color-primary:       #2563eb;
   --color-primary-hover: #1d4ed8;
 
-  /* ── Overlays ── */
-  --color-overlay: rgba(0, 0, 0, 0.65);
+  /* ── Overlays ───────────────────────────────── */
+  --color-overlay:       rgba(0, 0, 0, 0.65);
   --color-overlay-light: rgba(0, 0, 0, 0.4);
 
-  /* ── Status — error ── */
-  --color-error-light: #f87171;
+  /* ── Status — error ─────────────────────────── */
+  --color-error:       #f87171;  /* generic error (≡ error-light) */
+  --color-error-light: #f87171;  /* destructive action text */
+  --color-error-muted: #fca5a5;  /* error message text (softer) */
 
-  /* ── Status — success ── */
-  --color-success-bg: #f0fdf4;
+  /* ── Status — success ───────────────────────── */
+  --color-success-bg:        #f0fdf4;
   --color-success-bg-subtle: rgba(5, 46, 22, 0.13);
-  --color-success-bg-deep: #052e16;
-  --color-success-text: #166534;
+  --color-success-bg-deep:   #052e16;
+  --color-success-text:      #166534;
   --color-success-text-dark: #4ade80;
-  --color-success-border: #22c55e;
+  --color-success-border:    #22c55e;
 
-  /* ── Status — warning ── */
-  --color-warning-bg: #fffbeb;
+  /* ── Status — warning ───────────────────────── */
+  --color-warning-bg:        #fffbeb;
   --color-warning-bg-subtle: rgba(69, 26, 3, 0.13);
-  --color-warning-bg-dark: #451a03;
-  --color-warning-text: #92400e;
-  --color-warning-border: #f59e0b;
+  --color-warning-bg-dark:   #451a03;
+  --color-warning-text:      #92400e;
+  --color-warning-text-dark: #fbbf24;  /* warning text on dark backgrounds */
+  --color-warning-border:    #f59e0b;
 
-  /* ── Status — info ── */
-  --color-info-bg: #eff6ff;
-  --color-info-bg-dark: #1e3a8a;
-  --color-info-bg-subtle: rgba(30, 58, 95, 0.13);
+  /* ── Status — info ──────────────────────────── */
+  --color-info-bg:            #eff6ff;
+  --color-info-bg-dark:       #1e3a8a;
+  --color-info-bg-subtle:     rgba(30, 58, 95, 0.13);
   --color-info-border-subtle: rgba(59, 130, 246, 0.27);
-  --color-info-text: #1e40af;
-  --color-info-border: #3b82f6;
+  --color-info-text:          #1e40af;
+  --color-info-border:        #3b82f6;
 
-  /* ── Status — danger ── */
-  --color-danger-bg: #fef2f2;
-  --color-danger-bg-dark: #2d1515;
-  --color-danger-bg-deep: #450a0a;
+  /* ── Status — danger ────────────────────────── */
+  --color-danger-bg:        #fef2f2;
+  --color-danger-bg-dark:   #2d1515;
+  --color-danger-bg-deep:   #450a0a;
   --color-danger-bg-subtle: rgba(69, 10, 10, 0.13);
-  --color-danger-text: #991b1b;
+  --color-danger-text:      #991b1b;
   --color-danger-text-dark: #fca5a5;
-  --color-danger-border: #ef4444;
+  --color-danger-border:    #ef4444;
+  --color-danger-hover:     #2d1515;  /* destructive hover bg / error banner bg */
+  --color-danger-dark:      #2d1515;  /* error container bg (≡ danger-hover) */
 
-  /* ── Form renderer ── */
-  --color-form-bg: #ffffff;
-  --color-form-surface: #f9fafb;
-  --color-form-border: #d1d5db;
-  --color-form-border-focus: #1d4ed8;
-  --color-form-text: #111827;
-  --color-form-text-mid: #374151;
-  --color-form-primary: #1d4ed8;
+  /* ── Status badges ──────────────────────────── */
+  --color-open-bg:     #0e2318;
+  --color-open-text:   #4ade80;
+  --color-open-border: #166534;
+  --color-closed-bg:     #1a2030;
+  --color-closed-text:   #6b7280;
+  --color-closed-border: #374151;
 
-  /* ── Brand / landing ── */
-  --color-brand-bg: #080810;
-  --color-brand-text: #e8e8f0;
-  --color-brand-text-mid: #c8d8d6;
-  --color-brand-accent: #81bfbb;
+  /* ── Form renderer (public / light) ────────────
+     These describe the public-facing form UI which
+     uses a light theme regardless of admin theme.
+  ──────────────────────────────────────────────── */
+  --color-form-bg:             #ffffff;
+  --color-form-surface:        #f9fafb;
+  --color-form-border:         #d1d5db;
+  --color-form-border-focus:   #1d4ed8;
+  --color-form-border-light:   #e5e7eb;  /* section breaks, accordion borders */
+  --color-form-text:           #111827;
+  --color-form-text-mid:       #374151;
+  --color-form-text-dim:       #4b5563;  /* description / body text */
+  --color-form-muted:          #6b7280;  /* help text */
+  --color-form-muted-light:    #9ca3af;  /* step counter, disabled state */
+  --color-form-primary:        #1d4ed8;
+  --color-form-primary-hover:  #1e40af;
+  --color-form-preview-bg:     #fffbeb;  /* preview-mode banner */
+  --color-form-preview-border: #fcd34d;
+  --color-form-preview-text:   #92400e;
+
+  /* ── Brand / landing ────────────────────────── */
+  --color-brand-bg:           #080810;
+  --color-brand-text:         #e8e8f0;
+  --color-brand-text-mid:     #c8d8d6;
+  --color-brand-accent:       #81bfbb;
   --color-brand-accent-hover: #9dd0cc;
 }
 
@@ -132,7 +180,7 @@ body {
   font-family: monospace;
 }
 
-/* Shared input style used across builder components */
+/* Shared input style used across builder/admin components */
 .input-base {
   width: 100%;
   padding: 6px 10px;
@@ -150,7 +198,7 @@ body {
   border-color: var(--color-primary);
 }
 
-/* Shared input style for public (light-theme) form renderer */
+/* Shared input style for the public (light-theme) form renderer */
 .form-input {
   width: 100%;
   padding: 8px 12px;
