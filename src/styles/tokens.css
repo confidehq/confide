@@ -1,0 +1,52 @@
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — ported from confide web/src/app.css
+   ───────────────────────────────────────────────────────────── */
+
+:root {
+  /* Primitive scale */
+  --black-100: #263555;
+  --black-200: #1F2B46;
+  --black-300: #172136;
+  --black-400: #111827;
+
+  --green-100: #a2d198;
+  --green-200: #64b352;
+  --green-300: #5ba44a;
+  --green-400: #407534;
+  --green-500: #203e19;
+
+  --blue-100: #96c9fe;
+  --blue-200: #4aa5fb;
+  --blue-300: #4397e8;
+  --blue-400: #2e6ca6;
+  --blue-500: #15385a;
+
+  /* Surfaces */
+  --color-canvas:        #111827;
+  --color-surface:       #172136;
+  --color-surface-hover: #1F2B46;
+  --color-surface-card:  #263555;
+
+  /* Borders */
+  --color-border:        #374151;
+  --color-border-subtle: #2d3f55;
+
+  /* Text */
+  --color-text:       #e5e7eb;
+  --color-text-bright:#e2e8f0;
+  --color-text-body:  #c5d3e0;
+  --color-text-dim:   #d1d5db;
+  --color-muted:      #9ca3af;
+  --color-muted-dark: #6b7280;
+
+  /* Actions */
+  --color-primary:       #2563eb;
+  --color-primary-hover: #1d4ed8;
+
+  /* Brand / landing */
+  --color-brand-bg:           #080810;
+  --color-brand-text:         #e8e8f0;
+  --color-brand-text-mid:     #c8d8d6;
+  --color-brand-accent:       #81bfbb;
+  --color-brand-accent-hover: #9dd0cc;
+}
