@@ -119,7 +119,14 @@ func (m *mockDB) ListSessionsByAccount(_ context.Context, accountID string) ([]q
 
 func (m *mockDB) CreateRecoveryCodes(_ context.Context, arg []queries.CreateRecoveryCodesParams) (int64, error) {
 	for _, p := range arg {
-		m.recoveryCodes[p.ID] = queries.RecoveryCode(p)
+		m.recoveryCodes[p.ID] = queries.RecoveryCode{
+			ID:        p.ID,
+			AccountID: p.AccountID,
+			CodeHash:  p.CodeHash,
+			Used:      p.Used,
+			CreatedAt: p.CreatedAt,
+			UpdatedAt: p.CreatedAt,
+		}
 	}
 	return int64(len(arg)), nil
 }

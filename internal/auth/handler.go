@@ -451,8 +451,8 @@ func listSessions(svc *Service) http.HandlerFunc {
 		for i, s := range rows {
 			out[i] = sessionInfo{
 				ID:           s.ID,
-				CreatedAt:    s.CreatedAt.Time.Format("2006-01-02"),
-				LastSeen:     s.LastSeen.Time.Format("2006-01-02"),
+				CreatedAt:    s.CreatedAt.Time.UTC().Format(time.RFC3339),
+				LastSeen:     s.LastSeen.Time.UTC().Format(time.RFC3339),
 				CredentialID: base64.StdEncoding.EncodeToString(s.CredentialID),
 				UserAgent:    s.UserAgent,
 			}

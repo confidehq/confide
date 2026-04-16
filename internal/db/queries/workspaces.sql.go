@@ -58,8 +58,8 @@ func (q *Queries) CountWorkspaceOwners(ctx context.Context, workspaceID string) 
 
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, name, slug, plan, plan_status, created_at)
-VALUES ($1, $2, $3, 'free', 'active', now())
-RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at
+VALUES ($1, $2, $3, 'free', 'active', NOW())
+RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at
 `
 
 type CreateWorkspaceParams struct {
@@ -81,13 +81,14 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.PlanStatus,
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const createWorkspaceMember = `-- name: CreateWorkspaceMember :exec
 INSERT INTO workspace_members (workspace_id, account_id, role, joined_at)
-VALUES ($1, $2, $3, now())
+VALUES ($1, $2, $3, NOW())
 `
 
 type CreateWorkspaceMemberParams struct {
@@ -265,7 +266,7 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id string) (GetWorkspace
 }
 
 const getWorkspaceMember = `-- name: GetWorkspaceMember :one
-SELECT workspace_id, account_id, role, joined_at
+SELECT workspace_id, account_id, role, joined_at, updated_at
 FROM workspace_members WHERE workspace_id = $1 AND account_id = $2
 `
 
@@ -282,6 +283,7 @@ func (q *Queries) GetWorkspaceMember(ctx context.Context, arg GetWorkspaceMember
 		&i.AccountID,
 		&i.Role,
 		&i.JoinedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -364,7 +366,7 @@ type ListWorkspaceMembersRow struct {
 	JoinedAt  pgtype.Timestamptz
 	Username  pgtype.Text
 	Status    string
-	LastSeen  pgtype.Date
+	LastSeen  interface{}
 }
 
 func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID string) ([]ListWorkspaceMembersRow, error) {
@@ -439,7 +441,7 @@ func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string)
 }
 
 const renameWorkspace = `-- name: RenameWorkspace :exec
-UPDATE workspaces SET name = $2 WHERE id = $1
+UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1
 `
 
 type RenameWorkspaceParams struct {
@@ -453,7 +455,7 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 }
 
 const updateWorkspaceMemberRole = `-- name: UpdateWorkspaceMemberRole :exec
-UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND account_id = $2
+UPDATE workspace_members SET role = $3, updated_at = NOW() WHERE workspace_id = $1 AND account_id = $2
 `
 
 type UpdateWorkspaceMemberRoleParams struct {
@@ -469,12 +471,12 @@ func (q *Queries) UpdateWorkspaceMemberRole(ctx context.Context, arg UpdateWorks
 
 const upsertWorkspaceMemberKey = `-- name: UpsertWorkspaceMemberKey :exec
 INSERT INTO workspace_member_keys (workspace_id, account_id, wrapped_workspace_key, ephemeral_public_key, granted_by_account_id, created_at)
-VALUES ($1, $2, $3, $4, $5, now())
+VALUES ($1, $2, $3, $4, $5, NOW())
 ON CONFLICT (workspace_id, account_id) DO UPDATE
   SET wrapped_workspace_key = EXCLUDED.wrapped_workspace_key,
       ephemeral_public_key  = EXCLUDED.ephemeral_public_key,
       granted_by_account_id = EXCLUDED.granted_by_account_id,
-      created_at            = EXCLUDED.created_at
+      updated_at            = NOW()
 `
 
 type UpsertWorkspaceMemberKeyParams struct {

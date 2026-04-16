@@ -40,11 +40,11 @@ func (q *Queries) GetIdentityPublicKey(ctx context.Context, accountID string) ([
 
 const upsertIdentityKey = `-- name: UpsertIdentityKey :exec
 INSERT INTO account_identity_keys (account_id, identity_public_key, wrapped_identity_private_key, created_at)
-VALUES ($1, $2, $3, now())
+VALUES ($1, $2, $3, NOW())
 ON CONFLICT (account_id) DO UPDATE
   SET identity_public_key          = EXCLUDED.identity_public_key,
       wrapped_identity_private_key = EXCLUDED.wrapped_identity_private_key,
-      created_at                   = EXCLUDED.created_at
+      updated_at                   = NOW()
 `
 
 type UpsertIdentityKeyParams struct {

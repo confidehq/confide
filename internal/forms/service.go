@@ -47,8 +47,8 @@ type FormRecord struct {
 	Status                  string
 	SchemaVersion           int32
 	ResponseCount           int32
-	CreatedAt               pgtype.Date
-	UpdatedAt               pgtype.Date
+	CreatedAt               pgtype.Timestamptz
+	UpdatedAt               pgtype.Timestamptz
 	EncryptedSchema         []byte
 	RenderEncryptedSchema   []byte
 	PublicFormKey           []byte
@@ -66,8 +66,8 @@ type FormSummary struct {
 	Status           string
 	SchemaVersion    int32
 	ResponseCount    int32
-	CreatedAt        pgtype.Date
-	UpdatedAt        pgtype.Date
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 	ExpiresAt        pgtype.Date
 	ResponseLimit    pgtype.Int4
 	ResponseTtlDays  pgtype.Int4

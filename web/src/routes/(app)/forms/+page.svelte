@@ -8,6 +8,24 @@
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import DropdownMenuItem from '$lib/components/DropdownMenuItem.svelte';
 	import DropdownMenuSeparator from '$lib/components/DropdownMenuSeparator.svelte';
+	import { Users, Ellipsis } from '@lucide/svelte';
+
+	function timeAgo(dateStr: string): string {
+		const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+		if (seconds < 60) return 'just now';
+		const minutes = Math.floor(seconds / 60);
+		if (minutes < 60) return minutes === 1 ? '1 min ago' : `${minutes} mins ago`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return hours === 1 ? 'about an hour ago' : `${hours} hours ago`;
+		const days = Math.floor(hours / 24);
+		if (days < 7) return days === 1 ? 'yesterday' : `${days} days ago`;
+		const weeks = Math.floor(days / 7);
+		if (weeks < 4) return weeks === 1 ? 'a week ago' : `${weeks} weeks ago`;
+		const months = Math.floor(days / 30);
+		if (months < 12) return months === 1 ? 'a month ago' : `${months} months ago`;
+		const years = Math.floor(days / 365);
+		return years === 1 ? 'a year ago' : `${years} years ago`;
+	}
 
 	$effect(() => {
 		const workspace = workspacesStore.active;
@@ -99,17 +117,21 @@
 			>+ New form</button>
 		</div>
 	{:else}
-		<!-- Mobile card list -->
-		<div class="flex flex-col gap-2 sm:hidden">
-			{#each formsStore.forms as form (form.formId)}
-				<div class="p-4 border border-border-deep rounded-lg hover:bg-surface-4 transition-colors duration-75">
-					<div class="flex items-center justify-between gap-2 mb-2">
-						<button
-						onclick={() => goto(`/forms/${form.formId}`)}
-						class="text-text-body text-base truncate bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
-					>
-						{formsStore.formNames.get(form.formId) ?? '—'}
-					</button>
+		<div class="border border-border-deep rounded-lg overflow-hidden">
+			{#each formsStore.forms as form, i (form.formId)}
+				<div
+					class="flex items-center gap-6 px-4 py-3.5 cursor-pointer hover:bg-border-card transition-colors duration-100
+						{i < formsStore.forms.length - 1 ? 'border-b border-border-deep' : ''}"
+					onclick={() => goto(`/forms/${form.formId}`)}
+					role="button"
+					tabindex="0"
+					onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}`)}
+				>
+					<!-- Name + status badge -->
+					<div class="flex-1 min-w-0 flex items-center gap-4">
+						<span class="text-base text-text-body truncate">
+							{formsStore.formNames.get(form.formId) ?? '—'}
+						</span>
 						<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base
 							{form.status === 'open'
 								? 'bg-open-bg text-open-text border border-open-border'
@@ -117,14 +139,31 @@
 							{form.status}
 						</span>
 					</div>
-					<p class="m-0 mb-3 text-muted-dim text-base">{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}</p>
-					<div class="flex justify-end">
+
+					<!-- Response count -->
+					<span class="shrink-0 flex items-center gap-1.5 text-base text-muted-dim tabular-nums">
+						<Users size={13} strokeWidth={1.75} />
+						{form.responseCount}
+					</span>
+
+					<!-- Relative time (hidden on small screens) -->
+					<span class="shrink-0 hidden sm:block text-base text-muted-dim">
+						{timeAgo(form.updatedAt)}
+					</span>
+
+					<!-- Actions menu -->
+					<div
+						class="shrink-0"
+						onclick={e => e.stopPropagation()}
+						onkeydown={e => e.stopPropagation()}
+						role="none"
+					>
 						<DropdownMenu>
 							{#snippet trigger(attrs)}
 								<button
 									{...attrs}
-									class="px-2 py-1 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-text-body transition-colors duration-100"
-								>···</button>
+									class="p-1 bg-transparent text-muted-dim border-none rounded cursor-pointer hover:text-text-body transition-colors duration-100"
+								><Ellipsis size={16} strokeWidth={1.75} /></button>
 							{/snippet}
 							{#snippet children({ close })}
 								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
@@ -138,70 +177,6 @@
 				</div>
 			{/each}
 		</div>
-
-		<!-- Desktop table -->
-		<table class="hidden sm:table w-full border-collapse text-base">
-			<thead>
-				<tr class="border-b border-border-subtle text-muted-dim">
-					<th class="text-left px-3 py-2.5 font-normal">Title</th>
-					<th class="text-left px-3 py-2.5 font-normal">Form ID</th>
-					<th class="text-left px-3 py-2.5 font-normal">Status</th>
-					<th class="text-right px-3 py-2.5 font-normal">Responses</th>
-					<th class="text-left px-3 py-2.5 font-normal">Created</th>
-					<th class="px-3 py-2.5"></th>
-				</tr>
-			</thead>
-			<tbody>
-				{#each formsStore.forms as form (form.formId)}
-					<tr class="border-b border-border-deep hover:bg-surface-4 transition-colors duration-75">
-						<td class="p-3">
-							<button
-								onclick={() => goto(`/forms/${form.formId}`)}
-								class="text-text-body text-base bg-transparent border-none cursor-pointer font-mono p-0 text-left hover:text-white hover:underline transition-colors duration-75"
-							>
-								{formsStore.formNames.get(form.formId) ?? '—'}
-							</button>
-						</td>
-						<td class="p-3 text-muted-dim text-base">
-							{form.formId.slice(0, 12)}…
-						</td>
-						<td class="p-3">
-							<span class="px-2.5 py-0.5 rounded-full text-base
-								{form.status === 'open'
-									? 'bg-open-bg text-open-text border border-open-border'
-									: 'bg-closed-bg text-closed-text border border-closed-border'}">
-								{form.status}
-							</span>
-						</td>
-						<td class="p-3 text-right text-text-body text-base tabular-nums">
-							{form.responseCount}
-						</td>
-						<td class="p-3 text-muted-dim text-base">
-							{form.createdAt}
-						</td>
-						<td class="p-3">
-							<div class="flex justify-end">
-								<DropdownMenu>
-									{#snippet trigger(attrs)}
-										<button
-											{...attrs}
-											class="px-2 py-1 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border hover:text-text-body transition-colors duration-100"
-										>···</button>
-									{/snippet}
-									{#snippet children({ close })}
-										<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
-										<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/responses`); }}>Responses</DropdownMenuItem>
-										<DropdownMenuItem onclick={() => { close(); toggleStatus(form); }}>{form.status === 'open' ? 'Close' : 'Open'}</DropdownMenuItem>
-										<DropdownMenuSeparator />
-										<DropdownMenuItem variant="destructive" onclick={() => { close(); handleDelete(form); }}>Delete</DropdownMenuItem>
-									{/snippet}
-								</DropdownMenu>
-							</div>
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
 	{/if}
 
 </div>

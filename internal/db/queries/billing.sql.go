@@ -27,7 +27,7 @@ SELECT COUNT(*)
 FROM responses r
 JOIN forms f ON f.id = r.form_id
 WHERE f.workspace_id = $1
-  AND r.received_at >= date_trunc('month', CURRENT_DATE)
+  AND r.received_at >= date_trunc('month', NOW())
 `
 
 func (q *Queries) CountMonthlyResponses(ctx context.Context, workspaceID string) (int64, error) {
@@ -86,7 +86,7 @@ func (q *Queries) GetWorkspaceForBilling(ctx context.Context, id string) (GetWor
 }
 
 const setStripeCustomerID = `-- name: SetStripeCustomerID :exec
-UPDATE workspaces SET stripe_customer_id = $2 WHERE id = $1
+UPDATE workspaces SET stripe_customer_id = $2, updated_at = NOW() WHERE id = $1
 `
 
 type SetStripeCustomerIDParams struct {
@@ -101,9 +101,10 @@ func (q *Queries) SetStripeCustomerID(ctx context.Context, arg SetStripeCustomer
 
 const updateWorkspacePlan = `-- name: UpdateWorkspacePlan :exec
 UPDATE workspaces
-SET plan           = $2,
-    plan_status    = $3,
-    plan_period_end = $4
+SET plan            = $2,
+    plan_status     = $3,
+    plan_period_end = $4,
+    updated_at      = NOW()
 WHERE id = $1
 `
 

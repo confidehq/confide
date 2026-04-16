@@ -5,7 +5,7 @@ INSERT INTO forms (
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
     workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, CURRENT_DATE, CURRENT_DATE, 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, NOW(), NOW(), 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
 
 -- name: GetFormWorkspaceID :one
@@ -28,7 +28,7 @@ SET encrypted_schema = $3,
     render_encrypted_schema = $4,
     render_key_salt = $5,
     schema_version = schema_version + 1,
-    updated_at = CURRENT_DATE
+    updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version;
 
@@ -38,7 +38,7 @@ SET workspace_wrapped_form_key = $3
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: UpdateFormStatus :exec
-UPDATE forms SET status = $3, updated_at = CURRENT_DATE
+UPDATE forms SET status = $3, updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: DeleteForm :exec
@@ -50,7 +50,7 @@ SET expires_at          = $3,
     response_limit      = $4,
     response_ttl_days   = $5,
     burn_after_reading  = $6,
-    updated_at          = CURRENT_DATE
+    updated_at          = NOW()
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: IncrementResponseCount :one
@@ -64,7 +64,7 @@ RETURNING response_count;
 
 -- name: InsertSchemaVersion :exec
 INSERT INTO form_schema_versions (form_id, version, encrypted_schema, created_at)
-VALUES ($1, $2, $3, CURRENT_DATE);
+VALUES ($1, $2, $3, NOW());
 
 -- name: GetSchemaVersion :one
 SELECT encrypted_schema FROM form_schema_versions

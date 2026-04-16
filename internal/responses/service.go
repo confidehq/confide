@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -45,7 +46,7 @@ func NewService(pool *pgxpool.Pool) *Service {
 type ResponseRecord struct {
 	ID                 string
 	FormID             string
-	ReceivedAt         pgtype.Date
+	ReceivedAt         pgtype.Timestamptz
 	SchemaVersion      int32
 	EncryptedData      []byte
 	EphemeralPublicKey []byte
@@ -53,7 +54,7 @@ type ResponseRecord struct {
 
 // Cursor encodes a pagination position.
 type Cursor struct {
-	Date string `json:"d"` // "2006-01-02"
+	Date string `json:"d"` // RFC3339
 	ID   string `json:"i"`
 }
 
@@ -95,13 +96,13 @@ func (s *Service) ListResponses(ctx context.Context, workspaceID, formID string,
 		if parseErr != nil {
 			return ListResult{}, errors.New("invalid cursor")
 		}
-		var date pgtype.Date
-		if scanErr := date.Scan(c.Date); scanErr != nil {
+		t, parseErr := time.Parse(time.RFC3339, c.Date)
+		if parseErr != nil {
 			return ListResult{}, errors.New("invalid cursor date")
 		}
 		rows, err = s.db.ListResponsesAfter(ctx, queries.ListResponsesAfterParams{
 			FormID:     formID,
-			ReceivedAt: date,
+			ReceivedAt: pgtype.Timestamptz{Time: t, Valid: true},
 			ID:         c.ID,
 			Limit:      int32(limit),
 		})
@@ -131,7 +132,7 @@ func (s *Service) ListResponses(ctx context.Context, workspaceID, formID string,
 	if len(rows) == limit {
 		last := rows[len(rows)-1]
 		c := encodeCursor(Cursor{
-			Date: last.ReceivedAt.Time.Format("2006-01-02"),
+			Date: last.ReceivedAt.Time.UTC().Format(time.RFC3339),
 			ID:   last.ID,
 		})
 		nextCursor = &c

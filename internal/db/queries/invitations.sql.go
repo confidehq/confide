@@ -12,7 +12,7 @@ import (
 )
 
 const acceptInvitation = `-- name: AcceptInvitation :exec
-UPDATE workspace_invitations SET accepted_at = now() WHERE id = $1
+UPDATE workspace_invitations SET accepted_at = NOW(), updated_at = NOW() WHERE id = $1
 `
 
 func (q *Queries) AcceptInvitation(ctx context.Context, id string) error {
@@ -127,7 +127,7 @@ func (q *Queries) GetInvitationByTokenHash(ctx context.Context, tokenHash string
 const listPendingInvitations = `-- name: ListPendingInvitations :many
 SELECT id, email, role, expires_at, created_at
 FROM workspace_invitations
-WHERE workspace_id = $1 AND accepted_at IS NULL AND expires_at > now()
+WHERE workspace_id = $1 AND accepted_at IS NULL AND expires_at > NOW()
 ORDER BY created_at DESC
 `
 

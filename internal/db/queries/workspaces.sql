@@ -1,11 +1,11 @@
 -- name: CreateWorkspace :one
 INSERT INTO workspaces (id, name, slug, plan, plan_status, created_at)
-VALUES ($1, $2, $3, 'free', 'active', now())
+VALUES ($1, $2, $3, 'free', 'active', NOW())
 RETURNING *;
 
 -- name: CreateWorkspaceMember :exec
 INSERT INTO workspace_members (workspace_id, account_id, role, joined_at)
-VALUES ($1, $2, $3, now());
+VALUES ($1, $2, $3, NOW());
 
 -- name: GetPersonalWorkspace :one
 SELECT w.id, w.name, w.slug, w.plan, w.plan_status, w.plan_period_end, w.created_at
@@ -20,7 +20,7 @@ SELECT id, name, slug, plan, plan_status, plan_period_end, created_at
 FROM workspaces WHERE id = $1;
 
 -- name: GetWorkspaceMember :one
-SELECT workspace_id, account_id, role, joined_at
+SELECT workspace_id, account_id, role, joined_at, updated_at
 FROM workspace_members WHERE workspace_id = $1 AND account_id = $2;
 
 -- name: CountOwnerWorkspaces :one
@@ -29,12 +29,12 @@ WHERE account_id = $1 AND role = 'owner';
 
 -- name: UpsertWorkspaceMemberKey :exec
 INSERT INTO workspace_member_keys (workspace_id, account_id, wrapped_workspace_key, ephemeral_public_key, granted_by_account_id, created_at)
-VALUES ($1, $2, $3, $4, $5, now())
+VALUES ($1, $2, $3, $4, $5, NOW())
 ON CONFLICT (workspace_id, account_id) DO UPDATE
   SET wrapped_workspace_key = EXCLUDED.wrapped_workspace_key,
       ephemeral_public_key  = EXCLUDED.ephemeral_public_key,
       granted_by_account_id = EXCLUDED.granted_by_account_id,
-      created_at            = EXCLUDED.created_at;
+      updated_at            = NOW();
 
 -- name: GetWorkspaceMemberKey :one
 SELECT wrapped_workspace_key, ephemeral_public_key
@@ -56,7 +56,7 @@ WHERE wm.account_id = $1
 ORDER BY w.created_at ASC;
 
 -- name: RenameWorkspace :exec
-UPDATE workspaces SET name = $2 WHERE id = $1;
+UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1;
 
 -- name: DeleteWorkspace :exec
 DELETE FROM workspaces WHERE id = $1;
@@ -77,7 +77,7 @@ WHERE wm.workspace_id = $1
 ORDER BY wm.joined_at ASC;
 
 -- name: UpdateWorkspaceMemberRole :exec
-UPDATE workspace_members SET role = $3 WHERE workspace_id = $1 AND account_id = $2;
+UPDATE workspace_members SET role = $3, updated_at = NOW() WHERE workspace_id = $1 AND account_id = $2;
 
 -- name: DeleteWorkspaceMember :exec
 DELETE FROM workspace_members WHERE workspace_id = $1 AND account_id = $2;

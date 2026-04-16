@@ -288,7 +288,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 			return fmt.Errorf("CreatePersonalWorkspace: %w", err)
 		}
 
-		today := pgtype.Date{Time: time.Now().UTC(), Valid: true}
+		now := pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true}
 		codes := make([]queries.CreateRecoveryCodesParams, 12)
 		for i, hash := range req.RecoveryCodes {
 			codeID, err := randomBase64URL(16)
@@ -300,7 +300,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 				AccountID: req.AccountID,
 				CodeHash:  hash,
 				Used:      false,
-				CreatedAt: today,
+				CreatedAt: now,
 			}
 		}
 		if _, err := q.CreateRecoveryCodes(ctx, codes); err != nil {

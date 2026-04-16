@@ -39,7 +39,7 @@ func (q *Queries) DeleteResponse(ctx context.Context, arg DeleteResponseParams) 
 }
 
 const getResponse = `-- name: GetResponse :one
-SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at, responses.updated_at
 FROM responses
 WHERE responses.id = $1 AND responses.form_id = $2
   AND (responses.expires_at IS NULL OR responses.expires_at > NOW())
@@ -63,13 +63,14 @@ func (q *Queries) GetResponse(ctx context.Context, arg GetResponseParams) (Respo
 		&i.EphemeralPublicKey,
 		&i.ExpiresAt,
 		&i.ReadAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const insertResponseWithTTL = `-- name: InsertResponseWithTTL :exec
 INSERT INTO responses (id, form_id, received_at, schema_version, encrypted_data, ephemeral_public_key, expires_at)
-SELECT $1, $2, CURRENT_DATE, $3, $4, $5,
+SELECT $1, $2, NOW(), $3, $4, $5,
        CASE WHEN f.response_ttl_days IS NOT NULL
             THEN NOW() + (f.response_ttl_days || ' days')::INTERVAL
             ELSE NULL END
@@ -97,7 +98,7 @@ func (q *Queries) InsertResponseWithTTL(ctx context.Context, arg InsertResponseW
 }
 
 const listResponsesAfter = `-- name: ListResponsesAfter :many
-SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at, responses.updated_at
 FROM responses
 WHERE responses.form_id = $1
   AND (responses.received_at < $2 OR (responses.received_at = $2 AND responses.id < $3))
@@ -109,7 +110,7 @@ LIMIT $4
 
 type ListResponsesAfterParams struct {
 	FormID     string
-	ReceivedAt pgtype.Date
+	ReceivedAt pgtype.Timestamptz
 	ID         string
 	Limit      int32
 }
@@ -137,6 +138,7 @@ func (q *Queries) ListResponsesAfter(ctx context.Context, arg ListResponsesAfter
 			&i.EphemeralPublicKey,
 			&i.ExpiresAt,
 			&i.ReadAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -149,7 +151,7 @@ func (q *Queries) ListResponsesAfter(ctx context.Context, arg ListResponsesAfter
 }
 
 const listResponsesFirst = `-- name: ListResponsesFirst :many
-SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at
+SELECT responses.id, responses.form_id, responses.received_at, responses.schema_version, responses.encrypted_data, responses.ephemeral_public_key, responses.expires_at, responses.read_at, responses.updated_at
 FROM responses
 WHERE responses.form_id = $1
   AND (responses.expires_at IS NULL OR responses.expires_at > NOW())
@@ -181,6 +183,7 @@ func (q *Queries) ListResponsesFirst(ctx context.Context, arg ListResponsesFirst
 			&i.EphemeralPublicKey,
 			&i.ExpiresAt,
 			&i.ReadAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -194,7 +197,7 @@ func (q *Queries) ListResponsesFirst(ctx context.Context, arg ListResponsesFirst
 
 const markResponsesRead = `-- name: MarkResponsesRead :exec
 UPDATE responses
-SET read_at = NOW()
+SET read_at = NOW(), updated_at = NOW()
 WHERE form_id = $1
   AND id = ANY($2::text[])
   AND read_at IS NULL

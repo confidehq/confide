@@ -5,8 +5,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/db/queries"
@@ -309,14 +311,14 @@ func (s *Service) ListMembers(ctx context.Context, workspaceID, accountID string
 	out := make([]Member, len(rows))
 	for i, r := range rows {
 		lastSeen := ""
-		if r.LastSeen.Valid {
-			lastSeen = r.LastSeen.Time.Format("2006-01-02")
+		if ts, ok := r.LastSeen.(pgtype.Timestamptz); ok && ts.Valid {
+			lastSeen = ts.Time.UTC().Format(time.RFC3339)
 		}
 		out[i] = Member{
 			AccountID: r.AccountID,
 			Username:  r.Username.String,
 			Role:      r.Role,
-			JoinedAt:  r.JoinedAt.Time.Format("2006-01-02"),
+			JoinedAt:  r.JoinedAt.Time.UTC().Format(time.RFC3339),
 			Status:    r.Status,
 			LastSeen:  lastSeen,
 		}

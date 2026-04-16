@@ -2,7 +2,7 @@
 INSERT INTO accounts (
     id, created_at, recovery_wrapped_master, recovery_verifier, username
 ) VALUES (
-    $1, CURRENT_DATE, $2, $3, $4
+    $1, NOW(), $2, $3, $4
 ) RETURNING *;
 
 -- name: GetAccountByID :one
@@ -13,7 +13,7 @@ SELECT * FROM accounts WHERE username = $1;
 
 -- name: CreateSession :one
 INSERT INTO sessions (id, account_id, token_hash, created_at, last_seen, credential_id, user_agent)
-VALUES ($1, $2, $3, CURRENT_DATE, CURRENT_DATE, $4, $5)
+VALUES ($1, $2, $3, NOW(), NOW(), $4, $5)
 RETURNING *;
 
 -- name: GetSessionByTokenHash :one
@@ -21,19 +21,19 @@ SELECT s.id, s.account_id, s.token_hash, s.created_at, s.last_seen, c.wrapped_ma
 FROM sessions s
 JOIN credentials c ON c.credential_id = s.credential_id
 WHERE s.token_hash = $1
-  AND s.last_seen > CURRENT_DATE - INTERVAL '14 days'
-  AND s.created_at > CURRENT_DATE - INTERVAL '30 days';
+  AND s.last_seen > NOW() - INTERVAL '14 days'
+  AND s.created_at > NOW() - INTERVAL '30 days';
 
 -- name: TouchSession :exec
-UPDATE sessions SET last_seen = CURRENT_DATE WHERE id = $1;
+UPDATE sessions SET last_seen = NOW(), updated_at = NOW() WHERE id = $1;
 
 -- name: DeleteSession :exec
 DELETE FROM sessions WHERE id = $1 AND account_id = $2;
 
 -- name: DeleteStaleSessions :exec
 DELETE FROM sessions
-WHERE last_seen <= CURRENT_DATE - INTERVAL '14 days'
-   OR created_at <= CURRENT_DATE - INTERVAL '30 days';
+WHERE last_seen <= NOW() - INTERVAL '14 days'
+   OR created_at <= NOW() - INTERVAL '30 days';
 
 -- name: ListSessionsByAccount :many
 SELECT id, created_at, last_seen, credential_id, user_agent FROM sessions WHERE account_id = $1;
@@ -48,7 +48,7 @@ WHERE account_id = $1 AND code_hash = $2 AND used = FALSE
 LIMIT 1;
 
 -- name: BurnRecoveryCode :exec
-UPDATE recovery_codes SET used = TRUE WHERE id = $1;
+UPDATE recovery_codes SET used = TRUE, updated_at = NOW() WHERE id = $1;
 
 -- name: CountUnusedRecoveryCodes :one
 SELECT COUNT(*) FROM recovery_codes WHERE account_id = $1 AND used = FALSE;
@@ -57,13 +57,13 @@ SELECT COUNT(*) FROM recovery_codes WHERE account_id = $1 AND used = FALSE;
 DELETE FROM recovery_codes WHERE account_id=$1;
 
 -- name: UpdateAccountRecovery :exec
-UPDATE accounts SET recovery_wrapped_master=$2, recovery_verifier=$3 WHERE id=$1;
+UPDATE accounts SET recovery_wrapped_master=$2, recovery_verifier=$3, updated_at=NOW() WHERE id=$1;
 
 -- name: CreateCredential :one
 INSERT INTO credentials (
     id, account_id, credential_id, public_key, prf_salt,
-    wrapped_master_key, backup_eligible, name, created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+    wrapped_master_key, backup_eligible, name, created_at, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 RETURNING *;
 
 -- name: GetCredentialByWebAuthnID :one
@@ -101,11 +101,11 @@ WHERE account_id = $1
 ORDER BY created_at ASC;
 
 -- name: UpdateCredentialName :exec
-UPDATE credentials SET name = $3
+UPDATE credentials SET name = $3, updated_at = NOW()
 WHERE id = $1 AND account_id = $2;
 
 -- name: UpdateCredentialBackupEligible :exec
-UPDATE credentials SET backup_eligible = $2 WHERE credential_id = $1;
+UPDATE credentials SET backup_eligible = $2, updated_at = NOW() WHERE credential_id = $1;
 
 -- name: DeleteCredential :exec
 DELETE FROM credentials WHERE id = $1 AND account_id = $2;

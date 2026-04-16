@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -94,7 +95,7 @@ func listResponses(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.Handler
 		for i, resp := range result.Responses {
 			out[i] = respJSON{
 				ID:                 resp.ID,
-				ReceivedAt:         resp.ReceivedAt.Time.Format("2006-01-02"),
+				ReceivedAt:         resp.ReceivedAt.Time.UTC().Format(time.RFC3339),
 				SchemaVersion:      resp.SchemaVersion,
 				EncryptedData:      base64.StdEncoding.EncodeToString(resp.EncryptedData),
 				EphemeralPublicKey: base64.StdEncoding.EncodeToString(resp.EphemeralPublicKey),
@@ -132,7 +133,7 @@ func getResponse(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFu
 		writeJSON(w, http.StatusOK, map[string]any{
 			"id":                 resp.ID,
 			"formId":             resp.FormID,
-			"receivedAt":         resp.ReceivedAt.Time.Format("2006-01-02"),
+			"receivedAt":         resp.ReceivedAt.Time.UTC().Format(time.RFC3339),
 			"schemaVersion":      resp.SchemaVersion,
 			"encryptedData":      base64.StdEncoding.EncodeToString(resp.EncryptedData),
 			"ephemeralPublicKey": base64.StdEncoding.EncodeToString(resp.EphemeralPublicKey),

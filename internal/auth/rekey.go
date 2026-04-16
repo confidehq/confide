@@ -212,7 +212,7 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *h
 			return fmt.Errorf("DeleteRecoveryCodesByAccount: %w", err)
 		}
 
-		today := pgtype.Date{Time: time.Now().UTC(), Valid: true}
+		now := pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true}
 		codes := make([]queries.CreateRecoveryCodesParams, 12)
 		for i, hash := range req.RecoveryCodes {
 			codeID, err := randomBase64URL(16)
@@ -224,7 +224,7 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *h
 				AccountID: accountID,
 				CodeHash:  hash,
 				Used:      false,
-				CreatedAt: today,
+				CreatedAt: now,
 			}
 		}
 		if _, err := q.CreateRecoveryCodes(ctx, codes); err != nil {

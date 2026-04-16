@@ -10,10 +10,11 @@ import (
 
 type Account struct {
 	ID                    string
-	CreatedAt             pgtype.Date
+	CreatedAt             pgtype.Timestamptz
 	RecoveryWrappedMaster []byte
 	RecoveryVerifier      []byte
 	Username              pgtype.Text
+	UpdatedAt             pgtype.Timestamptz
 }
 
 type AccountIdentityKey struct {
@@ -21,6 +22,7 @@ type AccountIdentityKey struct {
 	IdentityPublicKey         []byte
 	WrappedIdentityPrivateKey []byte
 	CreatedAt                 pgtype.Timestamptz
+	UpdatedAt                 pgtype.Timestamptz
 }
 
 type Credential struct {
@@ -33,12 +35,13 @@ type Credential struct {
 	BackupEligible   bool
 	Name             string
 	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
 
 type Form struct {
 	ID                      string
-	CreatedAt               pgtype.Date
-	UpdatedAt               pgtype.Date
+	CreatedAt               pgtype.Timestamptz
+	UpdatedAt               pgtype.Timestamptz
 	Status                  string
 	SchemaVersion           int32
 	ResponseCount           int32
@@ -52,14 +55,15 @@ type Form struct {
 	BurnAfterReading        bool
 	WorkspaceID             string
 	CreatedByAccountID      string
-	WorkspaceWrappedFormKey []byte // nullable; nil if not yet set
+	WorkspaceWrappedFormKey []byte
 }
 
 type FormSchemaVersion struct {
 	FormID          string
 	Version         int32
 	EncryptedSchema []byte
-	CreatedAt       pgtype.Date
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
 }
 
 type RecoveryCode struct {
@@ -67,28 +71,31 @@ type RecoveryCode struct {
 	AccountID string
 	CodeHash  []byte
 	Used      bool
-	CreatedAt pgtype.Date
+	CreatedAt pgtype.Timestamptz
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Response struct {
 	ID                 string
 	FormID             string
-	ReceivedAt         pgtype.Date
+	ReceivedAt         pgtype.Timestamptz
 	SchemaVersion      int32
 	EncryptedData      []byte
 	EphemeralPublicKey []byte
 	ExpiresAt          pgtype.Timestamptz
 	ReadAt             pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
 }
 
 type Session struct {
 	ID           string
 	AccountID    string
 	TokenHash    []byte
-	CreatedAt    pgtype.Date
-	LastSeen     pgtype.Date
+	CreatedAt    pgtype.Timestamptz
+	LastSeen     pgtype.Timestamptz
 	CredentialID []byte
 	UserAgent    string
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type Workspace struct {
@@ -101,6 +108,7 @@ type Workspace struct {
 	PlanStatus           string
 	PlanPeriodEnd        pgtype.Timestamptz
 	CreatedAt            pgtype.Timestamptz
+	UpdatedAt            pgtype.Timestamptz
 }
 
 type WorkspaceInvitation struct {
@@ -113,6 +121,7 @@ type WorkspaceInvitation struct {
 	ExpiresAt          pgtype.Timestamptz
 	AcceptedAt         pgtype.Timestamptz
 	CreatedAt          pgtype.Timestamptz
+	UpdatedAt          pgtype.Timestamptz
 }
 
 type WorkspaceMember struct {
@@ -120,6 +129,7 @@ type WorkspaceMember struct {
 	AccountID   string
 	Role        string
 	JoinedAt    pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
 }
 
 type WorkspaceMemberKey struct {
@@ -129,4 +139,5 @@ type WorkspaceMemberKey struct {
 	EphemeralPublicKey  []byte
 	GrantedByAccountID  string
 	CreatedAt           pgtype.Timestamptz
+	UpdatedAt           pgtype.Timestamptz
 }
