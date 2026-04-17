@@ -82,6 +82,11 @@ export const workspacesStore = {
 		persistId(ws.id);
 	},
 
+	/** Update fields on a workspace in the list (e.g. after rename). */
+	update(id: string, changes: Partial<Workspace>) {
+		_workspaces = _workspaces.map((w) => (w.id === id ? { ...w, ...changes } : w));
+	},
+
 	/** Call after deleting a workspace. */
 	remove(id: string) {
 		_workspaces = _workspaces.filter((w) => w.id !== id);

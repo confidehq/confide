@@ -97,6 +97,20 @@ async function getOrCreateIdentityKey(masterKey: CryptoKey): Promise<ArrayBuffer
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
+export async function renameWorkspace(id: string, name: string): Promise<void> {
+	const res = await fetch(`/api/workspaces/${id}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ name })
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'rename_failed';
+		const message = (body as { message?: string }).message ?? `Failed to rename workspace (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
 export async function deleteWorkspace(id: string): Promise<void> {
 	const res = await fetch(`/api/workspaces/${id}`, { method: 'DELETE' });
 	if (!res.ok && res.status !== 204) {

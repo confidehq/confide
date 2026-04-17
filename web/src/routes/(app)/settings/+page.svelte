@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { renameWorkspace, WorkspaceError } from '$lib/workspaces';
 	import { Settings, BarChart2, Building2, Mail } from '@lucide/svelte';
 
 	type Tab = 'usage' | 'workspace' | 'smtp';
@@ -9,6 +10,7 @@
 	let workspaceName = $state('');
 	let workspaceSaving = $state(false);
 	let workspaceSaved = $state(false);
+	let workspaceSaveError = $state('');
 
 	$effect(() => {
 		if (workspacesStore.active) {
@@ -17,13 +19,18 @@
 	});
 
 	async function saveWorkspace() {
+		const ws = workspacesStore.active;
+		if (!ws) return;
 		workspaceSaving = true;
 		workspaceSaved = false;
+		workspaceSaveError = '';
 		try {
-			// TODO: wire to API
-			await new Promise(r => setTimeout(r, 600));
+			await renameWorkspace(ws.id, workspaceName.trim());
+			workspacesStore.update(ws.id, { name: workspaceName.trim() });
 			workspaceSaved = true;
 			setTimeout(() => (workspaceSaved = false), 2000);
+		} catch (e) {
+			workspaceSaveError = e instanceof WorkspaceError ? e.message : 'Failed to save';
 		} finally {
 			workspaceSaving = false;
 		}
@@ -53,7 +60,7 @@
 
 	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean }[] = [
 		{ id: 'usage',     label: 'Usage',     icon: BarChart2                },
-		{ id: 'workspace', label: 'Workspace',  icon: Building2, disabled: true },
+		{ id: 'workspace', label: 'Workspace',  icon: Building2,							},
 		{ id: 'smtp',      label: 'SMTP',       icon: Mail,      disabled: true },
 	];
 
@@ -190,10 +197,10 @@
 				</div>
 			{/if}
 
-			<div>
+			<div class="flex items-center gap-3">
 				<button
 					onclick={saveWorkspace}
-					disabled={workspaceSaving || !workspaceName.trim()}
+					disabled={workspaceSaving || !workspaceName.trim() || workspaceName.trim() === workspacesStore.active?.name}
 					class="px-5 py-2.5 bg-primary text-white border-none rounded cursor-pointer font-mono text-base
 						hover:bg-primary-hover transition-colors duration-100
 						disabled:opacity-40 disabled:cursor-not-allowed"
@@ -206,6 +213,9 @@
 						Save changes
 					{/if}
 				</button>
+				{#if workspaceSaveError}
+					<span class="text-sm text-error-light">{workspaceSaveError}</span>
+				{/if}
 			</div>
 
 			<!-- Danger zone -->
