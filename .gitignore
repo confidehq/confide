@@ -1,5 +1,7 @@
 tmp
 .env.*
+.astro
+node_modules
 
 deploy/certs/*
 
