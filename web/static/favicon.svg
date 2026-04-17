@@ -1,6 +1,6 @@
 <svg width="438" height="434" viewBox="0 0 438 434" fill="none" xmlns="http://www.w3.org/2000/svg">
   <style>
-    .bg { fill: #172136; }
+    .bg { fill: #282A36; }
     .fg { fill: #ffffff; }
     @media (prefers-color-scheme: light) {
       .bg { fill: #e8e9f0; }

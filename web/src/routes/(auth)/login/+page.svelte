@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { login } from '$lib/auth';
+	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
 	let error = $state<string | null>(null);
 	let loading = $state(false);
@@ -14,8 +15,6 @@
 		error = null;
 		loading = true;
 		try {
-			// Prefer username for targeted login with correct PRF salt.
-			// Fall back to stored credentialId if username is blank.
 			const result = await login(auth.credentialId, username.trim() || undefined);
 			auth.setSession(result.masterKey, result.accountId, result.credentialId);
 			goto(next);
@@ -31,34 +30,56 @@
 	<title>Confide — Sign In</title>
 </svelte:head>
 
-<div class="font-mono max-w-[480px] mx-auto mt-20 px-6">
-	<h1 class="text-2xl mb-2">Confide</h1>
-	<p class="text-muted text-sm mb-8">Sign in with your passkey.</p>
+<div class="min-h-screen flex flex-col items-center justify-center px-4 font-mono">
+	<div class="w-full max-w-[360px]">
 
-	<label class="block text-muted text-sm mb-1.5">Username</label>
-	<input
-		type="text"
-		bind:value={username}
-		placeholder="your username"
-		disabled={loading}
-		class="input-base mb-4 text-sm py-2.5 px-3"
-	/>
+		<!-- Logo + heading -->
+		<div class="flex flex-col items-center mb-8">
+			<div class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full">{@html faviconSvg}</div>
+			<h1 class="text-xl font-semibold text-text-body tracking-tight">Sign in to Confide</h1>
+			<p class="text-sm text-muted-dim mt-1.5">Use your passkey to continue.</p>
+		</div>
 
-	<button
-		onclick={handleLogin}
-		disabled={loading}
-		class="w-full py-3.5 text-white border-none rounded-md font-mono text-base mb-4
-			{loading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
-	>
-		{loading ? 'Authenticating…' : 'Sign in with passkey'}
-	</button>
+		<!-- Form card -->
+		<div class="bg-surface border border-border rounded-xl p-6">
+			<label class="block text-sm text-muted mb-1.5" for="username">Username</label>
+			<input
+				id="username"
+				type="text"
+				bind:value={username}
+				placeholder="your username"
+				disabled={loading}
+				class="input-base w-full mb-4 text-sm py-2.5 px-3"
+			/>
 
-	{#if error}
-		<div class="text-error-muted text-sm mb-4">{error}</div>
-	{/if}
+			<button
+				onclick={handleLogin}
+				disabled={loading}
+				class="w-full py-3 text-white border-none rounded-lg font-mono text-sm font-medium
+					{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+					transition-colors duration-100"
+			>
+				{loading ? 'Authenticating…' : 'Sign in with passkey'}
+			</button>
 
-	<p class="text-xs text-muted-dark mt-6">
-		Lost your passkey?
-		<a href="/recover" class="text-text-blue">Recover with recovery codes</a>
-	</p>
+			{#if error}
+				<p class="text-error text-xs mt-3 text-center">{error}</p>
+			{/if}
+		</div>
+
+		<!-- Recovery link -->
+		<p class="text-xs text-muted-dark text-center mt-4">
+			Lost your passkey?
+			<a href="/recover" class="text-text-blue hover:underline">Recover your account</a>
+		</p>
+
+		<!-- Sign up -->
+		<div class="mt-6 pt-5 border-t border-border text-center">
+			<p class="text-sm text-muted-dim">
+				Don't have an account?
+				<a href="/signup" class="text-text-blue hover:underline font-medium">Sign up</a>
+			</p>
+		</div>
+
+	</div>
 </div>
