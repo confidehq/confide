@@ -80,6 +80,13 @@
 	// ── Init ─────────────────────────────────────────────────────────────────
 	onMount(async () => {
 		if (!auth.masterKey) { goto('/login'); return; }
+		try {
+			const { schema, formKey } = await getForm(auth.masterKey, formId);
+			formName = schema.translations[schema.defaultLocale]?.formTitle ?? null;
+			resolvedFormKey = formKey;
+		} catch {
+			// Will surface per-response when handleDecrypt runs
+		}
 		await Promise.all([loadForm(), loadResponses()]);
 	});
 
@@ -220,7 +227,7 @@
 		try {
 			let schema = schemaCache.get(rec.schemaVersion);
 			if (!schema) {
-				schema = await getSchemaVersion(auth.masterKey, formId, rec.schemaVersion);
+				schema = await getSchemaVersion(auth.masterKey, formId, rec.schemaVersion, resolvedFormKey ?? undefined);
 				schemaCache = new Map([...schemaCache, [rec.schemaVersion, schema]]);
 			}
 			const payload = await decryptResponseRecord(auth.masterKey, formId, rec, resolvedFormKey ?? undefined);

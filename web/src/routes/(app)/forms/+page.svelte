@@ -167,7 +167,6 @@
 							{/snippet}
 							{#snippet children({ close })}
 								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
-								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/responses`); }}>Responses</DropdownMenuItem>
 								<DropdownMenuItem onclick={() => { close(); toggleStatus(form); }}>{form.status === 'open' ? 'Close' : 'Open'}</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem variant="destructive" onclick={() => { close(); handleDelete(form); }}>Delete</DropdownMenuItem>

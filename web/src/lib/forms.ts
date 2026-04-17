@@ -447,13 +447,14 @@ export async function rotateRenderKey(
 export async function getSchemaVersion(
 	masterKey: CryptoKey,
 	formId: string,
-	version: number
+	version: number,
+	formKeyOverride?: CryptoKey
 ): Promise<BuilderSchema> {
 	const res = await fetch(`/api/forms/${formId}/schema-versions/${version}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
-	const formKey = await deriveFormKey(masterKey, formId);
+	const formKey = formKeyOverride ?? (await deriveFormKey(masterKey, formId));
 	const schema = await decryptSchema(base64ToArrayBuffer(body.encryptedSchema), formKey);
 	return schema as BuilderSchema;
 }
