@@ -21,6 +21,7 @@ import (
 	"github.com/phantompunk/confide/internal/invitation"
 	"github.com/phantompunk/confide/internal/mailer"
 	mw "github.com/phantompunk/confide/internal/middleware"
+	"github.com/phantompunk/confide/internal/permission"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
 	"github.com/phantompunk/confide/internal/workspace"
@@ -90,12 +91,18 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				r.Mount("/", responses.Handler(svc.Responses, svc.Forms, svc.Workspace))
 			})
 			r.Mount("/", identity.Handler(svc.Identity))
-			r.Mount("/workspaces", workspace.Handler(svc.Workspace))
+
+			roleCache := svc.Workspace.Cache()
+			r.Mount("/workspaces", workspace.Handler(svc.Workspace, roleCache))
 			r.Route("/workspaces/{workspaceId}/invitations", func(r chi.Router) {
+				r.Use(permission.ResolveWorkspaceRole(svc.Workspace, roleCache, "workspaceId"))
+				r.Use(permission.RequireAction(permission.ActionInviteMembers))
 				r.Mount("/", invitation.WorkspaceHandler(svc.Invitation))
 			})
 			r.Post("/invitations/{token}/accept", invitation.AcceptHandler(svc.Invitation))
 			r.Route("/workspaces/{workspaceId}/billing", func(r chi.Router) {
+				r.Use(permission.ResolveWorkspaceRole(svc.Workspace, roleCache, "workspaceId"))
+				r.Use(permission.RequireAction(permission.ActionManageBilling))
 				r.Mount("/", billing.Handler(svc.Billing))
 			})
 		})

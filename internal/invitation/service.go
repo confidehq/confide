@@ -16,6 +16,7 @@ import (
 
 	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/mailer"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 var (
@@ -74,40 +75,11 @@ type InvitationPreview struct {
 	ExpiresAt       string
 }
 
-// roleRank returns a numeric rank for comparison.
-func roleRank(r string) int {
-	switch r {
-	case "owner":
-		return 4
-	case "admin":
-		return 3
-	case "member":
-		return 2
-	case "viewer":
-		return 1
-	default:
-		return 0
-	}
-}
-
 // Create generates and stores a new invitation, then sends the invite email.
-// Requires owner or admin role. Enforces the free-plan 1-collaborator limit.
-func (s *Service) Create(ctx context.Context, workspaceID, callerAccountID, email, role string) (Invitation, error) {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return Invitation{}, ErrForbidden
-		}
-		return Invitation{}, err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return Invitation{}, ErrForbidden
-	}
+// callerRole is pre-resolved by middleware. Enforces the free-plan 1-collaborator limit.
+func (s *Service) Create(ctx context.Context, workspaceID, callerRole, callerAccountID, email, role string) (Invitation, error) {
 	// Cannot invite someone to a role higher than the caller's own.
-	if roleRank(role) > roleRank(caller.Role) {
+	if permission.RoleRank(role) > permission.RoleRank(callerRole) {
 		return Invitation{}, ErrForbidden
 	}
 
@@ -152,7 +124,7 @@ func (s *Service) Create(ctx context.Context, workspaceID, callerAccountID, emai
 	}
 
 	link := fmt.Sprintf("%s/invite/%s", s.appDomain, rawToken)
-	go s.mailer.SendInvitation(email, ws.Name, caller.Role, role, link)
+	go s.mailer.SendInvitation(email, ws.Name, callerRole, role, link)
 
 	return Invitation{
 		ID:          inv.ID,
@@ -165,22 +137,8 @@ func (s *Service) Create(ctx context.Context, workspaceID, callerAccountID, emai
 }
 
 // List returns pending (unaccepted, unexpired) invitations for a workspace.
-// Requires owner or admin role.
-func (s *Service) List(ctx context.Context, workspaceID, callerAccountID string) ([]Invitation, error) {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrForbidden
-		}
-		return nil, err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return nil, ErrForbidden
-	}
-
+// Caller role is enforced by middleware.
+func (s *Service) List(ctx context.Context, workspaceID string) ([]Invitation, error) {
 	rows, err := s.db.ListPendingInvitations(ctx, workspaceID)
 	if err != nil {
 		return nil, err
@@ -199,21 +157,8 @@ func (s *Service) List(ctx context.Context, workspaceID, callerAccountID string)
 	return out, nil
 }
 
-// Revoke deletes a pending invitation. Requires owner or admin role.
-func (s *Service) Revoke(ctx context.Context, workspaceID, inviteID, callerAccountID string) error {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return ErrForbidden
-	}
+// Revoke deletes a pending invitation. Caller role is enforced by middleware.
+func (s *Service) Revoke(ctx context.Context, workspaceID, inviteID string) error {
 	return s.db.DeleteInvitation(ctx, queries.DeleteInvitationParams{
 		ID:          inviteID,
 		WorkspaceID: workspaceID,

@@ -5,6 +5,7 @@
  * accountId and credentialId persist in localStorage.
  */
 
+import { browser } from '$app/environment';
 import { formsStore } from './forms.svelte';
 import { teamStore } from './team.svelte';
 import { workspacesStore } from './workspaces.svelte';
@@ -13,7 +14,7 @@ const ACCOUNT_ID_KEY = 'confide.accountId';
 const CREDENTIAL_ID_KEY = 'confide.credentialId';
 
 function readStorage(key: string): string | null {
-	if (typeof localStorage === 'undefined') return null;
+	if (!browser) return null;
 	return localStorage.getItem(key);
 }
 
@@ -48,8 +49,10 @@ export const auth = {
 		_masterKey = masterKey;
 		_accountId = accountId;
 		_credentialId = credentialId;
-		localStorage.setItem(ACCOUNT_ID_KEY, accountId);
-		localStorage.setItem(CREDENTIAL_ID_KEY, credentialId);
+		if (browser) {
+			localStorage.setItem(ACCOUNT_ID_KEY, accountId);
+			localStorage.setItem(CREDENTIAL_ID_KEY, credentialId);
+		}
 	},
 
 	clearMasterKey() {
@@ -62,7 +65,7 @@ export const auth = {
 
 	updateCredentialId(credentialId: string) {
 		_credentialId = credentialId;
-		localStorage.setItem(CREDENTIAL_ID_KEY, credentialId);
+		if (browser) localStorage.setItem(CREDENTIAL_ID_KEY, credentialId);
 	},
 
 	clearAll() {
@@ -70,8 +73,10 @@ export const auth = {
 		_accountId = null;
 		_credentialId = null;
 		_username = null;
-		localStorage.removeItem(ACCOUNT_ID_KEY);
-		localStorage.removeItem(CREDENTIAL_ID_KEY);
+		if (browser) {
+			localStorage.removeItem(ACCOUNT_ID_KEY);
+			localStorage.removeItem(CREDENTIAL_ID_KEY);
+		}
 		formsStore.clear();
 		teamStore.clear();
 		workspacesStore.clear();

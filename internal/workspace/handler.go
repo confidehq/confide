@@ -9,23 +9,40 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	mw "github.com/phantompunk/confide/internal/middleware"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 // Handler builds the authenticated /api/workspaces sub-router.
-func Handler(svc *Service) http.Handler {
+func Handler(svc *Service, cache *permission.RoleCache) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/", createWorkspace(svc))
 	r.Get("/", listWorkspaces(svc))
-	r.Get("/{id}", getWorkspace(svc))
-	r.Patch("/{id}", renameWorkspace(svc))
-	r.Delete("/{id}", deleteWorkspace(svc))
-	r.Get("/{id}/members", listMembers(svc))
-	r.Get("/{id}/members/identity-keys", listMemberIdentityKeys(svc))
-	r.Patch("/{id}/members/{accountId}", updateMemberRole(svc))
-	r.Delete("/{id}/members/{accountId}", removeMember(svc))
-	r.Get("/{id}/member-key", getMyKey(svc))
-	r.Post("/{id}/member-key", grantMemberKey(svc))
-	r.Get("/{id}/pending-key-grants", pendingKeyGrants(svc))
+
+	r.Route("/{id}", func(r chi.Router) {
+		r.Use(permission.ResolveWorkspaceRole(svc, cache, "id"))
+
+		// viewer+ (membership proof is sufficient)
+		r.Get("/", getWorkspace(svc))
+		r.Get("/members", listMembers(svc))
+		r.Get("/members/identity-keys", listMemberIdentityKeys(svc))
+		r.Get("/member-key", getMyKey(svc))
+
+		// admin+
+		r.With(permission.RequireAction(permission.ActionRenameWorkspace)).
+			Patch("/", renameWorkspace(svc))
+		r.With(permission.RequireAction(permission.ActionChangeRoles)).
+			Patch("/members/{accountId}", updateMemberRole(svc))
+		r.With(permission.RequireAction(permission.ActionInviteMembers)).
+			Delete("/members/{accountId}", removeMember(svc))
+		r.With(permission.RequireAction(permission.ActionDistributeKeys)).
+			Post("/member-key", grantMemberKey(svc))
+		r.With(permission.RequireAction(permission.ActionDistributeKeys)).
+			Get("/pending-key-grants", pendingKeyGrants(svc))
+
+		// owner only
+		r.With(permission.RequireAction(permission.ActionDeleteWorkspace)).
+			Delete("/", deleteWorkspace(svc))
+	})
 	return r
 }
 
@@ -90,17 +107,13 @@ func listWorkspaces(svc *Service) http.HandlerFunc {
 
 func getWorkspace(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
+		callerRole := permission.WorkspaceRole(r.Context())
 
-		ws, err := svc.Get(r.Context(), workspaceID, accountID)
+		ws, err := svc.Get(r.Context(), workspaceID, callerRole)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "workspace not found")
-				return
-			}
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to get workspace")
@@ -113,7 +126,6 @@ func getWorkspace(svc *Service) http.HandlerFunc {
 
 func renameWorkspace(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 
 		var req struct {
@@ -128,11 +140,7 @@ func renameWorkspace(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.Rename(r.Context(), workspaceID, accountID, req.Name); err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
-				return
-			}
+		if err := svc.Rename(r.Context(), workspaceID, req.Name); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to rename workspace")
 			return
 		}
@@ -143,14 +151,9 @@ func renameWorkspace(svc *Service) http.HandlerFunc {
 
 func deleteWorkspace(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 
-		if err := svc.Delete(r.Context(), workspaceID, accountID); err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner role required")
-				return
-			}
+		if err := svc.Delete(r.Context(), workspaceID); err != nil {
 			if errors.Is(err, ErrHasMembers) {
 				writeError(w, http.StatusConflict, "has_members", "remove all non-owner members before deleting")
 				return
@@ -165,15 +168,10 @@ func deleteWorkspace(svc *Service) http.HandlerFunc {
 
 func listMembers(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 
-		members, err := svc.ListMembers(r.Context(), workspaceID, accountID)
+		members, err := svc.ListMembers(r.Context(), workspaceID)
 		if err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
-				return
-			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to list members")
 			return
 		}
@@ -195,9 +193,9 @@ func listMembers(svc *Service) http.HandlerFunc {
 
 func updateMemberRole(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		callerID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 		targetID := chi.URLParam(r, "accountId")
+		callerRole := permission.WorkspaceRole(r.Context())
 
 		var req struct {
 			Role string `json:"role"`
@@ -211,7 +209,7 @@ func updateMemberRole(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.UpdateMemberRole(r.Context(), workspaceID, callerID, targetID, req.Role); err != nil {
+		if err := svc.UpdateMemberRole(r.Context(), workspaceID, callerRole, targetID, req.Role); err != nil {
 			if errors.Is(err, ErrForbidden) {
 				writeError(w, http.StatusForbidden, "forbidden", "insufficient role")
 				return
@@ -234,15 +232,10 @@ func updateMemberRole(svc *Service) http.HandlerFunc {
 
 func removeMember(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		callerID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 		targetID := chi.URLParam(r, "accountId")
 
-		if err := svc.RemoveMember(r.Context(), workspaceID, callerID, targetID); err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "insufficient role")
-				return
-			}
+		if err := svc.RemoveMember(r.Context(), workspaceID, targetID); err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "member not found")
 				return
@@ -263,15 +256,10 @@ func removeMember(svc *Service) http.HandlerFunc {
 
 func listMemberIdentityKeys(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 
-		keys, err := svc.ListMemberIdentityKeys(r.Context(), workspaceID, accountID)
+		keys, err := svc.ListMemberIdentityKeys(r.Context(), workspaceID)
 		if err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
-				return
-			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to list identity keys")
 			return
 		}
@@ -294,10 +282,6 @@ func getMyKey(svc *Service) http.HandlerFunc {
 
 		key, err := svc.GetMyKey(r.Context(), workspaceID, accountID)
 		if err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
-				return
-			}
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "workspace key not yet granted")
 				return
@@ -343,10 +327,6 @@ func grantMemberKey(svc *Service) http.HandlerFunc {
 		}
 
 		if err := svc.GrantMemberKey(r.Context(), workspaceID, callerID, req.AccountID, wrappedKey, ephemeralPub); err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
-				return
-			}
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "member not found")
 				return
@@ -361,15 +341,10 @@ func grantMemberKey(svc *Service) http.HandlerFunc {
 
 func pendingKeyGrants(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "id")
 
-		grants, err := svc.PendingKeyGrants(r.Context(), workspaceID, accountID)
+		grants, err := svc.PendingKeyGrants(r.Context(), workspaceID)
 		if err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
-				return
-			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to list pending key grants")
 			return
 		}

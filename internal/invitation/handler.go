@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	mw "github.com/phantompunk/confide/internal/middleware"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 // WorkspaceHandler returns routes mounted at /api/workspaces/{workspaceId}/invitations.
@@ -38,6 +39,7 @@ func AcceptHandler(svc *Service) http.HandlerFunc {
 func createInvitation(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		callerID := mw.AccountID(r.Context())
+		callerRole := permission.WorkspaceRole(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 
 		var req struct {
@@ -57,10 +59,10 @@ func createInvitation(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		inv, err := svc.Create(r.Context(), workspaceID, callerID, req.Email, req.Role)
+		inv, err := svc.Create(r.Context(), workspaceID, callerRole, callerID, req.Email, req.Role)
 		if err != nil {
 			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
+				writeError(w, http.StatusForbidden, "forbidden", "cannot invite to a higher role than your own")
 				return
 			}
 			if errors.Is(err, ErrPlanLimit) {
@@ -77,15 +79,10 @@ func createInvitation(svc *Service) http.HandlerFunc {
 
 func listInvitations(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		callerID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 
-		invitations, err := svc.List(r.Context(), workspaceID, callerID)
+		invitations, err := svc.List(r.Context(), workspaceID)
 		if err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
-				return
-			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to list invitations")
 			return
 		}
@@ -100,15 +97,10 @@ func listInvitations(svc *Service) http.HandlerFunc {
 
 func revokeInvitation(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		callerID := mw.AccountID(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 		inviteID := chi.URLParam(r, "inviteId")
 
-		if err := svc.Revoke(r.Context(), workspaceID, inviteID, callerID); err != nil {
-			if errors.Is(err, ErrForbidden) {
-				writeError(w, http.StatusForbidden, "forbidden", "owner or admin role required")
-				return
-			}
+		if err := svc.Revoke(r.Context(), workspaceID, inviteID); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to revoke invitation")
 			return
 		}

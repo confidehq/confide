@@ -12,13 +12,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/db/queries"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 var (
-	ErrNotFound  = errors.New("workspace not found")
-	ErrForbidden = errors.New("insufficient role")
-	ErrPlanLimit = errors.New("workspace limit reached for free plan")
-	ErrLastOwner = errors.New("cannot remove or demote the sole owner")
+	ErrNotFound   = errors.New("workspace not found")
+	ErrForbidden  = errors.New("insufficient role")
+	ErrPlanLimit  = errors.New("workspace limit reached for free plan")
+	ErrLastOwner  = errors.New("cannot remove or demote the sole owner")
 	ErrHasMembers = errors.New("workspace still has non-owner members")
 )
 
@@ -47,17 +48,32 @@ type DB interface {
 }
 
 type Service struct {
-	db   DB
-	pool *pgxpool.Pool
+	db    DB
+	pool  *pgxpool.Pool
+	cache *permission.RoleCache
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{db: queries.New(pool), pool: pool}
+	return &Service{
+		db:    queries.New(pool),
+		pool:  pool,
+		cache: permission.NewRoleCache(),
+	}
 }
 
 // NewServiceWithDB is for test injection.
 func NewServiceWithDB(db DB) *Service {
 	return &Service{db: db}
+}
+
+// Cache returns the shared role cache. Used by server to wire middleware.
+func (s *Service) Cache() *permission.RoleCache {
+	return s.cache
+}
+
+// GetWorkspaceMember satisfies permission.MemberResolver for use in middleware.
+func (s *Service) GetWorkspaceMember(ctx context.Context, arg queries.GetWorkspaceMemberParams) (queries.WorkspaceMember, error) {
+	return s.db.GetWorkspaceMember(ctx, arg)
 }
 
 // Workspace is the service-layer representation of a workspace with the caller's role.
@@ -80,19 +96,10 @@ type Member struct {
 	LastSeen  string // ISO date, empty if never logged in
 }
 
-// roleRank returns a numeric rank for comparison (higher = more privileged).
-func roleRank(r string) int {
-	switch r {
-	case "owner":
-		return 4
-	case "admin":
-		return 3
-	case "member":
-		return 2
-	case "viewer":
-		return 1
-	default:
-		return 0
+// invalidate removes a role cache entry if the cache is available.
+func (s *Service) invalidate(workspaceID, accountID string) {
+	if s.cache != nil {
+		s.cache.Invalidate(workspaceID, accountID)
 	}
 }
 
@@ -122,6 +129,7 @@ func CreatePersonalWorkspace(ctx context.Context, q *queries.Queries, accountID 
 }
 
 // ValidateMember returns nil if accountID is a member of workspaceID, ErrForbidden if not.
+// Used by forms routes which cannot use the workspace role middleware.
 func (s *Service) ValidateMember(ctx context.Context, workspaceID, accountID string) error {
 	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
 		WorkspaceID: workspaceID,
@@ -217,22 +225,13 @@ func (s *Service) List(ctx context.Context, accountID string) ([]Workspace, erro
 	return out, nil
 }
 
-// Get returns a workspace and the caller's role. Returns ErrForbidden if not a member.
-func (s *Service) Get(ctx context.Context, workspaceID, accountID string) (Workspace, error) {
+// Get returns a workspace. callerRole is pre-resolved by middleware and used
+// to populate the role field in the response.
+func (s *Service) Get(ctx context.Context, workspaceID, callerRole string) (Workspace, error) {
 	ws, err := s.db.GetWorkspaceByID(ctx, workspaceID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Workspace{}, ErrNotFound
-		}
-		return Workspace{}, err
-	}
-	member, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return Workspace{}, ErrForbidden
 		}
 		return Workspace{}, err
 	}
@@ -242,46 +241,21 @@ func (s *Service) Get(ctx context.Context, workspaceID, accountID string) (Works
 		Slug:       ws.Slug,
 		Plan:       ws.Plan,
 		PlanStatus: ws.PlanStatus,
-		Role:       member.Role,
+		Role:       callerRole,
 	}, nil
 }
 
-// Rename updates the workspace name. Requires owner or admin role.
-func (s *Service) Rename(ctx context.Context, workspaceID, accountID, name string) error {
-	member, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if roleRank(member.Role) < roleRank("admin") {
-		return ErrForbidden
-	}
+// Rename updates the workspace name. Caller role is enforced by middleware.
+func (s *Service) Rename(ctx context.Context, workspaceID, name string) error {
 	return s.db.RenameWorkspace(ctx, queries.RenameWorkspaceParams{
 		ID:   workspaceID,
 		Name: name,
 	})
 }
 
-// Delete deletes a workspace. Requires owner role and no remaining non-owner members.
-func (s *Service) Delete(ctx context.Context, workspaceID, accountID string) error {
-	member, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if member.Role != "owner" {
-		return ErrForbidden
-	}
+// Delete deletes a workspace. Caller role is enforced by middleware.
+// Fails if any non-owner members remain.
+func (s *Service) Delete(ctx context.Context, workspaceID string) error {
 	count, err := s.db.CountNonOwnerMembers(ctx, workspaceID)
 	if err != nil {
 		return err
@@ -292,18 +266,8 @@ func (s *Service) Delete(ctx context.Context, workspaceID, accountID string) err
 	return s.db.DeleteWorkspace(ctx, workspaceID)
 }
 
-// ListMembers returns all members of a workspace. Requires membership.
-func (s *Service) ListMembers(ctx context.Context, workspaceID, accountID string) ([]Member, error) {
-	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrForbidden
-		}
-		return nil, err
-	}
+// ListMembers returns all members of a workspace. Membership is guaranteed by middleware.
+func (s *Service) ListMembers(ctx context.Context, workspaceID string) ([]Member, error) {
 	rows, err := s.db.ListWorkspaceMembers(ctx, workspaceID)
 	if err != nil {
 		return nil, err
@@ -326,24 +290,13 @@ func (s *Service) ListMembers(ctx context.Context, workspaceID, accountID string
 	return out, nil
 }
 
-// UpdateMemberRole changes a member's role. Requires owner or admin. Cannot promote
-// above caller's own role. Cannot demote the sole owner.
-func (s *Service) UpdateMemberRole(ctx context.Context, workspaceID, callerAccountID, targetAccountID, newRole string) error {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
+// UpdateMemberRole changes a member's role. callerRole is pre-resolved by middleware.
+// Cannot promote to a role higher than the caller's own. Cannot demote the sole owner.
+func (s *Service) UpdateMemberRole(ctx context.Context, workspaceID, callerRole, targetAccountID, newRole string) error {
+	if !permission.Can(callerRole, permission.ActionChangeRoles) {
 		return ErrForbidden
 	}
-	// Cannot promote to a role higher than the caller's own.
-	if roleRank(newRole) > roleRank(caller.Role) {
+	if permission.RoleRank(newRole) > permission.RoleRank(callerRole) {
 		return ErrForbidden
 	}
 
@@ -357,7 +310,6 @@ func (s *Service) UpdateMemberRole(ctx context.Context, workspaceID, callerAccou
 		}
 		return err
 	}
-	// Protect the sole owner.
 	if target.Role == "owner" && newRole != "owner" {
 		ownerCount, err := s.db.CountWorkspaceOwners(ctx, workspaceID)
 		if err != nil {
@@ -367,30 +319,20 @@ func (s *Service) UpdateMemberRole(ctx context.Context, workspaceID, callerAccou
 			return ErrLastOwner
 		}
 	}
-	return s.db.UpdateWorkspaceMemberRole(ctx, queries.UpdateWorkspaceMemberRoleParams{
+	if err := s.db.UpdateWorkspaceMemberRole(ctx, queries.UpdateWorkspaceMemberRoleParams{
 		WorkspaceID: workspaceID,
 		AccountID:   targetAccountID,
 		Role:        newRole,
-	})
+	}); err != nil {
+		return err
+	}
+	s.invalidate(workspaceID, targetAccountID)
+	return nil
 }
 
 // RemoveMember removes a member from a workspace and deletes their workspace key.
-// Requires owner or admin. Cannot remove the sole owner.
-func (s *Service) RemoveMember(ctx context.Context, workspaceID, callerAccountID, targetAccountID string) error {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return ErrForbidden
-	}
-
+// Caller role is enforced by middleware. Cannot remove the sole owner.
+func (s *Service) RemoveMember(ctx context.Context, workspaceID, targetAccountID string) error {
 	target, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
 		WorkspaceID: workspaceID,
 		AccountID:   targetAccountID,
@@ -417,10 +359,14 @@ func (s *Service) RemoveMember(ctx context.Context, workspaceID, callerAccountID
 	}); err != nil {
 		return err
 	}
-	return s.db.DeleteWorkspaceMember(ctx, queries.DeleteWorkspaceMemberParams{
+	if err := s.db.DeleteWorkspaceMember(ctx, queries.DeleteWorkspaceMemberParams{
 		WorkspaceID: workspaceID,
 		AccountID:   targetAccountID,
-	})
+	}); err != nil {
+		return err
+	}
+	s.invalidate(workspaceID, targetAccountID)
+	return nil
 }
 
 // ─── Phase 5: Collaborative Key Distribution ──────────────────────────────────
@@ -443,19 +389,9 @@ type MemberKey struct {
 	EphemeralPublicKey  []byte
 }
 
-// ListMemberIdentityKeys returns the identity public key for every member of the
-// workspace. Requires membership (viewer or above).
-func (s *Service) ListMemberIdentityKeys(ctx context.Context, workspaceID, accountID string) ([]MemberIdentityKey, error) {
-	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrForbidden
-		}
-		return nil, err
-	}
+// ListMemberIdentityKeys returns the identity public key for every workspace member.
+// Membership is guaranteed by middleware.
+func (s *Service) ListMemberIdentityKeys(ctx context.Context, workspaceID string) ([]MemberIdentityKey, error) {
 	rows, err := s.db.ListMemberIdentityKeys(ctx, workspaceID)
 	if err != nil {
 		return nil, err
@@ -473,16 +409,6 @@ func (s *Service) ListMemberIdentityKeys(ctx context.Context, workspaceID, accou
 // GetMyKey returns the caller's wrapped workspace key entry.
 // Returns ErrNotFound if the key has not been granted yet.
 func (s *Service) GetMyKey(ctx context.Context, workspaceID, accountID string) (MemberKey, error) {
-	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return MemberKey{}, ErrForbidden
-		}
-		return MemberKey{}, err
-	}
 	row, err := s.db.GetWorkspaceMemberKey(ctx, queries.GetWorkspaceMemberKeyParams{
 		WorkspaceID: workspaceID,
 		AccountID:   accountID,
@@ -500,23 +426,9 @@ func (s *Service) GetMyKey(ctx context.Context, workspaceID, accountID string) (
 }
 
 // GrantMemberKey upserts a wrapped workspace key for a target member.
-// Requires owner or admin role. The caller must be a member of the workspace.
+// Caller role is enforced by middleware.
 func (s *Service) GrantMemberKey(ctx context.Context, workspaceID, callerAccountID, targetAccountID string, wrappedKey, ephemeralPub []byte) error {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   callerAccountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return ErrForbidden
-	}
-	// Ensure the target is actually a member.
-	_, err = s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
 		WorkspaceID: workspaceID,
 		AccountID:   targetAccountID,
 	})
@@ -536,21 +448,8 @@ func (s *Service) GrantMemberKey(ctx context.Context, workspaceID, callerAccount
 }
 
 // PendingKeyGrants returns members who have no workspace_member_keys entry.
-// Requires owner or admin role (only they need to act on the result).
-func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID, accountID string) ([]PendingGrant, error) {
-	caller, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, ErrForbidden
-		}
-		return nil, err
-	}
-	if roleRank(caller.Role) < roleRank("admin") {
-		return nil, ErrForbidden
-	}
+// Caller role is enforced by middleware.
+func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID string) ([]PendingGrant, error) {
 	rows, err := s.db.GetMembersWithoutWorkspaceKeyWithUsername(ctx, workspaceID)
 	if err != nil {
 		return nil, err
