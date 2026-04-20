@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { renameWorkspace, WorkspaceError } from '$lib/workspaces';
+	import { renameWorkspace, deleteWorkspace, WorkspaceError } from '$lib/workspaces';
 	import { Settings, BarChart2, Building2, Mail } from '@lucide/svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	type Tab = 'usage' | 'workspace' | 'smtp';
 	let activeTab = $state<Tab>('usage');
@@ -33,6 +35,27 @@
 			workspaceSaveError = e instanceof WorkspaceError ? e.message : 'Failed to save';
 		} finally {
 			workspaceSaving = false;
+		}
+	}
+
+	// ─── Delete workspace state ──────────────────────────────────────────────────
+	let showDeleteConfirm = $state(false);
+	let deleting = $state(false);
+	let deleteError = $state('');
+
+	async function handleDelete() {
+		const ws = workspacesStore.active;
+		if (!ws) return;
+		deleting = true;
+		deleteError = '';
+		try {
+			await deleteWorkspace(ws.id);
+			workspacesStore.remove(ws.id);
+			await goto('/workspaces');
+		} catch (e) {
+			deleteError = e instanceof WorkspaceError ? e.message : 'Failed to delete workspace.';
+		} finally {
+			deleting = false;
 		}
 	}
 
@@ -73,6 +96,18 @@
 <svelte:head>
 	<title>Confide — Settings</title>
 </svelte:head>
+
+{#if workspacesStore.active}
+<ConfirmDialog
+	open={showDeleteConfirm}
+	title="Delete workspace?"
+	description={`This will permanently delete "${workspacesStore.active.name}" and all its forms and responses. This cannot be undone.`}
+	loading={deleting}
+	error={deleteError}
+	onconfirm={handleDelete}
+	oncancel={() => { showDeleteConfirm = false; deleteError = ''; }}
+/>
+{/if}
 
 <div class="flex justify-center w-full">
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
@@ -219,6 +254,7 @@
 			</div>
 
 			<!-- Danger zone -->
+			{#if workspacesStore.active?.role === 'owner'}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
 				<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
@@ -227,14 +263,15 @@
 						<p class="m-0 mt-0.5 text-sm text-muted-dim">Permanently delete this workspace and all its data.</p>
 					</div>
 					<button
-						disabled
+						onclick={() => { showDeleteConfirm = true; deleteError = ''; }}
 						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
-							cursor-not-allowed font-mono text-base opacity-50"
+							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
 					>
 						Delete
 					</button>
 				</div>
 			</div>
+			{/if}
 		</div>
 
 	<!-- ─── SMTP tab ──────────────────────────────────────────────────────────── -->
