@@ -49,7 +49,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		Workspace:  workspace.NewService(pool),
 		Identity:   identity.NewService(pool),
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
-		Billing:    billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro),
+		Billing:    billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg),
 		RelayQ:     &relay.Queue{},
 	}
 }

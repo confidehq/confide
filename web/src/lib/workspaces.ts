@@ -162,6 +162,64 @@ export async function clearCustomDomain(workspaceId: string): Promise<void> {
 	}
 }
 
+// ─── Billing ──────────────────────────────────────────────────────────────────
+
+export interface BillingInfo {
+	plan: 'free' | 'pro' | 'org';
+	planStatus: 'active' | 'past_due' | 'canceled';
+	planPeriodEnd?: string; // ISO date string, present on paid plans
+	memberCount: number;
+	formCount: number;
+	monthlyResponseCount: number;
+	hasStripeCustomer: boolean;
+}
+
+export async function getBillingInfo(workspaceId: string): Promise<BillingInfo> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/billing`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'billing_fetch_failed';
+		const message = (body as { message?: string }).message ?? `Failed to load billing info (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return res.json() as Promise<BillingInfo>;
+}
+
+export async function subscribe(
+	workspaceId: string,
+	plan: 'pro' | 'org',
+	successUrl: string,
+	cancelUrl: string
+): Promise<string> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/billing/subscribe`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ plan, successUrl, cancelUrl })
+	});
+	const body = await res.json().catch(() => ({}));
+	if (!res.ok) {
+		const code = (body as { code?: string }).code ?? 'subscribe_failed';
+		const message = (body as { message?: string }).message ?? `Failed to start checkout (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return (body as { url: string }).url;
+}
+
+export async function openBillingPortal(workspaceId: string, returnUrl: string): Promise<string> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/billing/portal`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ returnUrl })
+	});
+	const body = await res.json().catch(() => ({}));
+	if (!res.ok) {
+		const code = (body as { code?: string }).code ?? 'portal_failed';
+		const message = (body as { message?: string }).message ?? `Failed to open billing portal (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return (body as { url: string }).url;
+}
+
 export async function listWorkspaces(): Promise<Workspace[]> {
 	const res = await fetch('/api/workspaces');
 	if (!res.ok) throw new WorkspaceError('list_failed', `Failed to load workspaces (${res.status})`);

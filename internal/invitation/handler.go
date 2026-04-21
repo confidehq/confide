@@ -66,7 +66,7 @@ func createInvitation(svc *Service) http.HandlerFunc {
 				return
 			}
 			if errors.Is(err, ErrPlanLimit) {
-				writeError(w, http.StatusPaymentRequired, "plan_limit", "free plan allows only one collaborator")
+				writeError(w, http.StatusPaymentRequired, "plan_limit", "member limit reached for your current plan")
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create invitation")

@@ -20,6 +20,7 @@ var (
 	ErrNotFound       = errors.New("workspace not found")
 	ErrStripeDisabled = errors.New("stripe not configured")
 	ErrNoCustomer     = errors.New("no stripe customer — workspace has never subscribed")
+	ErrInvalidPlan    = errors.New("invalid plan")
 )
 
 // DB is the subset of queries used by billing.Service.
@@ -40,14 +41,16 @@ type Service struct {
 	stripeSecretKey     string
 	stripeWebhookSecret string
 	stripePriceIDPro    string
+	stripePriceIDOrg    string
 }
 
-func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripePriceIDPro string) *Service {
+func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripePriceIDPro, stripePriceIDOrg string) *Service {
 	return &Service{
 		db:                  queries.New(pool),
 		stripeSecretKey:     stripeSecretKey,
 		stripeWebhookSecret: stripeWebhookSecret,
 		stripePriceIDPro:    stripePriceIDPro,
+		stripePriceIDOrg:    stripePriceIDOrg,
 	}
 }
 
@@ -104,11 +107,15 @@ func (s *Service) GetInfo(ctx context.Context, workspaceID, accountID string) (B
 }
 
 // Subscribe creates or upgrades a workspace subscription via Stripe Checkout.
-// Lazily creates a Stripe Customer on first upgrade (workspace_id metadata only, no PII).
-// Returns the Stripe Checkout Session URL. Owner only.
-func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, successURL, cancelURL string) (string, error) {
+// plan must be "pro" or "org". Lazily creates a Stripe Customer on first upgrade
+// (workspace_id metadata only, no PII). Returns the Stripe Checkout Session URL. Owner only.
+func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, successURL, cancelURL string) (string, error) {
 	if s.stripeSecretKey == "" {
 		return "", ErrStripeDisabled
+	}
+	priceID, err := s.priceIDForPlan(plan)
+	if err != nil {
+		return "", err
 	}
 	if err := s.requireOwner(ctx, workspaceID, accountID); err != nil {
 		return "", err
@@ -148,7 +155,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, success
 		Mode:     stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		LineItems: []*stripe.CheckoutSessionCreateLineItemParams{
 			{
-				Price:    stripe.String(s.stripePriceIDPro),
+				Price:    stripe.String(priceID),
 				Quantity: stripe.Int64(1),
 			},
 		},
@@ -205,7 +212,7 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 	}
 
 	switch event.Type {
-	case "customer.subscription.updated":
+	case "customer.subscription.created", "customer.subscription.updated":
 		return s.handleSubscriptionUpdated(ctx, event)
 	case "customer.subscription.deleted":
 		return s.handleSubscriptionDeleted(ctx, event)
@@ -230,13 +237,22 @@ func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Ev
 		}
 		return err
 	}
+
+	// Derive plan from the subscription's price ID; fall back to current plan if unrecognised.
+	plan := ws.Plan
+	if sub.Items != nil && len(sub.Items.Data) > 0 && sub.Items.Data[0].Price != nil {
+		if p, ok := s.planForPriceID(sub.Items.Data[0].Price.ID); ok {
+			plan = p
+		}
+	}
+
 	var periodEnd pgtype.Timestamptz
 	if sub.Items != nil && len(sub.Items.Data) > 0 && sub.Items.Data[0].CurrentPeriodEnd > 0 {
 		periodEnd = pgtype.Timestamptz{Time: time.Unix(sub.Items.Data[0].CurrentPeriodEnd, 0), Valid: true}
 	}
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
 		ID:            ws.ID,
-		Plan:          "pro",
+		Plan:          plan,
 		PlanStatus:    normalisePlanStatus(string(sub.Status)),
 		PlanPeriodEnd: periodEnd,
 	})
@@ -314,5 +330,47 @@ func normalisePlanStatus(stripeStatus string) string {
 		return "canceled"
 	default:
 		return "active"
+	}
+}
+
+// priceIDForPlan returns the Stripe Price ID for the given plan name.
+func (s *Service) priceIDForPlan(plan string) (string, error) {
+	switch plan {
+	case "pro":
+		if s.stripePriceIDPro == "" {
+			return "", ErrStripeDisabled
+		}
+		return s.stripePriceIDPro, nil
+	case "org":
+		if s.stripePriceIDOrg == "" {
+			return "", ErrStripeDisabled
+		}
+		return s.stripePriceIDOrg, nil
+	default:
+		return "", ErrInvalidPlan
+	}
+}
+
+// planForPriceID maps a Stripe Price ID back to a plan name.
+func (s *Service) planForPriceID(priceID string) (string, bool) {
+	if s.stripePriceIDPro != "" && priceID == s.stripePriceIDPro {
+		return "pro", true
+	}
+	if s.stripePriceIDOrg != "" && priceID == s.stripePriceIDOrg {
+		return "org", true
+	}
+	return "", false
+}
+
+// PlanMemberLimit returns the maximum number of members allowed for a plan.
+// Returns -1 for unlimited.
+func PlanMemberLimit(plan string) int64 {
+	switch plan {
+	case "free":
+		return 1
+	case "pro":
+		return 10
+	default:
+		return -1
 	}
 }

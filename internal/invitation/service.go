@@ -14,17 +14,18 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/phantompunk/confide/internal/billing"
 	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/mailer"
 	"github.com/phantompunk/confide/internal/permission"
 )
 
 var (
-	ErrNotFound   = errors.New("invitation not found")
-	ErrExpired    = errors.New("invitation expired or already accepted")
-	ErrForbidden  = errors.New("insufficient role")
-	ErrPlanLimit  = errors.New("member limit reached for free plan")
-	ErrConflict   = errors.New("already a member of this workspace")
+	ErrNotFound  = errors.New("invitation not found")
+	ErrExpired   = errors.New("invitation expired or already accepted")
+	ErrForbidden = errors.New("insufficient role")
+	ErrPlanLimit = errors.New("member limit reached for current plan")
+	ErrConflict  = errors.New("already a member of this workspace")
 )
 
 // DB is the subset of queries used by the invitation service.
@@ -87,13 +88,13 @@ func (s *Service) Create(ctx context.Context, workspaceID, callerRole, callerAcc
 	if err != nil {
 		return Invitation{}, err
 	}
-	// Free-plan member limit: owner + 1 collaborator = 2 total.
-	if ws.Plan == "free" {
+	limit := billing.PlanMemberLimit(ws.Plan)
+	if limit >= 0 {
 		count, err := s.db.CountWorkspaceMembers(ctx, workspaceID)
 		if err != nil {
 			return Invitation{}, err
 		}
-		if count >= 2 {
+		if count >= limit {
 			return Invitation{}, ErrPlanLimit
 		}
 	}

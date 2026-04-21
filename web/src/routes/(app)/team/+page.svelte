@@ -19,6 +19,7 @@
 	let inviteRole = $state<'admin' | 'member' | 'viewer'>('member');
 	let inviting = $state(false);
 	let inviteError = $state('');
+	let invitePlanLimit = $state(false);
 	let inviteSuccess = $state('');
 
 	// ─── Revoke / actions state ──────────────────────────────────────────────────
@@ -56,6 +57,7 @@
 		inviteEmail = '';
 		inviteRole = 'member';
 		inviteError = '';
+		invitePlanLimit = false;
 		inviteSuccess = '';
 		showInviteForm = true;
 	}
@@ -64,6 +66,7 @@
 		showInviteForm = false;
 		inviteEmail = '';
 		inviteError = '';
+		invitePlanLimit = false;
 		inviteSuccess = '';
 	}
 
@@ -75,6 +78,7 @@
 
 		inviting = true;
 		inviteError = '';
+		invitePlanLimit = false;
 		inviteSuccess = '';
 
 		try {
@@ -83,14 +87,10 @@
 			inviteSuccess = `Invitation sent to ${email}`;
 			inviteEmail = '';
 		} catch (e) {
-			if (e instanceof WorkspaceError) {
-				if (e.code === 'plan_limit') {
-					inviteError = 'Free plan allows only one collaborator. Upgrade to Pro to invite more.';
-				} else {
-					inviteError = e.message;
-				}
+			if (e instanceof WorkspaceError && e.code === 'plan_limit') {
+				invitePlanLimit = true;
 			} else {
-				inviteError = e instanceof Error ? e.message : 'Failed to send invitation.';
+				inviteError = e instanceof WorkspaceError ? e.message : e instanceof Error ? e.message : 'Failed to send invitation.';
 			}
 		} finally {
 			inviting = false;
@@ -327,7 +327,14 @@
 				{/if}
 			</p>
 
-			{#if inviteError}
+			{#if invitePlanLimit}
+				<p class="mt-3 mb-0 text-xs text-warning-text">
+					Member limit reached for your current plan.
+					{#if workspacesStore.active?.role === 'owner'}
+						<a href="/settings?tab=billing" class="underline text-text-blue hover:text-text-bright">Upgrade to Pro →</a>
+					{/if}
+				</p>
+			{:else if inviteError}
 				<p class="mt-3 mb-0 text-xs text-error-muted">{inviteError}</p>
 			{/if}
 			{#if inviteSuccess}

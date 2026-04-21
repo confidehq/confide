@@ -1,14 +1,78 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { get } from 'svelte/store';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { renameWorkspace, deleteWorkspace, WorkspaceError } from '$lib/workspaces';
-	import { Settings, BarChart2, Building2, Mail } from '@lucide/svelte';
+	import { auth } from '$lib/stores/auth.svelte';
+	import {
+		renameWorkspace,
+		deleteWorkspace,
+		WorkspaceError,
+		getBillingInfo,
+		subscribe,
+		openBillingPortal,
+		type BillingInfo
+	} from '$lib/workspaces';
+	import { Settings, BarChart2, Building2, Mail, CreditCard, Check, ExternalLink, AlertTriangle } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
-	type Tab = 'usage' | 'workspace' | 'smtp';
-	let activeTab = $state<Tab>('usage');
+	// ─── Tab init from URL ────────────────────────────────────────────────────────
 
-	// ─── Workspace tab state ────────────────────────────────────────────────────
+	type Tab = 'usage' | 'billing' | 'workspace' | 'smtp';
+	const _urlTab = get(page).url.searchParams.get('tab') as Tab | null;
+	const _validTabs: Tab[] = ['usage', 'billing', 'workspace', 'smtp'];
+	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'usage');
+
+	// Show success banner when returning from Stripe checkout
+	const _upgraded = get(page).url.searchParams.get('upgraded') === 'true';
+	let showUpgradedBanner = $state(_upgraded);
+	if (_upgraded) {
+		goto('/settings?tab=billing', { replaceState: true });
+		setTimeout(() => { showUpgradedBanner = false; }, 6000);
+	}
+
+	// ─── Billing info (shared by Usage and Billing tabs) ─────────────────────────
+
+	let billingInfo = $state<BillingInfo | null>(null);
+	let billingLoading = $state(false);
+	let billingError = $state('');
+	let billingLoaded = $state(false);
+
+	async function loadBillingInfo() {
+		const ws = workspacesStore.active;
+		if (!ws || ws.role !== 'owner' || billingLoaded || billingLoading) return;
+		billingLoading = true;
+		billingError = '';
+		try {
+			billingInfo = await getBillingInfo(ws.id);
+			billingLoaded = true;
+		} catch (e) {
+			billingError = e instanceof WorkspaceError ? e.message : 'Failed to load billing info';
+		} finally {
+			billingLoading = false;
+		}
+	}
+
+	// Reset billing cache when workspace changes
+	let _lastWsId = $state<string | null>(null);
+	$effect(() => {
+		const wsId = workspacesStore.active?.id ?? null;
+		if (wsId !== _lastWsId) {
+			_lastWsId = wsId;
+			billingLoaded = false;
+			billingInfo = null;
+			billingError = '';
+		}
+	});
+
+	$effect(() => {
+		if (activeTab === 'usage' || activeTab === 'billing') {
+			loadBillingInfo();
+		}
+	});
+
+	// ─── Workspace tab state ──────────────────────────────────────────────────────
+
 	let workspaceName = $state('');
 	let workspaceSaving = $state(false);
 	let workspaceSaved = $state(false);
@@ -38,7 +102,8 @@
 		}
 	}
 
-	// ─── Delete workspace state ──────────────────────────────────────────────────
+	// ─── Delete workspace state ───────────────────────────────────────────────────
+
 	let showDeleteConfirm = $state(false);
 	let deleting = $state(false);
 	let deleteError = $state('');
@@ -59,7 +124,8 @@
 		}
 	}
 
-	// ─── SMTP tab state ─────────────────────────────────────────────────────────
+	// ─── SMTP tab state ───────────────────────────────────────────────────────────
+
 	let smtpHost = $state('');
 	let smtpPort = $state('587');
 	let smtpUser = $state('');
@@ -72,7 +138,6 @@
 		smtpSaving = true;
 		smtpSaved = false;
 		try {
-			// TODO: wire to API
 			await new Promise(r => setTimeout(r, 600));
 			smtpSaved = true;
 			setTimeout(() => (smtpSaved = false), 2000);
@@ -81,16 +146,89 @@
 		}
 	}
 
-	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean }[] = [
-		{ id: 'usage',     label: 'Usage',     icon: BarChart2                },
-		{ id: 'workspace', label: 'Workspace',  icon: Building2,							},
-		{ id: 'smtp',      label: 'SMTP',       icon: Mail,      disabled: true },
+	// ─── Billing tab actions ──────────────────────────────────────────────────────
+
+	let upgrading = $state(false);
+	let upgradeError = $state('');
+	let portalLoading = $state(false);
+	let showDowngradeModal = $state(false);
+
+	async function handleUpgrade() {
+		const ws = workspacesStore.active;
+		if (!ws) return;
+		upgrading = true;
+		upgradeError = '';
+		try {
+			const checkoutUrl = await subscribe(
+				ws.id,
+				'pro',
+				`${window.location.origin}/settings?tab=billing&upgraded=true`,
+				`${window.location.origin}/settings?tab=billing`
+			);
+			window.location.href = checkoutUrl;
+		} catch (e) {
+			upgradeError = e instanceof WorkspaceError ? e.message : 'Failed to start checkout';
+			upgrading = false;
+		}
+	}
+
+	async function handleOpenPortal() {
+		const ws = workspacesStore.active;
+		if (!ws) return;
+		portalLoading = true;
+		try {
+			const portalUrl = await openBillingPortal(ws.id, `${window.location.origin}/settings?tab=billing`);
+			window.location.href = portalUrl;
+		} catch (e) {
+			portalLoading = false;
+		}
+	}
+
+	function handleDowngradeClick() {
+		const hasExtraMembers = billingInfo && billingInfo.memberCount > 1;
+		const hasExtraWorkspaces = workspacesStore.workspaces.length > 1;
+		if (hasExtraMembers || hasExtraWorkspaces) {
+			showDowngradeModal = true;
+		} else {
+			handleOpenPortal();
+		}
+	}
+
+	// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean; ownerOnly?: boolean }[] = [
+		{ id: 'usage',     label: 'Usage',     icon: BarChart2                              },
+		{ id: 'billing',   label: 'Billing',   icon: CreditCard, ownerOnly: true            },
+		{ id: 'workspace', label: 'Workspace',  icon: Building2                              },
+		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true             },
 	];
 
 	const planBadge: Record<string, { label: string; color: string }> = {
 		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
-		free: { label: 'Free', color: 'var(--color-muted-dim)' },
+		org:  { label: 'Org',  color: 'var(--color-text-blue)'      },
+		free: { label: 'Free', color: 'var(--color-muted-dim)'      },
 	};
+
+	function formatDate(iso: string): string {
+		return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+	}
+
+	const proFeatures: { label: string; enabled: boolean }[] = [
+		{ label: 'Unlimited workspaces',  enabled: true  },
+		{ label: 'Up to 10 members',      enabled: true  },
+		{ label: 'Custom domain',         enabled: true  },
+		{ label: 'Remove branding',       enabled: false },
+		{ label: 'File uploads (10 MB)',  enabled: false },
+		{ label: 'Form customization',    enabled: false },
+		{ label: 'CSV export',            enabled: false },
+	];
+
+	const freeFeatures: { label: string; enabled: boolean }[] = [
+		{ label: '1 workspace',           enabled: true },
+		{ label: '1 member',              enabled: true },
+		{ label: 'Unlimited forms',       enabled: true },
+		{ label: 'Unlimited responses',   enabled: true },
+	];
 </script>
 
 <svelte:head>
@@ -107,6 +245,72 @@
 	onconfirm={handleDelete}
 	oncancel={() => { showDeleteConfirm = false; deleteError = ''; }}
 />
+{/if}
+
+<!-- Downgrade warning modal -->
+{#if showDowngradeModal && billingInfo}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4"
+		style="background: var(--color-overlay); backdrop-filter: blur(2px);"
+		onclick={(e) => { if (e.target === e.currentTarget) showDowngradeModal = false; }}
+		onkeydown={(e) => { if (e.key === 'Escape') showDowngradeModal = false; }}
+		role="presentation"
+	>
+		<div
+			class="font-mono w-full max-w-sm flex flex-col gap-5"
+			style="background: var(--color-surface-subtle); border: 1px solid var(--color-border-deep); border-radius: 10px; padding: 1.25rem; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.7);"
+			role="dialog"
+			aria-modal="true"
+		>
+			<div class="flex items-center gap-2.5">
+				<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-surface-deep border border-border">
+					<AlertTriangle size={14} strokeWidth={1.75} class="text-warning-text" />
+				</span>
+				<h2 class="m-0 text-base font-semibold text-text-bright">Before you downgrade</h2>
+			</div>
+
+			<div class="flex flex-col gap-2 text-sm text-muted-dim leading-relaxed">
+				{#if billingInfo.memberCount > 1}
+					<p class="m-0">
+						You have <span class="text-text-body font-medium">{billingInfo.memberCount} members</span>.
+						The Free plan is limited to 1 member — others will lose access when your subscription ends.
+					</p>
+				{/if}
+				{#if workspacesStore.workspaces.length > 1}
+					<p class="m-0">
+						You have <span class="text-text-body font-medium">{workspacesStore.workspaces.length} workspaces</span>.
+						The Free plan is limited to 1 workspace — additional workspaces will become inaccessible.
+					</p>
+				{/if}
+				{#if billingInfo.planPeriodEnd}
+					<p class="m-0 text-muted-mid">
+						Your Pro access continues until <span class="text-text-body">{formatDate(billingInfo.planPeriodEnd)}</span>.
+					</p>
+				{/if}
+			</div>
+
+			<div class="h-px bg-border-deep"></div>
+
+			<div class="flex gap-2 justify-end">
+				<button
+					onclick={() => { showDowngradeModal = false; }}
+					class="px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded cursor-pointer
+						font-mono text-sm hover:text-text-body hover:border-muted-mid transition-colors duration-100"
+				>Cancel</button>
+				<button
+					onclick={() => { showDowngradeModal = false; handleOpenPortal(); }}
+					disabled={portalLoading}
+					class="px-4 py-2 border border-border-deep rounded cursor-pointer font-mono text-sm flex items-center gap-1.5
+						text-muted-dim bg-transparent hover:text-text-body hover:border-border-subtle transition-colors duration-100
+						disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{portalLoading ? 'Opening…' : 'Continue to billing portal'}
+					{#if !portalLoading}<ExternalLink size={12} strokeWidth={1.75} />{/if}
+				</button>
+			</div>
+		</div>
+	</div>
 {/if}
 
 <div class="flex justify-center w-full">
@@ -135,20 +339,23 @@
 	<div class="flex border-b border-border-mid mb-8 gap-1">
 		{#each tabs as tab}
 			{@const active = activeTab === tab.id}
-			<button
-				onclick={() => !tab.disabled && (activeTab = tab.id)}
-				disabled={tab.disabled}
-				class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px
-					transition-[color,border-color] duration-100 bg-transparent font-mono
-					{tab.disabled
-						? 'border-transparent text-muted-mid cursor-not-allowed'
-						: active
-							? 'border-text-blue text-text-blue cursor-pointer'
-							: 'border-transparent text-muted-dim hover:text-muted-blue hover:border-muted-mid cursor-pointer'}"
-			>
-				<svelte:component this={tab.icon} size={14} strokeWidth={1.75} />
-				{tab.label}
-			</button>
+			{@const hidden = tab.ownerOnly && workspacesStore.active?.role !== 'owner'}
+			{#if !hidden}
+				<button
+					onclick={() => !tab.disabled && (activeTab = tab.id)}
+					disabled={tab.disabled}
+					class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px
+						transition-[color,border-color] duration-100 bg-transparent font-mono
+						{tab.disabled
+							? 'border-transparent text-muted-mid cursor-not-allowed'
+							: active
+								? 'border-text-blue text-text-blue cursor-pointer'
+								: 'border-transparent text-muted-dim hover:text-muted-blue hover:border-muted-mid cursor-pointer'}"
+				>
+					<svelte:component this={tab.icon} size={14} strokeWidth={1.75} />
+					{tab.label}
+				</button>
+			{/if}
 		{/each}
 	</div>
 
@@ -157,9 +364,9 @@
 		<div>
 			<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-10">
 				{#each [
-					{ label: 'Forms',     value: '—' },
-					{ label: 'Responses', value: '—' },
-					{ label: 'Members',   value: '—' },
+					{ label: 'Forms',     value: billingLoading ? '…' : billingInfo ? String(billingInfo.formCount) : '—' },
+					{ label: 'Responses', value: billingLoading ? '…' : billingInfo ? String(billingInfo.monthlyResponseCount) : '—' },
+					{ label: 'Members',   value: billingLoading ? '…' : billingInfo ? String(billingInfo.memberCount) : '—' },
 				] as stat}
 					<div class="px-4 py-4 sm:px-5 sm:py-5 border border-border-deep rounded-lg flex flex-col gap-2">
 						<p class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">{stat.label}</p>
@@ -181,10 +388,11 @@
 								Status: {workspacesStore.active.planStatus}
 							</p>
 						</div>
-						{#if workspacesStore.active.plan === 'free'}
+						{#if workspacesStore.active.plan === 'free' && workspacesStore.active.role === 'owner'}
 							<button
-								disabled
-								class="px-4 py-2 bg-transparent text-muted-dim border border-border-subtle rounded cursor-not-allowed font-mono text-base"
+								onclick={() => { activeTab = 'billing'; }}
+								class="px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base
+									hover:bg-primary-hover transition-colors duration-100"
 							>
 								Upgrade
 							</button>
@@ -197,6 +405,226 @@
 				{/if}
 			</div>
 		</div>
+
+	<!-- ─── Billing tab ───────────────────────────────────────────────────────── -->
+	{:else if activeTab === 'billing'}
+		{#if workspacesStore.active?.role !== 'owner'}
+			<p class="text-sm text-muted-dim">Only workspace owners can manage billing.</p>
+		{:else}
+			<!-- Upgraded success banner -->
+			{#if showUpgradedBanner}
+				<div class="mb-6 px-4 py-3 rounded-lg border border-success-border bg-success-bg flex items-center justify-between gap-3">
+					<div class="flex items-center gap-2">
+						<Check size={14} strokeWidth={2} class="text-success-text-dark shrink-0" />
+						<p class="m-0 text-sm text-success-text-dark font-medium">You're now on Pro — welcome!</p>
+					</div>
+					<button
+						onclick={() => { showUpgradedBanner = false; }}
+						class="text-success-text-dark opacity-60 hover:opacity-100 bg-transparent border-none cursor-pointer p-0 leading-none"
+						aria-label="Dismiss"
+					>×</button>
+				</div>
+			{/if}
+
+			<!-- Past-due banner -->
+			{#if billingInfo?.planStatus === 'past_due'}
+				<div class="mb-6 px-4 py-3 rounded-lg border border-warning-border bg-warning-bg flex items-center justify-between gap-3">
+					<div class="flex items-center gap-2">
+						<AlertTriangle size={14} strokeWidth={1.75} class="text-warning-text shrink-0" />
+						<p class="m-0 text-sm text-warning-text">Payment failed — update your payment method to keep Pro access.</p>
+					</div>
+					<button
+						onclick={handleOpenPortal}
+						disabled={portalLoading}
+						class="shrink-0 px-3 py-1.5 text-sm font-medium text-warning-text border border-warning-border rounded
+							cursor-pointer bg-transparent hover:bg-warning-bg-dark transition-colors duration-100 font-mono
+							disabled:opacity-50 disabled:cursor-not-allowed"
+					>{portalLoading ? 'Opening…' : 'Update payment →'}</button>
+				</div>
+			{/if}
+
+			<!-- Plan cards -->
+			<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Plan</h2>
+
+			{#if billingLoading && !billingInfo}
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+					{#each [0, 1] as _}
+						<div class="border border-border-deep rounded-lg p-5 h-64 animate-pulse bg-surface-deep"></div>
+					{/each}
+				</div>
+			{:else}
+				{@const currentPlan = billingInfo?.plan ?? workspacesStore.active?.plan ?? 'free'}
+				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+
+					<!-- Free card -->
+					<div class="border rounded-lg p-5 flex flex-col gap-4
+						{currentPlan === 'free' ? 'border-border-subtle bg-surface-hover' : 'border-border-deep'}">
+						<div class="flex items-start justify-between gap-2">
+							<div>
+								<p class="m-0 text-base font-semibold text-text-bright">Free</p>
+								<p class="m-0 text-2xl font-semibold text-text-bright mt-1">$0<span class="text-sm font-normal text-muted-dim">/mo</span></p>
+							</div>
+							{#if currentPlan === 'free'}
+								<span class="px-2 py-0.5 text-xs font-medium rounded border border-border-subtle text-muted-dim bg-surface-deep">
+									Current plan
+								</span>
+							{/if}
+						</div>
+
+						<ul class="m-0 p-0 list-none flex flex-col gap-1.5 flex-1">
+							{#each freeFeatures as f}
+								<li class="flex items-center gap-2 text-sm text-muted-dim">
+									<Check size={12} strokeWidth={2.5} class="shrink-0 text-success-text-dark" />
+									{f.label}
+								</li>
+							{/each}
+						</ul>
+
+						{#if currentPlan !== 'free'}
+							<button
+								onclick={handleDowngradeClick}
+								disabled={portalLoading}
+								class="w-full py-2 text-sm font-medium rounded border border-border-deep text-muted-dim
+									bg-transparent cursor-pointer hover:border-border-subtle hover:text-text-body
+									transition-colors duration-100 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
+							>{portalLoading ? 'Opening…' : 'Downgrade'}</button>
+						{/if}
+					</div>
+
+					<!-- Pro card -->
+					<div class="border rounded-lg p-5 flex flex-col gap-4
+						{currentPlan === 'pro' ? 'border-text-blue bg-surface-hover' : 'border-border-deep'}">
+						<div class="flex items-start justify-between gap-2">
+							<div>
+								<p class="m-0 text-base font-semibold text-text-bright">Pro</p>
+								<p class="m-0 text-2xl font-semibold text-text-bright mt-1">$20<span class="text-sm font-normal text-muted-dim">/mo</span></p>
+							</div>
+							{#if currentPlan === 'pro'}
+								<span class="px-2 py-0.5 text-xs font-medium rounded border border-text-blue text-text-blue">
+									Current plan
+								</span>
+							{/if}
+						</div>
+
+						<ul class="m-0 p-0 list-none flex flex-col gap-1.5 flex-1">
+							{#each proFeatures as f}
+								<li class="flex items-center gap-2 text-sm {f.enabled ? 'text-muted-dim' : 'text-muted-mid'}">
+									{#if f.enabled}
+										<Check size={12} strokeWidth={2.5} class="shrink-0 text-success-text-dark" />
+									{:else}
+										<span class="shrink-0 w-3 h-3 rounded-full border border-border-mid flex items-center justify-center"></span>
+									{/if}
+									{f.label}
+									{#if !f.enabled}
+										<span class="ml-auto text-xs text-muted-mid border border-border-mid rounded px-1.5 py-0.5 shrink-0">soon</span>
+									{/if}
+								</li>
+							{/each}
+						</ul>
+
+						{#if currentPlan !== 'pro'}
+							<button
+								onclick={handleUpgrade}
+								disabled={upgrading}
+								class="w-full py-2 text-sm font-medium rounded border-none text-white
+									bg-primary cursor-pointer hover:bg-primary-hover
+									transition-colors duration-100 font-mono disabled:opacity-50 disabled:cursor-not-allowed
+									flex items-center justify-center gap-1.5"
+							>
+								{#if upgrading}
+									Redirecting…
+								{:else}
+									Upgrade to Pro
+									<ExternalLink size={12} strokeWidth={1.75} />
+								{/if}
+							</button>
+							{#if upgradeError}
+								<p class="m-0 text-xs text-error-light">{upgradeError}</p>
+							{/if}
+						{/if}
+					</div>
+				</div>
+			{/if}
+
+			<!-- Usage meters (only shown once loaded) -->
+			{#if billingInfo}
+				{@const memberLimit = billingInfo.plan === 'free' ? 1 : billingInfo.plan === 'pro' ? 10 : -1}
+				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Usage</h2>
+				<div class="border border-border-deep rounded-lg divide-y divide-border-deep mb-8">
+					<!-- Members row -->
+					<div class="px-4 py-3 flex items-center gap-4">
+						<p class="m-0 text-sm text-muted-mid w-28 shrink-0">Members</p>
+						<div class="flex-1 h-1.5 bg-surface-deep rounded-full overflow-hidden">
+							{#if memberLimit > 0}
+								{@const pct = Math.min(100, (billingInfo.memberCount / memberLimit) * 100)}
+								<div
+									class="h-full rounded-full transition-all duration-300
+										{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"
+								></div>
+							{:else}
+								<div class="h-full rounded-full bg-text-blue" style="width: 30%"></div>
+							{/if}
+						</div>
+						<p class="m-0 text-sm text-muted-dim tabular-nums shrink-0 text-right w-20">
+							{billingInfo.memberCount}{memberLimit > 0 ? ` / ${memberLimit}` : ''}
+						</p>
+					</div>
+
+					<!-- Forms row -->
+					<div class="px-4 py-3 flex items-center gap-4">
+						<p class="m-0 text-sm text-muted-mid w-28 shrink-0">Forms</p>
+						<div class="flex-1 h-1.5 bg-surface-deep rounded-full overflow-hidden">
+							<div class="h-full rounded-full bg-text-blue" style="width: 30%"></div>
+						</div>
+						<p class="m-0 text-sm text-muted-dim tabular-nums shrink-0 text-right w-20">
+							{billingInfo.formCount} <span class="text-muted-mid">∞</span>
+						</p>
+					</div>
+
+					<!-- Responses row -->
+					<div class="px-4 py-3 flex items-center gap-4">
+						<p class="m-0 text-sm text-muted-mid w-28 shrink-0">Responses/mo</p>
+						<div class="flex-1 h-1.5 bg-surface-deep rounded-full overflow-hidden">
+							<div class="h-full rounded-full bg-text-blue" style="width: 30%"></div>
+						</div>
+						<p class="m-0 text-sm text-muted-dim tabular-nums shrink-0 text-right w-20">
+							{billingInfo.monthlyResponseCount} <span class="text-muted-mid">∞</span>
+						</p>
+					</div>
+				</div>
+			{/if}
+
+			<!-- Billing management (shown once a Stripe customer exists) -->
+			{#if billingInfo?.hasStripeCustomer}
+				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Billing</h2>
+				<div class="border border-border-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+					<div>
+						<p class="m-0 text-base text-text-body">Manage payment method and invoices</p>
+						{#if billingInfo.planPeriodEnd}
+							<p class="m-0 mt-0.5 text-sm text-muted-dim">
+								Current period ends {formatDate(billingInfo.planPeriodEnd)}
+							</p>
+						{/if}
+					</div>
+					<button
+						onclick={handleOpenPortal}
+						disabled={portalLoading}
+						class="shrink-0 px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded
+							cursor-pointer font-mono text-sm hover:text-text-body hover:border-border-subtle
+							transition-colors duration-100 flex items-center gap-1.5
+							disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						{portalLoading ? 'Opening…' : 'Open billing portal'}
+						{#if !portalLoading}<ExternalLink size={12} strokeWidth={1.75} />{/if}
+					</button>
+				</div>
+			{/if}
+
+			{#if billingError}
+				<p class="mt-4 text-sm text-error-light">{billingError}</p>
+			{/if}
+		{/if}
 
 	<!-- ─── Workspace tab ─────────────────────────────────────────────────────── -->
 	{:else if activeTab === 'workspace'}

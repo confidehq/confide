@@ -158,7 +158,7 @@
 				</p>
 				<div class="flex gap-2">
 					<a
-						href="/settings/billing"
+						href="/settings?tab=billing"
 						onclick={closeDropdown}
 						class="flex-1 py-1.5 text-center text-sm text-white bg-primary hover:bg-primary-hover rounded no-underline transition-colors duration-100 font-mono"
 					>Upgrade to Pro</a>

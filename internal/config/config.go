@@ -36,6 +36,7 @@ type Config struct {
 	StripeSecretKey     string
 	StripeWebhookSecret string
 	StripePriceIDPro    string
+	StripePriceIDOrg    string // reserved for Organization tier
 
 	// CustomDomainTarget is the CNAME hostname users must point their custom domain to.
 	// Defaults to AppDomain if unset.
@@ -79,6 +80,7 @@ func Load() (*Config, error) {
 		StripeSecretKey:     os.Getenv("CONFIDE_STRIPE_SECRET_KEY"),
 		StripeWebhookSecret: os.Getenv("CONFIDE_STRIPE_WEBHOOK_SECRET"),
 		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
+		StripePriceIDOrg:    os.Getenv("CONFIDE_STRIPE_PRICE_ORG"),
 	}
 
 	if t := os.Getenv("CONFIDE_CUSTOM_DOMAIN_TARGET"); t != "" {

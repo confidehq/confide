@@ -69,6 +69,7 @@ func subscribe(svc *Service) http.HandlerFunc {
 		workspaceID := chi.URLParam(r, "workspaceId")
 
 		var req struct {
+			Plan       string `json:"plan"`
 			SuccessURL string `json:"successUrl"`
 			CancelURL  string `json:"cancelUrl"`
 		}
@@ -76,12 +77,12 @@ func subscribe(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
-		if req.SuccessURL == "" || req.CancelURL == "" {
-			writeError(w, http.StatusBadRequest, "invalid_field", "successUrl and cancelUrl are required")
+		if req.Plan == "" || req.SuccessURL == "" || req.CancelURL == "" {
+			writeError(w, http.StatusBadRequest, "invalid_field", "plan, successUrl and cancelUrl are required")
 			return
 		}
 
-		url, err := svc.Subscribe(r.Context(), workspaceID, accountID, req.SuccessURL, req.CancelURL)
+		url, err := svc.Subscribe(r.Context(), workspaceID, accountID, req.Plan, req.SuccessURL, req.CancelURL)
 		if err != nil {
 			if errors.Is(err, ErrForbidden) {
 				writeError(w, http.StatusForbidden, "forbidden", "owner role required")
@@ -93,6 +94,10 @@ func subscribe(svc *Service) http.HandlerFunc {
 			}
 			if errors.Is(err, ErrStripeDisabled) {
 				writeError(w, http.StatusServiceUnavailable, "stripe_disabled", "billing not configured")
+				return
+			}
+			if errors.Is(err, ErrInvalidPlan) {
+				writeError(w, http.StatusBadRequest, "invalid_plan", "invalid plan")
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create checkout session")
