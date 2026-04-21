@@ -19,7 +19,7 @@ SELECT id, status, schema_version, response_count, render_encrypted_schema, publ
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateFormSchema :one
@@ -51,6 +51,10 @@ SET expires_at          = $3,
     response_ttl_days   = $5,
     burn_after_reading  = $6,
     updated_at          = NOW()
+WHERE id = $1 AND workspace_id = $2;
+
+-- name: SetFormCustomDomain :exec
+UPDATE forms SET use_custom_domain = $3, updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: IncrementResponseCount :one

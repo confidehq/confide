@@ -11,6 +11,16 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearWorkspaceCustomDomain = `-- name: ClearWorkspaceCustomDomain :exec
+UPDATE workspaces SET custom_domain = NULL, custom_domain_verified = FALSE, updated_at = NOW()
+WHERE id = $1
+`
+
+func (q *Queries) ClearWorkspaceCustomDomain(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, clearWorkspaceCustomDomain, id)
+	return err
+}
+
 const countNonOwnerMembers = `-- name: CountNonOwnerMembers :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner'
 `
@@ -59,7 +69,7 @@ func (q *Queries) CountWorkspaceOwners(ctx context.Context, workspaceID string) 
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, name, slug, plan, plan_status, created_at)
 VALUES ($1, $2, $3, 'free', 'active', NOW())
-RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at
+RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at, custom_domain, custom_domain_verified
 `
 
 type CreateWorkspaceParams struct {
@@ -82,6 +92,8 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CustomDomain,
+		&i.CustomDomainVerified,
 	)
 	return i, err
 }
@@ -235,6 +247,17 @@ func (q *Queries) GetPersonalWorkspace(ctx context.Context, accountID string) (G
 	return i, err
 }
 
+const getWorkspaceByCustomDomain = `-- name: GetWorkspaceByCustomDomain :one
+SELECT id FROM workspaces WHERE custom_domain = $1 AND custom_domain_verified = TRUE
+`
+
+func (q *Queries) GetWorkspaceByCustomDomain(ctx context.Context, customDomain pgtype.Text) (string, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceByCustomDomain, customDomain)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getWorkspaceByID = `-- name: GetWorkspaceByID :one
 SELECT id, name, slug, plan, plan_status, plan_period_end, created_at
 FROM workspaces WHERE id = $1
@@ -262,6 +285,22 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id string) (GetWorkspace
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getWorkspaceCustomDomain = `-- name: GetWorkspaceCustomDomain :one
+SELECT custom_domain, custom_domain_verified FROM workspaces WHERE id = $1
+`
+
+type GetWorkspaceCustomDomainRow struct {
+	CustomDomain         pgtype.Text
+	CustomDomainVerified bool
+}
+
+func (q *Queries) GetWorkspaceCustomDomain(ctx context.Context, id string) (GetWorkspaceCustomDomainRow, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceCustomDomain, id)
+	var i GetWorkspaceCustomDomainRow
+	err := row.Scan(&i.CustomDomain, &i.CustomDomainVerified)
 	return i, err
 }
 
@@ -440,6 +479,16 @@ func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string)
 	return items, nil
 }
 
+const markCustomDomainVerified = `-- name: MarkCustomDomainVerified :exec
+UPDATE workspaces SET custom_domain_verified = TRUE, updated_at = NOW()
+WHERE custom_domain = $1
+`
+
+func (q *Queries) MarkCustomDomainVerified(ctx context.Context, customDomain pgtype.Text) error {
+	_, err := q.db.Exec(ctx, markCustomDomainVerified, customDomain)
+	return err
+}
+
 const renameWorkspace = `-- name: RenameWorkspace :exec
 UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1
 `
@@ -451,6 +500,21 @@ type RenameWorkspaceParams struct {
 
 func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams) error {
 	_, err := q.db.Exec(ctx, renameWorkspace, arg.ID, arg.Name)
+	return err
+}
+
+const setWorkspaceCustomDomain = `-- name: SetWorkspaceCustomDomain :exec
+UPDATE workspaces SET custom_domain = $2, custom_domain_verified = FALSE, updated_at = NOW()
+WHERE id = $1
+`
+
+type SetWorkspaceCustomDomainParams struct {
+	ID           string
+	CustomDomain pgtype.Text
+}
+
+func (q *Queries) SetWorkspaceCustomDomain(ctx context.Context, arg SetWorkspaceCustomDomainParams) error {
+	_, err := q.db.Exec(ctx, setWorkspaceCustomDomain, arg.ID, arg.CustomDomain)
 	return err
 }
 

@@ -56,6 +56,7 @@ type Form struct {
 	WorkspaceID             string
 	CreatedByAccountID      string
 	WorkspaceWrappedFormKey []byte
+	UseCustomDomain         bool
 }
 
 type FormSchemaVersion struct {
@@ -109,6 +110,8 @@ type Workspace struct {
 	PlanPeriodEnd        pgtype.Timestamptz
 	CreatedAt            pgtype.Timestamptz
 	UpdatedAt            pgtype.Timestamptz
+	CustomDomain         pgtype.Text
+	CustomDomainVerified bool
 }
 
 type WorkspaceInvitation struct {

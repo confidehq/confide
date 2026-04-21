@@ -13,7 +13,7 @@ import (
 )
 
 // Handler builds the authenticated /api/workspaces sub-router.
-func Handler(svc *Service, cache *permission.RoleCache) http.Handler {
+func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/", createWorkspace(svc))
 	r.Get("/", listWorkspaces(svc))
@@ -38,6 +38,12 @@ func Handler(svc *Service, cache *permission.RoleCache) http.Handler {
 			Post("/member-key", grantMemberKey(svc))
 		r.With(permission.RequireAction(permission.ActionDistributeKeys)).
 			Get("/pending-key-grants", pendingKeyGrants(svc))
+		r.Route("/custom-domain", func(r chi.Router) {
+			r.Use(permission.RequireAction(permission.ActionManageCustomDomain))
+			r.Get("/", getCustomDomain(svc, cnameTarget))
+			r.Put("/", setCustomDomain(svc))
+			r.Delete("/", clearCustomDomain(svc))
+		})
 
 		// owner only
 		r.With(permission.RequireAction(permission.ActionDeleteWorkspace)).
@@ -358,6 +364,89 @@ func pendingKeyGrants(svc *Service) http.HandlerFunc {
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"pending": out})
 	}
+}
+
+// ─── Custom Domain ────────────────────────────────────────────────────────────
+
+func getCustomDomain(svc *Service, cnameTarget string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+
+		info, err := svc.GetCustomDomain(r.Context(), workspaceID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get custom domain")
+			return
+		}
+
+		var domainVal any = nil
+		if info.Domain != "" {
+			domainVal = info.Domain
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"domain":      domainVal,
+			"verified":    info.Verified,
+			"cnameTarget": cnameTarget,
+		})
+	}
+}
+
+func setCustomDomain(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+
+		var req struct {
+			Domain string `json:"domain"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+		if req.Domain == "" {
+			writeError(w, http.StatusBadRequest, "invalid_field", "domain is required")
+			return
+		}
+
+		// Fetch the workspace to get the current plan for the Pro gate.
+		callerRole := permission.WorkspaceRole(r.Context())
+		ws, err := svc.Get(r.Context(), workspaceID, callerRole)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get workspace")
+			return
+		}
+
+		if err := svc.SetCustomDomain(r.Context(), workspaceID, ws.Plan, req.Domain); err != nil {
+			if isUpgradeRequired(err) {
+				writeError(w, http.StatusPaymentRequired, "upgrade_required", "custom domains require the Pro plan")
+				return
+			}
+			if errors.Is(err, ErrInvalidDomain) {
+				writeError(w, http.StatusBadRequest, "invalid_field", err.Error())
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to set custom domain")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func clearCustomDomain(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+
+		if err := svc.ClearCustomDomain(r.Context(), workspaceID); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to clear custom domain")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func isUpgradeRequired(err error) bool {
+	var e *permission.UpgradeRequiredError
+	return errors.As(err, &e)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

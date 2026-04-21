@@ -16,8 +16,9 @@ const (
 	ActionInviteMembers   Action = "invite_members"
 	ActionChangeRoles     Action = "change_roles"
 	ActionRenameWorkspace Action = "rename_workspace"
-	ActionManageBilling   Action = "manage_billing"
-	ActionDeleteWorkspace Action = "delete_workspace"
+	ActionManageBilling      Action = "manage_billing"
+	ActionDeleteWorkspace    Action = "delete_workspace"
+	ActionManageCustomDomain Action = "manage_custom_domain"
 )
 
 // Feature represents a Pro-tier gated capability.
@@ -57,8 +58,9 @@ var roleMatrix = map[Action]int{
 	ActionInviteMembers:   3,
 	ActionChangeRoles:     3,
 	ActionRenameWorkspace: 3,
-	ActionManageBilling:   4,
-	ActionDeleteWorkspace: 4,
+	ActionManageBilling:      4,
+	ActionDeleteWorkspace:    4,
+	ActionManageCustomDomain: 3,
 }
 
 // Can reports whether a role is permitted to perform an action.

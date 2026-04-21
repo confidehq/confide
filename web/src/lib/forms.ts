@@ -35,6 +35,7 @@ export interface FormSummary {
 	responseLimit?: number | null;
 	responseTtlDays?: number | null;
 	burnAfterReading: boolean;
+	useCustomDomain: boolean;
 }
 
 export interface FormRecord extends FormSummary {
@@ -238,6 +239,19 @@ export async function deleteForm(formId: string): Promise<void> {
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
+/**
+ * Enable or disable custom domain serving for a specific form.
+ * The workspace must have a verified custom domain for the setting to take effect.
+ */
+export async function setFormCustomDomain(formId: string, enabled: boolean): Promise<void> {
+	const res = await fetch(`/api/forms/${formId}/custom-domain`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ enabled })
+	});
+	if (!res.ok) throw new ApiError(res.status, await res.json());
+}
+
 // ─── Response management (authenticated) ──────────────────────────────────────
 
 /**
@@ -400,7 +414,8 @@ export async function publishForm(
 	formId: string,
 	schema: BuilderSchema,
 	existingRenderKeySalt: Uint8Array | null,
-	formKey?: CryptoKey
+	formKey?: CryptoKey,
+	customDomainBase?: string
 ): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
 	const salt = existingRenderKeySalt ?? crypto.getRandomValues(new Uint8Array(16));
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
@@ -422,7 +437,8 @@ export async function publishForm(
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const renderKeyRaw = await crypto.subtle.exportKey('raw', renderKey);
-	const shareUrl = `${window.location.origin}/f/${formId}#rk=${arrayBufferToBase64url(renderKeyRaw)}`;
+	const base = customDomainBase ?? window.location.origin;
+	const shareUrl = `${base}/f/${formId}#rk=${arrayBufferToBase64url(renderKeyRaw)}`;
 
 	return { shareUrl, renderKeySalt: salt };
 }
@@ -435,9 +451,10 @@ export async function rotateRenderKey(
 	masterKey: CryptoKey,
 	formId: string,
 	schema: BuilderSchema,
-	formKey?: CryptoKey
+	formKey?: CryptoKey,
+	customDomainBase?: string
 ): Promise<{ shareUrl: string; renderKeySalt: Uint8Array }> {
-	return publishForm(masterKey, formId, schema, null, formKey);
+	return publishForm(masterKey, formId, schema, null, formKey, customDomainBase);
 }
 
 /**

@@ -19,7 +19,7 @@ INSERT INTO forms (
     workspace_wrapped_form_key
 ) VALUES (
     $1, $2, $3, NOW(), NOW(), 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key
+) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain
 `
 
 type CreateFormParams struct {
@@ -71,6 +71,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
+		&i.UseCustomDomain,
 	)
 	return i, err
 }
@@ -90,7 +91,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByWorkspace = `-- name: GetFormByWorkspace :one
-SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key FROM forms WHERE id = $1 AND workspace_id = $2
+SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
 type GetFormByWorkspaceParams struct {
@@ -119,6 +120,7 @@ func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspace
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
+		&i.UseCustomDomain,
 	)
 	return i, err
 }
@@ -217,7 +219,7 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 }
 
 const listFormsByWorkspace = `-- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC
 `
 
@@ -232,6 +234,7 @@ type ListFormsByWorkspaceRow struct {
 	ResponseLimit    pgtype.Int4
 	ResponseTtlDays  pgtype.Int4
 	BurnAfterReading bool
+	UseCustomDomain  bool
 }
 
 func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]ListFormsByWorkspaceRow, error) {
@@ -254,6 +257,7 @@ func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) 
 			&i.ResponseLimit,
 			&i.ResponseTtlDays,
 			&i.BurnAfterReading,
+			&i.UseCustomDomain,
 		); err != nil {
 			return nil, err
 		}
@@ -293,6 +297,22 @@ func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]List
 		return nil, err
 	}
 	return items, nil
+}
+
+const setFormCustomDomain = `-- name: SetFormCustomDomain :exec
+UPDATE forms SET use_custom_domain = $3, updated_at = NOW()
+WHERE id = $1 AND workspace_id = $2
+`
+
+type SetFormCustomDomainParams struct {
+	ID              string
+	WorkspaceID     string
+	UseCustomDomain bool
+}
+
+func (q *Queries) SetFormCustomDomain(ctx context.Context, arg SetFormCustomDomainParams) error {
+	_, err := q.db.Exec(ctx, setFormCustomDomain, arg.ID, arg.WorkspaceID, arg.UseCustomDomain)
+	return err
 }
 
 const setWorkspaceFormKey = `-- name: SetWorkspaceFormKey :exec

@@ -101,6 +101,24 @@ JOIN account_identity_keys aik ON aik.account_id = wm.account_id
 WHERE wm.workspace_id = $1
 ORDER BY wm.joined_at ASC;
 
+-- name: SetWorkspaceCustomDomain :exec
+UPDATE workspaces SET custom_domain = $2, custom_domain_verified = FALSE, updated_at = NOW()
+WHERE id = $1;
+
+-- name: ClearWorkspaceCustomDomain :exec
+UPDATE workspaces SET custom_domain = NULL, custom_domain_verified = FALSE, updated_at = NOW()
+WHERE id = $1;
+
+-- name: GetWorkspaceCustomDomain :one
+SELECT custom_domain, custom_domain_verified FROM workspaces WHERE id = $1;
+
+-- name: GetWorkspaceByCustomDomain :one
+SELECT id FROM workspaces WHERE custom_domain = $1 AND custom_domain_verified = TRUE;
+
+-- name: MarkCustomDomainVerified :exec
+UPDATE workspaces SET custom_domain_verified = TRUE, updated_at = NOW()
+WHERE custom_domain = $1;
+
 -- name: GetMembersWithoutWorkspaceKeyWithUsername :many
 SELECT wm.account_id, a.username
 FROM workspace_members wm

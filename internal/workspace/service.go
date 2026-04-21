@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -16,11 +18,12 @@ import (
 )
 
 var (
-	ErrNotFound   = errors.New("workspace not found")
-	ErrForbidden  = errors.New("insufficient role")
-	ErrPlanLimit  = errors.New("workspace limit reached for free plan")
-	ErrLastOwner  = errors.New("cannot remove or demote the sole owner")
-	ErrHasMembers = errors.New("workspace still has non-owner members")
+	ErrNotFound      = errors.New("workspace not found")
+	ErrForbidden     = errors.New("insufficient role")
+	ErrPlanLimit     = errors.New("workspace limit reached for free plan")
+	ErrLastOwner     = errors.New("cannot remove or demote the sole owner")
+	ErrHasMembers    = errors.New("workspace still has non-owner members")
+	ErrInvalidDomain = errors.New("invalid domain: must be a plain hostname with no scheme or path")
 )
 
 // DB is the subset of queries.Queries used by workspace.Service.
@@ -45,6 +48,11 @@ type DB interface {
 	DeleteWorkspaceMemberKey(ctx context.Context, arg queries.DeleteWorkspaceMemberKeyParams) error
 	CountWorkspaceOwners(ctx context.Context, workspaceID string) (int64, error)
 	CountNonOwnerMembers(ctx context.Context, workspaceID string) (int64, error)
+
+	SetWorkspaceCustomDomain(ctx context.Context, arg queries.SetWorkspaceCustomDomainParams) error
+	ClearWorkspaceCustomDomain(ctx context.Context, id string) error
+	GetWorkspaceCustomDomain(ctx context.Context, id string) (queries.GetWorkspaceCustomDomainRow, error)
+	MarkCustomDomainVerified(ctx context.Context, customDomain pgtype.Text) error
 }
 
 type Service struct {
@@ -462,6 +470,76 @@ func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID string) ([]P
 		}
 	}
 	return out, nil
+}
+
+// ─── Custom Domains ───────────────────────────────────────────────────────────
+
+// CustomDomainInfo holds the workspace's current custom domain configuration.
+type CustomDomainInfo struct {
+	Domain   string // empty string when no domain is configured
+	Verified bool
+}
+
+// SetCustomDomain stores a new custom domain for the workspace.
+// Returns UpgradeRequiredError if the workspace is on the free plan.
+// Returns ErrInvalidDomain if the value is not a plain hostname.
+func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain string) error {
+	if !permission.PlanAllows(plan, permission.FeatureCustomDomains) {
+		return &permission.UpgradeRequiredError{Feature: permission.FeatureCustomDomains}
+	}
+	if !isValidHostname(domain) {
+		return ErrInvalidDomain
+	}
+	return s.db.SetWorkspaceCustomDomain(ctx, queries.SetWorkspaceCustomDomainParams{
+		ID:           workspaceID,
+		CustomDomain: pgtype.Text{String: domain, Valid: true},
+	})
+}
+
+// ClearCustomDomain removes the custom domain from the workspace.
+func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) error {
+	return s.db.ClearWorkspaceCustomDomain(ctx, workspaceID)
+}
+
+// GetCustomDomain returns the current custom domain configuration for a workspace.
+func (s *Service) GetCustomDomain(ctx context.Context, workspaceID string) (CustomDomainInfo, error) {
+	row, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID)
+	if err != nil {
+		return CustomDomainInfo{}, err
+	}
+	return CustomDomainInfo{
+		Domain:   row.CustomDomain.String,
+		Verified: row.CustomDomainVerified,
+	}, nil
+}
+
+// MarkCustomDomainVerified marks the given hostname as verified. Called by middleware
+// on the first inbound request whose Host header matches a registered custom domain.
+func (s *Service) MarkCustomDomainVerified(ctx context.Context, domain string) error {
+	return s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true})
+}
+
+// isValidHostname returns true if s is a plain DNS hostname with no scheme, path, or port.
+func isValidHostname(s string) bool {
+	if s == "" || strings.ContainsAny(s, "/:? ") {
+		return false
+	}
+	// net.LookupHost accepts IPs too; use ParseIP to reject bare IPs if desired,
+	// but mostly we just need a syntactically valid label string.
+	host, port, err := net.SplitHostPort(s)
+	if err == nil {
+		// s contained a port — reject
+		_ = host
+		_ = port
+		return false
+	}
+	// Validate each label.
+	for _, label := range strings.Split(s, ".") {
+		if label == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

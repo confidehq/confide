@@ -32,6 +32,7 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Put("/{id}/status", updateFormStatus(svc, wsSvc))
 	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
 	r.Put("/{id}/workspace-form-key", setWorkspaceFormKey(svc, wsSvc))
+	r.Put("/{id}/custom-domain", setFormCustomDomain(svc, wsSvc))
 	r.Delete("/{id}", deleteForm(svc, wsSvc))
 	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
 	return r
@@ -209,6 +210,7 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			ResponseLimit    *int32  `json:"responseLimit,omitempty"`
 			ResponseTtlDays  *int32  `json:"responseTtlDays,omitempty"`
 			BurnAfterReading bool    `json:"burnAfterReading"`
+			UseCustomDomain  bool    `json:"useCustomDomain"`
 		}
 		out := make([]formJSON, len(forms))
 		for i, f := range forms {
@@ -223,6 +225,7 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 				ResponseLimit:    nullableInt32(f.ResponseLimit),
 				ResponseTtlDays:  nullableInt32(f.ResponseTtlDays),
 				BurnAfterReading: f.BurnAfterReading,
+				UseCustomDomain:  f.UseCustomDomain,
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"forms": out})
@@ -260,6 +263,7 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(form.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(form.PublicFormKey),
 			"burnAfterReading":      form.BurnAfterReading,
+			"useCustomDomain":       form.UseCustomDomain,
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
@@ -441,6 +445,32 @@ func setWorkspaceFormKey(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 
 		if err := svc.SetWorkspaceFormKey(r.Context(), workspaceID, formID, wrappedKey); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to set workspace form key")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func setFormCustomDomain(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
+
+		var req struct {
+			Enabled bool `json:"enabled"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		if err := svc.SetCustomDomainToggle(r.Context(), workspaceID, formID, req.Enabled); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to update custom domain setting")
 			return
 		}
 

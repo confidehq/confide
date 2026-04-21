@@ -60,6 +60,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 	r.Use(mw.SecurityHeaders)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
+	r.Use(mw.VerifyCustomDomain(cfg.AppDomain, svc.Workspace))
 
 	// API routes — CORS restricted to configured origin, general CSP applied.
 	r.Route("/api", func(r chi.Router) {
@@ -93,7 +94,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			r.Mount("/", identity.Handler(svc.Identity))
 
 			roleCache := svc.Workspace.Cache()
-			r.Mount("/workspaces", workspace.Handler(svc.Workspace, roleCache))
+			r.Mount("/workspaces", workspace.Handler(svc.Workspace, roleCache, cfg.CustomDomainTarget))
 			r.Route("/workspaces/{workspaceId}/invitations", func(r chi.Router) {
 				r.Use(permission.ResolveWorkspaceRole(svc.Workspace, roleCache, "workspaceId"))
 				r.Use(permission.RequireAction(permission.ActionInviteMembers))

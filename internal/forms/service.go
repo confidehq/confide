@@ -29,6 +29,7 @@ type DB interface {
 	InsertSchemaVersion(ctx context.Context, arg queries.InsertSchemaVersionParams) error
 	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
 	SetWorkspaceFormKey(ctx context.Context, arg queries.SetWorkspaceFormKeyParams) error
+	SetFormCustomDomain(ctx context.Context, arg queries.SetFormCustomDomainParams) error
 }
 
 // Service handles form CRUD operations.
@@ -58,6 +59,7 @@ type FormRecord struct {
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool
 	WorkspaceWrappedFormKey []byte // nil if not yet set
+	UseCustomDomain         bool
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -72,6 +74,7 @@ type FormSummary struct {
 	ResponseLimit    pgtype.Int4
 	ResponseTtlDays  pgtype.Int4
 	BurnAfterReading bool
+	UseCustomDomain  bool
 }
 
 // PublicFormRecord is returned to unauthenticated respondents.
@@ -198,6 +201,7 @@ func (s *Service) ListForms(ctx context.Context, workspaceID string) ([]FormSumm
 			ResponseLimit:    r.ResponseLimit,
 			ResponseTtlDays:  r.ResponseTtlDays,
 			BurnAfterReading: r.BurnAfterReading,
+			UseCustomDomain:  r.UseCustomDomain,
 		}
 	}
 	return out, nil
@@ -291,6 +295,15 @@ func (s *Service) SetWorkspaceFormKey(ctx context.Context, workspaceID, formID s
 	})
 }
 
+// SetCustomDomainToggle enables or disables custom domain serving for a form.
+func (s *Service) SetCustomDomainToggle(ctx context.Context, workspaceID, formID string, enable bool) error {
+	return s.db.SetFormCustomDomain(ctx, queries.SetFormCustomDomainParams{
+		ID:              formID,
+		WorkspaceID:     workspaceID,
+		UseCustomDomain: enable,
+	})
+}
+
 // GetSchemaVersion returns the owner-encrypted schema for a specific version snapshot.
 func (s *Service) GetSchemaVersion(ctx context.Context, workspaceID, formID string, version int32) ([]byte, error) {
 	_, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
@@ -344,5 +357,6 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		ResponseTtlDays:         f.ResponseTtlDays,
 		BurnAfterReading:        f.BurnAfterReading,
 		WorkspaceWrappedFormKey: f.WorkspaceWrappedFormKey,
+		UseCustomDomain:         f.UseCustomDomain,
 	}
 }

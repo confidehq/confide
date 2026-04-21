@@ -4,7 +4,8 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
-	import { publishForm, rotateRenderKey } from '$lib/forms';
+	import { publishForm, rotateRenderKey, getForm, setFormCustomDomain } from '$lib/forms';
+	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
 	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
@@ -42,6 +43,11 @@
 	let newLocaleInput = $state('');
 	let showLocaleInput = $state(false);
 
+	// Custom domain state
+	let useCustomDomain = $state(false);
+	let workspaceDomain = $state<CustomDomainInfo | null>(null);
+	let customDomainToggling = $state(false);
+
 	onMount(async () => {
 		if (!auth.masterKey || !store) {
 			goto('/login');
@@ -49,6 +55,12 @@
 		}
 		try {
 			await store.load();
+			// Load custom domain info in background
+			const { record } = await getForm(auth.masterKey, formId);
+			useCustomDomain = record.useCustomDomain ?? false;
+			if (record.workspaceId) {
+				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});
+			}
 		} catch {
 			loadError = 'Form not found or could not be loaded.';
 		} finally {
@@ -56,13 +68,20 @@
 		}
 	});
 
+	function customDomainBase(): string | undefined {
+		if (useCustomDomain && workspaceDomain?.verified && workspaceDomain.domain) {
+			return `https://${workspaceDomain.domain}`;
+		}
+		return undefined;
+	}
+
 	async function handlePublish() {
 		if (!store || !auth.masterKey) return;
 		publishing = true;
 		publishError = '';
 		try {
 			await store.flushSave();
-			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined);
+			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
 			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 			publishModalOpen = true;
@@ -78,13 +97,34 @@
 		publishing = true;
 		publishError = '';
 		try {
-			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined);
+			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined, customDomainBase());
 			store.setRenderKeySalt(result.renderKeySalt);
 			shareUrl = result.shareUrl;
 		} catch (err) {
 			publishError = err instanceof Error ? err.message : 'Key rotation failed';
 		} finally {
 			publishing = false;
+		}
+	}
+
+	async function toggleCustomDomain() {
+		customDomainToggling = true;
+		try {
+			await setFormCustomDomain(formId, !useCustomDomain);
+			useCustomDomain = !useCustomDomain;
+			// Rebuild share URL with new domain preference
+			if (shareUrl && store && auth.masterKey) {
+				const renderKey = store.renderKeySalt;
+				if (renderKey) {
+					const base = customDomainBase();
+					const origin = base ?? window.location.origin;
+					shareUrl = shareUrl.replace(/^https?:\/\/[^/]+/, origin);
+				}
+			}
+		} catch {
+			// ignore toggle errors silently
+		} finally {
+			customDomainToggling = false;
 		}
 	}
 
@@ -282,7 +322,7 @@
 				<h2 class="m-0 mb-2 text-xl text-text-bright">Your form is live.</h2>
 				<p class="m-0 mb-5 text-sm text-muted">Share this link with respondents:</p>
 
-				<div class="flex gap-2 mb-6">
+				<div class="flex gap-2 mb-4">
 					<input
 						type="text"
 						readonly
@@ -297,6 +337,25 @@
 						{copied ? 'Copied!' : 'Copy'}
 					</button>
 				</div>
+
+				{#if workspaceDomain?.verified && workspaceDomain.domain}
+					<div class="flex items-center gap-3 mb-6">
+						<button
+							role="switch"
+							aria-checked={useCustomDomain}
+							disabled={customDomainToggling}
+							onclick={toggleCustomDomain}
+							class="relative w-9 h-5 rounded-full transition-colors duration-150 border-none cursor-pointer disabled:opacity-50
+								{useCustomDomain ? 'bg-primary' : 'bg-border-deep'}"
+						>
+							<span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-150
+								{useCustomDomain ? 'translate-x-4' : 'translate-x-0'}"></span>
+						</button>
+						<span class="text-sm text-muted font-mono">
+							Serve on <span class="text-text-dim">{workspaceDomain.domain}</span>
+						</span>
+					</div>
+				{/if}
 
 				<div class="flex justify-between items-center">
 					<button

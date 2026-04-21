@@ -12,6 +12,12 @@ export interface Workspace {
 	role: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
+export interface CustomDomainInfo {
+	domain: string | null;
+	verified: boolean;
+	cnameTarget: string;
+}
+
 export interface WorkspaceMember {
 	accountId: string;
 	username: string;
@@ -117,6 +123,41 @@ export async function deleteWorkspace(id: string): Promise<void> {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'delete_failed';
 		const message = (body as { message?: string }).message ?? `Failed to delete workspace (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
+export async function getCustomDomain(workspaceId: string): Promise<CustomDomainInfo> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'fetch_failed';
+		const message = (body as { message?: string }).message ?? `Failed to get custom domain (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return res.json() as Promise<CustomDomainInfo>;
+}
+
+export async function setCustomDomain(workspaceId: string, domain: string): Promise<void> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ domain })
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'set_failed';
+		const message = (body as { message?: string }).message ?? `Failed to set custom domain (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
+export async function clearCustomDomain(workspaceId: string): Promise<void> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`, { method: 'DELETE' });
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'clear_failed';
+		const message = (body as { message?: string }).message ?? `Failed to remove custom domain (${res.status})`;
 		throw new WorkspaceError(code, message);
 	}
 }
