@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { listForms, getForm, setWorkspaceFormKey, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, loadWorkspaceKey, getCustomDomain, setCustomDomain, clearCustomDomain, type Workspace, type CustomDomainInfo } from '$lib/workspaces';
+	import { listWorkspaces, loadWorkspaceKey, type Workspace } from '$lib/workspaces';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	const workspaceId = $derived($page.params.id);
@@ -19,64 +19,8 @@
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
 
-	// Custom domain state
-	let customDomain = $state<CustomDomainInfo | null>(null);
-	let domainInput = $state('');
-	let domainSaving = $state(false);
-	let domainError = $state('');
-	let domainRemoving = $state(false);
 
-	function isAdmin(ws: Workspace) {
-		return ws.role === 'admin' || ws.role === 'owner';
-	}
-
-	async function loadCustomDomain() {
-		if (!workspace || !isAdmin(workspace)) return;
-		try {
-			customDomain = await getCustomDomain(workspaceId);
-		} catch {
-			// non-critical, ignore
-		}
-	}
-
-	async function saveDomain() {
-		if (!domainInput.trim()) return;
-		domainSaving = true;
-		domainError = '';
-		try {
-			await setCustomDomain(workspaceId, domainInput.trim());
-			customDomain = await getCustomDomain(workspaceId);
-			domainInput = '';
-		} catch (e) {
-			domainError = e instanceof Error ? e.message : 'Failed to save domain';
-		} finally {
-			domainSaving = false;
-		}
-	}
-
-	async function removeDomain() {
-		domainRemoving = true;
-		domainError = '';
-		try {
-			await clearCustomDomain(workspaceId);
-			customDomain = await getCustomDomain(workspaceId);
-		} catch (e) {
-			domainError = e instanceof Error ? e.message : 'Failed to remove domain';
-		} finally {
-			domainRemoving = false;
-		}
-	}
-
-	async function refreshDomainStatus() {
-		domainError = '';
-		try {
-			customDomain = await getCustomDomain(workspaceId);
-		} catch {
-			// ignore
-		}
-	}
-
-	async function load() {
+async function load() {
 		loading = true;
 		error = '';
 		try {
@@ -174,7 +118,7 @@
 	$effect(() => {
 		if (auth.masterKey) {
 			workspaceId;
-			load().then(() => loadCustomDomain());
+			load();
 		}
 	});
 </script>
@@ -329,72 +273,6 @@
 					{/each}
 				</tbody>
 			</table>
-		{/if}
-
-		<!-- Custom Domain (admin+ only) -->
-		{#if workspace && isAdmin(workspace)}
-			<div class="mt-10 pt-8 border-t border-border-deep">
-				<div class="flex items-center gap-3 mb-4">
-					<h2 class="m-0 text-lg font-semibold text-text-bright">Custom domain</h2>
-					{#if workspace.plan !== 'pro'}
-						<span class="px-2 py-0.5 rounded text-xs border border-border-deep text-muted-dim">Pro</span>
-					{/if}
-				</div>
-
-				{#if workspace.plan !== 'pro'}
-					<p class="m-0 text-muted-dim text-base">Upgrade to Pro to serve forms on your own domain.</p>
-				{:else if customDomain === null}
-					<p class="m-0 text-muted-dim text-base">Loading…</p>
-				{:else if customDomain.domain}
-					<!-- Domain configured -->
-					<div class="flex items-center gap-3 flex-wrap mb-3">
-						<span class="text-text-body text-base font-mono">{customDomain.domain}</span>
-						{#if customDomain.verified}
-							<span class="px-2 py-0.5 rounded-full text-xs bg-open-bg text-open-text border border-open-border">Verified</span>
-						{:else}
-							<span class="px-2 py-0.5 rounded-full text-xs bg-closed-bg text-closed-text border border-closed-border">Pending</span>
-						{/if}
-						<button
-							onclick={refreshDomainStatus}
-							class="px-3 py-1 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
-						>Refresh</button>
-						<button
-							onclick={removeDomain}
-							disabled={domainRemoving}
-							class="px-3 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100 disabled:opacity-50"
-						>Remove</button>
-					</div>
-					{#if !customDomain.verified}
-						<div class="mt-3 p-3 bg-surface-mid border border-border-deep rounded text-base text-muted-dim">
-							<p class="m-0 mb-1">Add a CNAME record to your DNS:</p>
-							<p class="m-0 font-mono text-text-body">{customDomain.domain} → {customDomain.cnameTarget}</p>
-							<p class="m-0 mt-1 text-muted-dim">Verification happens automatically once DNS propagates.</p>
-						</div>
-					{/if}
-				{:else}
-					<!-- No domain set -->
-					<div class="flex gap-2 flex-wrap items-center mb-3">
-						<input
-							bind:value={domainInput}
-							placeholder="forms.yourdomain.com"
-							class="px-3 py-1.5 bg-transparent border border-border-deep rounded font-mono text-base text-text-body placeholder-muted-dim focus:outline-none focus:border-border w-64"
-						/>
-						<button
-							onclick={saveDomain}
-							disabled={domainSaving || !domainInput.trim()}
-							class="px-4 py-1.5 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100 disabled:opacity-50"
-						>{domainSaving ? 'Saving…' : 'Save'}</button>
-					</div>
-					<p class="m-0 text-muted-dim text-base">
-						Enter the hostname you want to use (e.g. <span class="font-mono text-muted-mid">forms.yourdomain.com</span>).
-						You'll need to add a CNAME record pointing to <span class="font-mono text-muted-mid">{customDomain.cnameTarget}</span>.
-					</p>
-				{/if}
-
-				{#if domainError}
-					<p class="mt-2 m-0 text-error-light text-base">{domainError}</p>
-				{/if}
-			</div>
 		{/if}
 
 	{/if}
