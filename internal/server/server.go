@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"io/fs"
+	"log"
 	"net/http"
 	"strings"
 
@@ -16,6 +18,7 @@ import (
 	"github.com/phantompunk/confide/internal/billing"
 	"github.com/phantompunk/confide/internal/botguard"
 	"github.com/phantompunk/confide/internal/config"
+	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/forms"
 	"github.com/phantompunk/confide/internal/identity"
 	"github.com/phantompunk/confide/internal/invitation"
@@ -24,6 +27,7 @@ import (
 	"github.com/phantompunk/confide/internal/permission"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
+	"github.com/phantompunk/confide/internal/traefik"
 	"github.com/phantompunk/confide/internal/workspace"
 )
 
@@ -42,11 +46,32 @@ type Services struct {
 // NewServices constructs all application services from the pool and webauthn instance.
 func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) *Services {
 	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail)
+	wsSvc := workspace.NewService(pool)
+
+	if cfg.TraefikDynamicDir != "" {
+		rows, err := queries.New(pool).ListAllVerifiedCustomDomains(context.Background())
+		if err != nil {
+			log.Printf("traefik: failed to load verified domains: %v", err)
+		}
+		initial := make([]string, 0, len(rows))
+		for _, r := range rows {
+			if r.Valid {
+				initial = append(initial, r.String)
+			}
+		}
+		w, err := traefik.New(cfg.TraefikDynamicDir, initial)
+		if err != nil {
+			log.Printf("traefik: failed to write initial config: %v", err)
+		} else {
+			wsSvc.WithTraefikWriter(w)
+		}
+	}
+
 	return &Services{
 		Auth:       auth.NewService(pool, wa),
 		Forms:      forms.NewService(pool),
 		Responses:  responses.NewService(pool),
-		Workspace:  workspace.NewService(pool),
+		Workspace:  wsSvc,
 		Identity:   identity.NewService(pool),
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
 		Billing:    billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg),
@@ -64,8 +89,18 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 
 	// API routes — CORS restricted to configured origin, general CSP applied.
 	r.Route("/api", func(r chi.Router) {
+		staticOrigins := make(map[string]struct{}, len(cfg.CORSOrigins))
+		for _, o := range cfg.CORSOrigins {
+			staticOrigins[o] = struct{}{}
+		}
 		r.Use(cors.Handler(cors.Options{
-			AllowedOrigins:   []string{cfg.CORSOrigin},
+			AllowOriginFunc: func(r *http.Request, origin string) bool {
+				if _, ok := staticOrigins[origin]; ok {
+					return true
+				}
+				host := mw.StripScheme(origin)
+				return svc.Workspace.IsVerifiedCustomDomain(r.Context(), host)
+			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Content-Type", "Authorization"},
 			AllowCredentials: false,

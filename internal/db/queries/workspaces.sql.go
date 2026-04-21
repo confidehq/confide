@@ -489,6 +489,27 @@ func (q *Queries) MarkCustomDomainVerified(ctx context.Context, customDomain pgt
 	return err
 }
 
+const listAllVerifiedCustomDomains = `-- name: ListAllVerifiedCustomDomains :many
+SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE
+`
+
+func (q *Queries) ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
+	rows, err := q.db.Query(ctx, listAllVerifiedCustomDomains)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.Text
+	for rows.Next() {
+		var customDomain pgtype.Text
+		if err := rows.Scan(&customDomain); err != nil {
+			return nil, err
+		}
+		items = append(items, customDomain)
+	}
+	return items, rows.Err()
+}
+
 const renameWorkspace = `-- name: RenameWorkspace :exec
 UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1
 `

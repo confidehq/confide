@@ -119,6 +119,9 @@ SELECT id FROM workspaces WHERE custom_domain = $1 AND custom_domain_verified = 
 UPDATE workspaces SET custom_domain_verified = TRUE, updated_at = NOW()
 WHERE custom_domain = $1;
 
+-- name: ListAllVerifiedCustomDomains :many
+SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE;
+
 -- name: GetMembersWithoutWorkspaceKeyWithUsername :many
 SELECT wm.account_id, a.username
 FROM workspace_members wm

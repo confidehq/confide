@@ -14,7 +14,7 @@ import (
 type Config struct {
 	DatabaseURL        string
 	BindAddr           string
-	CORSOrigin         string
+	CORSOrigins        []string
 	HMACKey            []byte
 	RPID               string
 	RPOrigin           string
@@ -41,6 +41,11 @@ type Config struct {
 	// CustomDomainTarget is the CNAME hostname users must point their custom domain to.
 	// Defaults to AppDomain if unset.
 	CustomDomainTarget string
+
+	// TraefikDynamicDir is the directory Traefik watches for dynamic config files.
+	// When set, the app writes confide-custom-domains.yml there on domain changes.
+	// Leave empty in local dev (disables file writes).
+	TraefikDynamicDir string
 }
 
 func Load() (*Config, error) {
@@ -63,7 +68,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		BindAddr:           getEnv("CONFIDE_BIND_ADDR", ":8080"),
-		CORSOrigin:         getEnv("CONFIDE_CORS_ORIGIN", "http://localhost:3000"),
+		CORSOrigins:        strings.Split(getEnv("CONFIDE_CORS_ORIGIN", "http://localhost:3000"), ","),
 		RPID:               getEnv("CONFIDE_RP_ID", "localhost"),
 		RPOrigin:           getEnv("CONFIDE_RP_ORIGIN", "http://localhost:3000"),
 		RPDisplayName:      getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
@@ -88,6 +93,7 @@ func Load() (*Config, error) {
 	} else {
 		cfg.CustomDomainTarget = cfg.AppDomain
 	}
+	cfg.TraefikDynamicDir = os.Getenv("CONFIDE_TRAEFIK_DYNAMIC_DIR")
 
 	var errs []error
 

@@ -35,6 +35,12 @@ func VerifyCustomDomain(appDomain string, verifier DomainVerifier) func(http.Han
 	}
 }
 
+// StripScheme removes the scheme, path, and port from a URL-like string,
+// returning a bare hostname suitable for comparison.
+func StripScheme(s string) string {
+	return stripScheme(s)
+}
+
 func stripScheme(s string) string {
 	if i := strings.Index(s, "://"); i >= 0 {
 		s = s[i+3:]

@@ -15,6 +15,7 @@ import (
 
 	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/permission"
+	"github.com/phantompunk/confide/internal/traefik"
 )
 
 var (
@@ -52,13 +53,16 @@ type DB interface {
 	SetWorkspaceCustomDomain(ctx context.Context, arg queries.SetWorkspaceCustomDomainParams) error
 	ClearWorkspaceCustomDomain(ctx context.Context, id string) error
 	GetWorkspaceCustomDomain(ctx context.Context, id string) (queries.GetWorkspaceCustomDomainRow, error)
+	GetWorkspaceByCustomDomain(ctx context.Context, customDomain pgtype.Text) (string, error)
 	MarkCustomDomainVerified(ctx context.Context, customDomain pgtype.Text) error
+	ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error)
 }
 
 type Service struct {
-	db    DB
-	pool  *pgxpool.Pool
-	cache *permission.RoleCache
+	db      DB
+	pool    *pgxpool.Pool
+	cache   *permission.RoleCache
+	traefik *traefik.Writer
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
@@ -72,6 +76,11 @@ func NewService(pool *pgxpool.Pool) *Service {
 // NewServiceWithDB is for test injection.
 func NewServiceWithDB(db DB) *Service {
 	return &Service{db: db}
+}
+
+// WithTraefikWriter attaches a Traefik config writer to the service.
+func (s *Service) WithTraefikWriter(w *traefik.Writer) {
+	s.traefik = w
 }
 
 // Cache returns the shared role cache. Used by server to wire middleware.
@@ -490,6 +499,13 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 	if !isValidHostname(domain) {
 		return ErrInvalidDomain
 	}
+	// If there was a verified domain before, remove it from Traefik — the new
+	// domain won't be verified yet so it must not be added.
+	if s.traefik != nil {
+		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomainVerified {
+			_ = s.traefik.Remove(prev.CustomDomain.String)
+		}
+	}
 	return s.db.SetWorkspaceCustomDomain(ctx, queries.SetWorkspaceCustomDomainParams{
 		ID:           workspaceID,
 		CustomDomain: pgtype.Text{String: domain, Valid: true},
@@ -498,6 +514,11 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 
 // ClearCustomDomain removes the custom domain from the workspace.
 func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) error {
+	if s.traefik != nil {
+		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomainVerified {
+			_ = s.traefik.Remove(prev.CustomDomain.String)
+		}
+	}
 	return s.db.ClearWorkspaceCustomDomain(ctx, workspaceID)
 }
 
@@ -516,7 +537,24 @@ func (s *Service) GetCustomDomain(ctx context.Context, workspaceID string) (Cust
 // MarkCustomDomainVerified marks the given hostname as verified. Called by middleware
 // on the first inbound request whose Host header matches a registered custom domain.
 func (s *Service) MarkCustomDomainVerified(ctx context.Context, domain string) error {
-	return s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true})
+	if err := s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true}); err != nil {
+		return err
+	}
+	if s.traefik != nil {
+		_ = s.traefik.Add(domain)
+	}
+	return nil
+}
+
+// IsVerifiedCustomDomain reports whether hostname is a verified custom domain.
+// Uses the in-memory Traefik writer set when available (zero DB hits); falls
+// back to a direct DB lookup otherwise.
+func (s *Service) IsVerifiedCustomDomain(ctx context.Context, hostname string) bool {
+	if s.traefik != nil {
+		return s.traefik.Contains(hostname)
+	}
+	_, err := s.db.GetWorkspaceByCustomDomain(ctx, pgtype.Text{String: hostname, Valid: true})
+	return err == nil
 }
 
 // isValidHostname returns true if s is a plain DNS hostname with no scheme, path, or port.
