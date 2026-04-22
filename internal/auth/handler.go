@@ -5,12 +5,15 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/rs/zerolog/log"
 
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
@@ -29,6 +32,7 @@ const sessionCookieName = "session"
 func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
 	r := chi.NewRouter()
 
+	r.Get("/check-username", checkUsername(svc))
 	r.Post("/register/begin", registerBegin(svc, registrationOpen))
 	r.Post("/register/finish", registerFinish(svc, dev))
 	r.Post("/login/begin", loginBegin(svc))
@@ -55,6 +59,28 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 	})
 
 	return r
+}
+
+// ─── Username availability ────────────────────────────────────────────────────
+
+func checkUsername(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := r.URL.Query().Get("username")
+		if username == "" {
+			writeError(w, http.StatusBadRequest, "missing_param", "username required")
+			return
+		}
+		_, err := svc.db.GetAccountByUsername(r.Context(), pgtype.Text{String: username, Valid: true})
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeJSON(w, http.StatusOK, map[string]bool{"available": true})
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "internal server error")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]bool{"available": false})
+	}
 }
 
 // ─── Register ─────────────────────────────────────────────────────────────────
