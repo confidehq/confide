@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/phantompunk/confide/internal/db/queries"
 )
@@ -34,12 +36,17 @@ type DB interface {
 
 // Service handles form CRUD operations.
 type Service struct {
+	log  zerolog.Logger
 	db   DB
 	pool *pgxpool.Pool
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{db: queries.New(pool), pool: pool}
+	return &Service{
+		log:  log.With().Str("module", "forms").Logger(),
+		db:   queries.New(pool),
+		pool: pool,
+	}
 }
 
 // FormRecord is the full form including encrypted blobs, returned to the owner.

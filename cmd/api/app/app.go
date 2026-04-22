@@ -43,7 +43,7 @@ func New() (*App, error) {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	log.Info().Msg("starting application")
+	log.Info().Msg("initializing application")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -95,7 +95,7 @@ func New() (*App, error) {
 
 func (a *App) Start(ctx context.Context) error {
 	go func() {
-		log.Info().Str("addr", a.cfg.BindAddr).Msg("listening")
+		log.Info().Str("version", Version).Str("commit", Commit).Str("env", a.cfg.Env).Str("addr", a.cfg.BindAddr).Msg("starting confide server")
 		if err := a.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("server error")
 		}

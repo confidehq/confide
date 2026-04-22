@@ -17,16 +17,17 @@ type Deleter interface {
 // burn-after-reading responses. It performs one final sweep when ctx is
 // cancelled (graceful shutdown).
 func Start(ctx context.Context, d Deleter, interval time.Duration) {
-	log.Info().Dur("interval", interval).Msg("starting reaper")
+	logger := log.With().Str("module", "reaper").Logger()
+	logger.Info().Dur("interval", interval).Msg("starting reaper")
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	sweep := func() {
 		if err := d.DeleteExpiredResponses(ctx); err != nil {
-			log.Error().Err(err).Msg("reaper sweep failed")
+			logger.Error().Err(err).Msg("reaper sweep failed")
 			return
 		}
-		log.Debug().Msg("reaper sweep complete")
+		logger.Debug().Msg("reaper sweep complete")
 	}
 
 	for {

@@ -6,6 +6,8 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/phantompunk/confide/internal/db/queries"
 )
@@ -19,11 +21,15 @@ type DB interface {
 }
 
 type Service struct {
-	db DB
+	log zerolog.Logger
+	db  DB
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{db: queries.New(pool)}
+	return &Service{
+		log: log.With().Str("module", "identity").Logger(),
+		db:  queries.New(pool),
+	}
 }
 
 type KeyPair struct {

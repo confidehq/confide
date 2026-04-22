@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"time"
 
@@ -39,6 +40,7 @@ type DB interface {
 
 // Service handles workspace billing operations.
 type Service struct {
+	log                 zerolog.Logger
 	db                  DB
 	stripeSecretKey     string
 	stripeWebhookSecret string
@@ -48,6 +50,7 @@ type Service struct {
 
 func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripePriceIDPro, stripePriceIDOrg string) *Service {
 	return &Service{
+		log:                 log.With().Str("module", "billing").Logger(),
 		db:                  queries.New(pool),
 		stripeSecretKey:     stripeSecretKey,
 		stripeWebhookSecret: stripeWebhookSecret,
@@ -143,7 +146,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 		if err != nil {
 			return "", err
 		}
-		log.Info().Msg("Set customer ID")
+		s.log.Info().Msg("Set customer ID")
 		if err := s.db.SetStripeCustomerID(ctx, queries.SetStripeCustomerIDParams{
 			ID:               workspaceID,
 			StripeCustomerID: pgtype.Text{String: c.ID, Valid: true},
@@ -226,7 +229,7 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 		return err
 	}
 
-	log.Info().Str("type", string(event.Type)).Msg("handling stripe event")
+	s.log.Info().Str("type", string(event.Type)).Msg("handling stripe event")
 	switch event.Type {
 	case "customer.subscription.created", "customer.subscription.updated":
 		return s.handleSubscriptionUpdated(ctx, event)

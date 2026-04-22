@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/relay"
@@ -34,12 +36,17 @@ type DB interface {
 
 // Service handles response storage and retrieval.
 type Service struct {
+	log  zerolog.Logger
 	db   DB
 	pool *pgxpool.Pool
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
-	return &Service{db: queries.New(pool), pool: pool}
+	return &Service{
+		log:  log.With().Str("module", "responses").Logger(),
+		db:   queries.New(pool),
+		pool: pool,
+	}
 }
 
 // ResponseRecord is a single response as returned to the creator.

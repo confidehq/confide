@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
@@ -124,9 +125,9 @@ func (s *Service) startSessionCleanup() {
 		defer t.Stop()
 		for range t.C {
 			if err := s.db.DeleteStaleSessions(context.Background()); err != nil {
-				log.Error().Err(err).Msg("session cleanup failed")
+				s.log.Error().Err(err).Msg("session cleanup failed")
 			} else {
-				log.Info().Msg("session cleanup complete")
+				s.log.Info().Msg("session cleanup complete")
 			}
 		}
 	}()
@@ -134,6 +135,7 @@ func (s *Service) startSessionCleanup() {
 
 // Service handles auth business logic.
 type Service struct {
+	log         zerolog.Logger
 	db          DB
 	pool        *pgxpool.Pool
 	wa          *webauthn.WebAuthn
@@ -144,6 +146,7 @@ type Service struct {
 
 func NewService(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Service {
 	svc := &Service{
+		log:         log.With().Str("module", "auth").Logger(),
 		db:          queries.New(pool),
 		pool:        pool,
 		wa:          wa,

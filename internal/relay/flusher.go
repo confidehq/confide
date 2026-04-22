@@ -16,7 +16,8 @@ type BatchStorer interface {
 // StartFlusher drains the queue on each tick and writes to the database via storer.
 // It performs one final flush when ctx is cancelled (graceful shutdown).
 func StartFlusher(ctx context.Context, q *Queue, storer BatchStorer, interval time.Duration) {
-	log.Info().Dur("interval", interval).Msg("starting relay flusher")
+	logger := log.With().Str("module", "relay").Logger()
+	logger.Info().Dur("interval", interval).Msg("starting relay flusher")
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -26,10 +27,10 @@ func StartFlusher(ctx context.Context, q *Queue, storer BatchStorer, interval ti
 			return
 		}
 		if err := storer.CreateBatch(ctx, items); err != nil {
-			log.Error().Int("dropped", len(items)).Err(err).Msg("relay flush failed")
+			logger.Error().Int("dropped", len(items)).Err(err).Msg("relay flush failed")
 			return
 		}
-		log.Info().Int("count", len(items)).Msg("relay flushed")
+		logger.Info().Int("count", len(items)).Msg("relay flushed")
 	}
 
 	for {

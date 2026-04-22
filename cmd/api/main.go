@@ -8,6 +8,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/phantompunk/confide/cmd/api/app"
+	"github.com/phantompunk/confide/internal/buildinfo"
 )
 
 var (
@@ -16,8 +17,7 @@ var (
 )
 
 func main() {
-	app.Version = version
-	app.Commit = commit
+	app.Version, app.Commit = buildinfo.Version()
 
 	a, err := app.New()
 	if err != nil {

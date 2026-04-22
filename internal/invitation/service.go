@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/phantompunk/confide/internal/billing"
 	"github.com/phantompunk/confide/internal/db/queries"
@@ -48,13 +50,19 @@ type Mailer interface {
 }
 
 type Service struct {
+	log       zerolog.Logger
 	db        DB
 	mailer    Mailer
 	appDomain string
 }
 
 func NewService(pool *pgxpool.Pool, m *mailer.Mailer, appDomain string) *Service {
-	return &Service{db: queries.New(pool), mailer: m, appDomain: appDomain}
+	return &Service{
+		log:       log.With().Str("module", "invitation").Logger(),
+		db:        queries.New(pool),
+		mailer:    m,
+		appDomain: appDomain,
+	}
 }
 
 // Invitation is the service-layer type returned by Create and List.

@@ -9,6 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,6 +62,7 @@ type DB interface {
 }
 
 type Service struct {
+	log     zerolog.Logger
 	db      DB
 	pool    *pgxpool.Pool
 	cache   *permission.RoleCache
@@ -67,6 +71,7 @@ type Service struct {
 
 func NewService(pool *pgxpool.Pool) *Service {
 	return &Service{
+		log:   log.With().Str("module", "workspace").Logger(),
 		db:    queries.New(pool),
 		pool:  pool,
 		cache: permission.NewRoleCache(),
