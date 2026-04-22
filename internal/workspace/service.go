@@ -546,6 +546,12 @@ func (s *Service) MarkCustomDomainVerified(ctx context.Context, domain string) e
 	return nil
 }
 
+// GetWorkspaceIDByCustomDomain returns the workspace ID that owns the given
+// verified custom domain, or an error if not found.
+func (s *Service) GetWorkspaceIDByCustomDomain(ctx context.Context, domain string) (string, error) {
+	return s.db.GetWorkspaceByCustomDomain(ctx, pgtype.Text{String: domain, Valid: true})
+}
+
 // IsVerifiedCustomDomain reports whether hostname is a verified custom domain.
 // Uses the in-memory Traefik writer set when available (zero DB hits); falls
 // back to a direct DB lookup otherwise.

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +21,11 @@ import (
 type workspaceSvc interface {
 	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
 	ValidateMember(ctx context.Context, workspaceID, accountID string) error
+}
+
+// customDomainResolver can look up the workspace that owns a custom domain.
+type customDomainResolver interface {
+	GetWorkspaceIDByCustomDomain(ctx context.Context, domain string) (string, error)
 }
 
 // Handler builds the authenticated /api/forms sub-router.
@@ -59,7 +65,11 @@ func resolveFormWorkspace(w http.ResponseWriter, r *http.Request, svc *Service, 
 }
 
 // PublicSchemaHandler handles GET /api/f/{id}/schema — no authentication.
-func PublicSchemaHandler(svc *Service, guard *botguard.Guard) http.HandlerFunc {
+// appHost is the bare hostname of the app's own domain (no scheme, no port).
+// resolver is used to enforce custom-domain routing: forms with use_custom_domain=false
+// are blocked when accessed via a custom domain, and forms from other workspaces are
+// never served on a domain they don't own.
+func PublicSchemaHandler(svc *Service, guard *botguard.Guard, appHost string, resolver customDomainResolver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		formID := chi.URLParam(r, "id")
 		rec, err := svc.GetPublicSchema(r.Context(), formID)
@@ -70,6 +80,26 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard) http.HandlerFunc {
 			}
 			writeError(w, http.StatusInternalServerError, "internal", "internal error")
 			return
+		}
+
+		// Enforce custom-domain routing rules when the request arrives on a
+		// registered custom domain (not the app host and not an unknown host
+		// like localhost in dev).
+		host := r.Host
+		if i := strings.LastIndex(host, ":"); i > 0 {
+			host = host[:i]
+		}
+		if host != "" && host != appHost {
+			wsID, lookupErr := resolver.GetWorkspaceIDByCustomDomain(r.Context(), host)
+			if lookupErr == nil {
+				// Registered custom domain: the form must opt in and must
+				// belong to the workspace that owns this domain.
+				if !rec.UseCustomDomain || wsID != rec.WorkspaceID {
+					writeError(w, http.StatusNotFound, "not_found", "form not found")
+					return
+				}
+			}
+			// Unknown host (e.g. localhost in dev) — no restriction.
 		}
 
 		w.Header().Set("Cache-Control", "no-store, no-cache")

@@ -15,7 +15,7 @@ SELECT workspace_id FROM forms WHERE id = $1;
 SELECT * FROM forms WHERE id = $1 AND workspace_id = $2;
 
 -- name: GetFormPublic :one
-SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByWorkspace :many

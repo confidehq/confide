@@ -87,6 +87,8 @@ type PublicFormRecord struct {
 	PublicFormKey         []byte
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
+	WorkspaceID           string
+	UseCustomDomain       bool
 }
 
 // CreateForm stores a new form and returns its ID.
@@ -283,6 +285,8 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		PublicFormKey:         row.PublicFormKey,
 		ExpiresAt:             row.ExpiresAt,
 		ResponseLimit:         row.ResponseLimit,
+		WorkspaceID:           row.WorkspaceID,
+		UseCustomDomain:       row.UseCustomDomain,
 	}, nil
 }
 

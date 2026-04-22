@@ -148,7 +148,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 
 		// Public unauthenticated schema endpoint — stricter CSP, own rate limit.
 		r.With(mw.FormPageCSP, mw.PublicSchemaRateLimit(cfg.HMACKey)).
-			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms, guard))
+			Get("/f/{id}/schema", forms.PublicSchemaHandler(svc.Forms, guard, mw.StripScheme(cfg.AppDomain), svc.Workspace))
 	})
 
 	// Stripe webhook — public, no auth, signature verified inside handler.

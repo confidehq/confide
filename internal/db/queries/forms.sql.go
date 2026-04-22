@@ -126,7 +126,7 @@ func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspace
 }
 
 const getFormPublic = `-- name: GetFormPublic :one
-SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain
 FROM forms WHERE id = $1
 `
 
@@ -139,6 +139,8 @@ type GetFormPublicRow struct {
 	PublicFormKey         []byte
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
+	WorkspaceID           string
+	UseCustomDomain       bool
 }
 
 func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRow, error) {
@@ -153,6 +155,8 @@ func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRo
 		&i.PublicFormKey,
 		&i.ExpiresAt,
 		&i.ResponseLimit,
+		&i.WorkspaceID,
+		&i.UseCustomDomain,
 	)
 	return i, err
 }
