@@ -5,63 +5,70 @@
 	import { detectPRFSupport } from '$lib/prf-detection';
 	import { register } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { acceptInvitation, ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
+	import {
+		acceptInvitation,
+		ensureIdentityKey,
+		setupPersonalWorkspaceKey,
+		listWorkspaces,
+		renameWorkspace
+	} from '$lib/workspaces';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
-	type Step = 'checking' | 'briefing' | 'creating' | 'recovery' | 'success';
+	type Step = 'checking' | 'username' | 'passkey' | 'recovery' | 'workspace' | 'success';
 
 	let step = $state<Step>('checking');
 	let prfError = $state<string | null>(null);
 	let registerError = $state<string | null>(null);
+	let workspaceError = $state<string | null>(null);
 	let loading = $state(false);
 
-	// Briefing scroll gate
-	let briefingScrolled = $state(false);
-	let briefingRef = $state<HTMLDivElement | undefined>(undefined);
-	let sentinelRef = $state<HTMLDivElement | undefined>(undefined);
-
-	// Recovery code state — single GHRK-... string
+	// Recovery code state
 	let recoveryCode = $state('');
 	let verifyInput = $state('');
 	let verifyError = $state(false);
 	let verifyPassed = $state(false);
+	let codeCopied = $state(false);
 
-	// Generated registration result (held for setSession after verify)
+	// Pending registration result (held until workspace step completes)
 	let pendingMasterKey = $state<CryptoKey | null>(null);
 	let pendingAccountId = $state<string | null>(null);
 	let pendingCredentialId = $state<string | null>(null);
 
-	// Username input
+	// Form inputs
 	let username = $state('');
+	let workspaceName = $state('');
 
-	// PRF check on mount
+	// Visible step labels and their index mapping
+	const stepLabels = ['Username', 'Security', 'Recovery', 'Workspace'];
+	const stepIndex: Record<Step, number> = {
+		checking: -1,
+		username: 0,
+		passkey: 1,
+		recovery: 2,
+		workspace: 3,
+		success: 4
+	};
+
 	onMount(async () => {
 		const result = await detectPRFSupport();
 		if (!result.supported) {
 			prfError = result.reason;
-			step = 'checking';
 		} else {
-			step = 'briefing';
+			step = 'username';
 		}
 	});
 
-	// IntersectionObserver for briefing scroll gate
-	$effect(() => {
-		if (step !== 'briefing' || !sentinelRef) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0].isIntersecting) briefingScrolled = true;
-			},
-			{ threshold: 1.0 }
-		);
-		observer.observe(sentinelRef);
-		return () => observer.disconnect();
-	});
-
-	async function startRegistration() {
+	function continueToPasskey() {
 		if (!username.trim()) {
 			registerError = 'Please enter a username.';
 			return;
 		}
+		registerError = null;
+		step = 'passkey';
+	}
+
+	async function startRegistration() {
 		loading = true;
 		registerError = null;
 		try {
@@ -86,31 +93,62 @@
 		}
 	}
 
-	async function completeSetup() {
-		if (!verifyPassed || !pendingMasterKey || !pendingAccountId || !pendingCredentialId) return;
-		auth.setSession(pendingMasterKey, pendingAccountId, pendingCredentialId);
-		step = 'success';
+	function continueToWorkspace() {
+		if (!verifyPassed) return;
+		step = 'workspace';
+	}
 
-		// Create the identity keypair and provision the personal workspace key so
-		// the owner shows as active (not pending) in the members list.
+	async function finishOnboarding() {
+		if (!workspaceName.trim()) {
+			workspaceError = 'Please enter a workspace name.';
+			return;
+		}
+		if (!pendingMasterKey || !pendingAccountId || !pendingCredentialId) return;
+
+		loading = true;
+		workspaceError = null;
+
 		try {
-			await ensureIdentityKey(pendingMasterKey);
-			await setupPersonalWorkspaceKey(pendingMasterKey, pendingAccountId);
-		} catch { /* non-fatal */ }
+			auth.setSession(pendingMasterKey, pendingAccountId, pendingCredentialId);
 
-		const inviteToken = page.url.searchParams.get('invite');
-		if (inviteToken) {
+			// Non-fatal: crypto key provisioning (can be healed on next login)
 			try {
-				await acceptInvitation(inviteToken);
+				await ensureIdentityKey(pendingMasterKey);
+				await setupPersonalWorkspaceKey(pendingMasterKey, pendingAccountId);
 			} catch { /* non-fatal */ }
+
+			// Required: rename the auto-created personal workspace
+			const workspaces = await listWorkspaces();
+			const personal = workspaces.find((w) => w.role === 'owner');
+			if (personal) {
+				await renameWorkspace(personal.id, workspaceName.trim());
+				workspacesStore.update(personal.id, { name: workspaceName.trim() });
+			}
+
+
+			// Pre-populate the store with the renamed workspace now. The store's
+			// _loaded guard prevents the app layout from re-fetching on mount, so
+			// the dashboard always reads the already-correct name.
+			await workspacesStore.load();
+
+			const inviteToken = page.url.searchParams.get('invite');
+			if (inviteToken) {
+				try { await acceptInvitation(inviteToken); } catch { /* non-fatal */ }
+			}
+
+			step = 'success';
 			setTimeout(() => goto('/dashboard'), 1500);
-		} else {
-			setTimeout(() => goto('/dashboard'), 1500);
+		} catch (err) {
+			workspaceError = err instanceof Error ? err.message : 'Failed to set up workspace.';
+		} finally {
+			loading = false;
 		}
 	}
 
 	function copyCode() {
 		navigator.clipboard.writeText(recoveryCode);
+		codeCopied = true;
+		setTimeout(() => (codeCopied = false), 2000);
 	}
 </script>
 
@@ -118,142 +156,215 @@
 	<title>Confide — Create Account</title>
 </svelte:head>
 
-<div class="font-mono max-w-[560px] mx-auto mt-[60px] px-6">
-	<h1 class="text-2xl mb-8">Create your Confide account</h1>
+<div class="min-h-screen flex flex-col items-center justify-center px-4 font-mono">
 
-	<!-- Step: checking / PRF error -->
 	{#if step === 'checking'}
-		{#if prfError}
-			<div class="p-5 border border-danger-text rounded-md bg-danger-dark text-error-muted text-sm">
-				<strong>Unsupported browser or device</strong>
-				<p class="mt-2 text-error-muted">{prfError}</p>
-			</div>
-		{:else}
-			<p class="text-muted">Checking browser compatibility…</p>
-		{/if}
-
-	<!-- Step: briefing (mandatory scroll-through) -->
-	{:else if step === 'briefing'}
-		<div
-			bind:this={briefingRef}
-			class="h-[360px] overflow-y-scroll border border-border rounded-md p-5 mb-5 bg-[#0d0d0d]"
-		>
-			<h2 class="text-base mt-0 text-text">Before you continue</h2>
-			<p class="text-muted text-sm leading-relaxed">
-				Confide encrypts your data in your browser before it ever leaves your device.
-				Your passkey (Touch ID, Face ID, or Windows Hello) is used to derive the encryption key —
-				<strong>the server never sees your key.</strong>
-			</p>
-			<h3 class="text-sm text-text mt-5">Your recovery code is your backup</h3>
-			<p class="text-muted text-sm leading-relaxed">
-				After signup, you will receive a recovery code. This code is the
-				<strong>only way to recover your account</strong> if you lose your device.
-			</p>
-			<ul class="text-muted text-sm leading-[1.8] pl-5">
-				<li>Store it somewhere safe (password manager, printed paper).</li>
-				<li>Never share it — anyone with this code can access your account.</li>
-				<li>You cannot recover your account without it.</li>
-			</ul>
-			<h3 class="text-sm text-text mt-5">What Confide cannot do</h3>
-			<p class="text-muted text-sm leading-relaxed">
-				Because encryption happens entirely in your browser, Confide staff
-				<strong>cannot read your data, reset your password, or recover your account</strong>
-				for you. If you lose your passkey device and your recovery code, your data is unrecoverable.
-			</p>
-			<p class="text-muted-dark text-xs mt-6 italic">Scroll to the bottom to continue.</p>
-			<div bind:this={sentinelRef} class="h-px"></div>
-		</div>
-
-		<button
-			onclick={() => (step = 'creating')}
-			disabled={!briefingScrolled}
-			class="w-full py-3.5 border-none rounded-md font-mono text-base
-				{briefingScrolled
-					? 'bg-primary text-white cursor-pointer hover:bg-primary-hover'
-					: 'bg-surface-active text-[#4b6583] cursor-not-allowed'}"
-		>
-			I understand — continue
-		</button>
-
-	<!-- Step: creating passkey -->
-	{:else if step === 'creating'}
-		<div class="p-6 border border-border rounded-md bg-[#0d0d0d] mb-6">
-			<p class="text-muted text-sm m-0 mb-4">
-				Choose a username, then your browser will prompt you to create a passkey.
-			</p>
-			<label class="block text-muted text-sm mb-1.5">Username</label>
-			<input
-				type="text"
-				bind:value={username}
-				placeholder="e.g. alice"
-				disabled={loading}
-				class="input-base mb-4 text-sm py-2.5 px-3"
-			/>
-			{#if registerError}
-				<div class="text-error-muted text-sm mb-3">{registerError}</div>
+		<div class="w-full max-w-100">
+			{#if prfError}
+				<div class="p-5 border border-danger-text rounded-xl bg-danger-dark text-error-muted text-base">
+					<strong>Unsupported browser or device</strong>
+					<p class="mt-2">{prfError}</p>
+				</div>
+			{:else}
+				<p class="text-muted text-center text-base">Checking browser compatibility…</p>
 			{/if}
-			<button
-				onclick={startRegistration}
-				disabled={loading}
-				class="w-full py-3.5 text-white border-none rounded-md font-mono text-base
-					{loading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
-			>
-				{loading ? 'Creating passkey…' : 'Create passkey'}
-			</button>
 		</div>
 
-	<!-- Step: recovery code -->
-	{:else if step === 'recovery'}
-		<div class="mb-6">
-			<h2 class="text-base text-text mb-2">Save your recovery code</h2>
-			<p class="text-warning-border text-sm mb-5">
-				This is the only way to recover your account. Save it now — you will not see it again.
-			</p>
-
-			<div class="p-4 px-5 bg-[#111] border border-border rounded-md text-sm text-text break-all tracking-[0.05em] mb-3">
-				{recoveryCode}
-			</div>
-
-			<button
-				onclick={copyCode}
-				class="px-4 py-2 bg-surface text-muted border border-border rounded cursor-pointer font-mono text-xs mb-8 hover:text-text transition-colors duration-100"
-			>
-				Copy code
-			</button>
-
-			<h3 class="text-sm text-text mb-2">Confirm you've saved it</h3>
-			<p class="text-muted text-xs mb-3">Paste your recovery code below to continue.</p>
-
-			<input
-				type="text"
-				bind:value={verifyInput}
-				oninput={checkVerification}
-				placeholder="GHRK-XXXX-XXXX-…"
-				class="input-base mb-1 text-sm py-2.5 px-3
-					{verifyError ? '!border-danger-text' : ''}"
-			/>
-			{#if verifyError}
-				<span class="text-error-muted text-xs block mb-2">
-					Does not match — check what you pasted
-				</span>
-			{/if}
-
-			<button
-				onclick={completeSetup}
-				disabled={!verifyPassed}
-				class="w-full py-3.5 mt-3 border-none rounded-md font-mono text-base
-					{verifyPassed
-						? 'bg-success-text text-success-text-dark cursor-pointer'
-						: 'bg-surface text-muted-dark cursor-not-allowed'}"
-			>
-				Complete setup
-			</button>
-		</div>
-
-	<!-- Step: success -->
 	{:else if step === 'success'}
-		<div class="p-6 border border-success-text rounded-md bg-success-bg-deep text-success-text-dark text-sm text-center">
-			Account created. Redirecting…
+		<div class="w-full max-w-100">
+			<div class="p-6 border border-success-text rounded-xl bg-success-bg-deep text-success-text-dark text-base text-center">
+				Account created. Redirecting…
+			</div>
+		</div>
+
+	{:else}
+		{@const current = stepIndex[step]}
+		<div class="w-full max-w-100">
+
+			<!-- Logo + heading -->
+			<div class="flex flex-col items-center mb-8">
+				<div class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full">{@html faviconSvg}</div>
+				<h1 class="text-xl font-semibold text-text-body tracking-tight">Create your account</h1>
+				<p class="text-base text-muted-dim mt-1.5">Set up Confide in just a few steps.</p>
+			</div>
+
+			<!-- Step indicator -->
+			<div class="flex items-start mb-6 px-2">
+				{#each stepLabels as label, i}
+					{#if i > 0}
+						<div class="flex-1 h-px mt-3.5 {i <= current ? 'bg-primary' : 'bg-border'}"></div>
+					{/if}
+					<div class="flex flex-col items-center">
+						<div class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold
+							{i === current
+								? 'bg-primary text-white'
+								: i < current
+									? 'bg-primary/20 text-primary'
+									: 'bg-surface border border-border text-muted-dark'}">
+							{#if i < current}✓{:else}{i + 1}{/if}
+						</div>
+						<span class="text-[10px] mt-1 w-14 text-center leading-tight
+							{i === current ? 'text-text-body' : i < current ? 'text-muted' : 'text-muted-dark'}">
+							{label}
+						</span>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Step card -->
+			<div class="bg-surface border border-border rounded-xl p-6">
+
+				{#if step === 'username'}
+					<h2 class="text-base font-medium text-text-body mb-1">Create your username</h2>
+					<p class="text-sm text-muted-dim mb-5">This is your public name across Confide. You’ll use it to access any workspace you join or create.</p>
+
+					<label class="block text-base text-muted mb-1.5" for="username">Username</label>
+					<input
+						id="username"
+						type="text"
+						bind:value={username}
+						placeholder="e.g. alice"
+						onkeydown={(e) => e.key === 'Enter' && continueToPasskey()}
+						class="input-base w-full mb-4 text-base py-2.5 px-3"
+					/>
+
+					{#if registerError}
+						<p class="text-error text-sm mb-3">{registerError}</p>
+					{/if}
+
+					<button
+						onclick={continueToPasskey}
+						class="w-full py-3 text-white border-none rounded-lg font-mono text-base font-medium
+							bg-primary hover:bg-primary-hover cursor-pointer transition-colors duration-100"
+					>
+						Continue
+					</button>
+
+				{:else if step === 'passkey'}
+					<h2 class="text-base font-medium text-text-body mb-1">Your data stays yours</h2>
+					<p class="text-sm text-muted-dim mb-5">
+						Confide encrypts your forms and responses in your browser before they leave your device.
+					</p>
+
+					<p class="text-sm text-muted-dim mb-5">
+						Your passkey (Face ID, Touch ID, Windows Hello) unlocks your data — we never see your encryption key and cannot access your data.
+					</p>
+
+
+					{#if registerError}
+						<p class="text-error text-sm mb-3">{registerError}</p>
+					{/if}
+
+					<button
+						onclick={startRegistration}
+						disabled={loading}
+						class="w-full py-3 text-white border-none rounded-lg font-mono text-base font-medium
+							{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+							transition-colors duration-100"
+					>
+						{loading ? 'Creating passkey…' : 'Create passkey'}
+					</button>
+
+					<button
+						onclick={() => { step = 'username'; registerError = null; }}
+						class="w-full mt-2 py-2 text-muted-dark text-sm border-none bg-transparent cursor-pointer hover:text-muted transition-colors duration-100"
+					>
+						← Back
+					</button>
+
+				{:else if step === 'recovery'}
+					<h2 class="text-base font-medium text-text-body mb-1">Save your recovery code</h2>
+					<p class="text-sm text-warning-border mb-4">
+						If you lose access to your device, this code is the <strong>only way</strong> to restore your account.
+					</p>
+					<p class="text-sm text-warning-border mb-4">
+						Store it somewhere safe, offline, and private. We cannot recover it for you.
+					</p>
+
+					<div class="p-4 bg-[#111] border border-border rounded-lg text-sm text-text break-all tracking-[0.05em] mb-2 leading-relaxed">
+						{recoveryCode}
+					</div>
+
+					<button
+						onclick={copyCode}
+						class="px-3 py-1.5 border rounded cursor-pointer font-mono text-sm mb-5 transition-colors duration-100
+							{codeCopied
+								? 'bg-success-bg border-success-text text-success-text'
+								: 'bg-surface text-muted border-border hover:text-text'}"
+					>
+						{codeCopied ? '✓ Copied' : 'Copy code'}
+					</button>
+
+					<label class="block text-sm text-muted mb-1.5" for="verify">
+						Paste your recovery code below to confirm you've saved it
+					</label>
+					<input
+						id="verify"
+						type="text"
+						bind:value={verifyInput}
+						oninput={checkVerification}
+						placeholder="GHRK-XXXX-XXXX-…"
+						class="input-base w-full mb-1 text-base py-2.5 px-3
+							{verifyError ? '!border-danger-text' : ''}"
+					/>
+					{#if verifyError}
+						<span class="text-error text-sm block mb-2">Does not match — check what you pasted</span>
+					{/if}
+
+					<button
+						onclick={continueToWorkspace}
+						disabled={!verifyPassed}
+						class="w-full py-3 mt-3 border-none rounded-lg font-mono text-base font-medium transition-colors duration-100
+							{verifyPassed
+								? 'bg-primary text-white cursor-pointer hover:bg-primary-hover'
+								: 'bg-surface-active text-muted-dark cursor-not-allowed'}"
+					>
+						Continue
+					</button>
+
+				{:else if step === 'workspace'}
+					<h2 class="text-base font-medium text-text-body mb-1">Set up your workspace</h2>
+					<p class="text-sm text-muted-dim mb-5">This is your hub for forms and team collaboration. You can customize the name at any time.</p>
+
+					<label class="block text-base text-muted mb-1.5" for="workspace-name">Workspace name</label>
+					<input
+						id="workspace-name"
+						type="text"
+						bind:value={workspaceName}
+						placeholder="e.g. Acme Corp"
+						disabled={loading}
+						onkeydown={(e) => e.key === 'Enter' && finishOnboarding()}
+						class="input-base w-full mb-4 text-base py-2.5 px-3"
+					/>
+
+					{#if workspaceError}
+						<p class="text-error text-sm mb-3">{workspaceError}</p>
+					{/if}
+
+					<button
+						onclick={finishOnboarding}
+						disabled={loading}
+						class="w-full py-3 text-white border-none rounded-lg font-mono text-base font-medium
+							{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+							transition-colors duration-100"
+					>
+						{loading ? 'Setting up…' : 'Create workspace'}
+					</button>
+				{/if}
+
+			</div>
+
+			<!-- Sign in link (username step only) -->
+			{#if step === 'username'}
+				<div class="mt-6 pt-5 border-t border-border text-center">
+					<p class="text-base text-muted-dim">
+						Already have an account?
+						<a href="/login" class="text-text-blue hover:underline font-medium">Sign in</a>
+					</p>
+				</div>
+			{/if}
+
 		</div>
 	{/if}
+
 </div>
