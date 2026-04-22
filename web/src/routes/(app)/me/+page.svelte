@@ -17,11 +17,14 @@
 		reauthenticateForAddCredential,
 		addCredential,
 		listSessions,
-		revokeSession
+		revokeSession,
+		deleteAccount
 	} from '$lib/auth';
 	import type { CredentialSummary, SessionInfo } from '$lib/types/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { goto } from '$app/navigation';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	// ─── Passkeys ────────────────────────────────────────────────────────────────
 
@@ -162,6 +165,25 @@
 		}
 	}
 
+	// ─── Account deletion ─────────────────────────────────────────────────────────
+
+	let showDeleteAccountConfirm = $state(false);
+	let deletingAccount = $state(false);
+	let deleteAccountError = $state('');
+
+	async function handleDeleteAccount() {
+		deletingAccount = true;
+		deleteAccountError = '';
+		try {
+			await deleteAccount();
+			auth.clearAll();
+			await goto('/login');
+		} catch (err) {
+			deleteAccountError = err instanceof Error ? err.message : 'Failed to delete account.';
+			deletingAccount = false;
+		}
+	}
+
 	// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 	function isMobile(ua: string | undefined): boolean {
@@ -202,6 +224,16 @@
 <svelte:head>
 	<title>Confide — Me</title>
 </svelte:head>
+
+<ConfirmDialog
+	open={showDeleteAccountConfirm}
+	title="Delete account?"
+	description="This will permanently delete your account, all your workspaces, forms, and responses. This cannot be undone."
+	loading={deletingAccount}
+	error={deleteAccountError}
+	onconfirm={handleDeleteAccount}
+	oncancel={() => { showDeleteAccountConfirm = false; deleteAccountError = ''; }}
+/>
 
 <div class="flex justify-center w-full">
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
@@ -494,6 +526,24 @@
 				{/if}
 			</div>
 
+		</div>
+	</div>
+
+	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
+	<div class="mt-10 pt-8 border-t border-border-deep">
+		<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
+		<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
+			<div>
+				<p class="m-0 text-base text-text-body">Delete account</p>
+				<p class="m-0 mt-0.5 text-sm text-muted-dim">Permanently delete your account and all its data.</p>
+			</div>
+			<button
+				onclick={() => { showDeleteAccountConfirm = true; deleteAccountError = ''; }}
+				class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
+					cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
+			>
+				Delete account
+			</button>
 		</div>
 	</div>
 

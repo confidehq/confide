@@ -115,7 +115,7 @@ func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountI
 	_, err = qtx.CreateForm(ctx, queries.CreateFormParams{
 		ID:                      id,
 		WorkspaceID:             workspaceID,
-		CreatedByAccountID:      createdByAccountID,
+		CreatedByAccountID:      pgtype.Text{String: createdByAccountID, Valid: true},
 		EncryptedSchema:         encryptedSchema,
 		RenderEncryptedSchema:   renderEncryptedSchema,
 		PublicFormKey:           publicFormKey,

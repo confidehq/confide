@@ -38,20 +38,26 @@ func (q *Queries) CountMonthlyResponses(ctx context.Context, workspaceID string)
 }
 
 const getWorkspaceByStripeCustomerID = `-- name: GetWorkspaceByStripeCustomerID :one
-SELECT id, plan, plan_status
+SELECT id, plan, plan_status, stripe_subscription_id
 FROM workspaces WHERE stripe_customer_id = $1
 `
 
 type GetWorkspaceByStripeCustomerIDRow struct {
-	ID         string
-	Plan       string
-	PlanStatus string
+	ID                   string
+	Plan                 string
+	PlanStatus           string
+	StripeSubscriptionID pgtype.Text
 }
 
 func (q *Queries) GetWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID pgtype.Text) (GetWorkspaceByStripeCustomerIDRow, error) {
 	row := q.db.QueryRow(ctx, getWorkspaceByStripeCustomerID, stripeCustomerID)
 	var i GetWorkspaceByStripeCustomerIDRow
-	err := row.Scan(&i.ID, &i.Plan, &i.PlanStatus)
+	err := row.Scan(
+		&i.ID,
+		&i.Plan,
+		&i.PlanStatus,
+		&i.StripeSubscriptionID,
+	)
 	return i, err
 }
 
@@ -99,20 +105,37 @@ func (q *Queries) SetStripeCustomerID(ctx context.Context, arg SetStripeCustomer
 	return err
 }
 
+const setStripeSubscriptionID = `-- name: SetStripeSubscriptionID :exec
+UPDATE workspaces SET stripe_subscription_id = $2, updated_at = NOW()
+WHERE stripe_customer_id = $1
+`
+
+type SetStripeSubscriptionIDParams struct {
+	StripeCustomerID     pgtype.Text
+	StripeSubscriptionID pgtype.Text
+}
+
+func (q *Queries) SetStripeSubscriptionID(ctx context.Context, arg SetStripeSubscriptionIDParams) error {
+	_, err := q.db.Exec(ctx, setStripeSubscriptionID, arg.StripeCustomerID, arg.StripeSubscriptionID)
+	return err
+}
+
 const updateWorkspacePlan = `-- name: UpdateWorkspacePlan :exec
 UPDATE workspaces
-SET plan            = $2,
-    plan_status     = $3,
-    plan_period_end = $4,
-    updated_at      = NOW()
+SET plan                   = $2,
+    plan_status            = $3,
+    plan_period_end        = $4,
+    stripe_subscription_id = $5,
+    updated_at             = NOW()
 WHERE id = $1
 `
 
 type UpdateWorkspacePlanParams struct {
-	ID            string
-	Plan          string
-	PlanStatus    string
-	PlanPeriodEnd pgtype.Timestamptz
+	ID                   string
+	Plan                 string
+	PlanStatus           string
+	PlanPeriodEnd        pgtype.Timestamptz
+	StripeSubscriptionID pgtype.Text
 }
 
 func (q *Queries) UpdateWorkspacePlan(ctx context.Context, arg UpdateWorkspacePlanParams) error {
@@ -121,6 +144,7 @@ func (q *Queries) UpdateWorkspacePlan(ctx context.Context, arg UpdateWorkspacePl
 		arg.Plan,
 		arg.PlanStatus,
 		arg.PlanPeriodEnd,
+		arg.StripeSubscriptionID,
 	)
 	return err
 }

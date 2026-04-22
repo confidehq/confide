@@ -25,7 +25,7 @@ INSERT INTO forms (
 type CreateFormParams struct {
 	ID                      string
 	WorkspaceID             string
-	CreatedByAccountID      string
+	CreatedByAccountID      pgtype.Text
 	EncryptedSchema         []byte
 	RenderEncryptedSchema   []byte
 	PublicFormKey           []byte

@@ -15,14 +15,19 @@ WHERE f.workspace_id = $1
 -- name: SetStripeCustomerID :exec
 UPDATE workspaces SET stripe_customer_id = $2, updated_at = NOW() WHERE id = $1;
 
+-- name: SetStripeSubscriptionID :exec
+UPDATE workspaces SET stripe_subscription_id = $2, updated_at = NOW()
+WHERE stripe_customer_id = $1;
+
 -- name: UpdateWorkspacePlan :exec
 UPDATE workspaces
-SET plan            = $2,
-    plan_status     = $3,
-    plan_period_end = $4,
-    updated_at      = NOW()
+SET plan                   = $2,
+    plan_status            = $3,
+    plan_period_end        = $4,
+    stripe_subscription_id = $5,
+    updated_at             = NOW()
 WHERE id = $1;
 
 -- name: GetWorkspaceByStripeCustomerID :one
-SELECT id, plan, plan_status
+SELECT id, plan, plan_status, stripe_subscription_id
 FROM workspaces WHERE stripe_customer_id = $1;

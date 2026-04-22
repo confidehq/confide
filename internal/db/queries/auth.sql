@@ -115,3 +115,12 @@ SELECT COUNT(*) FROM credentials WHERE account_id = $1;
 
 -- name: DeleteCredentialsByAccount :exec
 DELETE FROM credentials WHERE account_id = $1;
+
+-- name: DeleteAccount :exec
+DELETE FROM accounts WHERE id = $1;
+
+-- name: ListOwnedWorkspacesForDeletion :many
+SELECT w.id, w.stripe_subscription_id
+FROM workspaces w
+JOIN workspace_members wm ON wm.workspace_id = w.id
+WHERE wm.account_id = $1 AND wm.role = 'owner';

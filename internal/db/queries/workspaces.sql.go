@@ -350,6 +350,30 @@ func (q *Queries) GetWorkspaceMemberKey(ctx context.Context, arg GetWorkspaceMem
 	return i, err
 }
 
+const listAllVerifiedCustomDomains = `-- name: ListAllVerifiedCustomDomains :many
+SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE
+`
+
+func (q *Queries) ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
+	rows, err := q.db.Query(ctx, listAllVerifiedCustomDomains)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.Text
+	for rows.Next() {
+		var custom_domain pgtype.Text
+		if err := rows.Scan(&custom_domain); err != nil {
+			return nil, err
+		}
+		items = append(items, custom_domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMemberIdentityKeys = `-- name: ListMemberIdentityKeys :many
 SELECT wm.account_id, aik.identity_public_key
 FROM workspace_members wm
@@ -489,27 +513,6 @@ func (q *Queries) MarkCustomDomainVerified(ctx context.Context, customDomain pgt
 	return err
 }
 
-const listAllVerifiedCustomDomains = `-- name: ListAllVerifiedCustomDomains :many
-SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE
-`
-
-func (q *Queries) ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
-	rows, err := q.db.Query(ctx, listAllVerifiedCustomDomains)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []pgtype.Text
-	for rows.Next() {
-		var customDomain pgtype.Text
-		if err := rows.Scan(&customDomain); err != nil {
-			return nil, err
-		}
-		items = append(items, customDomain)
-	}
-	return items, rows.Err()
-}
-
 const renameWorkspace = `-- name: RenameWorkspace :exec
 UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1
 `
@@ -569,7 +572,7 @@ type UpsertWorkspaceMemberKeyParams struct {
 	AccountID           string
 	WrappedWorkspaceKey []byte
 	EphemeralPublicKey  []byte
-	GrantedByAccountID  string
+	GrantedByAccountID  pgtype.Text
 }
 
 func (q *Queries) UpsertWorkspaceMemberKey(ctx context.Context, arg UpsertWorkspaceMemberKeyParams) error {

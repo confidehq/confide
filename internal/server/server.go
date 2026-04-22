@@ -116,7 +116,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 		// Auth routes — general rate limit.
 		r.Route("/auth", func(r chi.Router) {
 			r.Use(mw.RateLimit(cfg.HMACKey))
-			r.Mount("/", auth.Handler(svc.Auth, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
+			r.Mount("/", auth.Handler(svc.Auth, svc.Billing, cfg.HMACKey, cfg.Env == "development", cfg.RegistrationOpen))
 		})
 
 		// Authenticated form, response, identity, workspace, and invitation routes.

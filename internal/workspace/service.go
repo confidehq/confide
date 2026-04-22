@@ -208,7 +208,7 @@ func (s *Service) Create(ctx context.Context, accountID, name string, wrappedWor
 		AccountID:           accountID,
 		WrappedWorkspaceKey: wrappedWorkspaceKey,
 		EphemeralPublicKey:  ephemeralPublicKey,
-		GrantedByAccountID:  accountID,
+		GrantedByAccountID:  pgtype.Text{String: accountID, Valid: true},
 	}); err != nil {
 		return Workspace{}, err
 	}
@@ -460,7 +460,7 @@ func (s *Service) GrantMemberKey(ctx context.Context, workspaceID, callerAccount
 		AccountID:           targetAccountID,
 		WrappedWorkspaceKey: wrappedKey,
 		EphemeralPublicKey:  ephemeralPub,
-		GrantedByAccountID:  callerAccountID,
+		GrantedByAccountID:  pgtype.Text{String: callerAccountID, Valid: true},
 	})
 }
 

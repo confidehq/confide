@@ -2,10 +2,12 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -14,13 +16,18 @@ import (
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
 
+// SubscriptionCanceller is implemented by the billing service.
+type SubscriptionCanceller interface {
+	CancelSubscription(ctx context.Context, subscriptionID string) error
+}
+
 // Handler builds the /auth sub-router. recoveryHMACKey is used to apply a
 // stricter rate limit to the /recover endpoint.
 
 
 const sessionCookieName = "session"
 
-func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
+func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/register/begin", registerBegin(svc, registrationOpen))
@@ -45,6 +52,7 @@ func Handler(svc *Service, recoveryHMACKey []byte, dev bool, registrationOpen bo
 		r.Get("/credentials", listCredentials(svc))
 		r.Patch("/credentials/{id}", renameCredential(svc))
 		r.Delete("/credentials/{id}", deleteCredential(svc))
+		r.Delete("/account", deleteAccount(svc, billing))
 	})
 
 	return r
@@ -709,6 +717,36 @@ func deleteCredential(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusInternalServerError, "delete_cred_failed", safeErr(err))
 			return
 		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ─── Account deletion ──────────────────────────────────────────────────────────
+
+func deleteAccount(svc *Service, billing SubscriptionCanceller) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		subs, err := svc.DeleteAccount(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "delete_account_failed", safeErr(err))
+			return
+		}
+
+		clearSessionCookie(w)
+
+		// Cancel Stripe subscriptions after the DB commit. Failures are
+		// logged but do not affect the response — the account is already gone.
+		for _, sub := range subs {
+			if err := billing.CancelSubscription(r.Context(), sub.StripeSubscriptionID); err != nil {
+				slog.Error("failed to cancel stripe subscription after account deletion",
+					"subscriptionID", sub.StripeSubscriptionID,
+					"workspaceID", sub.WorkspaceID,
+					"err", err,
+				)
+			}
+		}
+
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

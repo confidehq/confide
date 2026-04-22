@@ -545,3 +545,7 @@ export async function renameCredential(id: string, name: string): Promise<void> 
 export async function deleteCredential(id: string): Promise<void> {
 	return apiDelete(`/api/auth/credentials/${id}`);
 }
+
+export async function deleteAccount(): Promise<void> {
+	return apiDelete('/api/auth/account');
+}

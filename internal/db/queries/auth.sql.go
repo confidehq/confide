@@ -166,6 +166,15 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
+const deleteAccount = `-- name: DeleteAccount :exec
+DELETE FROM accounts WHERE id = $1
+`
+
+func (q *Queries) DeleteAccount(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteAccount, id)
+	return err
+}
+
 const deleteCredential = `-- name: DeleteCredential :exec
 DELETE FROM credentials WHERE id = $1 AND account_id = $2
 `
@@ -469,6 +478,38 @@ func (q *Queries) ListCredentialsByAccount(ctx context.Context, accountID string
 			&i.Name,
 			&i.CreatedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOwnedWorkspacesForDeletion = `-- name: ListOwnedWorkspacesForDeletion :many
+SELECT w.id, w.stripe_subscription_id
+FROM workspaces w
+JOIN workspace_members wm ON wm.workspace_id = w.id
+WHERE wm.account_id = $1 AND wm.role = 'owner'
+`
+
+type ListOwnedWorkspacesForDeletionRow struct {
+	ID                   string
+	StripeSubscriptionID pgtype.Text
+}
+
+func (q *Queries) ListOwnedWorkspacesForDeletion(ctx context.Context, accountID string) ([]ListOwnedWorkspacesForDeletionRow, error) {
+	rows, err := q.db.Query(ctx, listOwnedWorkspacesForDeletion, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListOwnedWorkspacesForDeletionRow
+	for rows.Next() {
+		var i ListOwnedWorkspacesForDeletionRow
+		if err := rows.Scan(&i.ID, &i.StripeSubscriptionID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

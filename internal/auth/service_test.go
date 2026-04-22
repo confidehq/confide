@@ -315,6 +315,15 @@ func (m *mockDB) DeleteCredentialsByAccount(_ context.Context, accountID string)
 	return nil
 }
 
+func (m *mockDB) DeleteAccount(_ context.Context, id string) error {
+	delete(m.accounts, id)
+	return nil
+}
+
+func (m *mockDB) ListOwnedWorkspacesForDeletion(_ context.Context, accountID string) ([]queries.ListOwnedWorkspacesForDeletionRow, error) {
+	return nil, nil
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 func newTestWA(t *testing.T) *webauthn.WebAuthn {

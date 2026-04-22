@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -31,6 +32,7 @@ type DB interface {
 	CountFormsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	CountMonthlyResponses(ctx context.Context, workspaceID string) (int64, error)
 	SetStripeCustomerID(ctx context.Context, arg queries.SetStripeCustomerIDParams) error
+	SetStripeSubscriptionID(ctx context.Context, arg queries.SetStripeSubscriptionIDParams) error
 	UpdateWorkspacePlan(ctx context.Context, arg queries.UpdateWorkspacePlanParams) error
 	GetWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID pgtype.Text) (queries.GetWorkspaceByStripeCustomerIDRow, error)
 }
@@ -141,6 +143,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 		if err != nil {
 			return "", err
 		}
+		slog.Info("Set customer ID")
 		if err := s.db.SetStripeCustomerID(ctx, queries.SetStripeCustomerIDParams{
 			ID:               workspaceID,
 			StripeCustomerID: pgtype.Text{String: c.ID, Valid: true},
@@ -199,6 +202,18 @@ func (s *Service) Portal(ctx context.Context, workspaceID, accountID, returnURL 
 	return sess.URL, nil
 }
 
+// CancelSubscription cancels an active Stripe subscription immediately.
+// Used during account deletion. No-op if stripeKey is not configured or
+// subscriptionID is empty.
+func (s *Service) CancelSubscription(ctx context.Context, subscriptionID string) error {
+	if s.stripeSecretKey == "" || subscriptionID == "" {
+		return nil
+	}
+	sc := stripe.NewClient(s.stripeSecretKey)
+	_, err := sc.V1Subscriptions.Cancel(ctx, subscriptionID, &stripe.SubscriptionCancelParams{})
+	return err
+}
+
 // HandleWebhook processes an incoming Stripe webhook event.
 // Handles: customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed.
 func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature string) error {
@@ -211,15 +226,35 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 		return err
 	}
 
+	slog.Info("Handling", "type", string(event.Type))
 	switch event.Type {
 	case "customer.subscription.created", "customer.subscription.updated":
 		return s.handleSubscriptionUpdated(ctx, event)
+	// case "checkout.session.completed":
+	// 	return s.handleCheckoutCompleted(ctx, event)
 	case "customer.subscription.deleted":
 		return s.handleSubscriptionDeleted(ctx, event)
 	case "invoice.payment_failed":
 		return s.handlePaymentFailed(ctx, event)
 	}
 	return nil
+}
+
+// handleCheckoutCompleted fires when a Stripe Checkout session completes.
+// For subscription-mode sessions this is the earliest reliable point to capture
+// the subscription ID — before customer.subscription.created arrives.
+func (s *Service) handleCheckoutCompleted(ctx context.Context, event stripe.Event) error {
+	var session stripe.CheckoutSession
+	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+		return err
+	}
+	if session.Customer == nil || session.Subscription == nil || session.Subscription.ID == "" {
+		return nil
+	}
+	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
+		StripeCustomerID:     pgtype.Text{String: session.Customer.ID, Valid: true},
+		StripeSubscriptionID: pgtype.Text{String: session.Subscription.ID, Valid: true},
+	})
 }
 
 func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Event) error {
@@ -251,10 +286,11 @@ func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Ev
 		periodEnd = pgtype.Timestamptz{Time: time.Unix(sub.Items.Data[0].CurrentPeriodEnd, 0), Valid: true}
 	}
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
-		ID:            ws.ID,
-		Plan:          plan,
-		PlanStatus:    normalisePlanStatus(string(sub.Status)),
-		PlanPeriodEnd: periodEnd,
+		ID:                   ws.ID,
+		Plan:                 plan,
+		PlanStatus:           normalisePlanStatus(string(sub.Status)),
+		PlanPeriodEnd:        periodEnd,
+		StripeSubscriptionID: pgtype.Text{String: sub.ID, Valid: sub.ID != ""},
 	})
 }
 
@@ -277,6 +313,8 @@ func (s *Service) handleSubscriptionDeleted(ctx context.Context, event stripe.Ev
 		ID:         ws.ID,
 		Plan:       "free",
 		PlanStatus: "canceled",
+		// Clear the subscription ID once deleted.
+		StripeSubscriptionID: pgtype.Text{},
 	})
 }
 
@@ -296,9 +334,10 @@ func (s *Service) handlePaymentFailed(ctx context.Context, event stripe.Event) e
 		return err
 	}
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
-		ID:         ws.ID,
-		Plan:       ws.Plan,
-		PlanStatus: "past_due",
+		ID:                   ws.ID,
+		Plan:                 ws.Plan,
+		PlanStatus:           "past_due",
+		StripeSubscriptionID: ws.StripeSubscriptionID,
 	})
 }
 

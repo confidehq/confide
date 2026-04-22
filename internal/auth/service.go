@@ -61,6 +61,8 @@ type DB interface {
 	DeleteCredential(ctx context.Context, arg queries.DeleteCredentialParams) error
 	CountCredentialsByAccount(ctx context.Context, accountID string) (int64, error)
 	DeleteCredentialsByAccount(ctx context.Context, accountID string) error
+	DeleteAccount(ctx context.Context, id string) error
+	ListOwnedWorkspacesForDeletion(ctx context.Context, accountID string) ([]queries.ListOwnedWorkspacesForDeletionRow, error)
 }
 
 // challengeEntry holds WebAuthn session data with an expiry.
@@ -866,6 +868,50 @@ func (s *Service) DeleteSession(ctx context.Context, accountID, sessionID string
 		return ErrNotFound
 	}
 	return nil
+}
+
+// ─── Account deletion ─────────────────────────────────────────────────────────
+
+// WorkspaceSubscription holds the Stripe subscription ID for a workspace that
+// had an active subscription at deletion time.
+type WorkspaceSubscription struct {
+	WorkspaceID        string
+	StripeSubscriptionID string
+}
+
+// DeleteAccount deletes the account and all its owned workspaces in a single
+// transaction. Returns the Stripe subscription IDs from owned workspaces so
+// the caller can cancel them with Stripe after the DB changes commit.
+func (s *Service) DeleteAccount(ctx context.Context, accountID string) ([]WorkspaceSubscription, error) {
+	var subs []WorkspaceSubscription
+	err := s.withTx(ctx, func(tx pgx.Tx) error {
+		q := queries.New(tx)
+
+		owned, err := q.ListOwnedWorkspacesForDeletion(ctx, accountID)
+		if err != nil {
+			return fmt.Errorf("ListOwnedWorkspacesForDeletion: %w", err)
+		}
+		for _, ws := range owned {
+			if ws.StripeSubscriptionID.Valid && ws.StripeSubscriptionID.String != "" {
+				subs = append(subs, WorkspaceSubscription{
+					WorkspaceID:        ws.ID,
+					StripeSubscriptionID: ws.StripeSubscriptionID.String,
+				})
+			}
+			if err := q.DeleteWorkspace(ctx, ws.ID); err != nil {
+				return fmt.Errorf("DeleteWorkspace(%s): %w", ws.ID, err)
+			}
+		}
+
+		if err := q.DeleteAccount(ctx, accountID); err != nil {
+			return fmt.Errorf("DeleteAccount: %w", err)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return subs, nil
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

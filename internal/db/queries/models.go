@@ -54,7 +54,7 @@ type Form struct {
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool
 	WorkspaceID             string
-	CreatedByAccountID      string
+	CreatedByAccountID      pgtype.Text
 	WorkspaceWrappedFormKey []byte
 	UseCustomDomain         bool
 }
@@ -140,7 +140,7 @@ type WorkspaceMemberKey struct {
 	AccountID           string
 	WrappedWorkspaceKey []byte
 	EphemeralPublicKey  []byte
-	GrantedByAccountID  string
+	GrantedByAccountID  pgtype.Text
 	CreatedAt           pgtype.Timestamptz
 	UpdatedAt           pgtype.Timestamptz
 }
