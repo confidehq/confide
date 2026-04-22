@@ -565,12 +565,16 @@ export async function createWorkspace(name: string, masterKey: CryptoKey): Promi
 
 /**
  * Generate and upload a workspace key for the caller's personal workspace.
- * Called once during registration after the identity key is created.
+ * No-op if the key already exists, so safe to call on every login.
  */
 export async function setupPersonalWorkspaceKey(masterKey: CryptoKey, accountId: string): Promise<void> {
 	const workspaces = await listWorkspaces();
 	const personal = workspaces.find((w) => w.role === 'owner');
 	if (!personal) return;
+
+	// Skip if a key is already in place — avoids overwriting on every login.
+	const existing = await fetch(`/api/workspaces/${personal.id}/member-key`);
+	if (existing.ok) return;
 
 	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
 	const { wrappedWorkspaceKey, ephemeralPublicKey } =

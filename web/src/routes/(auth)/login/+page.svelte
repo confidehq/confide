@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { login } from '$lib/auth';
+	import { ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
 	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
 	let error = $state<string | null>(null);
@@ -17,6 +18,11 @@
 		try {
 			const result = await login(auth.credentialId, username.trim() || undefined);
 			auth.setSession(result.masterKey, result.accountId, result.credentialId);
+			// Heal any account that never got a personal workspace key (e.g. signup
+			// interrupted before key provisioning completed). No-op if already set up.
+			ensureIdentityKey(result.masterKey)
+				.then(() => setupPersonalWorkspaceKey(result.masterKey, result.accountId))
+				.catch(() => {});
 			goto(next);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed.';
