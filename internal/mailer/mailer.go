@@ -2,8 +2,9 @@ package mailer
 
 import (
 	"fmt"
-	"log/slog"
 	"net/smtp"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Mailer sends transactional email over SMTP.
@@ -31,7 +32,7 @@ func New(host, port, user, pass, fromEmail string) *Mailer {
 // link is the full accept URL including the raw token.
 func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link string) {
 	if m.Host == "" {
-		slog.Info("mailer: SMTP not configured, skipping invitation email", "to", to)
+		log.Info().Str("to", to).Msg("mailer: SMTP not configured, skipping invitation email")
 		return
 	}
 
@@ -42,7 +43,7 @@ func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link s
 	addr := m.Host + ":" + m.Port
 	auth := smtp.PlainAuth("", m.User, m.Pass, m.Host)
 	if err := smtp.SendMail(addr, auth, m.FromEmail, []string{to}, []byte(msg)); err != nil {
-		slog.Error("mailer: failed to send invitation", "to", to, "err", err)
+		log.Error().Str("to", to).Err(err).Msg("mailer: failed to send invitation")
 	}
 }
 

@@ -9,10 +9,12 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog/log"
 )
 
 // Open creates a connection pool and runs all pending migrations.
 func Open(ctx context.Context, databaseURL string, migrationsFS fs.FS) (*pgxpool.Pool, error) {
+	log.Info().Str("url", databaseURL).Msg("initializing database connection")
 	pool, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("pgxpool.New: %w", err)

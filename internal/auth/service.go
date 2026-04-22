@@ -7,7 +7,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log/slog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
 	"sync"
@@ -124,9 +124,9 @@ func (s *Service) startSessionCleanup() {
 		defer t.Stop()
 		for range t.C {
 			if err := s.db.DeleteStaleSessions(context.Background()); err != nil {
-				slog.Error("session cleanup failed", "err", err)
+				log.Error().Err(err).Msg("session cleanup failed")
 			} else {
-				slog.Info("session cleanup complete")
+				log.Info().Msg("session cleanup complete")
 			}
 		}
 	}()

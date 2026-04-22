@@ -6,8 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
-	"log"
-	"log/slog"
+	"github.com/rs/zerolog/log"
 	"net/http"
 	"time"
 
@@ -170,7 +169,7 @@ func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 				status = http.StatusConflict
 				code = "credential_exists"
 			}
-			log.Printf("register_finish_failed: %v", err)
+			log.Error().Err(err).Msg("register_finish_failed")
 			writeError(w, status, code, safeErr(err))
 			return
 		}
@@ -248,7 +247,7 @@ func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 
 		res, err := svc.LoginFinish(r.Context(), envelope.ChallengeKey, r.Header.Get("User-Agent"), newReq)
 		if err != nil {
-			log.Printf("login_finish_failed: %v", err)
+			log.Error().Err(err).Msg("login_finish_failed")
 			status := http.StatusInternalServerError
 			if err == ErrNotFound {
 				status = http.StatusUnauthorized
@@ -535,7 +534,7 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 
 		res, err := svc.ReauthFinish(r.Context(), envelope.ChallengeKey, accountID, envelope.Purpose, newReq)
 		if err != nil {
-			log.Printf("reauth_finish_failed: %v", err)
+			log.Error().Err(err).Msg("reauth_finish_failed")
 			status := http.StatusInternalServerError
 			if err == ErrNotFound {
 				status = http.StatusUnauthorized
@@ -739,11 +738,11 @@ func deleteAccount(svc *Service, billing SubscriptionCanceller) http.HandlerFunc
 		// logged but do not affect the response — the account is already gone.
 		for _, sub := range subs {
 			if err := billing.CancelSubscription(r.Context(), sub.StripeSubscriptionID); err != nil {
-				slog.Error("failed to cancel stripe subscription after account deletion",
-					"subscriptionID", sub.StripeSubscriptionID,
-					"workspaceID", sub.WorkspaceID,
-					"err", err,
-				)
+				log.Error().
+					Str("subscriptionID", sub.StripeSubscriptionID).
+					Str("workspaceID", sub.WorkspaceID).
+					Err(err).
+					Msg("failed to cancel stripe subscription after account deletion")
 			}
 		}
 

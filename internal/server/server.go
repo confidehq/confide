@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"io/fs"
-	"log"
 	"net/http"
 	"strings"
 
@@ -23,6 +22,8 @@ import (
 	"github.com/phantompunk/confide/internal/identity"
 	"github.com/phantompunk/confide/internal/invitation"
 	"github.com/phantompunk/confide/internal/mailer"
+	"github.com/rs/zerolog/log"
+
 	mw "github.com/phantompunk/confide/internal/middleware"
 	"github.com/phantompunk/confide/internal/permission"
 	"github.com/phantompunk/confide/internal/relay"
@@ -51,7 +52,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	if cfg.TraefikDynamicDir != "" {
 		rows, err := queries.New(pool).ListAllVerifiedCustomDomains(context.Background())
 		if err != nil {
-			log.Printf("traefik: failed to load verified domains: %v", err)
+			log.Error().Err(err).Msg("traefik: failed to load verified domains")
 		}
 		initial := make([]string, 0, len(rows))
 		for _, r := range rows {
@@ -61,7 +62,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		}
 		w, err := traefik.New(cfg.TraefikDynamicDir, initial)
 		if err != nil {
-			log.Printf("traefik: failed to write initial config: %v", err)
+			log.Error().Err(err).Msg("traefik: failed to write initial config")
 		} else {
 			wsSvc.WithTraefikWriter(w)
 		}

@@ -2,8 +2,9 @@ package reaper
 
 import (
 	"context"
-	"log/slog"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Deleter is implemented by responses.Service.
@@ -16,15 +17,16 @@ type Deleter interface {
 // burn-after-reading responses. It performs one final sweep when ctx is
 // cancelled (graceful shutdown).
 func Start(ctx context.Context, d Deleter, interval time.Duration) {
+	log.Info().Dur("interval", interval).Msg("starting reaper")
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	sweep := func() {
 		if err := d.DeleteExpiredResponses(ctx); err != nil {
-			slog.Error("reaper sweep failed", "err", err)
+			log.Error().Err(err).Msg("reaper sweep failed")
 			return
 		}
-		slog.Debug("reaper sweep complete")
+		log.Debug().Msg("reaper sweep complete")
 	}
 
 	for {

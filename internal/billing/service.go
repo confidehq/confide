@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
+	"github.com/rs/zerolog/log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -143,7 +143,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 		if err != nil {
 			return "", err
 		}
-		slog.Info("Set customer ID")
+		log.Info().Msg("Set customer ID")
 		if err := s.db.SetStripeCustomerID(ctx, queries.SetStripeCustomerIDParams{
 			ID:               workspaceID,
 			StripeCustomerID: pgtype.Text{String: c.ID, Valid: true},
@@ -226,7 +226,7 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 		return err
 	}
 
-	slog.Info("Handling", "type", string(event.Type))
+	log.Info().Str("type", string(event.Type)).Msg("handling stripe event")
 	switch event.Type {
 	case "customer.subscription.created", "customer.subscription.updated":
 		return s.handleSubscriptionUpdated(ctx, event)

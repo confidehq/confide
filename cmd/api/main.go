@@ -2,23 +2,12 @@ package main
 
 import (
 	"context"
-	"log"
-	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/go-webauthn/webauthn/protocol"
-	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/rs/zerolog/log"
 
-	"github.com/phantompunk/confide/internal/config"
-	"github.com/phantompunk/confide/internal/db"
-	"github.com/phantompunk/confide/internal/reaper"
-	"github.com/phantompunk/confide/internal/relay"
-	"github.com/phantompunk/confide/internal/server"
-	"github.com/phantompunk/confide/migrations"
-	"github.com/phantompunk/confide/ui"
+	"github.com/phantompunk/confide/cmd/api/app"
 )
 
 var (
@@ -27,74 +16,18 @@ var (
 )
 
 func main() {
-	cfg, err := config.Load()
+	app.Version = version
+	app.Commit = commit
+
+	a, err := app.New()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		log.Fatal().Err(err).Msg("init failed")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	pool, err := db.Open(ctx, cfg.DatabaseURL, migrations.FS)
-	if err != nil {
-		log.Fatalf("db: %v", err)
-	}
-	defer pool.Close()
-
-	wa, err := webauthn.New(&webauthn.Config{
-		RPID:          cfg.RPID,
-		RPDisplayName: cfg.RPDisplayName,
-		RPOrigins:     []string{cfg.RPOrigin},
-		AuthenticatorSelection: protocol.AuthenticatorSelection{
-			UserVerification:   protocol.VerificationRequired,
-			ResidentKey:        protocol.ResidentKeyRequirementRequired,
-			RequireResidentKey: boolPtr(true),
-		},
-		Debug: cfg.Env == "development",
-	})
-	if err != nil {
-		log.Fatalf("webauthn: %v", err)
-	}
-
-	svc := server.NewServices(pool, wa, cfg)
-
-	// Start relay flusher and reaper — both run until ctx is cancelled on shutdown.
-	runCtx, runCancel := context.WithCancel(context.Background())
-	defer runCancel()
-	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
-	go reaper.Start(runCtx, svc.Responses, cfg.ReaperInterval)
-
-	h := server.New(cfg, svc, ui.FS, version, commit)
-
-	srv := &http.Server{
-		Addr:         cfg.BindAddr,
-		Handler:      h,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		log.Printf("listening on %s", cfg.BindAddr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server: %v", err)
-		}
-	}()
-
-	<-quit
-	log.Println("shutting down…")
-
-	// Cancel relay flusher — triggers final flush before exit.
-	runCancel()
-
-	shutCtx, shutCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutCancel()
-	if err := srv.Shutdown(shutCtx); err != nil {
-		log.Printf("shutdown: %v", err)
+	if err := a.Start(ctx); err != nil {
+		log.Fatal().Err(err).Msg("run failed")
 	}
 }
-
-func boolPtr(b bool) *bool { return &b }
