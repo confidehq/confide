@@ -41,6 +41,12 @@ func FormsDomainGate(
 			isCustom := !isFormsDomain && host != "" && host != appHost &&
 				isVerifiedCustomDomain(r.Context(), host)
 
+			// On the app domain, redirect public form pages to the forms subdomain.
+			if formsDomain != "" && host == appHost && strings.HasPrefix(r.URL.Path, "/f/") {
+				http.Redirect(w, r, "https://"+formsHost+r.URL.RequestURI(), http.StatusFound)
+				return
+			}
+
 			if !isFormsDomain && !isCustom {
 				next.ServeHTTP(w, r)
 				return
