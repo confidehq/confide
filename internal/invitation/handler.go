@@ -50,10 +50,6 @@ func createInvitation(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
-		if req.Email == "" {
-			writeError(w, http.StatusBadRequest, "invalid_field", "email is required")
-			return
-		}
 		if req.Role == "" {
 			writeError(w, http.StatusBadRequest, "invalid_field", "role is required")
 			return
@@ -168,7 +164,7 @@ func acceptInvitation(svc *Service) http.HandlerFunc {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func invitationJSON(inv Invitation) map[string]any {
-	return map[string]any{
+	m := map[string]any{
 		"id":          inv.ID,
 		"workspaceId": inv.WorkspaceID,
 		"email":       inv.Email,
@@ -176,6 +172,10 @@ func invitationJSON(inv Invitation) map[string]any {
 		"expiresAt":   inv.ExpiresAt,
 		"createdAt":   inv.CreatedAt,
 	}
+	if inv.Link != "" {
+		m["link"] = inv.Link
+	}
+	return m
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

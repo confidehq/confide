@@ -278,17 +278,18 @@ export interface WorkspaceInvitation {
 	role: 'owner' | 'admin' | 'member' | 'viewer';
 	expiresAt: string;
 	createdAt: string;
+	link?: string; // present only when created without an email
 }
 
 export async function createInvitation(
 	workspaceId: string,
-	email: string,
+	email: string | null,
 	role: string
 ): Promise<WorkspaceInvitation> {
 	const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ email, role })
+		body: JSON.stringify({ email: email ?? '', role })
 	});
 	const body = await res.json().catch(() => ({}));
 	if (!res.ok) {

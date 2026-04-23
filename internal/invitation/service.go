@@ -36,7 +36,7 @@ type DB interface {
 	GetInvitationByTokenHash(ctx context.Context, tokenHash string) (queries.GetInvitationByTokenHashRow, error)
 	ListPendingInvitations(ctx context.Context, workspaceID string) ([]queries.ListPendingInvitationsRow, error)
 	DeleteInvitation(ctx context.Context, arg queries.DeleteInvitationParams) error
-	AcceptInvitation(ctx context.Context, id string) error
+	DeleteAllExpiredInvitations(ctx context.Context) error
 
 	GetWorkspaceByID(ctx context.Context, id string) (queries.GetWorkspaceByIDRow, error)
 	GetWorkspaceMember(ctx context.Context, arg queries.GetWorkspaceMemberParams) (queries.WorkspaceMember, error)
@@ -73,6 +73,8 @@ type Invitation struct {
 	Role        string
 	ExpiresAt   string
 	CreatedAt   string
+	// Link is the invite URL, populated only when Create is called without an email.
+	Link string
 }
 
 // InvitationPreview is the public view returned by Resolve (no email).
@@ -133,19 +135,24 @@ func (s *Service) Create(ctx context.Context, workspaceID, callerRole, callerAcc
 	}
 
 	link := fmt.Sprintf("%s/invite/%s", s.appDomain, rawToken)
-	go s.mailer.SendInvitation(email, ws.Name, callerRole, role, link)
 
-	return Invitation{
+	out := Invitation{
 		ID:          inv.ID,
 		WorkspaceID: inv.WorkspaceID,
 		Email:       inv.Email,
 		Role:        inv.Role,
 		ExpiresAt:   inv.ExpiresAt.Time.Format(time.RFC3339),
 		CreatedAt:   inv.CreatedAt.Time.Format(time.RFC3339),
-	}, nil
+	}
+	if email != "" {
+		go s.mailer.SendInvitation(email, ws.Name, callerRole, role, link)
+	} else {
+		out.Link = link
+	}
+	return out, nil
 }
 
-// List returns pending (unaccepted, unexpired) invitations for a workspace.
+// List returns pending (unexpired) invitations for a workspace.
 // Caller role is enforced by middleware.
 func (s *Service) List(ctx context.Context, workspaceID string) ([]Invitation, error) {
 	rows, err := s.db.ListPendingInvitations(ctx, workspaceID)
@@ -164,6 +171,11 @@ func (s *Service) List(ctx context.Context, workspaceID string) ([]Invitation, e
 		}
 	}
 	return out, nil
+}
+
+// DeleteExpiredInvitations hard-deletes all expired invitation rows. Called by the reaper.
+func (s *Service) DeleteExpiredInvitations(ctx context.Context) error {
+	return s.db.DeleteAllExpiredInvitations(ctx)
 }
 
 // Revoke deletes a pending invitation. Caller role is enforced by middleware.
@@ -188,7 +200,7 @@ func (s *Service) Resolve(ctx context.Context, rawToken string) (InvitationPrevi
 		}
 		return InvitationPreview{}, err
 	}
-	if row.AcceptedAt.Valid || time.Now().After(row.ExpiresAt.Time) {
+	if time.Now().After(row.ExpiresAt.Time) {
 		return InvitationPreview{}, ErrExpired
 	}
 	return InvitationPreview{
@@ -214,7 +226,7 @@ func (s *Service) Accept(ctx context.Context, rawToken, accountID string) error 
 		}
 		return err
 	}
-	if row.AcceptedAt.Valid || time.Now().After(row.ExpiresAt.Time) {
+	if time.Now().After(row.ExpiresAt.Time) {
 		return ErrExpired
 	}
 
@@ -237,7 +249,10 @@ func (s *Service) Accept(ctx context.Context, rawToken, accountID string) error 
 	}); err != nil {
 		return err
 	}
-	return s.db.AcceptInvitation(ctx, row.ID)
+	return s.db.DeleteInvitation(ctx, queries.DeleteInvitationParams{
+		ID:          row.ID,
+		WorkspaceID: row.WorkspaceID,
+	})
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

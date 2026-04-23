@@ -73,7 +73,7 @@ func New() (*App, error) {
 
 	runCtx, runCancel := context.WithCancel(context.Background())
 	go relay.StartFlusher(runCtx, svc.RelayQ, svc.Responses, cfg.RelayFlushInterval)
-	go reaper.Start(runCtx, svc.Responses, cfg.ReaperInterval)
+	go reaper.Start(runCtx, &combinedDeleter{svc.Responses, svc.Invitation}, cfg.ReaperInterval)
 
 	h := server.New(cfg, svc, ui.FS, Version, Commit)
 
@@ -118,3 +118,16 @@ func (a *App) Start(ctx context.Context) error {
 }
 
 func boolPtr(b bool) *bool { return &b }
+
+type combinedDeleter struct {
+	responses  interface{ DeleteExpiredResponses(context.Context) error }
+	invitation interface{ DeleteExpiredInvitations(context.Context) error }
+}
+
+func (c *combinedDeleter) DeleteExpiredResponses(ctx context.Context) error {
+	return c.responses.DeleteExpiredResponses(ctx)
+}
+
+func (c *combinedDeleter) DeleteExpiredInvitations(ctx context.Context) error {
+	return c.invitation.DeleteExpiredInvitations(ctx)
+}

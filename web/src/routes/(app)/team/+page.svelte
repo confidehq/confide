@@ -9,7 +9,7 @@
 		WorkspaceError,
 		type WorkspaceMember, type WorkspaceInvitation
 	} from '$lib/workspaces';
-	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound } from '@lucide/svelte';
+	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	// ─── Invite form state ───────────────────────────────────────────────────────
@@ -21,6 +21,8 @@
 	let inviteError = $state('');
 	let invitePlanLimit = $state(false);
 	let inviteSuccess = $state('');
+	let inviteLink = $state('');
+	let linkCopied = $state(false);
 
 	// ─── Revoke / actions state ──────────────────────────────────────────────────
 
@@ -59,6 +61,8 @@
 		inviteError = '';
 		invitePlanLimit = false;
 		inviteSuccess = '';
+		inviteLink = '';
+		linkCopied = false;
 		showInviteForm = true;
 	}
 
@@ -68,11 +72,18 @@
 		inviteError = '';
 		invitePlanLimit = false;
 		inviteSuccess = '';
+		inviteLink = '';
+		linkCopied = false;
+	}
+
+	async function copyLink() {
+		await navigator.clipboard.writeText(inviteLink);
+		linkCopied = true;
+		setTimeout(() => (linkCopied = false), 2000);
 	}
 
 	async function handleInvite() {
-		const email = inviteEmail.trim();
-		if (!email) return;
+		const email = inviteEmail.trim() || null;
 		const ws = workspacesStore.active;
 		if (!ws) return;
 
@@ -80,11 +91,17 @@
 		inviteError = '';
 		invitePlanLimit = false;
 		inviteSuccess = '';
+		inviteLink = '';
+		linkCopied = false;
 
 		try {
 			const inv = await createInvitation(ws.id, email, inviteRole);
 			teamStore.addInvitation(inv);
-			inviteSuccess = `Invitation sent to ${email}`;
+			if (inv.link) {
+				inviteLink = inv.link;
+			} else {
+				inviteSuccess = `Invitation sent to ${email}`;
+			}
 			inviteEmail = '';
 		} catch (e) {
 			if (e instanceof WorkspaceError && e.code === 'plan_limit') {
@@ -281,7 +298,7 @@
 			<div class="flex flex-col sm:flex-row gap-3">
 				<!-- Email -->
 				<div class="flex-1 min-w-0">
-					<label class="block text-xs text-muted-mid mb-1.5 uppercase tracking-wider">Email address</label>
+					<label class="block text-xs text-muted-mid mb-1.5 uppercase tracking-wider">Email address <span class="normal-case opacity-60">(optional)</span></label>
 					<div class="relative">
 						<span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-mid pointer-events-none">
 							<Mail size={14} strokeWidth={1.75} />
@@ -327,6 +344,34 @@
 				{/if}
 			</p>
 
+			{#if inviteLink}
+				<div class="mt-4">
+					<p class="mb-2 text-xs text-success-text-dark">Invite link generated — share it directly:</p>
+					<div class="flex items-center gap-2">
+						<input
+							type="text"
+							readonly
+							value={inviteLink}
+							class="input-base flex-1 text-xs py-2 pr-3 pl-3 select-all"
+							onclick={e => (e.target as HTMLInputElement).select()}
+						/>
+						<button
+							onclick={copyLink}
+							class="shrink-0 flex items-center gap-1.5 px-3 py-2 border rounded cursor-pointer font-mono text-xs transition-colors duration-100
+								{linkCopied
+									? 'bg-success-bg-deep text-success-text-dark border-success-text'
+									: 'bg-transparent text-muted-dim border-border-deep hover:text-text-body hover:border-border-subtle'}"
+						>
+							{#if linkCopied}
+								<Check size={12} strokeWidth={2} />Copied
+							{:else}
+								<Copy size={12} strokeWidth={1.75} />Copy
+							{/if}
+						</button>
+					</div>
+				</div>
+			{/if}
+
 			{#if invitePlanLimit}
 				<p class="mt-3 mb-0 text-xs text-warning-text">
 					Member limit reached for your current plan.
@@ -344,10 +389,18 @@
 			<div class="flex gap-2 mt-4">
 				<button
 					onclick={handleInvite}
-					disabled={inviting || !inviteEmail.trim()}
-					class="px-4 py-2 text-white border-none rounded cursor-pointer font-mono text-sm transition-colors duration-100
-						{inviting || !inviteEmail.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
-				>{inviting ? 'Sending…' : 'Send invite'}</button>
+					disabled={inviting}
+					class="flex items-center gap-2 px-4 py-2 text-white border-none rounded cursor-pointer font-mono text-sm transition-colors duration-100
+						{inviting ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
+				>
+					{#if inviting}
+						{inviteEmail.trim() ? 'Sending…' : 'Generating…'}
+					{:else if inviteEmail.trim()}
+						<Mail size={13} strokeWidth={1.75} />Send invite
+					{:else}
+						<Link size={13} strokeWidth={1.75} />Generate link
+					{/if}
+				</button>
 				<button
 					onclick={closeInviteForm}
 					class="px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded cursor-pointer font-mono text-sm hover:text-text-body hover:border-border-subtle transition-colors duration-100"
@@ -577,7 +630,11 @@
 				{#each invitations as inv (inv.id)}
 					<div class="flex items-center justify-between gap-3 px-4 py-3 border border-border-deep rounded-lg">
 						<div class="min-w-0">
-							<p class="m-0 text-sm text-text-body truncate">{inv.email}</p>
+							{#if inv.email}
+								<p class="m-0 text-sm text-text-body truncate">{inv.email}</p>
+							{:else}
+								<p class="m-0 text-sm text-muted-dim truncate inline-flex items-center gap-1.5"><Link size={12} strokeWidth={1.75} />Link invite</p>
+							{/if}
 							<p class="m-0 text-xs text-muted-mid mt-0.5 capitalize">{inv.role} · {formatExpiry(inv.expiresAt)}</p>
 						</div>
 						<button
@@ -604,7 +661,13 @@
 					<tbody>
 						{#each invitations as inv (inv.id)}
 							<tr class="border-b border-border-deep last:border-b-0">
-								<td class="px-4 py-3 text-text-body">{inv.email}</td>
+								<td class="px-4 py-3">
+										{#if inv.email}
+											<span class="text-text-body">{inv.email}</span>
+										{:else}
+											<span class="text-muted-dim inline-flex items-center gap-1.5"><Link size={12} strokeWidth={1.75} />Link invite</span>
+										{/if}
+									</td>
 								<td class="px-4 py-3">
 									<span class="px-2.5 py-0.5 rounded-full text-xs text-muted-dim border border-border-deep capitalize">{inv.role}</span>
 								</td>

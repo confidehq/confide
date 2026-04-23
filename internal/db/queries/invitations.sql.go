@@ -11,15 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const acceptInvitation = `-- name: AcceptInvitation :exec
-UPDATE workspace_invitations SET accepted_at = NOW(), updated_at = NOW() WHERE id = $1
-`
-
-func (q *Queries) AcceptInvitation(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, acceptInvitation, id)
-	return err
-}
-
 const createInvitation = `-- name: CreateInvitation :one
 INSERT INTO workspace_invitations (id, workspace_id, invited_by_account_id, email, role, token_hash, expires_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -67,6 +58,15 @@ func (q *Queries) CreateInvitation(ctx context.Context, arg CreateInvitationPara
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const deleteAllExpiredInvitations = `-- name: DeleteAllExpiredInvitations :exec
+DELETE FROM workspace_invitations WHERE expires_at <= NOW()
+`
+
+func (q *Queries) DeleteAllExpiredInvitations(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, deleteAllExpiredInvitations)
+	return err
 }
 
 const deleteInvitation = `-- name: DeleteInvitation :exec
@@ -127,7 +127,7 @@ func (q *Queries) GetInvitationByTokenHash(ctx context.Context, tokenHash string
 const listPendingInvitations = `-- name: ListPendingInvitations :many
 SELECT id, email, role, expires_at, created_at
 FROM workspace_invitations
-WHERE workspace_id = $1 AND accepted_at IS NULL AND expires_at > NOW()
+WHERE workspace_id = $1 AND expires_at > NOW()
 ORDER BY created_at DESC
 `
 

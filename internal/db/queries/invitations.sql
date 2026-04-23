@@ -15,11 +15,11 @@ WHERE wi.token_hash = $1;
 -- name: ListPendingInvitations :many
 SELECT id, email, role, expires_at, created_at
 FROM workspace_invitations
-WHERE workspace_id = $1 AND accepted_at IS NULL AND expires_at > NOW()
+WHERE workspace_id = $1 AND expires_at > NOW()
 ORDER BY created_at DESC;
 
 -- name: DeleteInvitation :exec
 DELETE FROM workspace_invitations WHERE id = $1 AND workspace_id = $2;
 
--- name: AcceptInvitation :exec
-UPDATE workspace_invitations SET accepted_at = NOW(), updated_at = NOW() WHERE id = $1;
+-- name: DeleteAllExpiredInvitations :exec
+DELETE FROM workspace_invitations WHERE expires_at <= NOW();
