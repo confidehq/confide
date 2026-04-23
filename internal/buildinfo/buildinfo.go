@@ -7,8 +7,15 @@ import (
 
 // Version returns the version and short commit hash of the current build.
 // Falls back to "dev" and "unknown" for local builds.
-func Version() (version, commit string) {
-	version, commit = "dev", "unknown"
+func Version(appversion, appcommit string) (version, commit string) {
+	version, commit = appversion, appcommit
+
+	if commit != "unknown" {
+		if len(commit) > 7 {
+			commit = commit[:7]
+		}
+		return
+	}
 
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
@@ -34,4 +41,3 @@ func Version() (version, commit string) {
 
 	return
 }
-

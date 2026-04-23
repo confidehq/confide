@@ -11,8 +11,13 @@ import (
 	"github.com/phantompunk/confide/internal/buildinfo"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
-	app.Version, app.Commit = buildinfo.Version()
+	app.Version, app.Commit = buildinfo.Version(version, commit)
 
 	a, err := app.New()
 	if err != nil {
