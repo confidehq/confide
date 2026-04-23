@@ -8,7 +8,11 @@
 		ShieldCheck,
 		Smartphone,
 		Monitor,
-		LayoutGrid
+		LayoutGrid,
+		ShieldAlert,
+		Copy,
+		Check,
+		RefreshCw
 	} from '@lucide/svelte';
 	import {
 		listCredentials,
@@ -18,7 +22,9 @@
 		addCredential,
 		listSessions,
 		revokeSession,
-		deleteAccount
+		deleteAccount,
+		rotateRecoveryCode,
+		reauthenticate
 	} from '$lib/auth';
 	import type { CredentialSummary, SessionInfo } from '$lib/types/auth';
 	import { auth } from '$lib/stores/auth.svelte';
@@ -184,6 +190,39 @@
 		}
 	}
 
+	// ─── Recovery codes ───────────────────────────────────────────────────────────
+
+	let recoveryDialogOpen = $state(false);
+	let recoveryCode = $state<string | null>(null);
+	let generatingCode = $state(false);
+	let codeGenError = $state<string | null>(null);
+	let codeCopied = $state(false);
+
+	async function handleGenerateRecoveryCode() {
+		generatingCode = true;
+		codeGenError = null;
+		try {
+			let mk = auth.masterKey;
+			if (!mk) {
+				const result = await reauthenticate();
+				mk = result.masterKey;
+				auth.setSession(mk, result.accountId, result.credentialId);
+			}
+			recoveryCode = await rotateRecoveryCode(mk);
+		} catch (err) {
+			codeGenError = err instanceof Error ? err.message : 'Failed to generate recovery code.';
+		} finally {
+			generatingCode = false;
+		}
+	}
+
+	async function copyCode() {
+		if (!recoveryCode) return;
+		await navigator.clipboard.writeText(recoveryCode);
+		codeCopied = true;
+		setTimeout(() => (codeCopied = false), 2000);
+	}
+
 	// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 	function isMobile(ua: string | undefined): boolean {
@@ -234,6 +273,102 @@
 	onconfirm={handleDeleteAccount}
 	oncancel={() => { showDeleteAccountConfirm = false; deleteAccountError = ''; }}
 />
+
+<!-- Recovery code dialog -->
+{#if recoveryDialogOpen}
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center p-4"
+		style="background: var(--color-overlay); backdrop-filter: blur(2px);"
+		onclick={(e) => { if (e.target === e.currentTarget) { recoveryDialogOpen = false; } }}
+		onkeydown={(e) => { if (e.key === 'Escape') recoveryDialogOpen = false; }}
+		role="presentation"
+	>
+		<div
+			class="font-mono w-full max-w-md flex flex-col gap-5"
+			style="background: var(--color-surface-subtle); border: 1px solid var(--color-border-deep); border-radius: 10px; padding: 1.5rem; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.7);"
+			role="dialog"
+			aria-modal="true"
+			aria-labelledby="recovery-dialog-title"
+		>
+			<!-- Header -->
+			<div class="flex items-center justify-between gap-3">
+				<div class="flex items-center gap-2.5">
+					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-surface-deep border border-border">
+						<ShieldAlert size={14} strokeWidth={1.75} class="text-muted-dim" />
+					</span>
+					<h2 id="recovery-dialog-title" class="m-0 text-base font-semibold text-text-bright">Recovery Code</h2>
+				</div>
+				<button
+					onclick={() => { recoveryDialogOpen = false; }}
+					class="p-1.5 text-muted-dim hover:text-muted-blue bg-transparent border-none cursor-pointer rounded transition-colors duration-100"
+					aria-label="Close"
+				>×</button>
+			</div>
+
+			{#if recoveryCode}
+				<!-- Code is generated — show it prominently -->
+				<p class="m-0 text-sm text-muted-dim leading-relaxed">
+					Store this code somewhere safe. If you lose all your passkeys, this is your only way back into your account.
+				</p>
+
+				<div class="flex flex-col gap-2">
+					<div
+						class="px-4 py-4 rounded-lg border border-border-deep select-all font-mono text-sm text-text-body break-all leading-loose"
+						style="background: var(--color-surface-deep); letter-spacing: 0.05em;"
+					>
+						{recoveryCode}
+					</div>
+					<button
+						onclick={copyCode}
+						class="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
+							{codeCopied
+								? 'bg-success-bg border-success-border text-success-text-dark'
+								: 'bg-transparent border-border-deep text-muted-dim hover:text-text-body hover:border-border-subtle'}"
+					>
+						{#if codeCopied}
+							<Check size={13} strokeWidth={2} />
+							Copied
+						{:else}
+							<Copy size={13} strokeWidth={1.75} />
+							Copy to clipboard
+						{/if}
+					</button>
+				</div>
+
+				<p class="m-0 text-xs text-muted-mid leading-relaxed">
+					This code replaces any previous recovery code. Write it down or store it in a password manager — it won't be shown again.
+				</p>
+			{:else}
+				<!-- No code generated yet -->
+				<p class="m-0 text-sm text-muted-dim leading-relaxed">
+					Recovery codes let you regain access to your account if you lose all your passkeys. Generate one and keep it somewhere safe.
+				</p>
+			{/if}
+
+			{#if codeGenError}
+				<p class="m-0 text-sm text-error-light">{codeGenError}</p>
+			{/if}
+
+			<div class="h-px bg-border-deep"></div>
+
+			<button
+				onclick={handleGenerateRecoveryCode}
+				disabled={generatingCode}
+				class="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
+					bg-transparent border-border-deep text-muted-dim hover:text-text-body hover:border-border-subtle
+					disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				{#if generatingCode}
+					Generating…
+				{:else}
+					<RefreshCw size={13} strokeWidth={1.75} />
+					{recoveryCode ? 'Generate fresh recovery code' : 'Generate recovery code'}
+				{/if}
+			</button>
+		</div>
+	</div>
+{/if}
 
 <div class="flex justify-center w-full">
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
@@ -524,6 +659,33 @@
 						{/each}
 					</div>
 				{/if}
+			</div>
+
+			<!-- Recovery -->
+			<div>
+				<div class="flex items-center justify-between mb-3">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
+						<span class="inline-flex items-center gap-2">
+							<ShieldAlert size={14} strokeWidth={1.75} />
+							Recovery
+						</span>
+					</h2>
+				</div>
+
+				<div class="border border-border-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+					<div>
+						<p class="m-0 text-base text-text-body">Recovery codes</p>
+						<p class="m-0 mt-0.5 text-sm text-muted-dim">Use a recovery code to regain access if you lose all your passkeys.</p>
+					</div>
+					<button
+						onclick={() => { recoveryDialogOpen = true; codeGenError = null; }}
+						class="shrink-0 px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded
+							cursor-pointer font-mono text-base hover:text-text-body hover:border-border-subtle
+							transition-colors duration-100"
+					>
+						View
+					</button>
+				</div>
 			</div>
 
 		</div>

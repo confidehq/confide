@@ -39,7 +39,7 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 	r.Post("/login/finish", loginFinish(svc, dev))
 	r.With(mw.RecoveryRateLimit(recoveryHMACKey)).Post("/recover", recover_(svc))
 	r.Post("/recover/rekey/begin", rekeyBegin(svc))
-	r.Post("/recover/rekey/finish", rekeyFinish(svc))
+	r.Post("/recover/rekey/finish", rekeyFinish(svc, dev))
 
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
@@ -55,6 +55,7 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 		r.Get("/credentials", listCredentials(svc))
 		r.Patch("/credentials/{id}", renameCredential(svc))
 		r.Delete("/credentials/{id}", deleteCredential(svc))
+		r.Post("/recovery-code/rotate", rotateRecoveryCodes(svc))
 		r.Delete("/account", deleteAccount(svc, billing))
 	})
 
@@ -295,21 +296,22 @@ func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 func recover_(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			AccountID string `json:"accountId"`
-			Code      string `json:"code"`
+			Username string `json:"username"`
+			Code     string `json:"code"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "accountId and code required")
+			writeError(w, http.StatusBadRequest, "invalid_request", "username and code required")
 			return
 		}
 
-		res, err := svc.Recover(r.Context(), req.AccountID, req.Code)
+		res, err := svc.Recover(r.Context(), req.Username, req.Code)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid_code", "invalid or expired recovery code")
 			return
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
+			"accountId":                res.AccountID,
 			"recoveryWrappedMasterKey": base64.StdEncoding.EncodeToString(res.RecoveryWrappedMaster),
 			"rekeyToken":               res.RekeyToken,
 		})
@@ -341,7 +343,7 @@ func rekeyBegin(svc *Service) http.HandlerFunc {
 	}
 }
 
-func rekeyFinish(svc *Service) http.HandlerFunc {
+func rekeyFinish(svc *Service, dev bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -414,7 +416,7 @@ func rekeyFinish(svc *Service) http.HandlerFunc {
 			RecoveryCodes:         codeHashes,
 		}
 
-		credentialIDBase64, err := svc.RekeyFinish(r.Context(), svcReq, newReq)
+		res, err := svc.RekeyFinish(r.Context(), svcReq, r.Header.Get("User-Agent"), newReq)
 		if err != nil {
 			status := http.StatusInternalServerError
 			code := "rekey_finish_failed"
@@ -426,7 +428,8 @@ func rekeyFinish(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		writeJSON(w, http.StatusOK, map[string]any{"credentialIdBase64": credentialIDBase64})
+		setSessionCookie(w, res.SessionToken, dev)
+		writeJSON(w, http.StatusOK, map[string]any{"credentialIdBase64": res.CredentialIDBase64})
 	}
 }
 
@@ -743,6 +746,59 @@ func deleteCredential(svc *Service) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ─── Recovery Code Rotation ────────────────────────────────────────────────────
+
+func rotateRecoveryCodes(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		var req struct {
+			RecoveryWrappedMaster string   `json:"recoveryWrappedMasterKey"`
+			RecoveryVerifier      string   `json:"recoveryVerifier"`
+			RecoveryCodes         []string `json:"recoveryCodes"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		rwmk, err := base64.StdEncoding.DecodeString(req.RecoveryWrappedMaster)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "recoveryWrappedMasterKey must be base64")
+			return
+		}
+		rv, err := base64.StdEncoding.DecodeString(req.RecoveryVerifier)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "recoveryVerifier must be base64")
+			return
+		}
+		if len(req.RecoveryCodes) != 12 {
+			writeError(w, http.StatusBadRequest, "invalid_field", "expected 12 recoveryCodes")
+			return
+		}
+		codeHashes := make([][]byte, 12)
+		for i, c := range req.RecoveryCodes {
+			h, err := base64.StdEncoding.DecodeString(c)
+			if err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_field", "recoveryCodes must be base64")
+				return
+			}
+			codeHashes[i] = h
+		}
+
+		svcReq := &RotateRecoveryCodesRequest{
+			RecoveryWrappedMaster: rwmk,
+			RecoveryVerifier:      rv,
+			RecoveryCodes:         codeHashes,
+		}
+		if err := svc.RotateRecoveryCodes(r.Context(), accountID, svcReq); err != nil {
+			writeError(w, http.StatusInternalServerError, "rotate_failed", "failed to rotate recovery codes")
+			return
+		}
+		writeJSON(w, http.StatusOK, struct{}{})
 	}
 }
 

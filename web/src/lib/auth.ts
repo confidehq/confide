@@ -344,21 +344,22 @@ export async function reauthenticate(): Promise<LoginResult> {
 
 export interface RecoverResult {
 	masterKey: CryptoKey;
+	accountId: string;
 	rekeyToken: string;
 }
 
 /**
- * Recover a master key using the single recovery code string.
+ * Recover a master key using username + recovery code.
  *
  * Parses the GHRK-XXXX-...-XXXX string into 12 segments.
  * Sends the first segment to the server (which burns it).
  * Derives the recovery key from all 12 segments locally and unwraps.
  */
-export async function recover(accountId: string, recoveryCode: string): Promise<RecoverResult> {
+export async function recover(username: string, recoveryCode: string): Promise<RecoverResult> {
 	const segments = parseRecoveryCode(recoveryCode);
 
 	const res = await apiPost<RecoverResponse>('/api/auth/recover', {
-		accountId,
+		username,
 		code: segments[0] // first segment is burned server-side
 	});
 
@@ -368,7 +369,7 @@ export async function recover(accountId: string, recoveryCode: string): Promise<
 		recoveryKey
 	);
 
-	return { masterKey, rekeyToken: res.rekeyToken };
+	return { masterKey, accountId: res.accountId, rekeyToken: res.rekeyToken };
 }
 
 // ─── Rekey ────────────────────────────────────────────────────────────────────
@@ -548,4 +549,32 @@ export async function deleteCredential(id: string): Promise<void> {
 
 export async function deleteAccount(): Promise<void> {
 	return apiDelete('/api/auth/account');
+}
+
+// ─── Recovery Code Rotation ───────────────────────────────────────────────────
+
+/**
+ * Generate a fresh recovery code and register it with the server.
+ * The existing recovery codes are invalidated and replaced atomically.
+ * Returns the new GHRK-XXXX-…-XXXX recovery code string for the caller to save.
+ */
+export async function rotateRecoveryCode(masterKey: CryptoKey): Promise<string> {
+	const recoveryCode = generateRecoveryCode();
+	const segments = parseRecoveryCode(recoveryCode);
+	const recoveryKey = await deriveRecoveryKey(segments);
+	const recoveryWrappedMasterKey = await wrapKey(masterKey, recoveryKey);
+
+	const enc = new TextEncoder();
+	const recoveryVerifier = await hashForVerification(enc.encode(segments.join('')));
+	const codeHashes = await Promise.all(
+		segments.map((seg) => hashForVerification(enc.encode(seg)))
+	);
+
+	await apiPost<Record<string, never>>('/api/auth/recovery-code/rotate', {
+		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
+		recoveryVerifier: bufToBase64(recoveryVerifier),
+		recoveryCodes: codeHashes.map((h) => bufToBase64(h))
+	});
+
+	return recoveryCode;
 }

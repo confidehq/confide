@@ -51,6 +51,7 @@ export interface CredentialSummary {
 }
 
 export interface RecoverResponse {
+	accountId: string;
 	recoveryWrappedMasterKey: string; // base64 standard
 	rekeyToken: string;
 }

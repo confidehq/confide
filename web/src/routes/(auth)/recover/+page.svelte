@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import { recover, rekey } from '$lib/auth';
 
 	type Step = 'enter-code' | 'rekey' | 'success';
@@ -9,17 +10,18 @@
 	let error = $state<string | null>(null);
 	let loading = $state(false);
 
-	let accountId = $state('');
+	let username = $state('');
 	let recoveryCode = $state('');
 
 	// Held between steps
 	let recoveredMasterKey = $state<CryptoKey | null>(null);
+	let recoveredAccountId = $state('');
 	let rekeyToken = $state('');
 
 	async function handleRecover() {
 		error = null;
-		if (!accountId.trim()) {
-			error = 'Account ID is required.';
+		if (!username.trim()) {
+			error = 'Username is required.';
 			return;
 		}
 		if (!recoveryCode.trim()) {
@@ -28,12 +30,13 @@
 		}
 		loading = true;
 		try {
-			const result = await recover(accountId.trim(), recoveryCode.trim());
+			const result = await recover(username.trim(), recoveryCode.trim());
 			recoveredMasterKey = result.masterKey;
+			recoveredAccountId = result.accountId;
 			rekeyToken = result.rekeyToken;
 			step = 'rekey';
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Recovery failed. Check your account ID and code.';
+			error = err instanceof Error ? err.message : 'Recovery failed. Check your username and code.';
 		} finally {
 			loading = false;
 		}
@@ -45,7 +48,8 @@
 		loading = true;
 		try {
 			const result = await rekey(recoveredMasterKey, rekeyToken);
-			auth.setSession(recoveredMasterKey, accountId.trim(), result.credentialId);
+			workspacesStore.clear();
+			auth.setSession(recoveredMasterKey, recoveredAccountId, result.credentialId);
 			step = 'success';
 			setTimeout(() => goto('/dashboard'), 1500);
 		} catch (err) {
@@ -65,15 +69,15 @@
 
 	{#if step === 'enter-code'}
 		<p class="text-muted text-sm mb-8">
-			Enter your account ID and recovery code to regain access.
+			Enter your username and recovery code to regain access.
 		</p>
 
 		<div class="mb-4">
-			<label class="block text-muted text-xs mb-1">Account ID</label>
+			<label class="block text-muted text-xs mb-1">Username</label>
 			<input
 				type="text"
-				bind:value={accountId}
-				placeholder="Your account ID"
+				bind:value={username}
+				placeholder="Your username"
 				class="input-base py-2.5 px-3 text-sm"
 			/>
 		</div>

@@ -147,39 +147,54 @@ type RekeyFinishRequest struct {
 	RecoveryCodes         [][]byte `json:"recoveryCodes"` // 12 × SHA-256 hashes
 }
 
-func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *http.Request) (string, error) {
+type RekeyFinishResult struct {
+	CredentialIDBase64 string
+	SessionToken       string // raw token; caller sets the session cookie
+}
+
+func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, userAgent string, r *http.Request) (*RekeyFinishResult, error) {
 	accountID, ok := s.rekeys.consume(req.RekeyToken)
 	if !ok {
-		return "", fmt.Errorf("invalid or expired rekey token")
+		return nil, fmt.Errorf("invalid or expired rekey token")
 	}
 
 	account, err := s.db.GetAccountByID(ctx, accountID)
 	if err != nil {
-		return "", ErrNotFound
+		return nil, ErrNotFound
 	}
 
 	sd, ok := s.challenges.take("rekey:" + accountID)
 	if !ok {
-		return "", fmt.Errorf("challenge not found or expired")
+		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
 	user := accountToWAUser(account)
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
-		return "", fmt.Errorf("FinishRegistration: %w", err)
+		return nil, fmt.Errorf("FinishRegistration: %w", err)
 	}
 
 	if len(req.RecoveryCodes) != 12 {
-		return "", fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
+		return nil, fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
 	}
 
 	credRowID, err := randomBase64URL(16)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	// Wipe all existing credentials, insert the single new one, update recovery
-	// data, and replace recovery codes — all in one transaction.
+	token, tokenHash, err := newSessionToken()
+	if err != nil {
+		return nil, err
+	}
+	sessionID, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+
+	// Wipe all existing credentials and sessions, insert the single new credential,
+	// update recovery data, replace recovery codes, and create a fresh session —
+	// all in one transaction.
 	err = s.withTx(ctx, func(tx pgx.Tx) error {
 		q := queries.New(tx)
 
@@ -230,11 +245,74 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, r *h
 		if _, err := q.CreateRecoveryCodes(ctx, codes); err != nil {
 			return fmt.Errorf("CreateRecoveryCodes: %w", err)
 		}
+
+		if _, err := q.CreateSession(ctx, queries.CreateSessionParams{
+			ID:           sessionID,
+			AccountID:    accountID,
+			TokenHash:    tokenHash,
+			CredentialID: cred.ID,
+			UserAgent:    userAgent,
+		}); err != nil {
+			return fmt.Errorf("CreateSession: %w", err)
+		}
+
 		return nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return base64.StdEncoding.EncodeToString(cred.ID), nil
+	return &RekeyFinishResult{
+		CredentialIDBase64: base64.StdEncoding.EncodeToString(cred.ID),
+		SessionToken:       token,
+	}, nil
+}
+
+// ─── Rotate Recovery Codes ────────────────────────────────────────────────────
+
+type RotateRecoveryCodesRequest struct {
+	RecoveryWrappedMaster []byte
+	RecoveryVerifier      []byte
+	RecoveryCodes         [][]byte // 12 × SHA-256 hashes
+}
+
+func (s *Service) RotateRecoveryCodes(ctx context.Context, accountID string, req *RotateRecoveryCodesRequest) error {
+	if len(req.RecoveryCodes) != 12 {
+		return fmt.Errorf("expected 12 recovery code hashes, got %d", len(req.RecoveryCodes))
+	}
+	return s.withTx(ctx, func(tx pgx.Tx) error {
+		q := queries.New(tx)
+
+		if err := q.UpdateAccountRecovery(ctx, queries.UpdateAccountRecoveryParams{
+			ID:                    accountID,
+			RecoveryWrappedMaster: req.RecoveryWrappedMaster,
+			RecoveryVerifier:      req.RecoveryVerifier,
+		}); err != nil {
+			return fmt.Errorf("UpdateAccountRecovery: %w", err)
+		}
+
+		if err := q.DeleteRecoveryCodesByAccount(ctx, accountID); err != nil {
+			return fmt.Errorf("DeleteRecoveryCodesByAccount: %w", err)
+		}
+
+		now := pgtype.Timestamptz{Time: time.Now().UTC(), Valid: true}
+		codes := make([]queries.CreateRecoveryCodesParams, 12)
+		for i, hash := range req.RecoveryCodes {
+			codeID, err := randomBase64URL(16)
+			if err != nil {
+				return err
+			}
+			codes[i] = queries.CreateRecoveryCodesParams{
+				ID:        codeID,
+				AccountID: accountID,
+				CodeHash:  hash,
+				Used:      false,
+				CreatedAt: now,
+			}
+		}
+		if _, err := q.CreateRecoveryCodes(ctx, codes); err != nil {
+			return fmt.Errorf("CreateRecoveryCodes: %w", err)
+		}
+		return nil
+	})
 }

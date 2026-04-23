@@ -790,16 +790,22 @@ func (s *Service) DeleteCredential(ctx context.Context, accountID, credID string
 // ─── Recovery ─────────────────────────────────────────────────────────────────
 
 type RecoverResult struct {
+	AccountID             string
 	RecoveryWrappedMaster []byte
 	RekeyToken            string // short-lived proof-of-recovery token
 }
 
-func (s *Service) Recover(ctx context.Context, accountID, code string) (*RecoverResult, error) {
+func (s *Service) Recover(ctx context.Context, username, code string) (*RecoverResult, error) {
+	account, err := s.db.GetAccountByUsername(ctx, pgtype.Text{String: username, Valid: true})
+	if err != nil {
+		return nil, ErrInvalidCode // don't leak whether the username exists
+	}
+
 	normalised := strings.ToUpper(strings.ReplaceAll(code, "-", ""))
 	hash := sha256Sum([]byte(normalised))
 
 	rc, err := s.db.GetUnusedRecoveryCode(ctx, queries.GetUnusedRecoveryCodeParams{
-		AccountID: accountID,
+		AccountID: account.ID,
 		CodeHash:  hash,
 	})
 	if err != nil {
@@ -810,17 +816,16 @@ func (s *Service) Recover(ctx context.Context, accountID, code string) (*Recover
 		return nil, fmt.Errorf("BurnRecoveryCode: %w", err)
 	}
 
-	account, err := s.db.GetAccountByID(ctx, accountID)
-	if err != nil {
-		return nil, ErrNotFound
-	}
-
-	rekeyToken, err := s.rekeys.issue(accountID)
+	rekeyToken, err := s.rekeys.issue(account.ID)
 	if err != nil {
 		return nil, fmt.Errorf("issue rekey token: %w", err)
 	}
 
-	return &RecoverResult{RecoveryWrappedMaster: account.RecoveryWrappedMaster, RekeyToken: rekeyToken}, nil
+	return &RecoverResult{
+		AccountID:             account.ID,
+		RecoveryWrappedMaster: account.RecoveryWrappedMaster,
+		RekeyToken:            rekeyToken,
+	}, nil
 }
 
 // SyncBackupEligible updates the stored BackupEligible flag when it differs
