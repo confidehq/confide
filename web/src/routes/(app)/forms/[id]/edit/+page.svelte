@@ -6,6 +6,7 @@
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
 	import { publishForm, rotateRenderKey, getForm, setFormCustomDomain } from '$lib/forms';
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
+	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
 	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
@@ -47,6 +48,7 @@
 	let useCustomDomain = $state(false);
 	let workspaceDomain = $state<CustomDomainInfo | null>(null);
 	let customDomainToggling = $state(false);
+	let formsBaseUrl = $state('');
 
 	onMount(async () => {
 		if (!auth.masterKey || !store) {
@@ -55,12 +57,13 @@
 		}
 		try {
 			await store.load();
-			// Load custom domain info in background
+			// Load custom domain info and app config in background
 			const { record } = await getForm(auth.masterKey, formId);
 			useCustomDomain = record.useCustomDomain ?? false;
 			if (record.workspaceId) {
 				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});
 			}
+			getAppConfig().then(c => { formsBaseUrl = c.formsDomain ? `https://${c.formsDomain}` : ''; }).catch(() => {});
 		} catch {
 			loadError = 'Form not found or could not be loaded.';
 		} finally {
@@ -72,7 +75,7 @@
 		if (useCustomDomain && workspaceDomain?.verified && workspaceDomain.domain) {
 			return `https://${workspaceDomain.domain}`;
 		}
-		return undefined;
+		return formsBaseUrl || undefined;
 	}
 
 	async function handlePublish() {
@@ -117,7 +120,7 @@
 				const renderKey = store.renderKeySalt;
 				if (renderKey) {
 					const base = customDomainBase();
-					const origin = base ?? window.location.origin;
+					const origin = base ?? (formsBaseUrl || window.location.origin);
 					shareUrl = shareUrl.replace(/^https?:\/\/[^/]+/, origin);
 				}
 			}

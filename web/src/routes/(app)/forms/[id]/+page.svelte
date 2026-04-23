@@ -16,6 +16,7 @@
 		type FormRecord,
 		type EncryptedResponseRecord
 	} from '$lib/forms';
+	import { getAppConfig } from '$lib/config';
 	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
 	import { RefreshCw, Copy, Check, ExternalLink, Pencil } from '@lucide/svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
@@ -162,7 +163,9 @@
 				? Uint8Array.from(atob(record.renderKeySalt), c => c.charCodeAt(0))
 				: null;
 			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
-			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey);
+			const config = await getAppConfig();
+			const base = config.formsDomain ? `https://${config.formsDomain}` : undefined;
+			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey, base);
 			shareUrl = result.shareUrl;
 		} catch (e) {
 			publishError = e instanceof Error ? e.message : 'Publish failed';

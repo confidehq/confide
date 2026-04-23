@@ -38,6 +38,11 @@ type Config struct {
 	StripePriceIDPro    string
 	StripePriceIDOrg    string // reserved for Organization tier
 
+	// FormsDomain is the public hostname for form hosting (e.g. forms.example.com).
+	// When set, form share URLs point here and requests from this host are restricted
+	// to public form-serving routes only. Leave empty to serve forms from AppDomain.
+	FormsDomain string
+
 	// CustomDomainTarget is the CNAME hostname users must point their custom domain to.
 	// Defaults to AppDomain if unset.
 	CustomDomainTarget string
@@ -87,6 +92,8 @@ func Load() (*Config, error) {
 		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
 		StripePriceIDOrg:    os.Getenv("CONFIDE_STRIPE_PRICE_ORG"),
 	}
+
+	cfg.FormsDomain = os.Getenv("CONFIDE_FORMS_DOMAIN")
 
 	if t := os.Getenv("CONFIDE_CUSTOM_DOMAIN_TARGET"); t != "" {
 		cfg.CustomDomainTarget = t

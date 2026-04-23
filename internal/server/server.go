@@ -87,6 +87,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
 	r.Use(mw.VerifyCustomDomain(cfg.AppDomain, svc.Workspace))
+	r.Use(mw.FormsDomainGate(cfg.AppDomain, cfg.FormsDomain, svc.Workspace.IsVerifiedCustomDomain))
 
 	// API routes — CORS restricted to configured origin, general CSP applied.
 	r.Route("/api", func(r chi.Router) {
@@ -100,6 +101,9 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 					return true
 				}
 				host := mw.StripScheme(origin)
+				if cfg.FormsDomain != "" && host == mw.StripScheme(cfg.FormsDomain) {
+					return true
+				}
 				return svc.Workspace.IsVerifiedCustomDomain(r.Context(), host)
 			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -112,6 +116,11 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 		r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "version": version, "commit": commit})
+		})
+
+		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]string{"formsDomain": cfg.FormsDomain})
 		})
 
 		// Auth routes — general rate limit.
