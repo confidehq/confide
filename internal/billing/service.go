@@ -218,7 +218,7 @@ func (s *Service) CancelSubscription(ctx context.Context, subscriptionID string)
 }
 
 // HandleWebhook processes an incoming Stripe webhook event.
-// Handles: customer.subscription.updated, customer.subscription.deleted, invoice.payment_failed.
+// Handles: customer.subscription.created/updated/deleted, invoice.payment_succeeded, invoice.payment_failed.
 func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature string) error {
 	if s.stripeWebhookSecret == "" {
 		return ErrStripeDisabled
@@ -231,34 +231,81 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 
 	s.log.Info().Str("type", string(event.Type)).Msg("handling stripe event")
 	switch event.Type {
-	case "customer.subscription.created", "customer.subscription.updated":
+	case "customer.subscription.created":
+		return s.handleSubscriptionCreated(ctx, event)
+	case "customer.subscription.updated":
 		return s.handleSubscriptionUpdated(ctx, event)
-	// case "checkout.session.completed":
-	// 	return s.handleCheckoutCompleted(ctx, event)
 	case "customer.subscription.deleted":
 		return s.handleSubscriptionDeleted(ctx, event)
+	case "invoice.payment_succeeded":
+		return s.handlePaymentSucceeded(ctx, event)
 	case "invoice.payment_failed":
 		return s.handlePaymentFailed(ctx, event)
 	}
 	return nil
 }
 
-// handleCheckoutCompleted fires when a Stripe Checkout session completes.
-// For subscription-mode sessions this is the earliest reliable point to capture
-// the subscription ID — before customer.subscription.created arrives.
-// func (s *Service) handleCheckoutCompleted(ctx context.Context, event stripe.Event) error {
-// 	var session stripe.CheckoutSession
-// 	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
-// 		return err
-// 	}
-// 	if session.Customer == nil || session.Subscription == nil || session.Subscription.ID == "" {
-// 		return nil
-// 	}
-// 	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
-// 		StripeCustomerID:     pgtype.Text{String: session.Customer.ID, Valid: true},
-// 		StripeSubscriptionID: pgtype.Text{String: session.Subscription.ID, Valid: true},
-// 	})
-// }
+// handleSubscriptionCreated records the subscription ID when a new subscription is created.
+// Plan access is intentionally NOT granted here — it is granted only on invoice.payment_succeeded.
+func (s *Service) handleSubscriptionCreated(ctx context.Context, event stripe.Event) error {
+	var sub stripe.Subscription
+	if err := json.Unmarshal(event.Data.Raw, &sub); err != nil {
+		return err
+	}
+	if sub.Customer == nil || sub.ID == "" {
+		return nil
+	}
+	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
+		StripeCustomerID:     pgtype.Text{String: sub.Customer.ID, Valid: true},
+		StripeSubscriptionID: pgtype.Text{String: sub.ID, Valid: true},
+	})
+}
+
+// handlePaymentSucceeded grants plan access once Stripe confirms payment.
+// This is the authoritative event for activating or renewing Pro/Org access.
+func (s *Service) handlePaymentSucceeded(ctx context.Context, event stripe.Event) error {
+	var inv stripe.Invoice
+	if err := json.Unmarshal(event.Data.Raw, &inv); err != nil {
+		return err
+	}
+	if inv.Customer == nil {
+		return nil
+	}
+	ws, err := s.db.GetWorkspaceByStripeCustomerID(ctx, pgtype.Text{String: inv.Customer.ID, Valid: true})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+
+	plan := ws.Plan
+	var periodEnd pgtype.Timestamptz
+	if inv.Lines != nil && len(inv.Lines.Data) > 0 {
+		line := inv.Lines.Data[0]
+		if line.Pricing != nil && line.Pricing.PriceDetails != nil {
+			if p, ok := s.planForPriceID(line.Pricing.PriceDetails.Price); ok {
+				plan = p
+			}
+		}
+		if line.Period != nil && line.Period.End > 0 {
+			periodEnd = pgtype.Timestamptz{Time: time.Unix(line.Period.End, 0), Valid: true}
+		}
+	}
+
+	subID := ""
+	if inv.Parent != nil && inv.Parent.SubscriptionDetails != nil && inv.Parent.SubscriptionDetails.Subscription != nil {
+		subID = inv.Parent.SubscriptionDetails.Subscription.ID
+	}
+
+	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
+		ID:                   ws.ID,
+		Plan:                 plan,
+		PlanStatus:           "active",
+		PlanPeriodEnd:        periodEnd,
+		StripeSubscriptionID: pgtype.Text{String: subID, Valid: subID != ""},
+	})
+}
 
 func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Event) error {
 	var sub stripe.Subscription
