@@ -376,6 +376,7 @@ func TestRecover_BurnsCode(t *testing.T) {
 	db := newMockDB()
 	db.accounts["acc1"] = queries.Account{
 		ID:                    "acc1",
+		Username:              pgtype.Text{String: "acc1", Valid: true},
 		RecoveryWrappedMaster: []byte("recoverykey"),
 	}
 
