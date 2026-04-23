@@ -50,9 +50,9 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	wsSvc := workspace.NewService(pool)
 
 	if cfg.TraefikDynamicDir != "" {
-		rows, err := queries.New(pool).ListAllVerifiedCustomDomains(context.Background())
+		rows, err := queries.New(pool).ListAllCustomDomains(context.Background())
 		if err != nil {
-			log.Error().Err(err).Msg("traefik: failed to load verified domains")
+			log.Error().Err(err).Msg("traefik: failed to load custom domains")
 		}
 		initial := make([]string, 0, len(rows))
 		for _, r := range rows {

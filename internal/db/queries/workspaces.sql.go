@@ -350,6 +350,30 @@ func (q *Queries) GetWorkspaceMemberKey(ctx context.Context, arg GetWorkspaceMem
 	return i, err
 }
 
+const listAllCustomDomains = `-- name: ListAllCustomDomains :many
+SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL
+`
+
+func (q *Queries) ListAllCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
+	rows, err := q.db.Query(ctx, listAllCustomDomains)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []pgtype.Text
+	for rows.Next() {
+		var custom_domain pgtype.Text
+		if err := rows.Scan(&custom_domain); err != nil {
+			return nil, err
+		}
+		items = append(items, custom_domain)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAllVerifiedCustomDomains = `-- name: ListAllVerifiedCustomDomains :many
 SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE
 `

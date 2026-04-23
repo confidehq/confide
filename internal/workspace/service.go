@@ -504,23 +504,30 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 	if !isValidHostname(domain) {
 		return ErrInvalidDomain
 	}
-	// If there was a verified domain before, remove it from Traefik — the new
-	// domain won't be verified yet so it must not be added.
 	if s.traefik != nil {
-		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomainVerified {
+		// Remove any previous domain before adding the new one.
+		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomain.Valid {
 			_ = s.traefik.Remove(prev.CustomDomain.String)
 		}
 	}
-	return s.db.SetWorkspaceCustomDomain(ctx, queries.SetWorkspaceCustomDomainParams{
+	if err := s.db.SetWorkspaceCustomDomain(ctx, queries.SetWorkspaceCustomDomainParams{
 		ID:           workspaceID,
 		CustomDomain: pgtype.Text{String: domain, Valid: true},
-	})
+	}); err != nil {
+		return err
+	}
+	// Add to Traefik immediately so the first inbound request can be routed and
+	// Let's Encrypt can begin issuing a certificate once DNS propagates.
+	if s.traefik != nil {
+		_ = s.traefik.Add(domain)
+	}
+	return nil
 }
 
 // ClearCustomDomain removes the custom domain from the workspace.
 func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) error {
 	if s.traefik != nil {
-		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomainVerified {
+		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomain.Valid {
 			_ = s.traefik.Remove(prev.CustomDomain.String)
 		}
 	}
@@ -541,14 +548,10 @@ func (s *Service) GetCustomDomain(ctx context.Context, workspaceID string) (Cust
 
 // MarkCustomDomainVerified marks the given hostname as verified. Called by middleware
 // on the first inbound request whose Host header matches a registered custom domain.
+// The domain is already in Traefik config from when it was set — this just updates
+// the verified flag used for UI status.
 func (s *Service) MarkCustomDomainVerified(ctx context.Context, domain string) error {
-	if err := s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true}); err != nil {
-		return err
-	}
-	if s.traefik != nil {
-		_ = s.traefik.Add(domain)
-	}
-	return nil
+	return s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true})
 }
 
 // GetWorkspaceIDByCustomDomain returns the workspace ID that owns the given

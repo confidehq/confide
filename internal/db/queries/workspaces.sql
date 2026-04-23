@@ -122,6 +122,9 @@ WHERE custom_domain = $1;
 -- name: ListAllVerifiedCustomDomains :many
 SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE;
 
+-- name: ListAllCustomDomains :many
+SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL;
+
 -- name: GetMembersWithoutWorkspaceKeyWithUsername :many
 SELECT wm.account_id, a.username
 FROM workspace_members wm
