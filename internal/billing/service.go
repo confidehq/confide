@@ -246,19 +246,19 @@ func (s *Service) HandleWebhook(ctx context.Context, payload []byte, signature s
 // handleCheckoutCompleted fires when a Stripe Checkout session completes.
 // For subscription-mode sessions this is the earliest reliable point to capture
 // the subscription ID — before customer.subscription.created arrives.
-func (s *Service) handleCheckoutCompleted(ctx context.Context, event stripe.Event) error {
-	var session stripe.CheckoutSession
-	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
-		return err
-	}
-	if session.Customer == nil || session.Subscription == nil || session.Subscription.ID == "" {
-		return nil
-	}
-	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
-		StripeCustomerID:     pgtype.Text{String: session.Customer.ID, Valid: true},
-		StripeSubscriptionID: pgtype.Text{String: session.Subscription.ID, Valid: true},
-	})
-}
+// func (s *Service) handleCheckoutCompleted(ctx context.Context, event stripe.Event) error {
+// 	var session stripe.CheckoutSession
+// 	if err := json.Unmarshal(event.Data.Raw, &session); err != nil {
+// 		return err
+// 	}
+// 	if session.Customer == nil || session.Subscription == nil || session.Subscription.ID == "" {
+// 		return nil
+// 	}
+// 	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
+// 		StripeCustomerID:     pgtype.Text{String: session.Customer.ID, Valid: true},
+// 		StripeSubscriptionID: pgtype.Text{String: session.Subscription.ID, Valid: true},
+// 	})
+// }
 
 func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Event) error {
 	var sub stripe.Subscription
