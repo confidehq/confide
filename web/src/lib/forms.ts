@@ -494,6 +494,23 @@ export async function exportRenderKey(key: CryptoKey): Promise<string> {
 	return arrayBufferToBase64url(raw);
 }
 
+/**
+ * Derive the share URL from existing key material without making any API calls.
+ * Returns null if the form has never been published (no renderKeySalt).
+ */
+export async function deriveShareUrl(
+	formId: string,
+	renderKeySalt: string,
+	formKey: CryptoKey,
+	base?: string
+): Promise<string> {
+	const salt = base64ToArrayBuffer(renderKeySalt);
+	const renderKey = await deriveRenderKey(formKey, salt);
+	const raw = await crypto.subtle.exportKey('raw', renderKey);
+	const origin = base ?? window.location.origin;
+	return `${origin}/f/${formId}#rk=${arrayBufferToBase64url(raw)}`;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 export class ApiError extends Error {

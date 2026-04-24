@@ -76,8 +76,8 @@
 	<title>Confide — Dashboard</title>
 </svelte:head>
 
-<div class="flex justify-center w-full">
-<div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
+<div class="flex justify-center max-w-full">
+<div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-7xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
 	<!-- Header -->
 	<div class="flex items-start justify-between mb-8 gap-4">

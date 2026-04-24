@@ -34,7 +34,7 @@
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>
 	<div class="flex flex-col gap-2">
 		{#each cfg.options as opt, i (opt.id)}
-			<label class="flex items-center gap-2.5 cursor-pointer text-sm text-form-text-mid">
+			<label class="flex items-center gap-2.5 cursor-pointer text-base text-form-text-mid">
 				<input
 					type="radio"
 					name={field.id}
@@ -46,7 +46,7 @@
 			</label>
 		{/each}
 		{#if cfg.allowOther}
-			<label class="flex items-center gap-2.5 cursor-pointer text-sm text-form-text-mid">
+			<label class="flex items-center gap-2.5 cursor-pointer text-base text-form-text-mid">
 				<input
 					type="radio"
 					name={field.id}
@@ -61,7 +61,7 @@
 					oninput={handleOtherText}
 					onfocus={() => onchange(`other:${otherText}`)}
 					placeholder="Please specify"
-					class="flex-1 px-2 py-1 border border-form-border rounded text-sm font-[inherit]"
+					class="flex-1 px-2 py-1 border border-form-border rounded text-base font-[inherit]"
 				/>
 			</label>
 		{/if}

@@ -41,7 +41,7 @@
 
 		<!-- Logo + heading -->
 		<div class="flex flex-col items-center mb-8">
-			<div class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full">{@html faviconSvg}</div>
+			<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
 			<h1 class="text-xl font-semibold text-text-body tracking-tight">Sign in to Confide</h1>
 			<p class="text-sm text-muted-dim mt-1.5">Use your passkey to continue.</p>
 		</div>

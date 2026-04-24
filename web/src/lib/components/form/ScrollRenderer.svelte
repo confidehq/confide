@@ -86,7 +86,7 @@
 			{#each locales as code (code)}
 				<button
 					onclick={() => onlocalechange(code)}
-					class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-100 cursor-pointer border-none
+					class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-100 cursor-pointer border-none
 						{locale === code
 							? 'bg-form-primary text-white'
 							: 'bg-form-surface text-form-muted hover:bg-form-border-light hover:text-form-text-mid'}"
@@ -96,7 +96,7 @@
 			{/each}
 		</div>
 	{/if}
-	<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
+	<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 	{#if translation?.formDescription}
 		<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>
 	{/if}
@@ -128,7 +128,7 @@
 		</div>
 
 		{#if submitError}
-			<p class="mt-6 m-0 text-danger-border text-sm">{submitError}</p>
+			<p class="mt-6 m-0 text-danger-border text-base">{submitError}</p>
 		{/if}
 
 		<button

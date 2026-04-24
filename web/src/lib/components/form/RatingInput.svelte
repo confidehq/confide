@@ -31,7 +31,7 @@
 					type="button"
 					onclick={() => select(n)}
 					style="color: {n <= current ? 'var(--color-warning-border)' : 'var(--color-form-border)'};"
-					class="bg-none border-none cursor-pointer text-2xl p-0.5 leading-none transition-colors duration-100"
+					class="bg-none border-none cursor-pointer text-3xl p-0.5 leading-none transition-colors duration-100"
 					aria-label="Rate {n} out of {cfg.scale}"
 				>
 					{n <= current ? '★' : '☆'}
@@ -45,7 +45,7 @@
 						background: {n <= current ? 'var(--color-form-primary)' : 'var(--color-form-bg)'};
 						color: {n <= current ? 'white' : 'var(--color-form-text-mid)'};
 					"
-					class="w-9 h-9 border-[1.5px] rounded-full text-xs font-[inherit] cursor-pointer transition-[background,border-color,color] duration-100"
+					class="w-10 h-10 border-[1.5px] rounded-full text-sm font-[inherit] cursor-pointer transition-[background,border-color,color] duration-100"
 					aria-label="Rate {n} out of {cfg.scale}"
 				>
 					{n}

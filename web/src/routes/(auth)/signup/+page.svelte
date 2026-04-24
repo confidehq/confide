@@ -232,9 +232,9 @@
 		<div class="w-full max-w-100">
 			<!-- Logo + heading -->
 			<div class="flex flex-col items-center mb-8">
-				<div class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full">
+				<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">
 					{@html faviconSvg}
-				</div>
+				</a>
 				<h1 class="text-xl font-semibold text-text-body tracking-tight">
 					Create your account
 				</h1>

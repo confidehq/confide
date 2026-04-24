@@ -336,8 +336,14 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 		if (fieldId === null) {
 			// Form-level translation (formTitle, formDescription, convoCompletionMessage)
+			const prevTitle = t.formTitle;
+			const syncName =
+				key === 'formTitle' &&
+				locale === schema.defaultLocale &&
+				(!schema.name || schema.name === prevTitle);
 			schema = {
 				...schema,
+				...(syncName ? { name: value } : {}),
 				translations: {
 					...schema.translations,
 					[locale]: {

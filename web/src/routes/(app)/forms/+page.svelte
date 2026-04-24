@@ -8,7 +8,16 @@
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import DropdownMenuItem from '$lib/components/DropdownMenuItem.svelte';
 	import DropdownMenuSeparator from '$lib/components/DropdownMenuSeparator.svelte';
-	import { Users, Ellipsis } from '@lucide/svelte';
+	import { Users, Ellipsis, Link, Check, Building2 } from '@lucide/svelte';
+
+	function planLabel(plan: string, planStatus: string): string {
+		if (plan === 'pro') {
+			if (planStatus === 'past_due') return 'Pro · past due';
+			if (planStatus === 'canceled') return 'Pro · canceled';
+			return 'Pro';
+		}
+		return 'Free';
+	}
 
 	function timeAgo(dateStr: string): string {
 		const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -36,6 +45,16 @@
 	let pendingDelete = $state<FormSummary | null>(null);
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
+	let copiedId = $state<string | null>(null);
+
+	async function copyLink(e: MouseEvent, formId: string) {
+		e.stopPropagation();
+		const url = formsStore.shareUrls.get(formId);
+		if (!url) return;
+		await navigator.clipboard.writeText(url);
+		copiedId = formId;
+		setTimeout(() => { copiedId = null; }, 2000);
+	}
 
 	async function toggleStatus(form: FormSummary) {
 		const next = form.status === 'open' ? 'closed' : 'open';
@@ -88,11 +107,9 @@
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
 	<div class="flex items-start justify-between mb-8 gap-4">
-		<div class="min-w-0">
+		<div>
 			<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Forms</h1>
-			{#if workspacesStore.active}
-				<p class="m-0 text-sm text-muted-dim">{workspacesStore.active.name}</p>
-			{/if}
+			<p class="m-0 text-sm text-muted-dim">Create and manage your encrypted forms</p>
 		</div>
 		<button
 			onclick={() => {
@@ -102,6 +119,25 @@
 			class="shrink-0 px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100"
 		>+ New form</button>
 	</div>
+
+	{#if workspacesStore.active}
+		{@const ws = workspacesStore.active}
+		<div class="flex items-center gap-3 mb-4">
+			<Building2 size={18} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
+			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
+				{ws.plan === 'pro'
+					? ws.planStatus === 'active'
+						? 'bg-open-bg text-open-text border-open-border'
+						: 'bg-closed-bg text-closed-text border-closed-border'
+					: 'text-muted-dim border-border-deep bg-transparent'}">
+				{planLabel(ws.plan, ws.planStatus)}
+			</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
+				{ws.role}
+			</span>
+		</div>
+	{/if}
 
 	{#if formsStore.loading && !formsStore.loaded}
 		<p class="text-muted-dim text-base">Loading…</p>
@@ -127,17 +163,24 @@
 					tabindex="0"
 					onkeydown={e => e.key === 'Enter' && goto(`/forms/${form.formId}`)}
 				>
-					<!-- Name + status badge -->
-					<div class="flex-1 min-w-0 flex items-center gap-4">
-						<span class="text-base text-text-body truncate">
-							{formsStore.formNames.get(form.formId) ?? '—'}
-						</span>
-						<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base
-							{form.status === 'open'
-								? 'bg-open-bg text-open-text border border-open-border'
-								: 'bg-closed-bg text-closed-text border border-closed-border'}">
-							{form.status}
-						</span>
+					<!-- Name + description + status badge -->
+					<div class="flex-1 min-w-0 flex flex-col">
+						<div class="flex items-center gap-2 min-w-0">
+							<span class="text-base text-text-body truncate">
+								{formsStore.formNames.get(form.formId) ?? '—'}
+							</span>
+							<span class="shrink-0 px-1.5 py-px rounded-full text-sm
+								{form.status === 'open'
+									? 'bg-open-bg text-open-text border border-open-border'
+									: 'bg-closed-bg text-closed-text border border-closed-border'}">
+								{form.status}
+							</span>
+						</div>
+						{#if formsStore.formDescriptions.get(form.formId)}
+							<span class="text-sm text-muted-mid truncate">
+								{formsStore.formDescriptions.get(form.formId)}
+							</span>
+						{/if}
 					</div>
 
 					<!-- Response count -->
@@ -150,6 +193,23 @@
 					<span class="shrink-0 hidden sm:block text-base text-muted-dim">
 						{timeAgo(form.updatedAt)}
 					</span>
+
+					<!-- Copy share link -->
+					{#if formsStore.shareUrls.has(form.formId)}
+						<button
+							onclick={e => copyLink(e, form.formId)}
+							onkeydown={e => e.stopPropagation()}
+							title="Copy share link"
+							class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer transition-colors duration-100
+								{copiedId === form.formId ? 'text-success-text-dark' : 'text-muted-dim hover:text-text-body'}"
+						>
+							{#if copiedId === form.formId}
+								<Check size={15} strokeWidth={2} />
+							{:else}
+								<Link size={15} strokeWidth={1.75} />
+							{/if}
+						</button>
+					{/if}
 
 					<!-- Actions menu -->
 					<div

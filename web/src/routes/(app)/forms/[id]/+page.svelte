@@ -167,6 +167,10 @@
 			const base = config.formsDomain ? `https://${config.formsDomain}` : undefined;
 			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey, base);
 			shareUrl = result.shareUrl;
+			if (record?.status === 'closed') {
+				await updateFormStatus(formId, 'open');
+				record = { ...record, status: 'open' };
+			}
 		} catch (e) {
 			publishError = e instanceof Error ? e.message : 'Publish failed';
 		} finally {

@@ -170,7 +170,7 @@
 		<div class="pb-1">
 			<a
 				href="https://feedback.useconfide.app/"
-				title="Leave Feedback"
+				title="Request Feature"
 				target="_blank"
 				rel="noopener noreferrer"
 				onclick={() => sidebar.closeMobile()}
@@ -183,7 +183,7 @@
 					<MessageSquare size={18} strokeWidth={1.75} />
 				</span>
 				{#if !sidebar.collapsed}
-					<span class="overflow-hidden text-ellipsis">Leave Feedback</span>
+					<span class="overflow-hidden text-ellipsis">Request Feature</span>
 				{/if}
 			</a>
 

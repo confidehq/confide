@@ -128,7 +128,7 @@
 			{#each locales as code (code)}
 				<button
 					onclick={() => onlocalechange(code)}
-					class="px-3 py-1 rounded-full text-xs font-medium transition-colors duration-100 cursor-pointer border-none
+					class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-100 cursor-pointer border-none
 						{locale === code
 							? 'bg-form-primary text-white'
 							: 'bg-form-surface text-form-muted hover:bg-form-border-light hover:text-form-text-mid'}"
@@ -139,10 +139,10 @@
 		</div>
 	{/if}
 
-	<p class="text-xs text-form-muted-light m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
+	<p class="text-sm text-form-muted-light m-0 mb-4">Step {currentStep + 1} of {totalSteps}</p>
 
 	{#if currentStep === 0}
-		<h1 class="text-2xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>
 		{/if}
@@ -161,7 +161,7 @@
 	</div>
 
 	{#if submitError}
-		<p class="mt-6 m-0 text-danger-border text-sm">{submitError}</p>
+		<p class="mt-6 m-0 text-danger-border text-base">{submitError}</p>
 	{/if}
 
 	<div class="flex justify-between items-center mt-8">
@@ -169,7 +169,7 @@
 			<button
 				type="button"
 				onclick={handleBack}
-				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-sm font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
+				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
 			>
 				← Back
 			</button>
@@ -182,7 +182,7 @@
 				type="button"
 				onclick={handleSubmit}
 				disabled={submitting}
-				class="px-6 py-2.5 text-white border-none rounded-md text-sm font-[inherit] transition-colors duration-100
+				class="px-6 py-2.5 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
 					{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 			>
 				{submitting ? 'Submitting…' : 'Submit'}
@@ -191,7 +191,7 @@
 			<button
 				type="button"
 				onclick={handleNext}
-				class="px-6 py-2.5 bg-form-primary text-white border-none rounded-md text-sm font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
+				class="px-6 py-2.5 bg-form-primary text-white border-none rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
 			>
 				Next →
 			</button>

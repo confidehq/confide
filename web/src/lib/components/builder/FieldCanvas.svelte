@@ -217,6 +217,7 @@
 		>
 			<textarea
 				rows={1}
+				use:growable={store.activeTranslation?.formTitle ?? ''}
 				value={store.activeTranslation?.formTitle ?? ''}
 				placeholder={defaultLocaleTitle || 'Form title…'}
 				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
@@ -230,6 +231,7 @@
 			></textarea>
 			<textarea
 				rows={1}
+				use:growable={store.activeTranslation?.formDescription ?? ''}
 				value={store.activeTranslation?.formDescription ?? ''}
 				placeholder={defaultLocaleDesc || 'Form description…'}
 				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
@@ -567,6 +569,12 @@
 										>×</button>
 									</div>
 								{/each}
+								{#if isMultiple && (field.config as MultipleChoiceConfig).allowOther}
+									<div class="flex items-center gap-2 px-1.5 py-1 rounded opacity-50 select-none">
+										<span class="inline-block shrink-0 w-[13px] h-[13px] border-[1.5px] border-text-subtle rounded-full"></span>
+										<span class="text-sm font-[inherit] text-text-subtle py-px">Other…</span>
+									</div>
+								{/if}
 								<button
 									onclick={(e) => { e.stopPropagation(); focusField(field.id); addOption(field.id); }}
 									class="self-start bg-transparent border-none text-muted-dark text-sm cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-muted"
