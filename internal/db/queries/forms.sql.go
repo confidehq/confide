@@ -18,7 +18,7 @@ INSERT INTO forms (
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
     workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, NOW(), NOW(), 'open', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, NOW(), NOW(), 'closed', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain
 `
 
