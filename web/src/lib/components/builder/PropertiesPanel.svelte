@@ -21,34 +21,6 @@
 	const { store }: Props = $props();
 
 	const field = $derived(store.selectedField);
-	const isConvo = $derived(store.schema.layout === 'convo');
-
-	let expirationSaving = $state(false);
-	let expirationError = $state<string | null>(null);
-
-	async function applyExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newTtlDays: number | null, newBurnAfterReading: boolean) {
-		expirationSaving = true;
-		expirationError = null;
-		try {
-			await store.setExpiration(newExpiresAt, newResponseLimit, newTtlDays, newBurnAfterReading);
-		} catch {
-			expirationError = 'Failed to save — please try again.';
-		} finally {
-			expirationSaving = false;
-		}
-	}
-
-	type ResponseLifetimePolicy = 'none' | 'burn' | 'ttl';
-
-	let responseLifetimePolicy = $derived<ResponseLifetimePolicy>(
-		store.burnAfterReading ? 'burn' : store.responseTtlDays ? 'ttl' : 'none'
-	);
-
-	function applyResponseLifetime(policy: ResponseLifetimePolicy, ttlDays: number | null) {
-		const burn = policy === 'burn';
-		const days = policy === 'ttl' ? ttlDays : null;
-		applyExpiration(store.expiresAt, store.responseLimit, days, burn);
-	}
 
 	function addOption() {
 		if (!field) return;
@@ -69,159 +41,17 @@
 </script>
 
 <aside
-	class="properties-panel {store.showFormSettings || store.selectedField ? 'is-open' : ''}
+	class="properties-panel {store.selectedField ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-[280px] sm:max-h-none sm:rounded-xl
-		bg-surface shadow-[0_4px_24px_var(--color-overlay-light)] overflow-y-auto z-20"
+		bg-canvas border border-border-deep overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
-	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-surface">
+	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-canvas">
 		<div class="w-8 h-1 bg-border rounded-full"></div>
 	</div>
 
-	{#if store.showFormSettings}
-		<!-- Form settings panel -->
-		<div class="p-4">
-			<p class="m-0 mb-4 text-sm text-muted-dark uppercase tracking-[0.05em]">Form settings</p>
-
-			<div class="flex flex-col gap-3.5">
-				<div>
-					<label class="block text-sm text-muted mb-1">Form name</label>
-					<input
-						type="text"
-						placeholder="Internal name…"
-						value={store.schema.name}
-						oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
-						class="input-base"
-					/>
-					<p class="mt-1 m-0 text-xs text-muted-dark">Used in your dashboard only.</p>
-				</div>
-
-				{#if isConvo}
-					<div>
-						<label class="block text-sm text-muted mb-1">Completion message</label>
-						<textarea
-							value={store.activeTranslation?.convoCompletionMessage ?? ''}
-							oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
-							rows={2}
-							class="input-base"
-						></textarea>
-					</div>
-
-					<div class="flex items-center justify-between">
-						<label class="text-sm text-text-dim">Allow edit after submit</label>
-						<input
-							type="checkbox"
-							checked={store.schema.convoAllowEdit ?? false}
-							onchange={(e) => store.setConvoAllowEdit((e.target as HTMLInputElement).checked)}
-						/>
-					</div>
-				{/if}
-
-				<!-- Access section -->
-				<div class="border-t border-border pt-4">
-					<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Access</p>
-					<div class="flex flex-col gap-3.5">
-						<div>
-							<label class="block text-sm text-muted mb-1">Close form on schedule</label>
-							<div class="flex gap-1.5 items-center">
-								<input
-									type="date"
-									value={store.expiresAt ?? ''}
-									onchange={(e) => {
-										const v = (e.target as HTMLInputElement).value;
-										applyExpiration(v || null, store.responseLimit, store.responseTtlDays, store.burnAfterReading);
-									}}
-									class="input-base"
-								/>
-								{#if store.expiresAt}
-									<button
-										onclick={() => applyExpiration(null, store.responseLimit, store.responseTtlDays, store.burnAfterReading)}
-										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-lg px-1 shrink-0"
-										title="Clear close date"
-									>×</button>
-								{/if}
-							</div>
-							<p class="mt-1 m-0 text-xs text-muted-dark">Stop accepting new responses after this date.</p>
-						</div>
-
-						<div>
-							<label class="block text-sm text-muted mb-1">Limit total responses</label>
-							<div class="flex gap-1.5 items-center">
-								<input
-									type="number"
-									min="1"
-									placeholder="No limit"
-									value={store.responseLimit ?? ''}
-									onchange={(e) => {
-										const v = parseInt((e.target as HTMLInputElement).value);
-										applyExpiration(store.expiresAt, v > 0 ? v : null, store.responseTtlDays, store.burnAfterReading);
-									}}
-									class="input-base"
-								/>
-								{#if store.responseLimit}
-									<button
-										onclick={() => applyExpiration(store.expiresAt, null, store.responseTtlDays, store.burnAfterReading)}
-										class="bg-transparent border-none text-muted-dark cursor-pointer font-mono text-lg px-1 shrink-0"
-										title="Clear submission limit"
-									>×</button>
-								{/if}
-							</div>
-							<p class="mt-1 m-0 text-xs text-muted-dark">Stop accepting responses once this many submissions have been received.</p>
-						</div>
-					</div>
-				</div>
-
-				<!-- Auto delete responses section -->
-				<div class="border-t border-border pt-4">
-					<p class="m-0 mb-1 text-sm text-muted tracking-[0.05em]">Auto delete responses</p>
-					<p class="m-0 mb-3 text-xs text-muted-dark leading-relaxed">
-						Automatically remove a submission from our servers after it has been stored for a set period.
-					</p>
-					<div class="flex flex-col gap-2.5">
-						<select
-							value={responseLifetimePolicy}
-							onchange={(e) => {
-								const policy = (e.target as HTMLSelectElement).value as ResponseLifetimePolicy;
-								applyResponseLifetime(policy, policy === 'ttl' ? (store.responseTtlDays ?? 30) : null);
-							}}
-							class="input-base"
-						>
-							<option value="none">Keep indefinitely</option>
-							<option value="burn">Burn after reading</option>
-							<option value="ttl">Delete after a set period</option>
-						</select>
-
-						{#if responseLifetimePolicy === 'ttl'}
-							<div class="flex gap-1.5 items-center">
-								<input
-									type="number"
-									min="1"
-									placeholder="Days"
-									value={store.responseTtlDays ?? ''}
-									onchange={(e) => {
-										const v = parseInt((e.target as HTMLInputElement).value);
-										applyResponseLifetime('ttl', v > 0 ? v : null);
-									}}
-									class="input-base"
-								/>
-								<span class="text-sm text-muted shrink-0">days</span>
-							</div>
-						{:else if responseLifetimePolicy === 'burn'}
-							<p class="m-0 text-xs text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
-						{/if}
-					</div>
-				</div>
-
-				{#if expirationSaving}
-					<p class="m-0 text-xs text-muted-dark">Saving…</p>
-				{:else if expirationError}
-					<p class="m-0 text-xs text-error">{expirationError}</p>
-				{/if}
-			</div>
-		</div>
-
-	{:else if field}
+	{#if field}
 		<!-- Field selected: single scrollable panel -->
 		<div class="p-4 flex flex-col gap-5">
 

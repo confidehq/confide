@@ -4,13 +4,16 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
-	import { publishForm, rotateRenderKey, getForm, setFormCustomDomain } from '$lib/forms';
+	import { formsStore } from '$lib/stores/forms.svelte';
+	import { getForm, setFormCustomDomain } from '$lib/forms';
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
 	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
+	import FormSettingsPanel from '$lib/components/builder/FormSettingsPanel.svelte';
 	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check } from '@lucide/svelte';
+	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import type { Component } from 'svelte';
 
 	type LayoutMode = 'scroll' | 'steps' | 'convo';
@@ -34,12 +37,6 @@
 	let loading = $state(true);
 	let loadError = $state('');
 
-	// Publish modal state
-	let publishModalOpen = $state(false);
-	let shareUrl = $state('');
-	let publishing = $state(false);
-	let publishError = $state('');
-
 	// New locale input
 	let newLocaleInput = $state('');
 	let showLocaleInput = $state(false);
@@ -57,7 +54,6 @@
 		}
 		try {
 			await store.load();
-			// Load custom domain info and app config in background
 			const { record } = await getForm(auth.masterKey, formId);
 			useCustomDomain = record.useCustomDomain ?? false;
 			if (record.workspaceId) {
@@ -78,67 +74,16 @@
 		return formsBaseUrl || undefined;
 	}
 
-	async function handlePublish() {
-		if (!store || !auth.masterKey) return;
-		publishing = true;
-		publishError = '';
-		try {
-			await store.flushSave();
-			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
-			store.setRenderKeySalt(result.renderKeySalt);
-			shareUrl = result.shareUrl;
-			publishModalOpen = true;
-		} catch (err) {
-			publishError = err instanceof Error ? err.message : 'Publish failed';
-		} finally {
-			publishing = false;
-		}
-	}
-
-	async function handleRotateKey() {
-		if (!store || !auth.masterKey) return;
-		publishing = true;
-		publishError = '';
-		try {
-			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined, customDomainBase());
-			store.setRenderKeySalt(result.renderKeySalt);
-			shareUrl = result.shareUrl;
-		} catch (err) {
-			publishError = err instanceof Error ? err.message : 'Key rotation failed';
-		} finally {
-			publishing = false;
-		}
-	}
-
 	async function toggleCustomDomain() {
 		customDomainToggling = true;
 		try {
 			await setFormCustomDomain(formId, !useCustomDomain);
 			useCustomDomain = !useCustomDomain;
-			// Rebuild share URL with new domain preference
-			if (shareUrl && store && auth.masterKey) {
-				const renderKey = store.renderKeySalt;
-				if (renderKey) {
-					const base = customDomainBase();
-					const origin = base ?? (formsBaseUrl || window.location.origin);
-					shareUrl = shareUrl.replace(/^https?:\/\/[^/]+/, origin);
-				}
-			}
 		} catch {
 			// ignore toggle errors silently
 		} finally {
 			customDomainToggling = false;
 		}
-	}
-
-	let copied = $state(false);
-	let copiedTimer: ReturnType<typeof setTimeout> | null = null;
-
-	function copyShareUrl() {
-		navigator.clipboard.writeText(shareUrl);
-		copied = true;
-		if (copiedTimer) clearTimeout(copiedTimer);
-		copiedTimer = setTimeout(() => { copied = false; }, 2000);
 	}
 
 	function handleAddLocale() {
@@ -154,37 +99,44 @@
 </svelte:head>
 
 {#if loading}
-	<div class="font-mono flex items-center justify-center flex-1 bg-canvas text-muted">
+	<div class="font-mono flex items-center justify-center flex-1 bg-surface text-muted">
 		<p>Loading form…</p>
 	</div>
 {:else if loadError}
-	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-error-light gap-4">
+	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-surface text-error-light gap-4">
 		<p>{loadError}</p>
 		<a href="/forms" class="text-muted-dark text-sm no-underline">← Back to forms</a>
 	</div>
 {:else if store}
-	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text-dim overflow-hidden">
+	<div class="flex flex-col flex-1 min-h-0 bg-surface font-mono text-text-dim overflow-hidden">
 		<!-- Toolbar -->
-		<div class="flex items-center gap-2 px-3 h-11 bg-[#161d28] border-b border-border-field shrink-0 overflow-x-auto">
-			<!-- Form name input -->
+		<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-x-auto">
+			<!-- Breadcrumb -->
+			<Breadcrumb items={[
+				{ label: 'Forms', href: '/forms' },
+				{ label: store.schema.name || formsStore.formNames.get(formId) || formId.slice(0, 12) + '…', href: `/forms/${formId}` },
+				{ label: 'Edit' }
+			]} />
+
+			<!-- Form name input — hidden for now -->
 			<input
 				type="text"
 				placeholder="Untitled form"
 				value={store.schema.name}
 				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				class="bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface"
+				class="hidden bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface"
 			/>
 
-			<!-- Layout selector — hidden on mobile -->
-			<div class="hidden sm:flex items-center gap-2 shrink-0">
-				<div class="w-px h-[18px] bg-[#2a3341]"></div>
+			<!-- Layout selector — hidden for now -->
+			<div class="hidden items-center gap-2 shrink-0">
+				<div class="w-px h-[18px] bg-border-field"></div>
 				<div class="relative">
 					{#if layoutOpen}
 						<div onclick={() => layoutOpen = false} class="fixed inset-0 z-10"></div>
 					{/if}
 					<button
 						onclick={() => layoutOpen = !layoutOpen}
-						style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? '#374151' : '#2a3341'};"
+						style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? 'var(--color-border)' : 'var(--color-border-field)'};"
 						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-sm transition-[background,border-color] duration-100"
 					>
 						{#each layoutModes as mode}
@@ -219,9 +171,9 @@
 				</div>
 			</div>
 
-			<!-- Locale switcher — hidden on mobile -->
-			<div class="hidden sm:flex items-center gap-1.5 shrink-0">
-				<div class="w-px h-[18px] bg-[#2a3341]"></div>
+			<!-- Locale switcher — hidden for now -->
+			<div class="hidden items-center gap-1.5 shrink-0">
+				<div class="w-px h-[18px] bg-border-field"></div>
 				<div class="relative flex items-center">
 					<select
 						value={store.activeLocale}
@@ -272,30 +224,24 @@
 			<button
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
-				style="background: {store.showFormSettings ? '#1f2937' : 'transparent'}; color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'}; border-color: {store.showFormSettings ? '#374151' : 'transparent'};"
+				style="background: {store.showFormSettings ? '#1f2937' : 'transparent'}; color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'}; border-color: {store.showFormSettings ? 'var(--color-border)' : 'transparent'};"
 				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
-			<div class="w-px h-[18px] bg-[#2a3341] shrink-0"></div>
+			<div class="w-px h-[18px] bg-border-field shrink-0"></div>
 
 			<!-- Preview toggle -->
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
-				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? '#374151' : '#2a3341'};"
+				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? 'var(--color-border)' : 'var(--color-border-field)'};"
 				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-sm"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 
 			<!-- Publish button -->
 			<button
-				onclick={handlePublish}
-				disabled={store.saving || publishing}
-				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm transition-[background,opacity] duration-100
-					{store.saving || publishing ? 'bg-info-bg-dark cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
-			>{publishing ? 'Publishing…' : 'Publish'}</button>
-
-			{#if publishError}
-				<span class="shrink-0 text-error-light text-xs">{publishError}</span>
-			{/if}
+				onclick={() => store!.setShowFormSettings(true)}
+				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm bg-primary hover:bg-primary-hover cursor-pointer transition-[background] duration-100"
+			>Publish</button>
 		</div>
 
 		<!-- Body -->
@@ -308,79 +254,15 @@
 
 			{#if store.mode === 'edit'}
 				<PropertiesPanel {store} />
+				<FormSettingsPanel
+					{store}
+					{formId}
+					{workspaceDomain}
+					{useCustomDomain}
+					customDomainBase={customDomainBase}
+					onToggleCustomDomain={toggleCustomDomain}
+				/>
 			{/if}
 		</div>
 	</div>
-
-	<!-- Publish modal -->
-	{#if publishModalOpen}
-		<div
-			role="dialog"
-			aria-modal="true"
-			aria-label="Form published"
-			class="fixed inset-0 bg-black/70 flex items-center justify-center z-[1000]"
-			onclick={(e) => { if (e.target === e.currentTarget) publishModalOpen = false; }}
-		>
-			<div class="bg-surface border border-border rounded-lg p-8 max-w-[540px] w-[90%] font-mono">
-				<h2 class="m-0 mb-2 text-xl text-text-bright">Your form is live.</h2>
-				<p class="m-0 mb-5 text-sm text-muted">Share this link with respondents:</p>
-
-				<div class="flex gap-2 mb-4">
-					<input
-						type="text"
-						readonly
-						value={shareUrl}
-						class="flex-1 px-3 py-2 bg-canvas border border-border text-text-dim rounded font-mono text-sm outline-none"
-					/>
-					<button
-						onclick={copyShareUrl}
-						class="px-4 py-2 text-white border-none rounded font-mono text-sm transition-[background] duration-150
-							{copied ? 'bg-[#16a34a]' : 'bg-primary-hover hover:bg-primary cursor-pointer'}"
-					>
-						{copied ? 'Copied!' : 'Copy'}
-					</button>
-				</div>
-
-				{#if workspaceDomain?.verified && workspaceDomain.domain}
-					<div class="flex items-center gap-3 mb-6">
-						<button
-							role="switch"
-							aria-checked={useCustomDomain}
-							disabled={customDomainToggling}
-							onclick={toggleCustomDomain}
-							class="relative w-9 h-5 rounded-full transition-colors duration-150 border-none cursor-pointer disabled:opacity-50
-								{useCustomDomain ? 'bg-primary' : 'bg-border-deep'}"
-						>
-							<span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-150
-								{useCustomDomain ? 'translate-x-4' : 'translate-x-0'}"></span>
-						</button>
-						<span class="text-sm text-muted font-mono">
-							Serve on <span class="text-text-dim">{workspaceDomain.domain}</span>
-						</span>
-					</div>
-				{/if}
-
-				<div class="flex justify-between items-center">
-					<button
-						onclick={handleRotateKey}
-						disabled={publishing}
-						class="px-3 py-1.5 bg-transparent text-muted border border-border rounded cursor-pointer font-mono text-sm
-							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text transition-colors duration-100'}"
-					>
-						{publishing ? 'Rotating…' : 'Rotate key (invalidates old links)'}
-					</button>
-					<button
-						onclick={() => (publishModalOpen = false)}
-						class="px-3 py-1.5 bg-transparent text-muted-dark border-none cursor-pointer font-mono text-sm hover:text-muted transition-colors duration-100"
-					>
-						Close
-					</button>
-				</div>
-
-				{#if publishError}
-					<p class="mt-3 m-0 text-error-light text-sm">{publishError}</p>
-				{/if}
-			</div>
-		</div>
-	{/if}
 {/if}

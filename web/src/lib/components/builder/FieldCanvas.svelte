@@ -195,7 +195,7 @@
 </script>
 
 <main
-	style="background: {store.mode === 'preview' ? 'var(--color-form-surface)' : 'var(--color-canvas)'};"
+	style="background: {store.mode === 'preview' ? 'var(--color-form-surface)' : 'var(--color-surface)'};"
 	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 sm:pr-[320px] min-w-0"
 	onclick={() => { store.setSelectedField(null); closeSlot(); }}
 	role="presentation"

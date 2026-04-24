@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { formsStore } from '$lib/stores/forms.svelte';
 	import {
 		getForm,
 		updateFormStatus,
@@ -36,7 +37,7 @@
 	// ── Form ──────────────────────────────────────────────────────────────────
 	let record = $state<FormRecord | null>(null);
 	let resolvedFormKey = $state<CryptoKey | null>(null);
-	let formName = $state('');
+	let formName = $state(formsStore.formNames.get(formId) ?? '');
 	let loading = $state(true);
 	let loadError = $state('');
 
@@ -85,6 +86,7 @@
 		try {
 			const { schema, formKey } = await getForm(auth.masterKey, formId);
 			formName = schema.translations[schema.defaultLocale]?.formTitle ?? null;
+			if (formName) formsStore.updateName(formId, formName);
 			resolvedFormKey = formKey;
 		} catch {
 			// Will surface per-response when handleDecrypt runs
