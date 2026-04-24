@@ -98,12 +98,16 @@ async function prfToKek(prfBytes: ArrayBuffer): Promise<CryptoKey> {
  * Normalise a PRF output value (string | ArrayBuffer | ArrayBufferView) to ArrayBuffer.
  * simplewebauthn v13 passes the browser's raw ArrayBuffer; older versions used base64url strings.
  */
-function prfOutputToBuffer(value: string | ArrayBuffer | ArrayBufferView): ArrayBuffer {
+function prfOutputToBuffer(value: string | ArrayBuffer | ArrayBufferView | number[]): ArrayBuffer {
 	if (typeof value === 'string') {
 		return base64urlToBytes(value).buffer as ArrayBuffer;
 	}
 	if (value instanceof ArrayBuffer) {
 		return value;
+	}
+	if (Array.isArray(value)) {
+		// Chromium + 1Password returns a plain number array instead of a BufferSource
+		return Uint8Array.from(value).buffer;
 	}
 	// ArrayBufferView (Uint8Array etc.)
 	return value.buffer as ArrayBuffer;
