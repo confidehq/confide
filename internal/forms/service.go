@@ -25,6 +25,7 @@ type DB interface {
 	GetFormPublic(ctx context.Context, id string) (queries.GetFormPublicRow, error)
 	ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]queries.ListFormsByWorkspaceRow, error)
 	UpdateFormSchema(ctx context.Context, arg queries.UpdateFormSchemaParams) (int32, error)
+	PublishForm(ctx context.Context, arg queries.PublishFormParams) error
 	UpdateFormStatus(ctx context.Context, arg queries.UpdateFormStatusParams) error
 	UpdateFormExpiration(ctx context.Context, arg queries.UpdateFormExpirationParams) error
 	DeleteForm(ctx context.Context, arg queries.DeleteFormParams) error
@@ -67,21 +68,23 @@ type FormRecord struct {
 	BurnAfterReading        bool
 	WorkspaceWrappedFormKey []byte // nil if not yet set
 	UseCustomDomain         bool
+	HasUnpublishedChanges   bool
 }
 
 // FormSummary is a list-view row — no schema blobs.
 type FormSummary struct {
-	ID               string
-	Status           string
-	SchemaVersion    int32
-	ResponseCount    int32
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	ExpiresAt        pgtype.Date
-	ResponseLimit    pgtype.Int4
-	ResponseTtlDays  pgtype.Int4
-	BurnAfterReading bool
-	UseCustomDomain  bool
+	ID                    string
+	Status                string
+	SchemaVersion         int32
+	ResponseCount         int32
+	CreatedAt             pgtype.Timestamptz
+	UpdatedAt             pgtype.Timestamptz
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
+	ResponseTtlDays       pgtype.Int4
+	BurnAfterReading      bool
+	UseCustomDomain       bool
+	HasUnpublishedChanges bool
 }
 
 // PublicFormRecord is returned to unauthenticated respondents.
@@ -200,24 +203,27 @@ func (s *Service) ListForms(ctx context.Context, workspaceID string) ([]FormSumm
 	out := make([]FormSummary, len(rows))
 	for i, r := range rows {
 		out[i] = FormSummary{
-			ID:               r.ID,
-			Status:           r.Status,
-			SchemaVersion:    r.SchemaVersion,
-			ResponseCount:    r.ResponseCount,
-			CreatedAt:        r.CreatedAt,
-			UpdatedAt:        r.UpdatedAt,
-			ExpiresAt:        r.ExpiresAt,
-			ResponseLimit:    r.ResponseLimit,
-			ResponseTtlDays:  r.ResponseTtlDays,
-			BurnAfterReading: r.BurnAfterReading,
-			UseCustomDomain:  r.UseCustomDomain,
+			ID:                    r.ID,
+			Status:                r.Status,
+			SchemaVersion:         r.SchemaVersion,
+			ResponseCount:         r.ResponseCount,
+			CreatedAt:             r.CreatedAt,
+			UpdatedAt:             r.UpdatedAt,
+			ExpiresAt:             r.ExpiresAt,
+			ResponseLimit:         r.ResponseLimit,
+			ResponseTtlDays:       r.ResponseTtlDays,
+			BurnAfterReading:      r.BurnAfterReading,
+			UseCustomDomain:       r.UseCustomDomain,
+			HasUnpublishedChanges: r.HasUnpublishedChanges,
 		}
 	}
 	return out, nil
 }
 
-// UpdateFormSchema replaces the encrypted schema blobs and bumps schema_version.
-func (s *Service) UpdateFormSchema(ctx context.Context, workspaceID, formID string, encryptedSchema, renderEncryptedSchema, renderKeySalt []byte) (int32, error) {
+// UpdateFormSchema replaces the owner-encrypted schema and bumps schema_version.
+// This is called on every auto-save and marks the form as having unpublished changes.
+// The render-encrypted schema is NOT updated here — that only happens via PublishForm.
+func (s *Service) UpdateFormSchema(ctx context.Context, workspaceID, formID string, encryptedSchema []byte) (int32, error) {
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return 0, err
@@ -227,11 +233,9 @@ func (s *Service) UpdateFormSchema(ctx context.Context, workspaceID, formID stri
 	qtx := queries.New(tx)
 
 	newVersion, err := qtx.UpdateFormSchema(ctx, queries.UpdateFormSchemaParams{
-		ID:                    formID,
-		WorkspaceID:           workspaceID,
-		EncryptedSchema:       encryptedSchema,
-		RenderEncryptedSchema: renderEncryptedSchema,
-		RenderKeySalt:         renderKeySalt,
+		ID:              formID,
+		WorkspaceID:     workspaceID,
+		EncryptedSchema: encryptedSchema,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -254,10 +258,37 @@ func (s *Service) UpdateFormSchema(ctx context.Context, workspaceID, formID stri
 	return newVersion, nil
 }
 
+// PublishForm updates the render-encrypted schema, sets status to 'open',
+// and clears the has_unpublished_changes flag atomically.
+func (s *Service) PublishForm(ctx context.Context, workspaceID, formID string, renderEncryptedSchema, renderKeySalt []byte) error {
+	return s.db.PublishForm(ctx, queries.PublishFormParams{
+		ID:                    formID,
+		WorkspaceID:           workspaceID,
+		RenderEncryptedSchema: renderEncryptedSchema,
+		RenderKeySalt:         renderKeySalt,
+	})
+}
+
 // UpdateFormStatus sets status to "open" or "closed".
+// Draft forms cannot be set to 'open' via this method — use PublishForm instead.
 func (s *Service) UpdateFormStatus(ctx context.Context, workspaceID, formID, status string) error {
 	if status != "open" && status != "closed" {
 		return errors.New("status must be 'open' or 'closed'")
+	}
+	// Prevent bypassing the publish flow for draft forms.
+	if status == "open" {
+		form, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+			ID: formID, WorkspaceID: workspaceID,
+		})
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return err
+		}
+		if form.Status == "draft" {
+			return errors.New("draft forms must be published before they can be opened")
+		}
 	}
 	return s.db.UpdateFormStatus(ctx, queries.UpdateFormStatusParams{
 		ID:          formID,
@@ -369,5 +400,6 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		BurnAfterReading:        f.BurnAfterReading,
 		WorkspaceWrappedFormKey: f.WorkspaceWrappedFormKey,
 		UseCustomDomain:         f.UseCustomDomain,
+		HasUnpublishedChanges:   f.HasUnpublishedChanges,
 	}
 }

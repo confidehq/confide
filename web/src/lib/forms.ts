@@ -26,7 +26,7 @@ export type { FormSchema, ResponsePayload };
 
 export interface FormSummary {
 	formId: string;
-	status: 'open' | 'closed';
+	status: 'draft' | 'open' | 'closed';
 	schemaVersion: number;
 	responseCount: number;
 	createdAt: string;
@@ -36,6 +36,7 @@ export interface FormSummary {
 	responseTtlDays?: number | null;
 	burnAfterReading: boolean;
 	useCustomDomain: boolean;
+	hasUnpublishedChanges: boolean;
 }
 
 export interface FormRecord extends FormSummary {
@@ -170,29 +171,24 @@ export async function listForms(workspaceId?: string): Promise<FormSummary[]> {
 }
 
 /**
- * Replace a form's encrypted schema. Bumps schema_version server-side.
- * The renderKeySalt must be the currently active one — the renderKey is derived from it.
- * Pass the same salt on every edit to keep share URLs stable; pass a new salt to rotate.
+ * Replace the owner-encrypted schema. Bumps schema_version server-side and marks
+ * the form as having unpublished changes. Does NOT touch the render-encrypted schema
+ * so share URLs continue pointing to the last published version until explicitly published.
  */
 export async function updateFormSchema(
 	masterKey: CryptoKey,
 	formId: string,
 	schema: FormSchema,
-	renderKeySalt: Uint8Array,
 	formKey?: CryptoKey
 ): Promise<{ schemaVersion: number }> {
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
 	const encryptedSchema = await encryptSchema(schema, key);
-	const renderKey = await deriveRenderKey(key, renderKeySalt.buffer as ArrayBuffer);
-	const renderEncryptedSchema = await encryptSchema(schema, renderKey);
 
 	const res = await fetch(`/api/forms/${formId}`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			encryptedSchema: arrayBufferToBase64(encryptedSchema),
-			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
-			renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
+			encryptedSchema: arrayBufferToBase64(encryptedSchema)
 		})
 	});
 
@@ -220,7 +216,8 @@ export async function updateFormExpiration(
 }
 
 /**
- * Toggle a form open or closed.
+ * Toggle an already-published form between open and closed.
+ * Draft forms cannot be opened via this — use publishForm instead.
  */
 export async function updateFormStatus(formId: string, status: 'open' | 'closed'): Promise<void> {
 	const res = await fetch(`/api/forms/${formId}/status`, {
@@ -402,10 +399,12 @@ export async function submitResponse(
 }
 
 /**
- * Publish a form using the existing renderKeySalt (stable URL) or a new one (first publish).
+ * Publish a form: re-encrypts the current schema with the render key and calls
+ * POST /api/forms/{id}/publish, which atomically sets status='open' and clears
+ * the unpublished-changes flag.
  *
  * Pass existingRenderKeySalt=null on first publish to generate a new salt.
- * Pass the existing salt on subsequent publishes — the share URL will be identical.
+ * Pass the existing salt on subsequent publishes — the share URL stays the same.
  *
  * Returns the share URL and the renderKeySalt (store it so future publishes stay stable).
  */
@@ -420,15 +419,13 @@ export async function publishForm(
 	const salt = existingRenderKeySalt ?? crypto.getRandomValues(new Uint8Array(16));
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
 
-	const encryptedSchema = await encryptSchema(schema as FormSchema, key);
 	const renderKey = await deriveRenderKey(key, salt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey);
 
-	const res = await fetch(`/api/forms/${formId}`, {
-		method: 'PUT',
+	const res = await fetch(`/api/forms/${formId}/publish`, {
+		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			encryptedSchema: arrayBufferToBase64(encryptedSchema),
 			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
 			renderKeySalt: arrayBufferToBase64(salt.buffer as ArrayBuffer)
 		})

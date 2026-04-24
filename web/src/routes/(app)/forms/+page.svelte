@@ -172,7 +172,9 @@
 							<span class="shrink-0 px-1.5 py-px rounded-full text-sm
 								{form.status === 'open'
 									? 'bg-open-bg text-open-text border border-open-border'
-									: 'bg-closed-bg text-closed-text border border-closed-border'}">
+									: form.status === 'draft'
+										? 'bg-warning-bg-dark text-warning-text-dark border border-warning-border'
+										: 'bg-closed-bg text-closed-text border border-closed-border'}">
 								{form.status}
 							</span>
 						</div>
@@ -227,7 +229,11 @@
 							{/snippet}
 							{#snippet children({ close })}
 								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
-								<DropdownMenuItem onclick={() => { close(); toggleStatus(form); }}>{form.status === 'open' ? 'Close' : 'Open'}</DropdownMenuItem>
+								{#if form.status === 'draft'}
+									<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Publish</DropdownMenuItem>
+								{:else}
+									<DropdownMenuItem onclick={() => { close(); toggleStatus(form); }}>{form.status === 'open' ? 'Close' : 'Open'}</DropdownMenuItem>
+								{/if}
 								<DropdownMenuSeparator />
 								<DropdownMenuItem variant="destructive" onclick={() => { close(); handleDelete(form); }}>Delete</DropdownMenuItem>
 							{/snippet}

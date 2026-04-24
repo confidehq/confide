@@ -57,6 +57,7 @@ type Form struct {
 	CreatedByAccountID      pgtype.Text
 	WorkspaceWrappedFormKey []byte
 	UseCustomDomain         bool
+	HasUnpublishedChanges   bool
 }
 
 type FormSchemaVersion struct {

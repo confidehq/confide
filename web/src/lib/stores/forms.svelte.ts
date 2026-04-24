@@ -85,7 +85,7 @@ export const formsStore = {
 					if (name) names.set(snap[i].formId, name);
 					const desc = t?.formDescription;
 					if (desc) descriptions.set(snap[i].formId, desc);
-					if (record.renderKeySalt) {
+					if (record.renderKeySalt && snap[i].status !== 'draft') {
 						urlEntries.push(
 							deriveShareUrl(snap[i].formId, record.renderKeySalt, formKey).then(url => {
 								_shareUrls = new Map([..._shareUrls, [snap[i].formId, url]]);
@@ -114,7 +114,7 @@ export const formsStore = {
 		_formNames = names;
 	},
 
-	updateStatus(formId: string, status: 'open' | 'closed') {
+	updateStatus(formId: string, status: 'draft' | 'open' | 'closed') {
 		_forms = _forms.map((f) => (f.formId === formId ? { ...f, status } : f));
 	},
 

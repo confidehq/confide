@@ -35,6 +35,7 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Get("/", listForms(svc, wsSvc))
 	r.Get("/{id}", getForm(svc, wsSvc))
 	r.Put("/{id}", updateFormSchema(svc, wsSvc))
+	r.Post("/{id}/publish", publishForm(svc, wsSvc))
 	r.Put("/{id}/status", updateFormStatus(svc, wsSvc))
 	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
 	r.Put("/{id}/workspace-form-key", setWorkspaceFormKey(svc, wsSvc))
@@ -102,12 +103,18 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard, appHost string, re
 			// Unknown host (e.g. localhost in dev) — no restriction.
 		}
 
+		status := effectiveStatus(rec.Status, rec.ResponseCount, rec.ExpiresAt, rec.ResponseLimit)
+		if status == "draft" {
+			writeError(w, http.StatusNotFound, "not_found", "form not found")
+			return
+		}
+
 		w.Header().Set("Cache-Control", "no-store, no-cache")
 		writeJSON(w, http.StatusOK, map[string]any{
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(rec.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(rec.PublicFormKey),
 			"schemaVersion":         rec.SchemaVersion,
-			"status":                effectiveStatus(rec.Status, rec.ResponseCount, rec.ExpiresAt, rec.ResponseLimit),
+			"status":                status,
 			"honeypotFields":        guard.HoneypotNames(formID),
 			"loadToken":             guard.IssueToken(formID),
 		})
@@ -230,32 +237,34 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		}
 
 		type formJSON struct {
-			ID               string  `json:"formId"`
-			Status           string  `json:"status"`
-			SchemaVersion    int32   `json:"schemaVersion"`
-			ResponseCount    int32   `json:"responseCount"`
-			CreatedAt        string  `json:"createdAt"`
-			UpdatedAt        string  `json:"updatedAt"`
-			ExpiresAt        *string `json:"expiresAt,omitempty"`
-			ResponseLimit    *int32  `json:"responseLimit,omitempty"`
-			ResponseTtlDays  *int32  `json:"responseTtlDays,omitempty"`
-			BurnAfterReading bool    `json:"burnAfterReading"`
-			UseCustomDomain  bool    `json:"useCustomDomain"`
+			ID                    string  `json:"formId"`
+			Status                string  `json:"status"`
+			SchemaVersion         int32   `json:"schemaVersion"`
+			ResponseCount         int32   `json:"responseCount"`
+			CreatedAt             string  `json:"createdAt"`
+			UpdatedAt             string  `json:"updatedAt"`
+			ExpiresAt             *string `json:"expiresAt,omitempty"`
+			ResponseLimit         *int32  `json:"responseLimit,omitempty"`
+			ResponseTtlDays       *int32  `json:"responseTtlDays,omitempty"`
+			BurnAfterReading      bool    `json:"burnAfterReading"`
+			UseCustomDomain       bool    `json:"useCustomDomain"`
+			HasUnpublishedChanges bool    `json:"hasUnpublishedChanges"`
 		}
 		out := make([]formJSON, len(forms))
 		for i, f := range forms {
 			out[i] = formJSON{
-				ID:               f.ID,
-				Status:           effectiveStatus(f.Status, f.ResponseCount, f.ExpiresAt, f.ResponseLimit),
-				SchemaVersion:    f.SchemaVersion,
-				ResponseCount:    f.ResponseCount,
-				CreatedAt:        f.CreatedAt.Time.UTC().Format(time.RFC3339),
-				UpdatedAt:        f.UpdatedAt.Time.UTC().Format(time.RFC3339),
-				ExpiresAt:        nullableDateString(f.ExpiresAt),
-				ResponseLimit:    nullableInt32(f.ResponseLimit),
-				ResponseTtlDays:  nullableInt32(f.ResponseTtlDays),
-				BurnAfterReading: f.BurnAfterReading,
-				UseCustomDomain:  f.UseCustomDomain,
+				ID:                    f.ID,
+				Status:                effectiveStatus(f.Status, f.ResponseCount, f.ExpiresAt, f.ResponseLimit),
+				SchemaVersion:         f.SchemaVersion,
+				ResponseCount:         f.ResponseCount,
+				CreatedAt:             f.CreatedAt.Time.UTC().Format(time.RFC3339),
+				UpdatedAt:             f.UpdatedAt.Time.UTC().Format(time.RFC3339),
+				ExpiresAt:             nullableDateString(f.ExpiresAt),
+				ResponseLimit:         nullableInt32(f.ResponseLimit),
+				ResponseTtlDays:       nullableInt32(f.ResponseTtlDays),
+				BurnAfterReading:      f.BurnAfterReading,
+				UseCustomDomain:       f.UseCustomDomain,
+				HasUnpublishedChanges: f.HasUnpublishedChanges,
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"forms": out})
@@ -294,6 +303,7 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"publicFormKey":         base64.StdEncoding.EncodeToString(form.PublicFormKey),
 			"burnAfterReading":      form.BurnAfterReading,
 			"useCustomDomain":       form.UseCustomDomain,
+			"hasUnpublishedChanges": form.HasUnpublishedChanges,
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
@@ -324,9 +334,7 @@ func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		}
 
 		var req struct {
-			EncryptedSchema       string `json:"encryptedSchema"`
-			RenderEncryptedSchema string `json:"renderEncryptedSchema"`
-			RenderKeySalt         string `json:"renderKeySalt"`
+			EncryptedSchema string `json:"encryptedSchema"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -338,21 +346,8 @@ func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_field", "encryptedSchema must be base64")
 			return
 		}
-		renderSchema, err := base64.StdEncoding.DecodeString(req.RenderEncryptedSchema)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_field", "renderEncryptedSchema must be base64")
-			return
-		}
-		var renderKeySalt []byte
-		if req.RenderKeySalt != "" {
-			renderKeySalt, err = base64.StdEncoding.DecodeString(req.RenderKeySalt)
-			if err != nil {
-				writeError(w, http.StatusBadRequest, "invalid_field", "renderKeySalt must be base64")
-				return
-			}
-		}
 
-		version, err := svc.UpdateFormSchema(r.Context(), workspaceID, formID, encSchema, renderSchema, renderKeySalt)
+		version, err := svc.UpdateFormSchema(r.Context(), workspaceID, formID, encSchema)
 		if err != nil {
 			if errors.Is(err, ErrNotFound) {
 				writeError(w, http.StatusNotFound, "not_found", "form not found")
@@ -363,6 +358,48 @@ func updateFormSchema(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{"schemaVersion": version})
+	}
+}
+
+func publishForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
+
+		var req struct {
+			RenderEncryptedSchema string `json:"renderEncryptedSchema"`
+			RenderKeySalt         string `json:"renderKeySalt"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		renderSchema, err := base64.StdEncoding.DecodeString(req.RenderEncryptedSchema)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "renderEncryptedSchema must be base64")
+			return
+		}
+		renderKeySalt, err := base64.StdEncoding.DecodeString(req.RenderKeySalt)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "renderKeySalt must be base64")
+			return
+		}
+
+		if err := svc.PublishForm(r.Context(), workspaceID, formID, renderSchema, renderKeySalt); err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "form not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to publish form")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
@@ -384,8 +421,13 @@ func updateFormStatus(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		}
 
 		if err := svc.UpdateFormStatus(r.Context(), workspaceID, formID, req.Status); err != nil {
-			if err.Error() == "status must be 'open' or 'closed'" {
-				writeError(w, http.StatusBadRequest, "invalid_field", err.Error())
+			msg := err.Error()
+			if msg == "status must be 'open' or 'closed'" || msg == "draft forms must be published before they can be opened" {
+				writeError(w, http.StatusBadRequest, "invalid_field", msg)
+				return
+			}
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "form not found")
 				return
 			}
 			writeError(w, http.StatusInternalServerError, "internal", "failed to update status")
@@ -545,10 +587,13 @@ func updateFormExpiration(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// effectiveStatus computes the observable status of a form. A form is closed if
-// manually set to "closed", past its sunset date, or at its response cap.
-// Expiration rules always win over a manual "open" setting.
+// effectiveStatus computes the observable status of a form.
+// Draft forms have never been published and are not visible to respondents.
+// A form is closed if manually set to "closed", past its sunset date, or at its response cap.
 func effectiveStatus(status string, responseCount int32, expiresAt pgtype.Date, responseLimit pgtype.Int4) string {
+	if status == "draft" {
+		return "draft"
+	}
 	if status == "closed" {
 		return "closed"
 	}

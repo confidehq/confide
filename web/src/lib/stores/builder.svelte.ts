@@ -28,6 +28,8 @@ export interface BuilderStore {
 	readonly responseTtlDays: number | null;
 	readonly burnAfterReading: boolean;
 	readonly showFormSettings: boolean;
+	readonly formStatus: string;
+	readonly hasUnpublishedChanges: boolean;
 
 	// Derived (readable)
 	readonly selectedField: BuilderField | null;
@@ -35,6 +37,7 @@ export interface BuilderStore {
 
 	// Actions
 	setRenderKeySalt(salt: Uint8Array): void;
+	markPublished(): void;
 	setShowFormSettings(show: boolean): void;
 	addField(type: FieldType): void;
 	addFieldAt(type: FieldType, afterIndex: number): void;
@@ -115,6 +118,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let responseTtlDays = $state<number | null>(null);
 	let burnAfterReading = $state(false);
 	let showFormSettings = $state(false);
+	let formStatus = $state('draft');
+	let hasUnpublishedChanges = $state(true);
 
 	// Debounce timer handle
 	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -468,6 +473,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		responseLimit = record.responseLimit ?? null;
 		responseTtlDays = record.responseTtlDays ?? null;
 		burnAfterReading = record.burnAfterReading ?? false;
+		formStatus = record.status;
+		hasUnpublishedChanges = record.hasUnpublishedChanges ?? true;
 		if (record.renderKeySalt) {
 			const raw = atob(record.renderKeySalt);
 			const bytes = new Uint8Array(raw.length);
@@ -481,18 +488,20 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		currentRenderKeySalt = salt;
 	}
 
+	function markPublished(): void {
+		hasUnpublishedChanges = false;
+		formStatus = 'open';
+		formsStore.updateStatus(formId, 'open');
+	}
+
 	async function save(): Promise<void> {
 		if (saving) return;
 		saving = true;
 		try {
-			// Generate a salt on first save (form never published). Once set, the salt
-			// never changes unless the user explicitly rotates the key.
-			if (!currentRenderKeySalt) {
-				currentRenderKeySalt = crypto.getRandomValues(new Uint8Array(16));
-			}
-			await updateFormSchema(masterKey, formId, schema, currentRenderKeySalt, resolvedFormKey ?? undefined);
+			await updateFormSchema(masterKey, formId, schema, resolvedFormKey ?? undefined);
 			lastSaved = new Date();
 			dirty = false;
+			hasUnpublishedChanges = true;
 			if (schema.name) formsStore.updateName(formId, schema.name);
 		} finally {
 			saving = false;
@@ -552,6 +561,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get showFormSettings() {
 			return showFormSettings;
 		},
+		get formStatus() {
+			return formStatus;
+		},
+		get hasUnpublishedChanges() {
+			return hasUnpublishedChanges;
+		},
 		get selectedField() {
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 		},
@@ -576,6 +591,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setConvoAllowEdit,
 		setExpiration,
 		setRenderKeySalt,
+		markPublished,
 		load,
 		save,
 		flushSave

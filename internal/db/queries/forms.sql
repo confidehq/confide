@@ -5,7 +5,7 @@ INSERT INTO forms (
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
     workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, NOW(), NOW(), 'closed', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
+    $1, $2, $3, NOW(), NOW(), 'draft', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
 
 -- name: GetFormWorkspaceID :one
@@ -19,18 +19,26 @@ SELECT id, status, schema_version, response_count, render_encrypted_schema, publ
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain, has_unpublished_changes
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateFormSchema :one
 UPDATE forms
 SET encrypted_schema = $3,
-    render_encrypted_schema = $4,
-    render_key_salt = $5,
     schema_version = schema_version + 1,
+    has_unpublished_changes = true,
     updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version;
+
+-- name: PublishForm :exec
+UPDATE forms
+SET render_encrypted_schema = $3,
+    render_key_salt = $4,
+    status = 'open',
+    has_unpublished_changes = false,
+    updated_at = NOW()
+WHERE id = $1 AND workspace_id = $2;
 
 -- name: SetWorkspaceFormKey :exec
 UPDATE forms

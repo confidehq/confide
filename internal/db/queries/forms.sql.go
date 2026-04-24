@@ -18,8 +18,8 @@ INSERT INTO forms (
     render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading,
     workspace_wrapped_form_key
 ) VALUES (
-    $1, $2, $3, NOW(), NOW(), 'closed', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain
+    $1, $2, $3, NOW(), NOW(), 'draft', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
+) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain, has_unpublished_changes
 `
 
 type CreateFormParams struct {
@@ -72,6 +72,7 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
 		&i.UseCustomDomain,
+		&i.HasUnpublishedChanges,
 	)
 	return i, err
 }
@@ -91,7 +92,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByWorkspace = `-- name: GetFormByWorkspace :one
-SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain FROM forms WHERE id = $1 AND workspace_id = $2
+SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain, has_unpublished_changes FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
 type GetFormByWorkspaceParams struct {
@@ -121,6 +122,7 @@ func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspace
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
 		&i.UseCustomDomain,
+		&i.HasUnpublishedChanges,
 	)
 	return i, err
 }
@@ -223,22 +225,23 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 }
 
 const listFormsByWorkspace = `-- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain, has_unpublished_changes
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC
 `
 
 type ListFormsByWorkspaceRow struct {
-	ID               string
-	Status           string
-	SchemaVersion    int32
-	ResponseCount    int32
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
-	ExpiresAt        pgtype.Date
-	ResponseLimit    pgtype.Int4
-	ResponseTtlDays  pgtype.Int4
-	BurnAfterReading bool
-	UseCustomDomain  bool
+	ID                    string
+	Status                string
+	SchemaVersion         int32
+	ResponseCount         int32
+	CreatedAt             pgtype.Timestamptz
+	UpdatedAt             pgtype.Timestamptz
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
+	ResponseTtlDays       pgtype.Int4
+	BurnAfterReading      bool
+	UseCustomDomain       bool
+	HasUnpublishedChanges bool
 }
 
 func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) ([]ListFormsByWorkspaceRow, error) {
@@ -262,6 +265,7 @@ func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) 
 			&i.ResponseTtlDays,
 			&i.BurnAfterReading,
 			&i.UseCustomDomain,
+			&i.HasUnpublishedChanges,
 		); err != nil {
 			return nil, err
 		}
@@ -370,20 +374,17 @@ func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpira
 const updateFormSchema = `-- name: UpdateFormSchema :one
 UPDATE forms
 SET encrypted_schema = $3,
-    render_encrypted_schema = $4,
-    render_key_salt = $5,
     schema_version = schema_version + 1,
+    has_unpublished_changes = true,
     updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
 RETURNING schema_version
 `
 
 type UpdateFormSchemaParams struct {
-	ID                    string
-	WorkspaceID           string
-	EncryptedSchema       []byte
-	RenderEncryptedSchema []byte
-	RenderKeySalt         []byte
+	ID              string
+	WorkspaceID     string
+	EncryptedSchema []byte
 }
 
 func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaParams) (int32, error) {
@@ -391,12 +392,37 @@ func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaPara
 		arg.ID,
 		arg.WorkspaceID,
 		arg.EncryptedSchema,
-		arg.RenderEncryptedSchema,
-		arg.RenderKeySalt,
 	)
 	var schema_version int32
 	err := row.Scan(&schema_version)
 	return schema_version, err
+}
+
+const publishForm = `-- name: PublishForm :exec
+UPDATE forms
+SET render_encrypted_schema = $3,
+    render_key_salt = $4,
+    status = 'open',
+    has_unpublished_changes = false,
+    updated_at = NOW()
+WHERE id = $1 AND workspace_id = $2
+`
+
+type PublishFormParams struct {
+	ID                    string
+	WorkspaceID           string
+	RenderEncryptedSchema []byte
+	RenderKeySalt         []byte
+}
+
+func (q *Queries) PublishForm(ctx context.Context, arg PublishFormParams) error {
+	_, err := q.db.Exec(ctx, publishForm,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.RenderEncryptedSchema,
+		arg.RenderKeySalt,
+	)
+	return err
 }
 
 const updateFormStatus = `-- name: UpdateFormStatus :exec

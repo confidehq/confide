@@ -1,8 +1,9 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { CustomDomainInfo } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { publishForm, rotateRenderKey } from '$lib/forms';
+	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
 	import { Copy, Check } from '@lucide/svelte';
 
 	interface Props {
@@ -33,6 +34,29 @@
 	let expirationSaving = $state(false);
 	let expirationError = $state<string | null>(null);
 
+	// Derive share URL on mount if form was previously published
+	onMount(async () => {
+		if (store.formStatus !== 'draft' && store.renderKeySalt && store.formKey) {
+			try {
+				const saltBase64 = btoa(String.fromCharCode(...store.renderKeySalt));
+				shareUrl = await deriveShareUrl(formId, saltBase64, store.formKey, customDomainBase());
+			} catch {
+				// non-critical: share URL will be shown after next publish
+			}
+		}
+	});
+
+	const isFirstPublish = $derived(store.formStatus === 'draft');
+	const publishButtonLabel = $derived(
+		publishing ? 'Publishing…'
+		: isFirstPublish ? 'Publish'
+		: store.hasUnpublishedChanges ? 'Update'
+		: 'Up to date'
+	);
+	const publishButtonDisabled = $derived(
+		store.saving || publishing || (!isFirstPublish && !store.hasUnpublishedChanges)
+	);
+
 	async function handlePublish() {
 		if (!auth.masterKey) return;
 		publishing = true;
@@ -41,6 +65,7 @@
 			await store.flushSave();
 			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
 			store.setRenderKeySalt(result.renderKeySalt);
+			store.markPublished();
 			shareUrl = result.shareUrl;
 		} catch (err) {
 			publishError = err instanceof Error ? err.message : 'Publish failed';
@@ -56,6 +81,7 @@
 		try {
 			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined, customDomainBase());
 			store.setRenderKeySalt(result.renderKeySalt);
+			store.markPublished();
 			shareUrl = result.shareUrl;
 		} catch (err) {
 			publishError = err instanceof Error ? err.message : 'Key rotation failed';
@@ -370,10 +396,10 @@
 		{/if}
 		<button
 			onclick={handlePublish}
-			disabled={store.saving || publishing}
+			disabled={publishButtonDisabled}
 			class="w-full py-2 text-white border-none rounded-md font-mono text-sm transition-[background,opacity] duration-100
-				{store.saving || publishing ? 'bg-info-bg-dark cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
-		>{publishing ? 'Publishing…' : shareUrl ? 'Republish' : 'Publish'}</button>
+				{publishButtonDisabled ? 'bg-info-bg-dark cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
+		>{publishButtonLabel}</button>
 	</div>
 </aside>
 

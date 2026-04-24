@@ -51,6 +51,16 @@
 	let settingsSaved = $state(false);
 	let settingsError = $state('');
 
+	let closeOnDatePending = $state(false);
+	let limitResponsesPending = $state(false);
+	let autoDeletePending = $state(false);
+	const closeOnDateOpen = $derived(!!expiresAt || closeOnDatePending);
+	const limitResponsesOpen = $derived(!!responseLimit || limitResponsesPending);
+	const settingsLifetimePolicy = $derived<'none' | 'burn' | 'ttl'>(
+		burnAfterReading ? 'burn' : responseTtlDays ? 'ttl' : 'none'
+	);
+	const autoDeleteOpen = $derived(settingsLifetimePolicy !== 'none' || autoDeletePending);
+
 	let shareUrl = $state('');
 	let publishing = $state(false);
 	let publishError = $state('');
@@ -170,10 +180,9 @@
 			const base = config.formsDomain ? `https://${config.formsDomain}` : undefined;
 			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey, base);
 			shareUrl = result.shareUrl;
-			if (record?.status === 'closed') {
-				await updateFormStatus(formId, 'open');
-				record = { ...record, status: 'open' };
-			}
+			// publishForm atomically sets status='open' on the server
+			record = { ...record, status: 'open', hasUnpublishedChanges: false };
+			formsStore.updateStatus(formId, 'open');
 		} catch (e) {
 			publishError = e instanceof Error ? e.message : 'Publish failed';
 		} finally {
@@ -338,7 +347,11 @@
 	}
 
 	// ── Derived ───────────────────────────────────────────────────────────────
-	const statusColor = $derived(record?.status === 'open' ? 'bg-success-text-dark' : 'bg-muted-mid');
+	const statusColor = $derived(
+		record?.status === 'open' ? 'bg-success-text-dark'
+		: record?.status === 'draft' ? 'bg-warning-text-dark'
+		: 'bg-muted-mid'
+	);
 	const selectedRecord = $derived(responses.find(r => r.id === selectedId));
 	const selectedDecrypted = $derived(selectedId ? decrypted.get(selectedId) : undefined);
 	const isDecryptingSelected = $derived(selectedId ? decrypting.has(selectedId) : false);
@@ -476,6 +489,11 @@
 				<!-- ── Details / Settings view ──────────────────────────────────── -->
 				<div class="flex-1 flex flex-col min-h-0">
 
+					<!-- Form name heading -->
+					{#if formName}
+						<h1 class="m-0 px-5 pt-5 pb-3 text-xl text-text-body font-mono font-normal shrink-0">{formName}</h1>
+					{/if}
+
 					<!-- Tab bar -->
 					<div class="flex items-end h-9 border-b border-border-deep shrink-0 px-4 gap-1">
 						{#each [['details', 'Details'], ['share', 'Share'], ['settings', 'Settings']] as [id, label]}
@@ -514,18 +532,26 @@
 												<div class="flex items-center gap-2.5 flex-1">
 													<span class="w-2 h-2 rounded-full shrink-0 {statusColor}"></span>
 													<span class="text-lg text-text-body capitalize">{record.status}</span>
-													<button
-														onclick={toggleStatus}
-														disabled={statusSaving}
-														class="ml-auto px-3 py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100
-															{statusSaving
-																? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
-																: record.status === 'open'
-																	? 'bg-transparent text-error-light border-border-danger-muted hover:bg-danger-hover hover:border-border-danger-dark'
-																	: 'bg-transparent text-success-text-dark border-[#1e3a20] hover:bg-[#0e1a0e] hover:border-success-text'}"
-													>
-														{statusSaving ? '…' : record.status === 'open' ? 'Close' : 'Open'}
-													</button>
+													{#if record.status === 'draft'}
+														<a
+															href="/forms/{formId}/edit"
+															class="ml-auto px-3 py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100 no-underline
+																bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border"
+														>Publish</a>
+													{:else}
+														<button
+															onclick={toggleStatus}
+															disabled={statusSaving}
+															class="ml-auto px-3 py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100
+																{statusSaving
+																	? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
+																	: record.status === 'open'
+																		? 'bg-transparent text-error-light border-border-danger-muted hover:bg-danger-hover hover:border-border-danger-dark'
+																		: 'bg-transparent text-success-text-dark border-[#1e3a20] hover:bg-[#0e1a0e] hover:border-success-text'}"
+														>
+															{statusSaving ? '…' : record.status === 'open' ? 'Close' : 'Open'}
+														</button>
+													{/if}
 												</div>
 											</div>
 											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
@@ -577,7 +603,11 @@
 													{/if}
 												</button>
 											</div>
-											<p class="m-0 text-base text-muted-mid">Anyone with this link can submit a response. Rotate the key on the edit page to invalidate old links.</p>
+											{#if record.hasUnpublishedChanges}
+												<p class="m-0 text-base text-warning-text-dark">This link reflects the last published version. <a href="/forms/{formId}/edit" class="text-text-blue underline">Update</a> to publish your latest changes.</p>
+											{:else}
+												<p class="m-0 text-base text-muted-mid">Anyone with this link can submit a response. Rotate the key on the edit page to invalidate old links.</p>
+											{/if}
 										{:else}
 											<div class="flex flex-col gap-2">
 												{#if publishError}
@@ -597,12 +627,10 @@
 															Generating…
 														{:else}
 															<ExternalLink size={14} strokeWidth={1.75} />
-															{record.renderKeySalt ? 'Get share link' : 'Publish form'}
+															Publish form
 														{/if}
 													</button>
-													{#if !record.renderKeySalt}
-														<p class="mt-2 m-0 text-base text-muted-mid">Publishing generates an encrypted share link for respondents.</p>
-													{/if}
+													<p class="mt-2 m-0 text-base text-muted-mid">Publishing makes the form live and generates an encrypted share link for respondents.</p>
 												</div>
 											</div>
 										{/if}
@@ -611,74 +639,123 @@
 								{:else if activeTab === 'settings'}
 									<!-- Settings -->
 									<section class="flex flex-col gap-4">
-										<div class="border border-border-deep rounded-lg overflow-hidden">
-											<div class="flex items-start gap-4 px-4 py-4 border-b border-border-deep">
-												<div class="w-48 shrink-0 pt-px">
-													<p class="m-0 text-base text-muted-blue">Expiration date</p>
-													<p class="m-0 mt-0.5 text-base text-muted-mid leading-snug">Close form automatically on this date</p>
+										<div class="flex flex-col divide-y divide-border-deep">
+
+											<!-- Close on date -->
+											<div class="py-3 first:pt-0">
+												<div class="flex items-center justify-between gap-3">
+													<div>
+														<p class="m-0 text-base text-text-dim">Close on date</p>
+														<p class="m-0 text-sm text-muted-dark mt-0.5">Stop accepting responses after a date.</p>
+													</div>
+													<button
+														role="switch"
+														aria-checked={closeOnDateOpen}
+														onclick={() => {
+															if (closeOnDateOpen) { closeOnDatePending = false; expiresAt = ''; }
+															else { closeOnDatePending = true; }
+														}}
+														class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+															{closeOnDateOpen ? 'bg-primary' : 'bg-border-deep'}"
+													>
+														<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+															{closeOnDateOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+													</button>
 												</div>
-												<input
-													type="date"
-													bind:value={expiresAt}
-													class="flex-1 min-w-0 text-lg text-text-body bg-canvas border border-border-deep rounded px-3 py-2 font-mono outline-none
-														focus:border-info-border transition-colors duration-100"
-												/>
+												{#if closeOnDateOpen}
+													<div class="mt-2.5">
+														<input type="date" bind:value={expiresAt} class="input-base" />
+													</div>
+												{/if}
 											</div>
-											<div class="flex items-start gap-4 px-4 py-4 border-b border-border-deep">
-												<div class="w-48 shrink-0 pt-px">
-													<p class="m-0 text-base text-muted-blue">Response limit</p>
-													<p class="m-0 mt-0.5 text-base text-muted-mid leading-snug">Close after this many responses</p>
+
+											<!-- Limit responses -->
+											<div class="py-3">
+												<div class="flex items-center justify-between gap-3">
+													<div>
+														<p class="m-0 text-base text-text-dim">Limit total responses</p>
+														<p class="m-0 text-sm text-muted-dark mt-0.5">Close after a set number of submissions.</p>
+													</div>
+													<button
+														role="switch"
+														aria-checked={limitResponsesOpen}
+														onclick={() => {
+															if (limitResponsesOpen) { limitResponsesPending = false; responseLimit = ''; }
+															else { limitResponsesPending = true; }
+														}}
+														class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+															{limitResponsesOpen ? 'bg-primary' : 'bg-border-deep'}"
+													>
+														<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+															{limitResponsesOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+													</button>
 												</div>
-												<input
-													type="number"
-													min="1"
-													placeholder="No limit"
-													bind:value={responseLimit}
-													class="flex-1 min-w-0 text-lg text-text-body bg-canvas border border-border-deep rounded px-3 py-2 font-mono outline-none
-														focus:border-info-border transition-colors duration-100 placeholder:text-muted-mid"
-												/>
+												{#if limitResponsesOpen}
+													<div class="mt-2.5">
+														<input type="number" min="1" placeholder="e.g. 100" bind:value={responseLimit} class="input-base" />
+													</div>
+												{/if}
 											</div>
-											<div class="flex items-start gap-4 px-4 py-4 border-b border-border-deep">
-												<div class="w-48 shrink-0 pt-px">
-													<p class="m-0 text-base text-muted-blue">Response TTL (days)</p>
-													<p class="m-0 mt-0.5 text-base text-muted-mid leading-snug">Auto-delete responses after N days</p>
+
+											<!-- Auto delete -->
+											<div class="py-3">
+												<div class="flex items-center justify-between gap-3">
+													<div>
+														<p class="m-0 text-base text-text-dim">Auto delete responses</p>
+														<p class="m-0 text-sm text-muted-dark mt-0.5">Remove responses from our servers after a set period.</p>
+													</div>
+													<button
+														role="switch"
+														aria-checked={autoDeleteOpen}
+														onclick={() => {
+															if (autoDeleteOpen) {
+																autoDeletePending = false;
+																burnAfterReading = false;
+																responseTtlDays = '';
+															} else {
+																autoDeletePending = true;
+															}
+														}}
+														class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+															{autoDeleteOpen ? 'bg-primary' : 'bg-border-deep'}"
+													>
+														<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+															{autoDeleteOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+													</button>
 												</div>
-												<input
-													type="number"
-													min="1"
-													placeholder="Never"
-													bind:value={responseTtlDays}
-													class="flex-1 min-w-0 text-lg text-text-body bg-canvas border border-border-deep rounded px-3 py-2 font-mono outline-none
-														focus:border-info-border transition-colors duration-100 placeholder:text-muted-mid"
-												/>
+												{#if autoDeleteOpen}
+													<div class="mt-2.5 flex flex-col gap-2.5">
+														<select
+															value={settingsLifetimePolicy === 'none' ? 'burn' : settingsLifetimePolicy}
+															onchange={(e) => {
+																const p = (e.target as HTMLSelectElement).value;
+																burnAfterReading = p === 'burn';
+																responseTtlDays = p === 'ttl' ? (responseTtlDays || '30') : '';
+															}}
+															class="input-base"
+														>
+															<option value="burn">Burn after reading</option>
+															<option value="ttl">Delete after a set period</option>
+														</select>
+														{#if settingsLifetimePolicy === 'ttl'}
+															<div class="flex gap-1.5 items-center">
+																<input type="number" min="1" placeholder="Days" bind:value={responseTtlDays} class="input-base" />
+																<span class="text-sm text-muted shrink-0">days</span>
+															</div>
+														{:else if settingsLifetimePolicy === 'burn'}
+															<p class="m-0 text-xs text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
+														{/if}
+													</div>
+												{/if}
 											</div>
-											<div class="flex items-center gap-4 px-4 py-4">
-												<div class="w-48 shrink-0">
-													<p class="m-0 text-base text-muted-blue">Burn after reading</p>
-													<p class="m-0 mt-0.5 text-base text-muted-mid leading-snug">Delete each response once viewed</p>
-												</div>
-												<button
-													onclick={() => { burnAfterReading = !burnAfterReading; }}
-													role="switch"
-													aria-checked={burnAfterReading}
-													class="relative shrink-0 w-9 h-5 rounded-full border transition-colors duration-150 cursor-pointer outline-none
-														{burnAfterReading
-															? 'bg-primary border-info-border'
-															: 'bg-canvas border-border-deep hover:border-muted-mid'}"
-												>
-													<span
-														class="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-[left] duration-150
-															{burnAfterReading ? 'left-[18px]' : 'left-0.5'}"
-													></span>
-												</button>
-											</div>
+
 										</div>
 
-										<div class="flex items-center gap-3">
+										<div class="flex items-center gap-3 pt-2">
 											<button
 												onclick={saveSettings}
 												disabled={settingsSaving}
-												class="px-4 py-2 border rounded font-mono text-lg cursor-pointer transition-colors duration-100
+												class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
 													{settingsSaving
 														? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
 														: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
