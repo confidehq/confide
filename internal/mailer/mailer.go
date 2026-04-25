@@ -103,7 +103,7 @@ func (m *Mailer) resendText(to, subject, text string) error {
 	if err != nil {
 		return fmt.Errorf("mailer: resend request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode >= 300 {
 		var errBody map[string]any
