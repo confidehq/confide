@@ -19,6 +19,7 @@ import {
 import { loadWorkspaceKey } from './workspaces';
 import type { FormSchema, ResponsePayload } from './types/crypto';
 import type { BuilderSchema } from './types/builder';
+import * as openpgp from 'openpgp';
 
 export type { FormSchema, ResponsePayload };
 
@@ -46,6 +47,8 @@ export interface FormRecord extends FormSummary {
 	publicFormKey: string;
 	renderKeySalt: string | null; // base64, null if never published
 	workspaceWrappedFormKey?: string | null; // base64, null if not yet set
+	notificationEmail?: string;
+	pgpPublicKey?: string; // ASCII-armored PGP public key
 }
 
 export interface EncryptedResponseRecord {
@@ -336,7 +339,7 @@ export async function deleteResponse(formId: string, responseId: string): Promis
 export async function getPublicSchema(
 	formId: string,
 	renderKey: CryptoKey
-): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer; honeypotFields: string[]; loadToken: string }> {
+): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer; honeypotFields: string[]; loadToken: string; pgpPublicKey: string | null }> {
 	const res = await fetch(`/api/f/${formId}/schema`, { credentials: 'omit' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
@@ -350,13 +353,17 @@ export async function getPublicSchema(
 		schemaVersion: body.schemaVersion,
 		publicFormKey,
 		honeypotFields: Array.isArray(body.honeypotFields) ? body.honeypotFields : [],
-		loadToken: typeof body.loadToken === 'string' ? body.loadToken : ''
+		loadToken: typeof body.loadToken === 'string' ? body.loadToken : '',
+		pgpPublicKey: typeof body.pgpPublicKey === 'string' ? body.pgpPublicKey : null
 	};
 }
 
 /**
  * Submit a response anonymously via the relay endpoint.
  * No cookies are sent. Retries 3× with exponential backoff on failure.
+ *
+ * If pgpPublicKey (ASCII-armored) is provided, the payload is also encrypted
+ * with OpenPGP and forwarded to the form's configured notification address.
  */
 export async function submitResponse(
 	formId: string,
@@ -364,7 +371,9 @@ export async function submitResponse(
 	payload: ResponsePayload,
 	schemaVersion: number,
 	loadToken: string = '',
-	honeypotValues: Record<string, string> = {}
+	honeypotValues: Record<string, string> = {},
+	pgpPublicKey: string | null = null,
+	pgpPlaintext?: string
 ): Promise<void> {
 	const publicFormKey = await crypto.subtle.importKey(
 		'raw',
@@ -376,13 +385,20 @@ export async function submitResponse(
 
 	const { encryptedData, ephemeralPublicKey } = await encryptResponse(payload, publicFormKey);
 
+	let pgpEncryptedData: string | undefined;
+	if (pgpPublicKey) {
+		const plaintext = pgpPlaintext ?? JSON.stringify(payload, null, 2);
+		pgpEncryptedData = await pgpEncryptPayload(plaintext, pgpPublicKey);
+	}
+
 	const body = JSON.stringify({
 		formId,
 		encryptedData: arrayBufferToBase64(encryptedData),
 		ephemeralPublicKey: arrayBufferToBase64(ephemeralPublicKey),
 		schemaVersion,
 		loadToken,
-		honeypotFields: honeypotValues
+		honeypotFields: honeypotValues,
+		...(pgpEncryptedData ? { pgpEncryptedData } : {})
 	});
 
 	for (let attempt = 0; attempt < 3; attempt++) {
@@ -396,6 +412,23 @@ export async function submitResponse(
 		if (res.ok) return;
 		if (attempt === 2) throw new Error(`Submission failed after 3 attempts (${res.status})`);
 	}
+}
+
+/**
+ * Save or clear PGP email notification settings for a form.
+ * Pass empty strings to disable notifications.
+ */
+export async function updateFormPGPNotification(
+	formId: string,
+	notificationEmail: string,
+	pgpPublicKey: string
+): Promise<void> {
+	const res = await fetch(`/api/forms/${formId}/notification`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ notificationEmail, pgpPublicKey })
+	});
+	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
 /**
@@ -509,6 +542,32 @@ export async function deriveShareUrl(
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Validate an ASCII-armored PGP public key and return its fingerprint.
+ * Throws a human-readable error if the key is invalid or the wrong type
+ * (e.g. an X.509 certificate pasted instead of a PGP key block).
+ */
+export async function validatePGPKey(armoredKey: string): Promise<string> {
+	const trimmed = armoredKey.trim();
+	if (!trimmed.startsWith('-----BEGIN PGP PUBLIC KEY BLOCK-----')) {
+		if (trimmed.startsWith('-----BEGIN CERTIFICATE-----') || trimmed.startsWith('-----BEGIN PUBLIC KEY-----')) {
+			throw new Error(
+				'This is an X.509 certificate, not a PGP key. In Proton Mail go to Settings → Encryption & keys → your key → Export public key — the file should start with "-----BEGIN PGP PUBLIC KEY BLOCK-----".'
+			);
+		}
+		throw new Error('Not a PGP public key. The key must start with "-----BEGIN PGP PUBLIC KEY BLOCK-----".');
+	}
+	const key = await openpgp.readKey({ armoredKey: trimmed });
+	return key.getFingerprint().toUpperCase();
+}
+
+async function pgpEncryptPayload(plaintext: string, armoredPublicKey: string): Promise<string> {
+	const publicKey = await openpgp.readKey({ armoredKey: armoredPublicKey.trim() });
+	const message = await openpgp.createMessage({ text: plaintext });
+	const encrypted = await openpgp.encrypt({ message, encryptionKeys: publicKey });
+	return encrypted as string;
+}
 
 export class ApiError extends Error {
 	constructor(

@@ -31,6 +31,7 @@ func SubmitHandler(q *Queue, guard *botguard.Guard) http.HandlerFunc {
 			SchemaVersion      int32             `json:"schemaVersion"`
 			LoadToken          string            `json:"loadToken"`
 			HoneypotFields     map[string]string `json:"honeypotFields"`
+			PGPEncryptedData   string            `json:"pgpEncryptedData"`
 		}
 		if err := json.Unmarshal(body, &req); err != nil {
 			http.Error(w, "", http.StatusBadRequest)
@@ -66,6 +67,7 @@ func SubmitHandler(q *Queue, guard *botguard.Guard) http.HandlerFunc {
 			EncryptedData:      encData,
 			EphemeralPublicKey: ephKey,
 			SchemaVersion:      req.SchemaVersion,
+			PGPEncryptedData:   req.PGPEncryptedData,
 		})
 
 		w.WriteHeader(http.StatusAccepted)

@@ -40,6 +40,7 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
 	r.Put("/{id}/workspace-form-key", setWorkspaceFormKey(svc, wsSvc))
 	r.Put("/{id}/custom-domain", setFormCustomDomain(svc, wsSvc))
+	r.Put("/{id}/notification", updateFormPGPNotification(svc, wsSvc))
 	r.Delete("/{id}", deleteForm(svc, wsSvc))
 	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
 	return r
@@ -110,14 +111,18 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard, appHost string, re
 		}
 
 		w.Header().Set("Cache-Control", "no-store, no-cache")
-		writeJSON(w, http.StatusOK, map[string]any{
+		resp := map[string]any{
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(rec.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(rec.PublicFormKey),
 			"schemaVersion":         rec.SchemaVersion,
 			"status":                status,
 			"honeypotFields":        guard.HoneypotNames(formID),
 			"loadToken":             guard.IssueToken(formID),
-		})
+		}
+		if rec.PGPPublicKey != "" {
+			resp["pgpPublicKey"] = rec.PGPPublicKey
+		}
+		writeJSON(w, http.StatusOK, resp)
 	}
 }
 
@@ -304,6 +309,8 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"burnAfterReading":      form.BurnAfterReading,
 			"useCustomDomain":       form.UseCustomDomain,
 			"hasUnpublishedChanges": form.HasUnpublishedChanges,
+			"notificationEmail":     form.NotificationEmail,
+			"pgpPublicKey":          form.PGPPublicKey,
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
@@ -578,6 +585,33 @@ func updateFormExpiration(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 
 		if err := svc.UpdateExpiration(r.Context(), workspaceID, formID, expiresAt, responseLimit, responseTtlDays, burnAfterReading); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to update expiration")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func updateFormPGPNotification(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "id")
+		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
+
+		var req struct {
+			NotificationEmail string `json:"notificationEmail"`
+			PGPPublicKey      string `json:"pgpPublicKey"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		if err := svc.UpdatePGPNotification(r.Context(), workspaceID, formID, req.NotificationEmail, req.PGPPublicKey); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to update notification settings")
 			return
 		}
 

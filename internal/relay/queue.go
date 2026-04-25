@@ -9,6 +9,7 @@ type SubmissionItem struct {
 	EncryptedData      []byte
 	EphemeralPublicKey []byte
 	SchemaVersion      int32
+	PGPEncryptedData   string // ASCII-armored PGP ciphertext; empty if not configured
 }
 
 // Queue is a thread-safe in-memory queue for relay submissions.

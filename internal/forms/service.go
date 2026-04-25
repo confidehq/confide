@@ -33,6 +33,7 @@ type DB interface {
 	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
 	SetWorkspaceFormKey(ctx context.Context, arg queries.SetWorkspaceFormKeyParams) error
 	SetFormCustomDomain(ctx context.Context, arg queries.SetFormCustomDomainParams) error
+	UpdateFormPGPNotification(ctx context.Context, arg queries.UpdateFormPGPNotificationParams) error
 }
 
 // Service handles form CRUD operations.
@@ -69,6 +70,8 @@ type FormRecord struct {
 	WorkspaceWrappedFormKey []byte // nil if not yet set
 	UseCustomDomain         bool
 	HasUnpublishedChanges   bool
+	NotificationEmail       string // empty if not configured
+	PGPPublicKey            string // ASCII-armored PGP public key; empty if not configured
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -99,6 +102,7 @@ type PublicFormRecord struct {
 	ResponseLimit         pgtype.Int4
 	WorkspaceID           string
 	UseCustomDomain       bool
+	PGPPublicKey          string // ASCII-armored PGP public key; empty if not configured
 }
 
 // CreateForm stores a new form and returns its ID.
@@ -314,7 +318,7 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		}
 		return PublicFormRecord{}, err
 	}
-	return PublicFormRecord{
+	rec := PublicFormRecord{
 		ID:                    row.ID,
 		Status:                row.Status,
 		SchemaVersion:         row.SchemaVersion,
@@ -325,7 +329,11 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		ResponseLimit:         row.ResponseLimit,
 		WorkspaceID:           row.WorkspaceID,
 		UseCustomDomain:       row.UseCustomDomain,
-	}, nil
+	}
+	if row.PGPPublicKey.Valid {
+		rec.PGPPublicKey = row.PGPPublicKey.String
+	}
+	return rec, nil
 }
 
 // SetWorkspaceFormKey stores the workspace-encrypted form key for a form.
@@ -343,6 +351,25 @@ func (s *Service) SetCustomDomainToggle(ctx context.Context, workspaceID, formID
 		ID:              formID,
 		WorkspaceID:     workspaceID,
 		UseCustomDomain: enable,
+	})
+}
+
+// UpdatePGPNotification sets or clears the email notification destination and PGP public key.
+// Pass empty strings to disable notifications.
+func (s *Service) UpdatePGPNotification(ctx context.Context, workspaceID, formID, notificationEmail, pgpPublicKey string) error {
+	var email pgtype.Text
+	if notificationEmail != "" {
+		email = pgtype.Text{String: notificationEmail, Valid: true}
+	}
+	var pgpKey pgtype.Text
+	if pgpPublicKey != "" {
+		pgpKey = pgtype.Text{String: pgpPublicKey, Valid: true}
+	}
+	return s.db.UpdateFormPGPNotification(ctx, queries.UpdateFormPGPNotificationParams{
+		ID:                formID,
+		WorkspaceID:       workspaceID,
+		NotificationEmail: email,
+		PGPPublicKey:      pgpKey,
 	})
 }
 
@@ -383,7 +410,7 @@ func randomID() (string, error) {
 }
 
 func formRecordFromDB(f queries.Form) FormRecord {
-	return FormRecord{
+	rec := FormRecord{
 		ID:                      f.ID,
 		Status:                  f.Status,
 		SchemaVersion:           f.SchemaVersion,
@@ -402,4 +429,11 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		UseCustomDomain:         f.UseCustomDomain,
 		HasUnpublishedChanges:   f.HasUnpublishedChanges,
 	}
+	if f.NotificationEmail.Valid {
+		rec.NotificationEmail = f.NotificationEmail.String
+	}
+	if f.PGPPublicKey.Valid {
+		rec.PGPPublicKey = f.PGPPublicKey.String
+	}
+	return rec
 }

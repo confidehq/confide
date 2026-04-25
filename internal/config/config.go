@@ -32,6 +32,10 @@ type Config struct {
 	FromEmail   string
 	AppDomain   string
 
+	// ResendAPIKey — when set, emails are sent via the Resend REST API instead of SMTP.
+	// This allows sending RFC 3156 PGP/MIME messages which Resend's SMTP relay rejects.
+	ResendAPIKey string
+
 	// Stripe — all optional; if StripeSecretKey is empty, billing endpoints return 503.
 	StripeSecretKey     string
 	StripeWebhookSecret string
@@ -86,6 +90,7 @@ func Load() (*Config, error) {
 		SMTPUser:           os.Getenv("CONFIDE_SMTP_USER"),
 		SMTPPass:           os.Getenv("CONFIDE_SMTP_PASS"),
 		FromEmail:          os.Getenv("CONFIDE_FROM_EMAIL"),
+		ResendAPIKey:       os.Getenv("CONFIDE_RESEND_API_KEY"),
 		AppDomain:          getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000"),
 		StripeSecretKey:     os.Getenv("CONFIDE_STRIPE_SECRET_KEY"),
 		StripeWebhookSecret: os.Getenv("CONFIDE_STRIPE_WEBHOOK_SECRET"),

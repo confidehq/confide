@@ -46,7 +46,7 @@ type Services struct {
 
 // NewServices constructs all application services from the pool and webauthn instance.
 func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) *Services {
-	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail)
+	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail, cfg.ResendAPIKey)
 	wsSvc := workspace.NewService(pool)
 
 	if cfg.TraefikDynamicDir != "" {
@@ -71,7 +71,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	return &Services{
 		Auth:       auth.NewService(pool, wa),
 		Forms:      forms.NewService(pool),
-		Responses:  responses.NewService(pool),
+		Responses:  responses.NewService(pool, m),
 		Workspace:  wsSvc,
 		Identity:   identity.NewService(pool),
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),

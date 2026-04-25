@@ -8,6 +8,8 @@
 		getForm,
 		updateFormStatus,
 		updateFormExpiration,
+		updateFormPGPNotification,
+		validatePGPKey,
 		deleteForm,
 		publishForm,
 		listResponses,
@@ -50,6 +52,28 @@
 	let settingsSaving = $state(false);
 	let settingsSaved = $state(false);
 	let settingsError = $state('');
+
+	let notificationEmail = $state('');
+	let pgpPublicKey = $state('');
+	let pgpSaving = $state(false);
+	let pgpSaved = $state(false);
+	let pgpError = $state('');
+	let pgpPending = $state(false);
+	const pgpOpen = $derived(!!notificationEmail || pgpPending);
+	let pgpKeyFingerprint = $state('');
+	let pgpKeyError = $state('');
+
+	async function handlePGPKeyInput(value: string) {
+		pgpPublicKey = value;
+		pgpKeyFingerprint = '';
+		pgpKeyError = '';
+		if (!value.trim()) return;
+		try {
+			pgpKeyFingerprint = await validatePGPKey(value);
+		} catch (e) {
+			pgpKeyError = e instanceof Error ? e.message : 'Invalid PGP key';
+		}
+	}
 
 	let closeOnDatePending = $state(false);
 	let limitResponsesPending = $state(false);
@@ -118,6 +142,14 @@
 			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
 			responseTtlDays = r.responseTtlDays != null ? String(r.responseTtlDays) : '';
 			burnAfterReading = r.burnAfterReading ?? false;
+			notificationEmail = r.notificationEmail ?? '';
+			pgpPublicKey = r.pgpPublicKey ?? '';
+			pgpPending = false;
+			pgpKeyFingerprint = '';
+			pgpKeyError = '';
+			if (pgpPublicKey) {
+				try { pgpKeyFingerprint = await validatePGPKey(pgpPublicKey); } catch { /* stored key shown as-is */ }
+			}
 		} catch (e) {
 			loadError = e instanceof Error ? e.message : 'Failed to load form';
 		} finally {
@@ -164,6 +196,22 @@
 			settingsError = e instanceof Error ? e.message : 'Failed to save settings';
 		} finally {
 			settingsSaving = false;
+		}
+	}
+
+	async function savePGPSettings() {
+		if (pgpPublicKey && pgpKeyError) return;
+		pgpSaving = true;
+		pgpError = '';
+		pgpSaved = false;
+		try {
+			await updateFormPGPNotification(formId, notificationEmail, pgpPublicKey);
+			pgpSaved = true;
+			setTimeout(() => { pgpSaved = false; }, 2500);
+		} catch (e) {
+			pgpError = e instanceof Error ? e.message : 'Failed to save notification settings';
+		} finally {
+			pgpSaving = false;
 		}
 	}
 
@@ -750,9 +798,80 @@
 												{/if}
 											</div>
 
+										<!-- Email notifications -->
+										<div class="py-3">
+											<div class="flex items-center justify-between gap-3">
+												<div>
+													<p class="m-0 text-base text-text-dim">Email notifications</p>
+													<p class="m-0 text-sm text-muted-dark mt-0.5">Forward encrypted responses to an email via PGP.</p>
+												</div>
+												<button
+													role="switch"
+													aria-checked={pgpOpen}
+													onclick={() => {
+														if (pgpOpen) { pgpPending = false; notificationEmail = ''; pgpPublicKey = ''; }
+														else { pgpPending = true; }
+													}}
+													class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+														{pgpOpen ? 'bg-primary' : 'bg-border-deep'}"
+												>
+													<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+														{pgpOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+												</button>
+											</div>
+											{#if pgpOpen || notificationEmail}
+												<div class="mt-2.5 flex flex-col gap-2">
+													<input
+														type="email"
+														placeholder="recipient@example.com"
+														bind:value={notificationEmail}
+														class="input-base"
+													/>
+													<textarea
+														placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;…&#10;-----END PGP PUBLIC KEY BLOCK-----"
+														value={pgpPublicKey}
+														oninput={(e) => handlePGPKeyInput((e.target as HTMLTextAreaElement).value)}
+														rows={6}
+														class="input-base font-mono text-xs resize-y {pgpKeyError ? 'border-border-danger-muted' : ''}"
+													></textarea>
+													{#if pgpKeyError}
+														<p class="m-0 text-xs text-error-light leading-relaxed">{pgpKeyError}</p>
+													{:else if pgpKeyFingerprint}
+														<p class="m-0 text-xs text-success-text-dark font-mono tracking-wide">✓ {pgpKeyFingerprint.match(/.{1,4}/g)?.join(' ')}</p>
+													{:else}
+														<p class="m-0 text-xs text-muted-dark leading-relaxed">Paste your PGP public key block. In Proton Mail: Settings → Encryption & keys → Export public key.</p>
+													{/if}
+												</div>
+											{/if}
 										</div>
 
-										<div class="flex items-center gap-3 pt-2">
+									</div>
+
+									<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
+										<div class="flex items-center gap-3">
+											<button
+												onclick={savePGPSettings}
+												disabled={pgpSaving || !!pgpKeyError}
+												class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
+													{pgpSaving || pgpKeyError
+														? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
+														: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
+											>
+												{pgpSaving ? 'Saving…' : 'Save notifications'}
+											</button>
+											{#if pgpSaved}
+												<span class="text-base text-success-text-dark flex items-center gap-1">
+													<Check size={13} strokeWidth={2} />
+													Saved
+												</span>
+											{/if}
+											{#if pgpError}
+												<span class="text-base text-error-light">{pgpError}</span>
+											{/if}
+										</div>
+									</div>
+
+									<div class="flex items-center gap-3 pt-2">
 											<button
 												onclick={saveSettings}
 												disabled={settingsSaving}

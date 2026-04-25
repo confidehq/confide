@@ -58,6 +58,8 @@ type Form struct {
 	WorkspaceWrappedFormKey []byte
 	UseCustomDomain         bool
 	HasUnpublishedChanges   bool
+	NotificationEmail       pgtype.Text
+	PGPPublicKey            pgtype.Text
 }
 
 type FormSchemaVersion struct {

@@ -30,6 +30,7 @@
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.7.0",
+		"openpgp": "^6.3.0",
 		"svelte-dnd-action": "^0.9.69"
 	}
 }

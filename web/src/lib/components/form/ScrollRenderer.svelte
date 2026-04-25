@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { BuilderSchema, BuilderField } from '$lib/types/builder';
+	import type { BuilderSchema, BuilderField, ChoiceOption } from '$lib/types/builder';
 	import { getOrderedFields } from '$lib/types/builder';
 	import type { ResponsePayload } from '$lib/types/crypto';
 	import { submitResponse } from '$lib/forms';
@@ -11,6 +11,7 @@
 		schema: BuilderSchema;
 		formId: string;
 		publicFormKey: ArrayBuffer;
+		pgpPublicKey: string | null;
 		schemaVersion: number;
 		locale: string;
 		locales: string[];
@@ -20,7 +21,7 @@
 		onlocalechange: (code: string) => void;
 	}
 
-	const { schema, formId, publicFormKey, schemaVersion, locale, locales, honeypotFields, loadToken, onsubmitted, onlocalechange }: Props = $props();
+	const { schema, formId, publicFormKey, pgpPublicKey, schemaVersion, locale, locales, honeypotFields, loadToken, onsubmitted, onlocalechange }: Props = $props();
 
 	const translation = $derived(
 		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
@@ -47,6 +48,41 @@
 		}
 	}
 
+	function resolveChoiceLabel(field: BuilderField, optionId: string): string {
+		const config = field.config as { options: ChoiceOption[] };
+		const sorted = [...config.options].sort((a, b) => a.order - b.order);
+		const idx = sorted.findIndex((o) => o.id === optionId);
+		return translation?.fields[field.id]?.options?.[idx] ?? optionId;
+	}
+
+	function formatResponseForEmail(payload: ResponsePayload): string {
+		const lines: string[] = [
+			`Form response — ${new Date(payload.submittedAt).toLocaleString()}`,
+			'',
+		];
+		for (const field of orderedFields) {
+			if (field.type === 'section_break' || field.type === 'heading') continue;
+			const label = translation?.fields[field.id]?.label ?? field.id;
+			const raw = payload.answers[field.id];
+			if (raw === undefined || raw === null) continue;
+			const isChoice =
+				field.type === 'multiple_choice' ||
+				field.type === 'checkboxes' ||
+				field.type === 'dropdown';
+			let value: string;
+			if (isChoice) {
+				const ids = Array.isArray(raw) ? raw : [String(raw)];
+				value = ids.map((id) => resolveChoiceLabel(field, id)).join(', ');
+			} else {
+				value = Array.isArray(raw) ? raw.join(', ') : String(raw);
+			}
+			lines.push(label);
+			lines.push(value);
+			lines.push('');
+		}
+		return lines.join('\n');
+	}
+
 	async function handleSubmit() {
 		const allErrors = validateAll(schema.fields, answers);
 		if (Object.keys(allErrors).length > 0) {
@@ -70,7 +106,8 @@
 					Object.entries(answers).filter(([, v]) => v !== undefined && v !== null)
 				) as ResponsePayload['answers']
 			};
-			await submitResponse(formId, publicFormKey, payload, schemaVersion, loadToken, honeypotValues);
+			const pgpPlaintext = pgpPublicKey ? formatResponseForEmail(payload) : undefined;
+			await submitResponse(formId, publicFormKey, payload, schemaVersion, loadToken, honeypotValues, pgpPublicKey, pgpPlaintext);
 			onsubmitted();
 		} catch (err) {
 			submitError = err instanceof Error ? err.message : 'Submission failed. Please try again.';

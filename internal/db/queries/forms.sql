@@ -15,7 +15,7 @@ SELECT workspace_id FROM forms WHERE id = $1;
 SELECT * FROM forms WHERE id = $1 AND workspace_id = $2;
 
 -- name: GetFormPublic :one
-SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain, pgp_public_key
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByWorkspace :many
@@ -60,6 +60,16 @@ SET expires_at          = $3,
     burn_after_reading  = $6,
     updated_at          = NOW()
 WHERE id = $1 AND workspace_id = $2;
+
+-- name: UpdateFormPGPNotification :exec
+UPDATE forms
+SET notification_email = $3,
+    pgp_public_key     = $4,
+    updated_at         = NOW()
+WHERE id = $1 AND workspace_id = $2;
+
+-- name: GetFormNotificationEmail :one
+SELECT notification_email FROM forms WHERE id = $1;
 
 -- name: SetFormCustomDomain :exec
 UPDATE forms SET use_custom_domain = $3, updated_at = NOW()

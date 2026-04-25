@@ -13,6 +13,7 @@
 
 	let schema = $state<FormSchema | null>(null);
 	let publicFormKey = $state<ArrayBuffer | null>(null);
+	let pgpPublicKey = $state<string | null>(null);
 	let schemaVersion = $state(0);
 	let locale = $state('en');
 	let honeypotFields = $state<string[]>([]);
@@ -48,6 +49,7 @@
 
 			schema = result.schema;
 			publicFormKey = result.publicFormKey;
+			pgpPublicKey = result.pgpPublicKey;
 			schemaVersion = result.schemaVersion;
 			honeypotFields = result.honeypotFields;
 			loadToken = result.loadToken;
@@ -109,6 +111,7 @@
 			{schema}
 			formId={$page.params.id!}
 			{publicFormKey}
+			{pgpPublicKey}
 			{schemaVersion}
 			{locale}
 			{locales}
@@ -122,6 +125,7 @@
 			{schema}
 			formId={$page.params.id!}
 			{publicFormKey}
+			{pgpPublicKey}
 			{schemaVersion}
 			{locale}
 			{locales}

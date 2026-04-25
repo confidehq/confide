@@ -24,6 +24,7 @@ var ErrNotFound = errors.New("response not found")
 // DB is the subset of queries.Queries used by responses.Service.
 type DB interface {
 	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
+	GetFormNotificationEmail(ctx context.Context, id string) (pgtype.Text, error)
 	ListResponsesFirst(ctx context.Context, arg queries.ListResponsesFirstParams) ([]queries.Response, error)
 	ListResponsesAfter(ctx context.Context, arg queries.ListResponsesAfterParams) ([]queries.Response, error)
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
@@ -34,18 +35,25 @@ type DB interface {
 	IncrementResponseCount(ctx context.Context, id string) (int32, error)
 }
 
-// Service handles response storage and retrieval.
-type Service struct {
-	log  zerolog.Logger
-	db   DB
-	pool *pgxpool.Pool
+// Notifier sends PGP-encrypted response notifications by email.
+type Notifier interface {
+	SendPGPResponse(to, formID, armoredData string)
 }
 
-func NewService(pool *pgxpool.Pool) *Service {
+// Service handles response storage and retrieval.
+type Service struct {
+	log      zerolog.Logger
+	db       DB
+	pool     *pgxpool.Pool
+	notifier Notifier
+}
+
+func NewService(pool *pgxpool.Pool, notifier Notifier) *Service {
 	return &Service{
-		log:  log.With().Str("module", "responses").Logger(),
-		db:   queries.New(pool),
-		pool: pool,
+		log:      log.With().Str("module", "responses").Logger(),
+		db:       queries.New(pool),
+		pool:     pool,
+		notifier: notifier,
 	}
 }
 
@@ -210,6 +218,16 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 
 	q := queries.New(tx)
 
+	// Track which items were successfully inserted and carry PGP data.
+	type pendingNotif struct {
+		formID  string
+		payload string
+	}
+	var notifications []pendingNotif
+
+	// Cache notification emails per form to avoid redundant queries.
+	notifEmailCache := map[string]string{}
+
 	for i, item := range items {
 		id, err := randomID()
 		if err != nil {
@@ -251,9 +269,34 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 		if _, err := tx.Exec(ctx, "RELEASE SAVEPOINT "+sp); err != nil {
 			return err
 		}
+
+		// Queue a PGP notification if the submission included encrypted data.
+		if item.PGPEncryptedData != "" {
+			email, seen := notifEmailCache[item.FormID]
+			if !seen {
+				row, lookupErr := s.db.GetFormNotificationEmail(ctx, item.FormID)
+				if lookupErr == nil && row.Valid {
+					email = row.String
+				}
+				notifEmailCache[item.FormID] = email
+			}
+			if email != "" {
+				notifications = append(notifications, pendingNotif{formID: item.FormID, payload: item.PGPEncryptedData})
+			}
+		}
 	}
 
-	return tx.Commit(ctx)
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Fire notifications asynchronously after the transaction commits.
+	for _, n := range notifications {
+		email := notifEmailCache[n.formID]
+		go s.notifier.SendPGPResponse(email, n.formID, n.payload)
+	}
+
+	return nil
 }
 
 // DeleteExpiredResponses hard-deletes all responses that have passed their TTL
