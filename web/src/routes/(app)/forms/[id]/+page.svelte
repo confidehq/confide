@@ -581,6 +581,7 @@
 									<!-- Share link -->
 									<section class="flex flex-col gap-4">
 										{#if shareUrl}
+											<p class="m-0 text-base text-warning-text-dark">This link is public — anyone with it can view and submit this form.</p>
 											<div class="flex items-center gap-2">
 												<input
 													readonly

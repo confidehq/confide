@@ -5,6 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
 	import { Copy, Check } from '@lucide/svelte';
+	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
@@ -28,6 +29,7 @@
 	let publishError = $state('');
 	let copied = $state(false);
 	let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+	let confirmRotate = $state(false);
 
 	const isConvo = $derived(store.schema.layout === 'convo');
 
@@ -166,6 +168,7 @@
 							{/if}
 						</button>
 					</div>
+					<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
 
 					{#if workspaceDomain?.verified && workspaceDomain.domain}
 						<div class="flex items-center gap-2.5">
@@ -184,15 +187,18 @@
 							</span>
 						</div>
 					{/if}
-				{/if}
 
-				{#if shareUrl}
 					<button
-						onclick={handleRotateKey}
+						onclick={() => { confirmRotate = true; }}
 						disabled={publishing}
 						class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm
 							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text-dim hover:border-border transition-colors duration-100'}"
-					>Rotate key</button>
+					>Generate new link</button>
+				{:else}
+					<div class="py-4 flex flex-col items-center gap-2 text-center">
+						<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
+						<p class="m-0 text-xs text-muted-dark">Publish to make it accessible and get a share link.</p>
+					</div>
 				{/if}
 			</div>
 	</div>
@@ -388,6 +394,15 @@
 	</div>
 
 	</div>
+
+	<ConfirmDialog
+		open={confirmRotate}
+		title="Generate new link?"
+		description="This will replace the current share link. Anyone using the old link will no longer be able to access this form."
+		confirmLabel="Generate new link"
+		onconfirm={() => { confirmRotate = false; handleRotateKey(); }}
+		oncancel={() => { confirmRotate = false; }}
+	/>
 
 	<!-- Sticky publish button -->
 	<div class="shrink-0 p-3 border-t border-border-deep bg-canvas">
