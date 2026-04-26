@@ -6,6 +6,7 @@
  */
 
 import { updateFormSchema, updateFormExpiration, getForm } from '$lib/forms';
+import type { FormRecord } from '$lib/forms';
 import type { BuilderSchema, BuilderField, FieldType, FieldConfig, TranslationMap } from '$lib/types/builder';
 import { getOrderedFields } from '$lib/types/builder';
 import { formsStore } from '$lib/stores/forms.svelte';
@@ -54,7 +55,7 @@ export interface BuilderStore {
 	setMode(mode: BuilderMode): void;
 	setConvoAllowEdit(allow: boolean): void;
 	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
-	load(): Promise<void>;
+	load(): Promise<FormRecord>;
 	save(): Promise<void>;
 	flushSave(): Promise<void>;
 }
@@ -445,7 +446,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		burnAfterReading = newBurnAfterReading;
 	}
 
-	async function load(): Promise<void> {
+	async function load(): Promise<FormRecord> {
 		const { schema: loaded, record, formKey } = await getForm(masterKey, formId);
 		resolvedFormKey = formKey;
 		const s = loaded as BuilderSchema;
@@ -464,6 +465,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			currentRenderKeySalt = bytes;
 		}
 		dirty = false;
+		return record;
 	}
 
 	function setRenderKeySalt(salt: Uint8Array): void {

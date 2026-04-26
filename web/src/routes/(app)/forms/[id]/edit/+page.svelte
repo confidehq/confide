@@ -5,7 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
-	import { getForm, setFormCustomDomain } from '$lib/forms';
+	import { setFormCustomDomain } from '$lib/forms';
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
@@ -53,8 +53,7 @@
 			return;
 		}
 		try {
-			await store.load();
-			const { record } = await getForm(auth.masterKey, formId);
+			const record = await store.load();
 			useCustomDomain = record.useCustomDomain ?? false;
 			if (record.workspaceId) {
 				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});

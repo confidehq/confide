@@ -116,14 +116,6 @@
 	// ── Init ─────────────────────────────────────────────────────────────────
 	onMount(async () => {
 		if (!auth.masterKey) { goto('/login'); return; }
-		try {
-			const { schema, formKey } = await getForm(auth.masterKey, formId);
-			const title = schema.translations[schema.defaultLocale]?.formTitle;
-			if (title) formsStore.updateName(formId, title);
-			resolvedFormKey = formKey;
-		} catch {
-			// Will surface per-response when handleDecrypt runs
-		}
 		await Promise.all([loadForm(), loadResponses()]);
 	});
 
