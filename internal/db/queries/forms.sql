@@ -63,13 +63,15 @@ WHERE id = $1 AND workspace_id = $2;
 
 -- name: UpdateFormPGPNotification :exec
 UPDATE forms
-SET notification_email = $3,
-    pgp_public_key     = $4,
-    updated_at         = NOW()
+SET notification_email   = $3,
+    pgp_public_key       = $4,
+    notification_from    = $5,
+    notification_subject = $6,
+    updated_at           = NOW()
 WHERE id = $1 AND workspace_id = $2;
 
--- name: GetFormNotificationEmail :one
-SELECT notification_email FROM forms WHERE id = $1;
+-- name: GetFormNotificationInfo :one
+SELECT notification_email, notification_from, notification_subject FROM forms WHERE id = $1;
 
 -- name: SetFormCustomDomain :exec
 UPDATE forms SET use_custom_domain = $3, updated_at = NOW()

@@ -55,6 +55,8 @@
 
 	let notificationEmail = $state('');
 	let pgpPublicKey = $state('');
+	let notificationFrom = $state('');
+	let notificationSubject = $state('');
 	let pgpPending = $state(false);
 	const pgpOpen = $derived(!!notificationEmail || pgpPending);
 	let pgpKeyFingerprint = $state('');
@@ -142,6 +144,8 @@
 			burnAfterReading = r.burnAfterReading ?? false;
 			notificationEmail = r.notificationEmail ?? '';
 			pgpPublicKey = r.pgpPublicKey ?? '';
+			notificationFrom = r.notificationFrom ?? '';
+			notificationSubject = r.notificationSubject ?? '';
 			pgpPending = false;
 			pgpKeyFingerprint = '';
 			pgpKeyError = '';
@@ -192,7 +196,7 @@
 					responseTtlDays ? parseInt(responseTtlDays) : null,
 					burnAfterReading
 				),
-				updateFormPGPNotification(formId, notificationEmail, pgpPublicKey)
+				updateFormPGPNotification(formId, notificationEmail, pgpPublicKey, notificationFrom, notificationSubject)
 			]);
 			if (record) {
 				record = {
@@ -824,6 +828,19 @@
 														bind:value={notificationEmail}
 														class="input-base"
 													/>
+													<input
+														type="text"
+														placeholder='From (optional, e.g. Alerts <alerts@example.com>)'
+														bind:value={notificationFrom}
+														class="input-base"
+													/>
+													<input
+														type="text"
+														placeholder="Subject (optional)"
+														bind:value={notificationSubject}
+														class="input-base"
+													/>
+													<p class="m-0 text-xs text-muted-dark leading-relaxed">To, From, and Subject are stored unencrypted. Only the response body is PGP-encrypted.</p>
 													<textarea
 														placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;…&#10;-----END PGP PUBLIC KEY BLOCK-----"
 														value={pgpPublicKey}

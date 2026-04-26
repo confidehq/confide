@@ -24,7 +24,7 @@ var ErrNotFound = errors.New("response not found")
 // DB is the subset of queries.Queries used by responses.Service.
 type DB interface {
 	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
-	GetFormNotificationEmail(ctx context.Context, id string) (pgtype.Text, error)
+	GetFormNotificationInfo(ctx context.Context, id string) (queries.GetFormNotificationInfoRow, error)
 	ListResponsesFirst(ctx context.Context, arg queries.ListResponsesFirstParams) ([]queries.Response, error)
 	ListResponsesAfter(ctx context.Context, arg queries.ListResponsesAfterParams) ([]queries.Response, error)
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
@@ -37,7 +37,7 @@ type DB interface {
 
 // Notifier sends PGP-encrypted response notifications by email.
 type Notifier interface {
-	SendPGPResponse(to, formID, armoredData string)
+	SendPGPResponse(to, formID, armoredData, from, subject string)
 }
 
 // Service handles response storage and retrieval.
@@ -225,8 +225,12 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	}
 	var notifications []pendingNotif
 
-	// Cache notification emails per form to avoid redundant queries.
-	notifEmailCache := map[string]string{}
+	type notifInfo struct {
+		email   string
+		from    string
+		subject string
+	}
+	notifCache := map[string]notifInfo{}
 
 	for i, item := range items {
 		id, err := randomID()
@@ -272,15 +276,19 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 
 		// Queue a PGP notification if the submission included encrypted data.
 		if item.PGPEncryptedData != "" {
-			email, seen := notifEmailCache[item.FormID]
+			info, seen := notifCache[item.FormID]
 			if !seen {
-				row, lookupErr := s.db.GetFormNotificationEmail(ctx, item.FormID)
-				if lookupErr == nil && row.Valid {
-					email = row.String
+				row, lookupErr := s.db.GetFormNotificationInfo(ctx, item.FormID)
+				if lookupErr == nil && row.NotificationEmail.Valid {
+					info = notifInfo{
+						email:   row.NotificationEmail.String,
+						from:    row.NotificationFrom.String,
+						subject: row.NotificationSubject.String,
+					}
 				}
-				notifEmailCache[item.FormID] = email
+				notifCache[item.FormID] = info
 			}
-			if email != "" {
+			if info.email != "" {
 				notifications = append(notifications, pendingNotif{formID: item.FormID, payload: item.PGPEncryptedData})
 			}
 		}
@@ -292,8 +300,8 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 
 	// Fire notifications asynchronously after the transaction commits.
 	for _, n := range notifications {
-		email := notifEmailCache[n.formID]
-		go s.notifier.SendPGPResponse(email, n.formID, n.payload)
+		info := notifCache[n.formID]
+		go s.notifier.SendPGPResponse(info.email, n.formID, n.payload, info.from, info.subject)
 	}
 
 	return nil

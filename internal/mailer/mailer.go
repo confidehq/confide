@@ -46,7 +46,7 @@ func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link s
 
 	var err error
 	if m.ResendAPIKey != "" {
-		err = m.resendText(to, subject, body)
+		err = m.resendText(m.FromEmail, to, subject, body)
 	} else if m.Host != "" {
 		msg := buildPlainMessage(m.FromEmail, to, subject, body)
 		err = m.smtp(to, msg)
@@ -60,16 +60,23 @@ func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link s
 }
 
 // SendPGPResponse forwards a PGP-encrypted form response.
+// from and subject are optional — empty strings fall back to the mailer's
+// configured from address and "New form response" respectively.
 // Via Resend: sends the armored ciphertext as a text/plain body — Proton Mail
 // recognises PGP/Inline and decrypts it automatically.
 // Via SMTP: uses RFC 3156 PGP/MIME for broader client compatibility.
-func (m *Mailer) SendPGPResponse(to, formID, armoredData string) {
-	subject := "New form response"
+func (m *Mailer) SendPGPResponse(to, formID, armoredData, from, subject string) {
+	if from == "" {
+		from = m.FromEmail
+	}
+	if subject == "" {
+		subject = "New form response"
+	}
 	var err error
 	if m.ResendAPIKey != "" {
-		err = m.resendText(to, subject, armoredData)
+		err = m.resendText(from, to, subject, armoredData)
 	} else if m.Host != "" {
-		msg := buildPGPMIMEMessage(m.FromEmail, to, subject, armoredData)
+		msg := buildPGPMIMEMessage(from, to, subject, armoredData)
 		err = m.smtp(to, msg)
 	} else {
 		m.log.Info().Str("to", to).Msg("mailer: not configured, skipping PGP notification")
@@ -81,9 +88,9 @@ func (m *Mailer) SendPGPResponse(to, formID, armoredData string) {
 }
 
 // resendText posts a plain-text email via the Resend REST API.
-func (m *Mailer) resendText(to, subject, text string) error {
+func (m *Mailer) resendText(from, to, subject, text string) error {
 	body, err := json.Marshal(map[string]any{
-		"from":    m.FromEmail,
+		"from":    from,
 		"to":      []string{to},
 		"subject": subject,
 		"text":    text,

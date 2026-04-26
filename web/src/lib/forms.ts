@@ -421,12 +421,14 @@ export async function submitResponse(
 export async function updateFormPGPNotification(
 	formId: string,
 	notificationEmail: string,
-	pgpPublicKey: string
+	pgpPublicKey: string,
+	notificationFrom: string,
+	notificationSubject: string
 ): Promise<void> {
 	const res = await fetch(`/api/forms/${formId}/notification`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ notificationEmail, pgpPublicKey })
+		body: JSON.stringify({ notificationEmail, pgpPublicKey, notificationFrom, notificationSubject })
 	});
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }

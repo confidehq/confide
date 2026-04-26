@@ -60,6 +60,8 @@ type Form struct {
 	HasUnpublishedChanges   bool
 	NotificationEmail       pgtype.Text
 	PGPPublicKey            pgtype.Text
+	NotificationFrom        pgtype.Text
+	NotificationSubject     pgtype.Text
 }
 
 type FormSchemaVersion struct {

@@ -311,6 +311,8 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"hasUnpublishedChanges": form.HasUnpublishedChanges,
 			"notificationEmail":     form.NotificationEmail,
 			"pgpPublicKey":          form.PGPPublicKey,
+			"notificationFrom":      form.NotificationFrom,
+			"notificationSubject":   form.NotificationSubject,
 		}
 		if len(form.RenderKeySalt) > 0 {
 			resp["renderKeySalt"] = base64.StdEncoding.EncodeToString(form.RenderKeySalt)
@@ -602,15 +604,17 @@ func updateFormPGPNotification(svc *Service, wsSvc workspaceSvc) http.HandlerFun
 		}
 
 		var req struct {
-			NotificationEmail string `json:"notificationEmail"`
-			PGPPublicKey      string `json:"pgpPublicKey"`
+			NotificationEmail   string `json:"notificationEmail"`
+			PGPPublicKey        string `json:"pgpPublicKey"`
+			NotificationFrom    string `json:"notificationFrom"`
+			NotificationSubject string `json:"notificationSubject"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
 
-		if err := svc.UpdatePGPNotification(r.Context(), workspaceID, formID, req.NotificationEmail, req.PGPPublicKey); err != nil {
+		if err := svc.UpdatePGPNotification(r.Context(), workspaceID, formID, req.NotificationEmail, req.PGPPublicKey, req.NotificationFrom, req.NotificationSubject); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to update notification settings")
 			return
 		}

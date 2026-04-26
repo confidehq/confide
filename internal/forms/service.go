@@ -72,6 +72,8 @@ type FormRecord struct {
 	HasUnpublishedChanges   bool
 	NotificationEmail       string // empty if not configured
 	PGPPublicKey            string // ASCII-armored PGP public key; empty if not configured
+	NotificationFrom        string // optional from address override
+	NotificationSubject     string // optional subject override
 }
 
 // FormSummary is a list-view row — no schema blobs.
@@ -354,9 +356,9 @@ func (s *Service) SetCustomDomainToggle(ctx context.Context, workspaceID, formID
 	})
 }
 
-// UpdatePGPNotification sets or clears the email notification destination and PGP public key.
-// Pass empty strings to disable notifications.
-func (s *Service) UpdatePGPNotification(ctx context.Context, workspaceID, formID, notificationEmail, pgpPublicKey string) error {
+// UpdatePGPNotification sets or clears the email notification destination, PGP public key,
+// and optional from/subject overrides. Pass empty strings to clear optional fields.
+func (s *Service) UpdatePGPNotification(ctx context.Context, workspaceID, formID, notificationEmail, pgpPublicKey, notificationFrom, notificationSubject string) error {
 	var email pgtype.Text
 	if notificationEmail != "" {
 		email = pgtype.Text{String: notificationEmail, Valid: true}
@@ -365,11 +367,21 @@ func (s *Service) UpdatePGPNotification(ctx context.Context, workspaceID, formID
 	if pgpPublicKey != "" {
 		pgpKey = pgtype.Text{String: pgpPublicKey, Valid: true}
 	}
+	var from pgtype.Text
+	if notificationFrom != "" {
+		from = pgtype.Text{String: notificationFrom, Valid: true}
+	}
+	var subject pgtype.Text
+	if notificationSubject != "" {
+		subject = pgtype.Text{String: notificationSubject, Valid: true}
+	}
 	return s.db.UpdateFormPGPNotification(ctx, queries.UpdateFormPGPNotificationParams{
-		ID:                formID,
-		WorkspaceID:       workspaceID,
-		NotificationEmail: email,
-		PGPPublicKey:      pgpKey,
+		ID:                  formID,
+		WorkspaceID:         workspaceID,
+		NotificationEmail:   email,
+		PGPPublicKey:        pgpKey,
+		NotificationFrom:    from,
+		NotificationSubject: subject,
 	})
 }
 
@@ -434,6 +446,12 @@ func formRecordFromDB(f queries.Form) FormRecord {
 	}
 	if f.PGPPublicKey.Valid {
 		rec.PGPPublicKey = f.PGPPublicKey.String
+	}
+	if f.NotificationFrom.Valid {
+		rec.NotificationFrom = f.NotificationFrom.String
+	}
+	if f.NotificationSubject.Valid {
+		rec.NotificationSubject = f.NotificationSubject.String
 	}
 	return rec
 }
