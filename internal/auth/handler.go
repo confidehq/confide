@@ -47,6 +47,7 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 		r.Get("/me", getMe(svc))
 		r.Post("/logout", logout(svc))
 		r.Get("/sessions", listSessions(svc))
+		r.Delete("/sessions", deleteOtherSessions(svc))
 		r.Delete("/sessions/{id}", deleteSession(svc))
 		r.Post("/reauth/begin", reauthBegin(svc))
 		r.Post("/reauth/finish", reauthFinish(svc))
@@ -494,6 +495,19 @@ func listSessions(svc *Service) http.HandlerFunc {
 			}
 		}
 		writeJSON(w, http.StatusOK, out)
+	}
+}
+
+func deleteOtherSessions(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		sessionID := mw.SessionID(r.Context())
+
+		if err := svc.DeleteOtherSessions(r.Context(), accountID, sessionID); err != nil {
+			writeError(w, http.StatusInternalServerError, "delete_sessions_failed", safeErr(err))
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

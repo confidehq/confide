@@ -22,6 +22,7 @@
 		addCredential,
 		listSessions,
 		revokeSession,
+		revokeOtherSessions,
 		deleteAccount,
 		rotateRecoveryCode,
 		reauthenticate
@@ -54,6 +55,7 @@
 	let sessions = $state<SessionInfo[]>([]);
 	let sessionsLoading = $state(true);
 	let sessionsError = $state<string | null>(null);
+	let revokingAll = $state(false);
 	let revoking = $state<string | null>(null);
 
 	onMount(async () => {
@@ -168,6 +170,18 @@
 			sessionsError = err instanceof Error ? err.message : 'Failed to revoke session.';
 		} finally {
 			revoking = null;
+		}
+	}
+
+	async function handleRevokeAll() {
+		revokingAll = true;
+		try {
+			await revokeOtherSessions();
+			await loadSessions();
+		} catch (err) {
+			sessionsError = err instanceof Error ? err.message : 'Failed to revoke sessions.';
+		} finally {
+			revokingAll = false;
 		}
 	}
 
@@ -445,6 +459,18 @@
 							Active Sessions
 						</span>
 					</h2>
+					{#if !sessionsLoading && sessions.length > 1}
+						<button
+							onclick={handleRevokeAll}
+							disabled={revokingAll}
+							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
+								{revokingAll
+									? 'text-muted-dim border-border-subtle cursor-not-allowed'
+									: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
+						>
+							{revokingAll ? 'Revoking…' : 'Revoke all others'}
+						</button>
+					{/if}
 				</div>
 
 				{#if sessionsError}

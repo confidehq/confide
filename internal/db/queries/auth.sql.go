@@ -221,6 +221,20 @@ func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) er
 	return err
 }
 
+const deleteOtherSessions = `-- name: DeleteOtherSessions :exec
+DELETE FROM sessions WHERE account_id = $1 AND id != $2
+`
+
+type DeleteOtherSessionsParams struct {
+	AccountID string
+	ID        string
+}
+
+func (q *Queries) DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) error {
+	_, err := q.db.Exec(ctx, deleteOtherSessions, arg.AccountID, arg.ID)
+	return err
+}
+
 const deleteStaleSessions = `-- name: DeleteStaleSessions :exec
 DELETE FROM sessions
 WHERE last_seen <= NOW() - INTERVAL '14 days'

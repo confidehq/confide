@@ -43,6 +43,7 @@ type DB interface {
 	GetSessionByTokenHash(ctx context.Context, tokenHash []byte) (queries.GetSessionByTokenHashRow, error)
 	TouchSession(ctx context.Context, id string) error
 	DeleteSession(ctx context.Context, arg queries.DeleteSessionParams) error
+	DeleteOtherSessions(ctx context.Context, arg queries.DeleteOtherSessionsParams) error
 	DeleteStaleSessions(ctx context.Context) error
 	ListSessionsByAccount(ctx context.Context, accountID string) ([]queries.ListSessionsByAccountRow, error)
 	CreateRecoveryCodes(ctx context.Context, arg []queries.CreateRecoveryCodesParams) (int64, error)
@@ -876,6 +877,10 @@ func (s *Service) DeleteSession(ctx context.Context, accountID, sessionID string
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (s *Service) DeleteOtherSessions(ctx context.Context, accountID, currentSessionID string) error {
+	return s.db.DeleteOtherSessions(ctx, queries.DeleteOtherSessionsParams{AccountID: accountID, ID: currentSessionID})
 }
 
 // ─── Account deletion ─────────────────────────────────────────────────────────

@@ -30,6 +30,9 @@ UPDATE sessions SET last_seen = NOW(), updated_at = NOW() WHERE id = $1;
 -- name: DeleteSession :exec
 DELETE FROM sessions WHERE id = $1 AND account_id = $2;
 
+-- name: DeleteOtherSessions :exec
+DELETE FROM sessions WHERE account_id = $1 AND id != $2;
+
 -- name: DeleteStaleSessions :exec
 DELETE FROM sessions
 WHERE last_seen <= NOW() - INTERVAL '14 days'

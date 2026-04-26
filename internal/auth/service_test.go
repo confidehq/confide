@@ -105,6 +105,15 @@ func (m *mockDB) DeleteSession(_ context.Context, arg queries.DeleteSessionParam
 	return nil
 }
 
+func (m *mockDB) DeleteOtherSessions(_ context.Context, arg queries.DeleteOtherSessionsParams) error {
+	for id, sess := range m.sessions {
+		if sess.AccountID == arg.AccountID && id != arg.ID {
+			delete(m.sessions, id)
+		}
+	}
+	return nil
+}
+
 func (m *mockDB) DeleteStaleSessions(_ context.Context) error { return nil }
 
 func (m *mockDB) ListSessionsByAccount(_ context.Context, accountID string) ([]queries.ListSessionsByAccountRow, error) {

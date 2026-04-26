@@ -449,6 +449,10 @@ export async function revokeSession(sessionId: string): Promise<void> {
 	return apiDelete(`/api/auth/sessions/${sessionId}`);
 }
 
+export async function revokeOtherSessions(): Promise<void> {
+	return apiDelete('/api/auth/sessions');
+}
+
 export async function logout(): Promise<void> {
 	await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
