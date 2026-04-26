@@ -39,7 +39,7 @@
 	// ── Form ──────────────────────────────────────────────────────────────────
 	let record = $state<FormRecord | null>(null);
 	let resolvedFormKey = $state<CryptoKey | null>(null);
-	let formName = $state(formsStore.formNames.get(formId) ?? '');
+	const formName = $derived(formsStore.formNames.get(formId) ?? '');
 	let loading = $state(true);
 	let loadError = $state('');
 
@@ -119,8 +119,8 @@
 		if (!auth.masterKey) { goto('/login'); return; }
 		try {
 			const { schema, formKey } = await getForm(auth.masterKey, formId);
-			formName = schema.translations[schema.defaultLocale]?.formTitle ?? null;
-			if (formName) formsStore.updateName(formId, formName);
+			const title = schema.translations[schema.defaultLocale]?.formTitle;
+			if (title) formsStore.updateName(formId, title);
 			resolvedFormKey = formKey;
 		} catch {
 			// Will surface per-response when handleDecrypt runs
@@ -137,7 +137,8 @@
 			const { schema, record: r, formKey } = await getForm(auth.masterKey, formId);
 			record = r;
 			resolvedFormKey = formKey;
-			formName = schema.translations[schema.defaultLocale]?.formTitle ?? '';
+			const title = schema.translations[schema.defaultLocale]?.formTitle;
+			if (title) formsStore.updateName(formId, title);
 			expiresAt = r.expiresAt ?? '';
 			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
 			responseTtlDays = r.responseTtlDays != null ? String(r.responseTtlDays) : '';

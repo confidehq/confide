@@ -30,7 +30,6 @@ const TEST_FORM_ID = 'test-form-abc123';
 
 const SAMPLE_SCHEMA: FormSchema = {
 	version: 1,
-	name: 'Test Form',
 	defaultLocale: 'en',
 	locales: ['en', 'es'],
 	layout: 'scroll',

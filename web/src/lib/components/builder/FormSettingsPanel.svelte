@@ -206,19 +206,6 @@
 	<div class="h-px bg-border-deep"></div>
 
 	<div class="p-5 flex flex-col gap-3.5">
-		<!-- Form name -->
-		<div>
-			<label class="block text-sm text-muted mb-1">Form name</label>
-			<input
-				type="text"
-				placeholder="Internal name…"
-				value={store.schema.name}
-				oninput={(e) => store.setName((e.target as HTMLInputElement).value)}
-				class="input-base"
-			/>
-			<p class="mt-1 m-0 text-xs text-muted-dark">Used in your dashboard only.</p>
-		</div>
-
 		{#if isConvo}
 			<div>
 				<label class="block text-sm text-muted mb-1">Completion message</label>

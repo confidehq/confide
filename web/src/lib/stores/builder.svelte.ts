@@ -52,7 +52,6 @@ export interface BuilderStore {
 	setActiveLocale(locale: string): void;
 	setSelectedField(id: string | null): void;
 	setMode(mode: BuilderMode): void;
-	setName(name: string): void;
 	setConvoAllowEdit(allow: boolean): void;
 	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
 	load(): Promise<void>;
@@ -63,7 +62,6 @@ export interface BuilderStore {
 export function emptySchema(): BuilderSchema {
 	return {
 		version: 1,
-		name: '',
 		defaultLocale: 'en',
 		locales: ['en'],
 		layout: 'scroll',
@@ -340,15 +338,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		const t = schema.translations[locale];
 
 		if (fieldId === null) {
-			// Form-level translation (formTitle, formDescription, convoCompletionMessage)
-			const prevTitle = t.formTitle;
-			const syncName =
-				key === 'formTitle' &&
-				locale === schema.defaultLocale &&
-				(!schema.name || schema.name === prevTitle);
 			schema = {
 				...schema,
-				...(syncName ? { name: value } : {}),
 				translations: {
 					...schema.translations,
 					[locale]: {
@@ -441,11 +432,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		mode = m;
 	}
 
-	function setName(name: string): void {
-		schema = { ...schema, name };
-		markDirty();
-	}
-
 	function setConvoAllowEdit(allow: boolean): void {
 		schema = { ...schema, convoAllowEdit: allow };
 		markDirty();
@@ -463,10 +449,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		const { schema: loaded, record, formKey } = await getForm(masterKey, formId);
 		resolvedFormKey = formKey;
 		const s = loaded as BuilderSchema;
-		// Migrate pre-name schemas: seed name from the default locale's formTitle
-		if (!s.name) {
-			s.name = s.translations[s.defaultLocale]?.formTitle ?? '';
-		}
 		schema = s;
 		activeLocale = schema.defaultLocale;
 		expiresAt = record.expiresAt ?? null;
@@ -502,7 +484,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			lastSaved = new Date();
 			dirty = false;
 			hasUnpublishedChanges = true;
-			if (schema.name) formsStore.updateName(formId, schema.name);
+			const title = schema.translations[schema.defaultLocale]?.formTitle;
+			if (title) formsStore.updateName(formId, title);
 		} finally {
 			saving = false;
 		}
@@ -586,7 +569,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setActiveLocale,
 		setSelectedField,
 		setShowFormSettings,
-		setName,
 		setMode,
 		setConvoAllowEdit,
 		setExpiration,

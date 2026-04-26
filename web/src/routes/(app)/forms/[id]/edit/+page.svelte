@@ -114,20 +114,11 @@
 			<!-- Breadcrumb -->
 			<Breadcrumb items={[
 				{ label: 'Forms', href: '/forms' },
-				{ label: store.schema.name || formsStore.formNames.get(formId) || formId.slice(0, 12) + '…', href: `/forms/${formId}` },
+				{ label: store.schema.translations[store.schema.defaultLocale]?.formTitle || formsStore.formNames.get(formId) || formId.slice(0, 12) + '…', href: `/forms/${formId}` },
 				{ label: 'Edit' }
 			]} />
 
-			<!-- Form name input — hidden for now -->
-			<input
-				type="text"
-				placeholder="Untitled form"
-				value={store.schema.name}
-				oninput={(e) => store!.setName((e.target as HTMLInputElement).value)}
-				class="hidden bg-transparent border-none outline-none text-text font-mono text-base w-[140px] sm:w-[160px] min-w-0 shrink px-1.5 py-1 rounded transition-[background] duration-100 focus:bg-surface"
-			/>
-
-			<!-- Layout selector — hidden for now -->
+<!-- Layout selector — hidden for now -->
 			<div class="hidden items-center gap-2 shrink-0">
 				<div class="w-px h-[18px] bg-border-field"></div>
 				<div class="relative">

@@ -81,7 +81,7 @@ export const formsStore = {
 				if (r.status === 'fulfilled') {
 					const { schema, record, formKey } = r.value;
 					const t = schema.translations[schema.defaultLocale];
-					const name = schema.name || t?.formTitle;
+					const name = t?.formTitle;
 					if (name) names.set(snap[i].formId, name);
 					const desc = t?.formDescription;
 					if (desc) descriptions.set(snap[i].formId, desc);
