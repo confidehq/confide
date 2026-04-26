@@ -148,8 +148,6 @@
 		workspaceError = null;
 
 		try {
-			auth.setSession(pendingMasterKey, pendingAccountId, pendingCredentialId);
-
 			// Non-fatal: crypto key provisioning (can be healed on next login)
 			try {
 				await ensureIdentityKey(pendingMasterKey);
@@ -181,7 +179,10 @@
 			}
 
 			step = "success";
-			setTimeout(() => goto("/dashboard"), 1500);
+			// Set session last — triggers the layout $effect which redirects to /dashboard
+			setTimeout(() => {
+				auth.setSession(pendingMasterKey!, pendingAccountId!, pendingCredentialId!);
+			}, 1500);
 		} catch (err) {
 			workspaceError =
 				err instanceof Error ? err.message : "Failed to set up workspace.";

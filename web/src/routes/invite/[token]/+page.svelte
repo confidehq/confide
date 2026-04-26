@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveInvitation, acceptInvitation, ensureIdentityKey, WorkspaceError, type InvitePreview } from '$lib/workspaces';
+	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
 	type PageState = 'loading' | 'preview' | 'accepting' | 'pending' | 'already_member' | 'error';
 
@@ -60,85 +61,93 @@
 	<title>Confide — Workspace Invitation</title>
 </svelte:head>
 
-<div class="font-mono max-w-[480px] mx-auto mt-20 px-6">
-	<h1 class="text-2xl mb-8">Confide</h1>
+<div class="min-h-screen flex flex-col items-center justify-center px-4 font-mono">
+	<div class="w-full max-w-[360px]">
 
-	{#if pageState ==='loading'}
-		<p class="text-muted text-sm">Loading invitation…</p>
-
-	{:else if pageState ==='error'}
-		<div class="p-5 border border-danger-text rounded-md bg-danger-dark text-error-muted text-sm">
-			{errorMsg}
+		<!-- Logo + heading -->
+		<div class="flex flex-col items-center mb-8">
+			<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
+			<h1 class="text-xl font-semibold text-text-body tracking-tight">Workspace Invitation</h1>
+			<p class="text-sm text-muted-dim mt-1.5">You've been invited to join a workspace.</p>
 		</div>
-		<p class="text-xs text-muted-dark mt-6">
-			<a href="/login" class="text-text-blue">Sign in</a> or
-			<a href="/signup" class="text-text-blue">create an account</a>
-		</p>
 
-	{:else if pageState ==='already_member'}
-		<div class="p-5 border border-border rounded-md bg-[#0d0d0d] text-sm text-muted">
-			You're already a member of <strong class="text-text">{preview?.workspaceName}</strong>.
-		</div>
-		<p class="text-xs text-muted-dark mt-4">
-			<a href="/dashboard" class="text-text-blue">Go to dashboard</a>
-		</p>
-
-	{:else if pageState ==='pending'}
-		<div class="p-5 border border-success-text rounded-md bg-success-bg-deep text-success-text-dark text-sm">
-			<strong>You've joined {preview?.workspaceName}.</strong>
-			<p class="mt-2 text-[#86efac]">
-				Your access is pending approval from a workspace admin. You'll be able to view workspace
-				content once they grant you access.
-			</p>
-		</div>
-		<p class="text-xs text-muted-dark mt-4">
-			<a href="/dashboard" class="text-text-blue">Go to dashboard</a>
-		</p>
-
-	{:else if preview}
-		<!-- Preview card -->
-		<div class="p-6 border border-border rounded-md bg-[#0d0d0d] mb-6">
-			<p class="text-muted text-sm mb-1">You've been invited to join</p>
-			<h2 class="text-xl text-text mb-4">{preview.workspaceName}</h2>
-
-			<div class="grid grid-cols-2 gap-y-3 text-sm mb-5">
-				<span class="text-muted">Invited by</span>
-				<span class="text-text">{preview.inviterUsername}</span>
-				<span class="text-muted">Role</span>
-				<span class="text-text capitalize">{preview.role}</span>
-				<span class="text-muted">Expires</span>
-				<span class="text-text">{formatExpiry(preview.expiresAt)}</span>
+		{#if pageState === 'loading' || (isLoggedIn && autoAccept && pageState === 'accepting')}
+			<div class="bg-surface border border-border rounded-xl p-6">
+				<p class="text-muted text-sm text-center">Loading invitation…</p>
 			</div>
 
-			{#if isLoggedIn}
-				<button
-					onclick={accept}
-					disabled={pageState ==='accepting'}
-					class="w-full py-3 text-white border-none rounded-md font-mono text-sm
-						{pageState ==='accepting' ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
-				>
-					{pageState ==='accepting' ? 'Accepting…' : 'Accept invitation'}
-				</button>
-			{:else}
-				<div class="flex gap-3">
-					<a
-						href="/signup?invite={token}"
-						class="flex-1 py-3 text-center text-white bg-primary hover:bg-primary-hover rounded-md font-mono text-sm no-underline"
-					>
-						Create account
-					</a>
-					<a
-						href="/login?next={encodeURIComponent(`/invite/${token}?auto_accept=1`)}"
-						class="flex-1 py-3 text-center text-muted bg-surface hover:text-text border border-border rounded-md font-mono text-sm no-underline transition-colors duration-100"
-					>
-						Sign in
-					</a>
-				</div>
-			{/if}
-		</div>
+		{:else if pageState === 'error'}
+			<div class="bg-surface border border-border rounded-xl p-6">
+				<p class="text-error text-sm text-center">{errorMsg}</p>
+			</div>
+			<p class="text-xs text-muted-dark text-center mt-4">
+				<a href="/login" class="text-text-blue hover:underline">Sign in</a> or
+				<a href="/signup" class="text-text-blue hover:underline">create an account</a>
+			</p>
 
-		<p class="text-xs text-muted-dark">
-			By accepting you agree to Confide's terms of service.
-		</p>
-	{/if}
+		{:else if pageState === 'already_member'}
+			<div class="bg-surface border border-border rounded-xl p-6 text-center">
+				<p class="text-sm text-muted">
+					You're already a member of <strong class="text-text">{preview?.workspaceName}</strong>.
+				</p>
+				<a href="/dashboard" class="text-text-blue hover:underline text-xs mt-3 block">Go to dashboard</a>
+			</div>
+
+		{:else if pageState === 'pending'}
+			<div class="bg-surface border border-success-text rounded-xl p-6">
+				<p class="text-success-text text-sm font-medium">You've joined {preview?.workspaceName}.</p>
+				<p class="text-sm text-muted-dim mt-2">
+					Your access is pending approval from a workspace admin. You'll be able to view workspace content once they grant you access.
+				</p>
+				<a href="/dashboard" class="text-text-blue hover:underline text-xs mt-4 block">Go to dashboard</a>
+			</div>
+
+		{:else if preview}
+			<div class="bg-surface border border-border rounded-xl p-6">
+				<p class="text-sm text-muted-dim mb-1">You've been invited to join</p>
+				<h2 class="text-base font-semibold text-text-body mb-5">{preview.workspaceName}</h2>
+
+				<div class="grid grid-cols-2 gap-y-3 text-sm mb-6">
+					<span class="text-muted">Invited by</span>
+					<span class="text-text">{preview.inviterUsername}</span>
+					<span class="text-muted">Role</span>
+					<span class="text-text capitalize">{preview.role}</span>
+					<span class="text-muted">Expires</span>
+					<span class="text-text">{formatExpiry(preview.expiresAt)}</span>
+				</div>
+
+				{#if isLoggedIn}
+					<button
+						onclick={accept}
+						disabled={pageState === 'accepting'}
+						class="w-full py-3 text-white border-none rounded-lg font-mono text-sm font-medium
+							{pageState === 'accepting' ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+							transition-colors duration-100"
+					>
+						{pageState === 'accepting' ? 'Accepting…' : 'Accept invitation'}
+					</button>
+				{:else}
+					<div class="flex gap-3">
+						<a
+							href="/signup?invite={token}"
+							class="flex-1 py-3 text-center text-white bg-primary hover:bg-primary-hover rounded-lg font-mono text-sm font-medium no-underline transition-colors duration-100"
+						>
+							Create account
+						</a>
+						<a
+							href="/login?next={encodeURIComponent(`/invite/${token}?auto_accept=1`)}"
+							class="flex-1 py-3 text-center text-muted hover:text-text bg-transparent border border-border rounded-lg font-mono text-sm font-medium no-underline transition-colors duration-100"
+						>
+							Sign in
+						</a>
+					</div>
+				{/if}
+			</div>
+
+			<p class="text-xs text-muted-dark text-center mt-4">
+				By accepting you agree to Confide's terms of service.
+			</p>
+		{/if}
+
+	</div>
 </div>

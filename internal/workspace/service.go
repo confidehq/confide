@@ -118,6 +118,7 @@ type Workspace struct {
 	Plan       string
 	PlanStatus string
 	Role       string
+	Status     string // "active" | "pending"
 }
 
 // Member is a workspace member as seen by other members.
@@ -166,6 +167,25 @@ func CreatePersonalWorkspace(ctx context.Context, q *queries.Queries, accountID 
 // Used by forms routes which cannot use the workspace role middleware.
 func (s *Service) ValidateMember(ctx context.Context, workspaceID, accountID string) error {
 	_, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
+		WorkspaceID: workspaceID,
+		AccountID:   accountID,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrForbidden
+		}
+		return err
+	}
+	return nil
+}
+
+// ValidateActiveMember returns nil if accountID is an active (key-granted) member of
+// workspaceID. Returns ErrForbidden for non-members and pending members awaiting key grant.
+func (s *Service) ValidateActiveMember(ctx context.Context, workspaceID, accountID string) error {
+	if err := s.ValidateMember(ctx, workspaceID, accountID); err != nil {
+		return err
+	}
+	_, err := s.db.GetWorkspaceMemberKey(ctx, queries.GetWorkspaceMemberKeyParams{
 		WorkspaceID: workspaceID,
 		AccountID:   accountID,
 	})
@@ -254,6 +274,7 @@ func (s *Service) List(ctx context.Context, accountID string) ([]Workspace, erro
 			Plan:       r.Plan,
 			PlanStatus: r.PlanStatus,
 			Role:       r.Role,
+			Status:     r.Status,
 		}
 	}
 	return out, nil

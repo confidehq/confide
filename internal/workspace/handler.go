@@ -459,6 +459,7 @@ func workspaceJSON(ws Workspace) map[string]any {
 		"plan":       ws.Plan,
 		"planStatus": ws.PlanStatus,
 		"role":       ws.Role,
+		"status":     ws.Status,
 	}
 }
 

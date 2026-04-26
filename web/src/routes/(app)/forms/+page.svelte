@@ -112,13 +112,15 @@
 			<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Forms</h1>
 			<p class="m-0 text-sm text-muted-dim">Create and manage your encrypted forms</p>
 		</div>
-		<button
-			onclick={() => {
-				const ws = workspacesStore.active;
-				goto(ws ? `/forms/new?workspaceId=${ws.id}` : '/forms/new');
-			}}
-			class="shrink-0 px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100"
-		>+ New form</button>
+		{#if workspacesStore.active?.status !== 'pending'}
+			<button
+				onclick={() => {
+					const ws = workspacesStore.active;
+					goto(ws ? `/forms/new?workspaceId=${ws.id}` : '/forms/new');
+				}}
+				class="shrink-0 px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100"
+			>+ New form</button>
+		{/if}
 	</div>
 
 	{#if workspacesStore.active}
@@ -140,7 +142,14 @@
 		</div>
 	{/if}
 
-	{#if formsStore.loading && !formsStore.loaded}
+	{#if workspacesStore.active?.status === 'pending'}
+		<div class="py-14 border border-dashed border-border rounded-lg text-center px-6">
+			<p class="m-0 mb-1 text-text-body text-base font-medium">Access pending approval</p>
+			<p class="m-0 text-muted-dim text-sm mt-1.5 max-w-sm mx-auto">
+				A workspace admin needs to grant you access before you can view forms and workspace content.
+			</p>
+		</div>
+	{:else if formsStore.loading && !formsStore.loaded}
 		<p class="text-muted-dim text-base">Loading…</p>
 	{:else if formsStore.error}
 		<p class="text-error-light text-base">{formsStore.error}</p>

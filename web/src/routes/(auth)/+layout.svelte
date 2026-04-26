@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import type { Snippet } from 'svelte';
 
@@ -7,7 +8,8 @@
 
 	$effect(() => {
 		if (auth.masterKey !== null) {
-			goto('/dashboard');
+			const next = page.url.searchParams.get('next') ?? '/dashboard';
+			goto(next);
 		}
 	});
 </script>

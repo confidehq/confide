@@ -10,6 +10,7 @@ export interface Workspace {
 	plan: 'free' | 'pro';
 	planStatus: 'active' | 'past_due' | 'canceled' | 'canceling';
 	role: 'owner' | 'admin' | 'member' | 'viewer';
+	status: 'active' | 'pending';
 }
 
 export interface CustomDomainInfo {

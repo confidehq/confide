@@ -21,6 +21,7 @@ import (
 type workspaceSvc interface {
 	GetPersonalWorkspaceID(ctx context.Context, accountID string) (string, error)
 	ValidateMember(ctx context.Context, workspaceID, accountID string) error
+	ValidateActiveMember(ctx context.Context, workspaceID, accountID string) error
 }
 
 // customDomainResolver can look up the workspace that owns a custom domain.
@@ -59,7 +60,7 @@ func resolveFormWorkspace(w http.ResponseWriter, r *http.Request, svc *Service, 
 		}
 		return "", false
 	}
-	if err := wsSvc.ValidateMember(r.Context(), workspaceID, accountID); err != nil {
+	if err := wsSvc.ValidateActiveMember(r.Context(), workspaceID, accountID); err != nil {
 		writeError(w, http.StatusForbidden, "forbidden", "access denied")
 		return "", false
 	}
@@ -153,7 +154,7 @@ func createForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		var workspaceID string
 		var err error
 		if req.WorkspaceID != "" {
-			if err = wsSvc.ValidateMember(r.Context(), req.WorkspaceID, accountID); err != nil {
+			if err = wsSvc.ValidateActiveMember(r.Context(), req.WorkspaceID, accountID); err != nil {
 				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
 				return
 			}
@@ -222,7 +223,7 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 		var workspaceID string
 		var err error
 		if wsID := r.URL.Query().Get("workspaceId"); wsID != "" {
-			if err = wsSvc.ValidateMember(r.Context(), wsID, accountID); err != nil {
+			if err = wsSvc.ValidateActiveMember(r.Context(), wsID, accountID); err != nil {
 				writeError(w, http.StatusForbidden, "forbidden", "not a member of this workspace")
 				return
 			}

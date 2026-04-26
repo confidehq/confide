@@ -49,9 +49,12 @@ LEFT JOIN workspace_member_keys wmk
 WHERE wm.workspace_id = $1 AND wmk.account_id IS NULL;
 
 -- name: ListWorkspacesByAccount :many
-SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role
+SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role,
+  CASE WHEN wmk.account_id IS NOT NULL THEN 'active' ELSE 'pending' END AS status
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
 WHERE wm.account_id = $1
 ORDER BY w.created_at ASC;
 

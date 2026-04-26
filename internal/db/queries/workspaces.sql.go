@@ -484,9 +484,12 @@ func (q *Queries) ListWorkspaceMembers(ctx context.Context, workspaceID string) 
 }
 
 const listWorkspacesByAccount = `-- name: ListWorkspacesByAccount :many
-SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role
+SELECT w.id, w.name, w.slug, w.plan, w.plan_status, wm.role,
+  CASE WHEN wmk.account_id IS NOT NULL THEN 'active' ELSE 'pending' END AS status
 FROM workspaces w
 JOIN workspace_members wm ON wm.workspace_id = w.id
+LEFT JOIN workspace_member_keys wmk
+  ON wmk.workspace_id = wm.workspace_id AND wmk.account_id = wm.account_id
 WHERE wm.account_id = $1
 ORDER BY w.created_at ASC
 `
@@ -498,6 +501,7 @@ type ListWorkspacesByAccountRow struct {
 	Plan       string
 	PlanStatus string
 	Role       string
+	Status     string
 }
 
 func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string) ([]ListWorkspacesByAccountRow, error) {
@@ -516,6 +520,7 @@ func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string)
 			&i.Plan,
 			&i.PlanStatus,
 			&i.Role,
+			&i.Status,
 		); err != nil {
 			return nil, err
 		}
