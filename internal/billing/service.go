@@ -159,6 +159,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 	sess, err := sc.V1CheckoutSessions.Create(ctx, &stripe.CheckoutSessionCreateParams{
 		Customer: stripe.String(customerID),
 		Mode:     stripe.String(string(stripe.CheckoutSessionModeSubscription)),
+		AllowPromotionCodes: stripe.Bool(true),
 		LineItems: []*stripe.CheckoutSessionCreateLineItemParams{
 			{
 				Price:    stripe.String(priceID),
