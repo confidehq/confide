@@ -55,9 +55,6 @@
 
 	let notificationEmail = $state('');
 	let pgpPublicKey = $state('');
-	let pgpSaving = $state(false);
-	let pgpSaved = $state(false);
-	let pgpError = $state('');
 	let pgpPending = $state(false);
 	const pgpOpen = $derived(!!notificationEmail || pgpPending);
 	let pgpKeyFingerprint = $state('');
@@ -171,17 +168,32 @@
 	}
 
 	async function saveSettings() {
+		if (pgpOpen && !notificationEmail.trim()) {
+			settingsError = 'A recipient email address is required for email forwarding.';
+			return;
+		}
+		if (pgpOpen && !pgpPublicKey.trim()) {
+			settingsError = 'A PGP public key is required for email forwarding.';
+			return;
+		}
+		if (pgpPublicKey && pgpKeyError) {
+			settingsError = pgpKeyError;
+			return;
+		}
 		settingsSaving = true;
 		settingsError = '';
 		settingsSaved = false;
 		try {
-			await updateFormExpiration(
-				formId,
-				expiresAt || null,
-				responseLimit ? parseInt(responseLimit) : null,
-				responseTtlDays ? parseInt(responseTtlDays) : null,
-				burnAfterReading
-			);
+			await Promise.all([
+				updateFormExpiration(
+					formId,
+					expiresAt || null,
+					responseLimit ? parseInt(responseLimit) : null,
+					responseTtlDays ? parseInt(responseTtlDays) : null,
+					burnAfterReading
+				),
+				updateFormPGPNotification(formId, notificationEmail, pgpPublicKey)
+			]);
 			if (record) {
 				record = {
 					...record,
@@ -197,22 +209,6 @@
 			settingsError = e instanceof Error ? e.message : 'Failed to save settings';
 		} finally {
 			settingsSaving = false;
-		}
-	}
-
-	async function savePGPSettings() {
-		if (pgpPublicKey && pgpKeyError) return;
-		pgpSaving = true;
-		pgpError = '';
-		pgpSaved = false;
-		try {
-			await updateFormPGPNotification(formId, notificationEmail, pgpPublicKey);
-			pgpSaved = true;
-			setTimeout(() => { pgpSaved = false; }, 2500);
-		} catch (e) {
-			pgpError = e instanceof Error ? e.message : 'Failed to save notification settings';
-		} finally {
-			pgpSaving = false;
 		}
 	}
 
@@ -803,7 +799,7 @@
 										<div class="py-3">
 											<div class="flex items-center justify-between gap-3">
 												<div>
-													<p class="m-0 text-base text-text-dim">Email notifications</p>
+													<p class="m-0 text-base text-text-dim">Email forwarding</p>
 													<p class="m-0 text-sm text-muted-dark mt-0.5">Forward encrypted responses to an email via PGP.</p>
 												</div>
 												<button
@@ -848,51 +844,27 @@
 
 									</div>
 
-									<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
-										<div class="flex items-center gap-3">
-											<button
-												onclick={savePGPSettings}
-												disabled={pgpSaving || !!pgpKeyError}
-												class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
-													{pgpSaving || pgpKeyError
-														? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
-														: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
-											>
-												{pgpSaving ? 'Saving…' : 'Save notifications'}
-											</button>
-											{#if pgpSaved}
-												<span class="text-base text-success-text-dark flex items-center gap-1">
-													<Check size={13} strokeWidth={2} />
-													Saved
-												</span>
-											{/if}
-											{#if pgpError}
-												<span class="text-base text-error-light">{pgpError}</span>
-											{/if}
-										</div>
+									<div class="border-t border-border-deep pt-4 flex items-center gap-3">
+										<button
+											onclick={saveSettings}
+											disabled={settingsSaving || !!pgpKeyError}
+											class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
+												{settingsSaving || pgpKeyError
+													? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
+													: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
+										>
+											{settingsSaving ? 'Saving…' : 'Save settings'}
+										</button>
+										{#if settingsSaved}
+											<span class="text-base text-success-text-dark flex items-center gap-1">
+												<Check size={13} strokeWidth={2} />
+												Saved
+											</span>
+										{/if}
+										{#if settingsError}
+											<span class="text-base text-error-light">{settingsError}</span>
+										{/if}
 									</div>
-
-									<div class="flex items-center gap-3 pt-2">
-											<button
-												onclick={saveSettings}
-												disabled={settingsSaving}
-												class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
-													{settingsSaving
-														? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
-														: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
-											>
-												{settingsSaving ? 'Saving…' : 'Save settings'}
-											</button>
-											{#if settingsSaved}
-												<span class="text-base text-success-text-dark flex items-center gap-1">
-													<Check size={13} strokeWidth={2} />
-													Saved
-												</span>
-											{/if}
-											{#if settingsError}
-												<span class="text-base text-error-light">{settingsError}</span>
-											{/if}
-										</div>
 									</section>
 
 									<!-- Danger zone -->

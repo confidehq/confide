@@ -4,8 +4,46 @@
 	import type { CustomDomainInfo } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
-	import { Copy, Check } from '@lucide/svelte';
+	import { Copy, Check, X } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+
+	const LANGUAGES: { code: string; name: string }[] = [
+		{ code: 'af', name: 'Afrikaans' },
+		{ code: 'ar', name: 'Arabic' },
+		{ code: 'cs', name: 'Czech' },
+		{ code: 'da', name: 'Danish' },
+		{ code: 'de', name: 'German' },
+		{ code: 'el', name: 'Greek' },
+		{ code: 'en', name: 'English' },
+		{ code: 'es', name: 'Spanish' },
+		{ code: 'fi', name: 'Finnish' },
+		{ code: 'fr', name: 'French' },
+		{ code: 'he', name: 'Hebrew' },
+		{ code: 'hi', name: 'Hindi' },
+		{ code: 'hu', name: 'Hungarian' },
+		{ code: 'id', name: 'Indonesian' },
+		{ code: 'it', name: 'Italian' },
+		{ code: 'ja', name: 'Japanese' },
+		{ code: 'ko', name: 'Korean' },
+		{ code: 'ms', name: 'Malay' },
+		{ code: 'nl', name: 'Dutch' },
+		{ code: 'no', name: 'Norwegian' },
+		{ code: 'pl', name: 'Polish' },
+		{ code: 'pt', name: 'Portuguese' },
+		{ code: 'ro', name: 'Romanian' },
+		{ code: 'ru', name: 'Russian' },
+		{ code: 'sv', name: 'Swedish' },
+		{ code: 'th', name: 'Thai' },
+		{ code: 'tr', name: 'Turkish' },
+		{ code: 'uk', name: 'Ukrainian' },
+		{ code: 'vi', name: 'Vietnamese' },
+		{ code: 'zh', name: 'Chinese (Simplified)' },
+		{ code: 'zh-TW', name: 'Chinese (Traditional)' }
+	];
+
+	function languageName(code: string): string {
+		return LANGUAGES.find((l) => l.code === code)?.name ?? code;
+	}
 
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
@@ -30,6 +68,7 @@
 	let copied = $state(false);
 	let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 	let confirmRotate = $state(false);
+	let confirmRemoveLocale = $state<string | null>(null);
 
 	const isConvo = $derived(store.schema.layout === 'convo');
 
@@ -124,6 +163,17 @@
 		const days = policy === 'ttl' ? ttlDays : null;
 		applyExpiration(store.expiresAt, store.responseLimit, days, burn);
 	}
+
+	function handleAddLanguage(e: Event) {
+		const code = (e.target as HTMLSelectElement).value;
+		if (!code) return;
+		store.addLocale(code);
+		(e.target as HTMLSelectElement).value = '';
+	}
+
+	const availableLanguages = $derived(
+		LANGUAGES.filter((l) => !store.schema.locales.includes(l.code))
+	);
 </script>
 
 <aside
@@ -373,6 +423,48 @@
 
 		</div>
 
+		<!-- Languages -->
+		<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
+			<div>
+				<p class="m-0 text-sm text-text-dim">Support languages</p>
+				<p class="m-0 text-xs text-muted-dark mt-0.5">Add languages to provide translated versions of this form.</p>
+			</div>
+
+			<!-- Added locales -->
+			<div class="flex flex-col gap-1.5">
+				{#each store.schema.locales as locale (locale)}
+					<div class="flex items-center justify-between gap-2 px-3 py-2 bg-surface border border-border-deep rounded-md">
+						<span class="text-sm text-text-dim font-mono">{languageName(locale)}</span>
+						{#if locale === store.schema.defaultLocale}
+							<span class="text-xs text-muted-dark">default</span>
+						{:else}
+							<button
+								onclick={() => { confirmRemoveLocale = locale; }}
+								class="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none cursor-pointer
+									text-muted hover:text-error-light hover:bg-danger-bg-dark transition-colors duration-100"
+								aria-label="Remove {languageName(locale)}"
+							>
+								<X size={12} strokeWidth={2} />
+							</button>
+						{/if}
+					</div>
+				{/each}
+			</div>
+
+			<!-- Add language dropdown -->
+			{#if availableLanguages.length > 0}
+				<select
+					onchange={handleAddLanguage}
+					class="input-base text-muted-dark"
+				>
+					<option value="">Add a language…</option>
+					{#each availableLanguages as lang (lang.code)}
+						<option value={lang.code}>{lang.name}</option>
+					{/each}
+				</select>
+			{/if}
+		</div>
+
 		{#if expirationSaving}
 			<p class="m-0 text-xs text-muted-dark">Saving…</p>
 		{:else if expirationError}
@@ -389,6 +481,15 @@
 		confirmLabel="Generate new link"
 		onconfirm={() => { confirmRotate = false; handleRotateKey(); }}
 		oncancel={() => { confirmRotate = false; }}
+	/>
+
+	<ConfirmDialog
+		open={!!confirmRemoveLocale}
+		title="Remove language?"
+		description="This will permanently delete the {confirmRemoveLocale ? languageName(confirmRemoveLocale) : ''} translation and all its content. This cannot be undone."
+		confirmLabel="Remove language"
+		onconfirm={() => { if (confirmRemoveLocale) store.removeLocale(confirmRemoveLocale); confirmRemoveLocale = null; }}
+		oncancel={() => { confirmRemoveLocale = null; }}
 	/>
 
 	<!-- Sticky publish button -->

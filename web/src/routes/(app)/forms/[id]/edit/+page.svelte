@@ -12,7 +12,7 @@
 	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
 	import FormSettingsPanel from '$lib/components/builder/FormSettingsPanel.svelte';
-	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check } from '@lucide/svelte';
+	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check, Languages } from '@lucide/svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import type { Component } from 'svelte';
 
@@ -110,7 +110,7 @@
 {:else if store}
 	<div class="flex flex-col flex-1 min-h-0 bg-surface font-mono text-text-dim overflow-hidden">
 		<!-- Toolbar -->
-		<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-x-auto">
+		<div class="relative flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-x-auto">
 			<!-- Breadcrumb -->
 			<Breadcrumb items={[
 				{ label: 'Forms', href: '/forms' },
@@ -162,42 +162,28 @@
 				</div>
 			</div>
 
-			<!-- Locale switcher — hidden for now -->
-			<div class="hidden items-center gap-1.5 shrink-0">
-				<div class="w-px h-[18px] bg-border-field"></div>
-				<div class="relative flex items-center">
-					<select
-						value={store.activeLocale}
-						onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-						class="appearance-none pl-2.5 pr-7 h-7 bg-surface text-muted border border-border-field rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
-					>
-						{#each store.schema.locales as locale}
-							<option value={locale}>{locale}</option>
-						{/each}
-					</select>
-					<span class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
-						<ChevronDown size={12} strokeWidth={1.75} />
-					</span>
+			<!-- Locale switcher — centered absolutely -->
+			{#if store.schema.locales.length > 1}
+				<div class="absolute left-1/2 -translate-x-1/2 flex items-center pointer-events-none">
+					<div class="relative flex items-center pointer-events-auto">
+						<Languages size={13} strokeWidth={1.75} class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-dark" />
+						<select
+							value={store.activeLocale}
+							onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
+							class="appearance-none pl-7 pr-7 h-7 bg-surface text-muted border border-border-field rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
+						>
+							{#each store.schema.locales as locale}
+								<option value={locale}>
+									{new Intl.DisplayNames([locale, 'en'], { type: 'language' }).of(locale) ?? locale}
+								</option>
+							{/each}
+						</select>
+						<span class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
+							<ChevronDown size={12} strokeWidth={1.75} />
+						</span>
+					</div>
 				</div>
-				{#if showLocaleInput}
-					<input
-						type="text"
-						placeholder="e.g. fr"
-						bind:value={newLocaleInput}
-						onkeydown={(e) => { if (e.key === 'Enter') handleAddLocale(); if (e.key === 'Escape') showLocaleInput = false; }}
-						class="w-14 px-2 h-7 bg-surface border border-border-field text-text-dim rounded-md font-mono text-sm outline-none box-border"
-					/>
-					<button
-						onclick={handleAddLocale}
-						class="px-2.5 h-7 bg-primary text-white border-none rounded-md cursor-pointer font-mono text-sm"
-					>Add</button>
-				{:else}
-					<button
-						onclick={() => (showLocaleInput = true)}
-						class="px-2 h-7 bg-transparent text-muted-dark border border-dashed border-border-field rounded-md cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted-dark hover:border-border"
-					>+ lang</button>
-				{/if}
-			</div>
+			{/if}
 
 			<!-- Spacer -->
 			<div class="flex-1"></div>
