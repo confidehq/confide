@@ -352,7 +352,7 @@
 				{#if billingInfo.memberCount > 1}
 					<p class="m-0">
 						You have <span class="text-text-body font-medium">{billingInfo.memberCount} members</span>.
-						The Free plan is limited to 1 member — others will lose access when your subscription ends.
+						The Free plan is limited to 2 members — others will lose access when your subscription ends.
 					</p>
 				{/if}
 				{#if workspacesStore.workspaces.length > 1}
@@ -626,7 +626,7 @@
 
 			<!-- Usage meters (only shown once loaded) -->
 			{#if billingInfo}
-				{@const memberLimit = billingInfo.plan === 'free' ? 1 : billingInfo.plan === 'pro' ? 10 : -1}
+				{@const memberLimit = billingInfo.plan === 'free' ? 2 : billingInfo.plan === 'pro' ? 10 : -1}
 				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Usage</h2>
 				<div class="border border-border-deep rounded-lg divide-y divide-border-deep mb-8">
 					<!-- Members row -->

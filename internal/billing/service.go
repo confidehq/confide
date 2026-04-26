@@ -456,7 +456,7 @@ func (s *Service) planForPriceID(priceID string) (string, bool) {
 func PlanMemberLimit(plan string) int64 {
 	switch plan {
 	case "free":
-		return 1
+		return 2
 	case "pro":
 		return 10
 	default:
