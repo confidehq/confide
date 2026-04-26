@@ -14,6 +14,7 @@
 		if (plan === 'pro') {
 			if (planStatus === 'past_due') return 'Pro · past due';
 			if (planStatus === 'canceled') return 'Pro · canceled';
+			if (planStatus === 'canceling') return 'Pro · cancels at period end';
 			return 'Pro';
 		}
 		return 'Free';
@@ -127,7 +128,7 @@
 			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
 			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
 				{ws.plan === 'pro'
-					? ws.planStatus === 'active'
+					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
 						? 'bg-open-bg text-open-text border-open-border'
 						: 'bg-closed-bg text-closed-text border-closed-border'
 					: 'text-muted-dim border-border-deep bg-transparent'}">

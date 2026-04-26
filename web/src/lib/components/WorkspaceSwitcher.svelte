@@ -26,6 +26,7 @@
 		if (plan === 'pro') {
 			if (status === 'past_due') return 'past due';
 			if (status === 'canceled') return 'canceled';
+			if (status === 'canceling') return 'cancels at period end';
 			return 'pro';
 		}
 		return 'free';
@@ -125,7 +126,7 @@
 				{#if workspacesStore.active}
 					<span class="block text-sm leading-tight capitalize
 						{workspacesStore.active.plan === 'pro'
-							? workspacesStore.active.planStatus === 'active'
+							? workspacesStore.active.planStatus === 'active' || workspacesStore.active.planStatus === 'canceling'
 								? 'text-success-text-dark'
 								: 'text-error-light'
 							: 'text-muted-dim'}">

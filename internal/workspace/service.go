@@ -30,6 +30,11 @@ var (
 	ErrInvalidDomain = errors.New("invalid domain: must be a plain hostname with no scheme or path")
 )
 
+// SubscriptionCanceler cancels a Stripe subscription. Implemented by billing.Service.
+type SubscriptionCanceler interface {
+	CancelSubscription(ctx context.Context, subscriptionID string) error
+}
+
 // DB is the subset of queries.Queries used by workspace.Service.
 type DB interface {
 	CreateWorkspace(ctx context.Context, arg queries.CreateWorkspaceParams) (queries.Workspace, error)
@@ -52,6 +57,7 @@ type DB interface {
 	DeleteWorkspaceMemberKey(ctx context.Context, arg queries.DeleteWorkspaceMemberKeyParams) error
 	CountWorkspaceOwners(ctx context.Context, workspaceID string) (int64, error)
 	CountNonOwnerMembers(ctx context.Context, workspaceID string) (int64, error)
+	GetWorkspaceForBilling(ctx context.Context, id string) (queries.GetWorkspaceForBillingRow, error)
 
 	SetWorkspaceCustomDomain(ctx context.Context, arg queries.SetWorkspaceCustomDomainParams) error
 	ClearWorkspaceCustomDomain(ctx context.Context, id string) error
@@ -62,11 +68,12 @@ type DB interface {
 }
 
 type Service struct {
-	log     zerolog.Logger
-	db      DB
-	pool    *pgxpool.Pool
-	cache   *permission.RoleCache
-	traefik *traefik.Writer
+	log      zerolog.Logger
+	db       DB
+	pool     *pgxpool.Pool
+	cache    *permission.RoleCache
+	traefik  *traefik.Writer
+	canceler SubscriptionCanceler
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
@@ -86,6 +93,11 @@ func NewServiceWithDB(db DB) *Service {
 // WithTraefikWriter attaches a Traefik config writer to the service.
 func (s *Service) WithTraefikWriter(w *traefik.Writer) {
 	s.traefik = w
+}
+
+// WithSubscriptionCanceler attaches a billing canceler used during workspace deletion.
+func (s *Service) WithSubscriptionCanceler(c SubscriptionCanceler) {
+	s.canceler = c
 }
 
 // Cache returns the shared role cache. Used by server to wire middleware.
@@ -276,7 +288,7 @@ func (s *Service) Rename(ctx context.Context, workspaceID, name string) error {
 }
 
 // Delete deletes a workspace. Caller role is enforced by middleware.
-// Fails if any non-owner members remain.
+// Fails if any non-owner members remain. Cancels any active Stripe subscription first.
 func (s *Service) Delete(ctx context.Context, workspaceID string) error {
 	count, err := s.db.CountNonOwnerMembers(ctx, workspaceID)
 	if err != nil {
@@ -284,6 +296,17 @@ func (s *Service) Delete(ctx context.Context, workspaceID string) error {
 	}
 	if count > 0 {
 		return ErrHasMembers
+	}
+	if s.canceler != nil {
+		ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			return err
+		}
+		if err == nil && ws.StripeSubscriptionID.Valid {
+			if err := s.canceler.CancelSubscription(ctx, ws.StripeSubscriptionID.String); err != nil {
+				return err
+			}
+		}
 	}
 	return s.db.DeleteWorkspace(ctx, workspaceID)
 }

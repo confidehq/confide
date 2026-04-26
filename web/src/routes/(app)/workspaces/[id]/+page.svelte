@@ -110,6 +110,7 @@ async function load() {
 		if (ws.plan === 'pro') {
 			if (ws.planStatus === 'past_due') return 'Pro · past due';
 			if (ws.planStatus === 'canceled') return 'Pro · canceled';
+			if (ws.planStatus === 'canceling') return 'Pro · cancels at period end';
 			return 'Pro';
 		}
 		return 'Free';
@@ -158,7 +159,9 @@ async function load() {
 						{workspace.plan === 'pro'
 							? workspace.planStatus === 'active'
 								? 'bg-open-bg text-open-text border-open-border'
-								: 'bg-closed-bg text-closed-text border-closed-border'
+								: workspace.planStatus === 'canceling'
+									? 'bg-open-bg text-open-text border-open-border'
+									: 'bg-closed-bg text-closed-text border-closed-border'
 							: 'text-muted-dim border-border-deep bg-transparent'}">
 						{planLabel(workspace)}
 					</span>

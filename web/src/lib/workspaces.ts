@@ -8,7 +8,7 @@ export interface Workspace {
 	name: string;
 	slug: string;
 	plan: 'free' | 'pro';
-	planStatus: 'active' | 'past_due' | 'canceled';
+	planStatus: 'active' | 'past_due' | 'canceled' | 'canceling';
 	role: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
@@ -166,7 +166,7 @@ export async function clearCustomDomain(workspaceId: string): Promise<void> {
 
 export interface BillingInfo {
 	plan: 'free' | 'pro' | 'org';
-	planStatus: 'active' | 'past_due' | 'canceled';
+	planStatus: 'active' | 'past_due' | 'canceled' | 'canceling';
 	planPeriodEnd?: string; // ISO date string, present on paid plans
 	memberCount: number;
 	formCount: number;

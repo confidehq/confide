@@ -68,6 +68,9 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		}
 	}
 
+	billingSvc := billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg)
+	wsSvc.WithSubscriptionCanceler(billingSvc)
+
 	return &Services{
 		Auth:       auth.NewService(pool, wa),
 		Forms:      forms.NewService(pool),
@@ -75,7 +78,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		Workspace:  wsSvc,
 		Identity:   identity.NewService(pool),
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
-		Billing:    billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg),
+		Billing:    billingSvc,
 		RelayQ:     &relay.Queue{},
 	}
 }

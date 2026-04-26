@@ -41,6 +41,7 @@
 		if (ws.plan === 'pro') {
 			if (ws.planStatus === 'past_due') return 'Pro · past due';
 			if (ws.planStatus === 'canceled') return 'Pro · canceled';
+			if (ws.planStatus === 'canceling') return 'Pro · cancels at period end';
 			return 'Pro';
 		}
 		return 'Free';
@@ -218,7 +219,7 @@
 						<!-- Plan badge -->
 						<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
 							{ws.plan === 'pro'
-								? ws.planStatus === 'active'
+								? ws.planStatus === 'active' || ws.planStatus === 'canceling'
 									? 'bg-open-bg text-open-text border-open-border'
 									: 'bg-closed-bg text-closed-text border-closed-border'
 								: 'text-muted-dim border-border-deep bg-transparent'}">
