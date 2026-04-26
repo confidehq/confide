@@ -297,8 +297,15 @@ func (s *Service) ListMembers(ctx context.Context, workspaceID string) ([]Member
 	out := make([]Member, len(rows))
 	for i, r := range rows {
 		lastSeen := ""
-		if ts, ok := r.LastSeen.(pgtype.Timestamptz); ok && ts.Valid {
-			lastSeen = ts.Time.UTC().Format(time.RFC3339)
+		switch ts := r.LastSeen.(type) {
+		case pgtype.Timestamptz:
+			if ts.Valid {
+				lastSeen = ts.Time.UTC().Format(time.RFC3339)
+			}
+		case time.Time:
+			if !ts.IsZero() {
+				lastSeen = ts.UTC().Format(time.RFC3339)
+			}
 		}
 		out[i] = Member{
 			AccountID: r.AccountID,
