@@ -12,11 +12,12 @@ import (
 const maxSubmitBody = 64 * 1024 // 64KB
 
 // SubmitHandler handles POST /relay/submit.
-// It accepts an anonymous form submission, validates the shape, and enqueues it.
+// It accepts an anonymous form submission, validates the shape, enqueues it,
+// and flushes immediately to the database.
 // No authentication. No cookies. No response logging. No submission ID returned.
 // Bot submissions (honeypot triggered or velocity too fast) are silently discarded
 // with the same 202 response so bots receive no distinguishing signal.
-func SubmitHandler(q *Queue, guard *botguard.Guard) http.HandlerFunc {
+func SubmitHandler(q *Queue, storer BatchStorer, guard *botguard.Guard) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(io.LimitReader(r.Body, maxSubmitBody))
 		if err != nil {
@@ -69,6 +70,13 @@ func SubmitHandler(q *Queue, guard *botguard.Guard) http.HandlerFunc {
 			SchemaVersion:      req.SchemaVersion,
 			PGPEncryptedData:   req.PGPEncryptedData,
 		})
+
+		if items := q.Drain(); len(items) > 0 {
+			if err := storer.CreateBatch(r.Context(), items); err != nil {
+				http.Error(w, "", http.StatusInternalServerError)
+				return
+			}
+		}
 
 		w.WriteHeader(http.StatusAccepted)
 	}

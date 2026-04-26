@@ -20,8 +20,7 @@ type Config struct {
 	RPOrigin           string
 	RPDisplayName      string
 	Env                string
-	RelayFlushInterval time.Duration
-	ReaperInterval     time.Duration
+	ReaperInterval time.Duration
 	RegistrationOpen   bool
 
 	// SMTP — all optional; if SMTPHost is empty, invitation emails are skipped.
@@ -61,13 +60,6 @@ func Load() (*Config, error) {
 	// Load .env file if it exists (don't error if missing)
 	_ = godotenv.Load()
 
-	flushInterval := 60 * time.Second
-	if v := os.Getenv("CONFIDE_RELAY_FLUSH_INTERVAL"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			flushInterval = d
-		}
-	}
-
 	reaperInterval := 1 * time.Hour
 	if v := os.Getenv("CONFIDE_REAPER_INTERVAL"); v != "" {
 		if d, err := time.ParseDuration(v); err == nil {
@@ -82,8 +74,7 @@ func Load() (*Config, error) {
 		RPOrigin:           getEnv("CONFIDE_RP_ORIGIN", "http://localhost:3000"),
 		RPDisplayName:      getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
 		Env:                getEnv("CONFIDE_ENV", "development"),
-		RelayFlushInterval: flushInterval,
-		ReaperInterval:     reaperInterval,
+		ReaperInterval: reaperInterval,
 		RegistrationOpen:   parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
 		SMTPHost:           os.Getenv("CONFIDE_SMTP_HOST"),
 		SMTPPort:           getEnv("CONFIDE_SMTP_PORT", "587"),
