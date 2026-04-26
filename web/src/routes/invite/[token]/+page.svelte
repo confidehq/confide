@@ -13,10 +13,15 @@
 
 	const token = $derived(page.params.token as string);
 	const isLoggedIn = $derived(auth.masterKey !== null);
+	const autoAccept = $derived(page.url.searchParams.get('auto_accept') === '1');
 
 	onMount(async () => {
 		try {
 			preview = await resolveInvitation(token);
+			if (isLoggedIn && autoAccept) {
+				await accept();
+				return;
+			}
 			pageState = 'preview';
 		} catch (err) {
 			errorMsg = err instanceof Error ? err.message : 'Invitation not found or expired.';
@@ -37,7 +42,7 @@
 				return;
 			}
 			if (err instanceof WorkspaceError && err.code === 'unauthorized') {
-				goto(`/login?next=/invite/${token}`);
+				goto(`/login?next=${encodeURIComponent(`/invite/${token}?auto_accept=1`)}`);
 				return;
 			}
 			errorMsg = err instanceof Error ? err.message : 'Failed to accept invitation.';
@@ -123,7 +128,7 @@
 						Create account
 					</a>
 					<a
-						href="/login?next=/invite/{token}"
+						href="/login?next={encodeURIComponent(`/invite/${token}?auto_accept=1`)}"
 						class="flex-1 py-3 text-center text-muted bg-surface hover:text-text border border-border rounded-md font-mono text-sm no-underline transition-colors duration-100"
 					>
 						Sign in
