@@ -68,6 +68,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	worker := domain.NewWorker(queries.New(pool), verifier, reg, cfg.DomainVerifyInterval)
 	if cfg.TraefikConfigDir != "" {
 		worker.WithTraefikConfigDir(cfg.TraefikConfigDir)
+		wsSvc.WithTraefikConfigDir(cfg.TraefikConfigDir)
 	}
 	wsSvc.WithDomainChecker(worker)
 

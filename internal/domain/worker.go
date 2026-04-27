@@ -93,6 +93,8 @@ func (w *Worker) check(ctx context.Context, cd queries.CustomDomain) {
 		if w.traefikConfigDir != "" {
 			if err := writeTraefikConfig(w.traefikConfigDir, cd.Domain); err != nil {
 				log.Error().Err(err).Str("domain", cd.Domain).Msg("domain worker: write traefik config")
+			} else {
+				log.Info().Str("domain", cd.Domain).Msg("domain worker: traefik config written")
 			}
 		}
 		log.Info().Str("domain", cd.Domain).Msg("domain worker: custom domain enabled")

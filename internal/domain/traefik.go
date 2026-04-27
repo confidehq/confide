@@ -32,7 +32,9 @@ func writeTraefikConfig(dir, domain string) error {
 	return os.Rename(tmp, dst)
 }
 
-func deleteTraefikConfig(dir, domain string) error {
+// DeleteTraefikConfig removes the per-domain Traefik config file for the given
+// domain. Safe to call when the file does not exist.
+func DeleteTraefikConfig(dir, domain string) error {
 	path := filepath.Join(dir, "domain-"+domainToSlug(domain)+".yml")
 	err := os.Remove(path)
 	if os.IsNotExist(err) {

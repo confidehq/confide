@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/phantompunk/confide/internal/db/queries"
+	domainpkg "github.com/phantompunk/confide/internal/domain"
 	"github.com/phantompunk/confide/internal/permission"
 )
 
@@ -66,13 +67,14 @@ type DB interface {
 }
 
 type Service struct {
-	log      zerolog.Logger
-	db       DB
-	pool     *pgxpool.Pool
-	cache    *permission.RoleCache
-	registry domainRegistry
-	checker  domainChecker
-	canceler SubscriptionCanceler
+	log              zerolog.Logger
+	db               DB
+	pool             *pgxpool.Pool
+	cache            *permission.RoleCache
+	registry         domainRegistry
+	checker          domainChecker
+	canceler         SubscriptionCanceler
+	traefikConfigDir string
 }
 
 type domainRegistry interface {
@@ -115,6 +117,12 @@ func (s *Service) WithDomainChecker(c domainChecker) {
 // WithSubscriptionCanceler attaches a billing canceler used during workspace deletion.
 func (s *Service) WithSubscriptionCanceler(c SubscriptionCanceler) {
 	s.canceler = c
+}
+
+// WithTraefikConfigDir enables deleting per-domain Traefik config files when a
+// custom domain is replaced or removed.
+func (s *Service) WithTraefikConfigDir(dir string) {
+	s.traefikConfigDir = dir
 }
 
 // Cache returns the shared role cache. Used by server to wire middleware.
@@ -578,10 +586,13 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 		return CustomDomainInfo{}, ErrInvalidDomain
 	}
 
-	// Disable previous domain in registry if any.
-	if s.registry != nil {
-		if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+	// Disable previous domain in registry and remove its Traefik config if any.
+	if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+		if s.registry != nil {
 			s.registry.Disable(prev.Domain)
+		}
+		if s.traefikConfigDir != "" {
+			_ = domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain)
 		}
 	}
 
@@ -602,9 +613,12 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 
 // ClearCustomDomain removes the custom domain from the workspace.
 func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) error {
-	if s.registry != nil {
-		if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+	if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+		if s.registry != nil {
 			s.registry.Disable(prev.Domain)
+		}
+		if s.traefikConfigDir != "" {
+			_ = domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain)
 		}
 	}
 	return s.db.DeleteCustomDomain(ctx, workspaceID)
