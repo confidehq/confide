@@ -1,14 +1,14 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 )
 
-// FormsDomainGate restricts requests arriving on the forms subdomain or a
-// verified custom domain to the public form-serving paths only. Any other
-// path is redirected to the admin app domain so users land in the right place.
+// FormsDomainGate restricts requests arriving on the forms subdomain or an
+// enabled custom domain to the public form-serving paths only. Any other path
+// is redirected to the admin app domain. Requests from completely unknown hosts
+// receive 421 Misdirected Request.
 //
 // Allowed paths on forms/custom domains:
 //   - /f/*            public form page (SPA catch-all)
@@ -20,7 +20,7 @@ import (
 //   - static assets   files with a known extension (.js, .css, .svg, …)
 func FormsDomainGate(
 	appDomain, formsDomain string,
-	isVerifiedCustomDomain func(context.Context, string) bool,
+	isEnabledDomain func(string) bool,
 ) func(http.Handler) http.Handler {
 	appHost := stripScheme(appDomain)
 	formsHost := stripScheme(formsDomain)
@@ -38,8 +38,7 @@ func FormsDomainGate(
 			}
 
 			isFormsDomain := formsDomain != "" && host == formsHost
-			isCustom := !isFormsDomain && host != "" && host != appHost &&
-				isVerifiedCustomDomain(r.Context(), host)
+			isCustom := !isFormsDomain && host != "" && host != appHost && isEnabledDomain(host)
 
 			// On the app domain, redirect public form pages to the forms subdomain.
 			if formsDomain != "" && host == appHost && strings.HasPrefix(r.URL.Path, "/f/") {
@@ -48,6 +47,11 @@ func FormsDomainGate(
 			}
 
 			if !isFormsDomain && !isCustom {
+				// Unknown host arriving on the catch-all router: reject explicitly.
+				if host != "" && host != appHost {
+					http.Error(w, "421 Misdirected Request", http.StatusMisdirectedRequest)
+					return
+				}
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -82,4 +86,23 @@ func isStaticAssetPath(path string) bool {
 		}
 	}
 	return false
+}
+
+// StripScheme removes the scheme, path, and port from a URL-like string,
+// returning a bare hostname suitable for comparison.
+func StripScheme(s string) string {
+	return stripScheme(s)
+}
+
+func stripScheme(s string) string {
+	if i := strings.Index(s, "://"); i >= 0 {
+		s = s[i+3:]
+	}
+	if i := strings.IndexByte(s, '/'); i >= 0 {
+		s = s[:i]
+	}
+	if i := strings.LastIndex(s, ":"); i > 0 {
+		s = s[:i]
+	}
+	return s
 }

@@ -14,6 +14,7 @@
 		getCustomDomain,
 		setCustomDomain,
 		clearCustomDomain,
+		verifyCustomDomain,
 		type BillingInfo,
 		type CustomDomainInfo
 	} from '$lib/workspaces';
@@ -101,14 +102,15 @@
 		}
 	}
 
+	let domainChecking = $state(false);
+
 	async function saveDomain() {
 		const ws = workspacesStore.active;
 		if (!ws || !domainInput.trim()) return;
 		domainSaving = true;
 		domainError = '';
 		try {
-			await setCustomDomain(ws.id, domainInput.trim());
-			customDomain = await getCustomDomain(ws.id);
+			customDomain = await setCustomDomain(ws.id, domainInput.trim());
 			domainInput = '';
 		} catch (e) {
 			domainError = e instanceof Error ? e.message : 'Failed to save domain';
@@ -132,14 +134,17 @@
 		}
 	}
 
-	async function refreshDomainStatus() {
+	async function checkDomainNow() {
 		const ws = workspacesStore.active;
 		if (!ws) return;
+		domainChecking = true;
 		domainError = '';
 		try {
-			customDomain = await getCustomDomain(ws.id);
-		} catch {
-			// ignore
+			customDomain = await verifyCustomDomain(ws.id);
+		} catch (e) {
+			domainError = e instanceof Error ? e.message : 'Verification check failed';
+		} finally {
+			domainChecking = false;
 		}
 	}
 
@@ -774,31 +779,67 @@
 				{:else if customDomain === null}
 					<p class="m-0 text-muted-dim text-base">Loading…</p>
 				{:else if customDomain.domain}
+					<!-- Domain set — show status + DNS records -->
 					<div class="flex items-center gap-3 flex-wrap">
 						<span class="text-text-body text-base font-mono">{customDomain.domain}</span>
-						{#if customDomain.verified}
-							<span class="px-2 py-0.5 rounded-full text-xs bg-open-bg text-open-text border border-open-border">Verified</span>
+						{#if customDomain.enabled}
+							<span class="px-2 py-0.5 rounded-full text-xs bg-open-bg text-open-text border border-open-border">Active</span>
 						{:else}
 							<span class="px-2 py-0.5 rounded-full text-xs bg-closed-bg text-closed-text border border-closed-border">Pending</span>
 						{/if}
 						<button
-							onclick={refreshDomainStatus}
-							class="px-3 py-1 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
-						>Refresh</button>
-						<button
 							onclick={removeDomain}
 							disabled={domainRemoving}
 							class="px-3 py-1 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100 disabled:opacity-50"
-						>Remove</button>
+						>{domainRemoving ? 'Removing…' : 'Remove'}</button>
 					</div>
-					{#if !customDomain.verified}
-						<div class="p-3 bg-surface-mid border border-border-deep rounded text-base text-muted-dim">
-							<p class="m-0 mb-1">Add a CNAME record to your DNS:</p>
-							<p class="m-0 font-mono text-text-body">{customDomain.domain} → {customDomain.cnameTarget}</p>
-							<p class="m-0 mt-1 text-muted-dim">Verification happens automatically once DNS propagates.</p>
+
+					{#if !customDomain.enabled}
+						<div class="p-4 bg-surface-mid border border-border-deep rounded flex flex-col gap-3">
+							<p class="m-0 text-base text-text-body">Add these DNS records, then click Check:</p>
+
+							<!-- CNAME record -->
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center gap-2">
+									<span class="text-xs font-mono text-muted-dim uppercase tracking-wide w-10">CNAME</span>
+									<div class="flex-1 flex items-center gap-2 min-w-0">
+										<code class="flex-1 px-2 py-1 bg-surface border border-border-deep rounded font-mono text-sm text-text-body truncate">{customDomain.cnameRecord?.name ?? customDomain.domain}</code>
+										<span class="text-muted-dark shrink-0">→</span>
+										<code class="flex-1 px-2 py-1 bg-surface border border-border-deep rounded font-mono text-sm text-text-body truncate">{customDomain.cnameRecord?.value ?? customDomain.cnameTarget}</code>
+									</div>
+									{#if customDomain.cnameOK}
+										<span class="shrink-0 text-xs text-open-text font-mono">✓</span>
+									{:else}
+										<span class="shrink-0 text-xs text-muted-dark font-mono">✗</span>
+									{/if}
+								</div>
+							</div>
+
+							<!-- TXT record -->
+							<div class="flex flex-col gap-1">
+								<div class="flex items-center gap-2">
+									<span class="text-xs font-mono text-muted-dim uppercase tracking-wide w-10">TXT</span>
+									<div class="flex-1 flex flex-col gap-1 min-w-0">
+										<code class="px-2 py-1 bg-surface border border-border-deep rounded font-mono text-sm text-text-body truncate">{customDomain.txtRecord?.name ?? `_confide-verify.${customDomain.domain}`}</code>
+										<code class="px-2 py-1 bg-surface border border-border-deep rounded font-mono text-sm text-text-body truncate">{customDomain.txtRecord?.value ?? '—'}</code>
+									</div>
+									{#if customDomain.txtOK}
+										<span class="shrink-0 text-xs text-open-text font-mono self-start mt-1">✓</span>
+									{:else}
+										<span class="shrink-0 text-xs text-muted-dark font-mono self-start mt-1">✗</span>
+									{/if}
+								</div>
+							</div>
+
+							<button
+								onclick={checkDomainNow}
+								disabled={domainChecking}
+								class="self-end px-4 py-1.5 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100 disabled:opacity-50"
+							>{domainChecking ? 'Checking…' : 'Check now'}</button>
 						</div>
 					{/if}
 				{:else}
+					<!-- No domain set -->
 					<div class="flex gap-2 flex-wrap items-center">
 						<input
 							bind:value={domainInput}
@@ -813,7 +854,7 @@
 					</div>
 					<p class="m-0 text-muted-dim text-base">
 						Enter the hostname you want to use (e.g. <span class="font-mono text-muted-mid">forms.yourdomain.com</span>).
-						You'll need to add a CNAME record pointing to <span class="font-mono text-muted-mid">{customDomain.cnameTarget}</span>.
+						You'll need to add a CNAME and a TXT record at your DNS provider.
 					</p>
 				{/if}
 

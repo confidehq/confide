@@ -18,6 +18,7 @@ import (
 	"github.com/phantompunk/confide/internal/botguard"
 	"github.com/phantompunk/confide/internal/config"
 	"github.com/phantompunk/confide/internal/db/queries"
+	"github.com/phantompunk/confide/internal/domain"
 	"github.com/phantompunk/confide/internal/forms"
 	"github.com/phantompunk/confide/internal/identity"
 	"github.com/phantompunk/confide/internal/invitation"
@@ -28,20 +29,25 @@ import (
 	"github.com/phantompunk/confide/internal/permission"
 	"github.com/phantompunk/confide/internal/relay"
 	"github.com/phantompunk/confide/internal/responses"
-	"github.com/phantompunk/confide/internal/traefik"
 	"github.com/phantompunk/confide/internal/workspace"
 )
 
 // Services groups the application services passed into the server.
 type Services struct {
-	Auth       *auth.Service
-	Forms      *forms.Service
-	Responses  *responses.Service
-	Workspace  *workspace.Service
-	Identity   *identity.Service
-	Invitation *invitation.Service
-	Billing    *billing.Service
-	RelayQ     *relay.Queue
+	Auth         *auth.Service
+	Forms        *forms.Service
+	Responses    *responses.Service
+	Workspace    *workspace.Service
+	Identity     *identity.Service
+	Invitation   *invitation.Service
+	Billing      *billing.Service
+	RelayQ       *relay.Queue
+	domainWorker *domain.Worker
+}
+
+// Start launches background workers. Call this after New.
+func (s *Services) Start(ctx context.Context) {
+	go s.domainWorker.Run(ctx)
 }
 
 // NewServices constructs all application services from the pool and webauthn instance.
@@ -49,24 +55,18 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail, cfg.ResendAPIKey)
 	wsSvc := workspace.NewService(pool)
 
-	if cfg.TraefikDynamicDir != "" {
-		rows, err := queries.New(pool).ListAllCustomDomains(context.Background())
-		if err != nil {
-			log.Error().Err(err).Msg("traefik: failed to load custom domains")
-		}
-		initial := make([]string, 0, len(rows))
-		for _, r := range rows {
-			if r.Valid {
-				initial = append(initial, r.String)
-			}
-		}
-		w, err := traefik.New(cfg.TraefikDynamicDir, initial)
-		if err != nil {
-			log.Error().Err(err).Msg("traefik: failed to write initial config")
-		} else {
-			wsSvc.WithTraefikWriter(w)
-		}
+	// Build domain registry from DB and wire it into the workspace service.
+	enabledDomains, err := queries.New(pool).ListAllEnabledDomains(context.Background())
+	if err != nil {
+		log.Error().Err(err).Msg("domain: failed to load enabled domains")
 	}
+	reg := domain.NewRegistry(enabledDomains)
+	wsSvc.WithRegistry(reg)
+
+	// Start the background DNS verification worker.
+	verifier := &domain.Verifier{CNAMETarget: mw.StripScheme(cfg.CustomDomainTarget)}
+	worker := domain.NewWorker(queries.New(pool), verifier, reg, cfg.DomainVerifyInterval)
+	wsSvc.WithDomainChecker(worker)
 
 	billingSvc := billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg)
 	wsSvc.WithSubscriptionCanceler(billingSvc)
@@ -80,6 +80,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
 		Billing:    billingSvc,
 		RelayQ:     &relay.Queue{},
+		domainWorker: worker,
 	}
 }
 
@@ -89,8 +90,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 	r.Use(mw.SecurityHeaders)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Recoverer)
-	r.Use(mw.VerifyCustomDomain(cfg.AppDomain, svc.Workspace))
-	r.Use(mw.FormsDomainGate(cfg.AppDomain, cfg.FormsDomain, svc.Workspace.IsVerifiedCustomDomain))
+	r.Use(mw.FormsDomainGate(cfg.AppDomain, cfg.FormsDomain, svc.Workspace.IsEnabledCustomDomain))
 
 	// API routes — CORS restricted to configured origin, general CSP applied.
 	r.Route("/api", func(r chi.Router) {
@@ -107,7 +107,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				if cfg.FormsDomain != "" && host == mw.StripScheme(cfg.FormsDomain) {
 					return true
 				}
-				return svc.Workspace.IsVerifiedCustomDomain(r.Context(), host)
+				return svc.Workspace.IsEnabledCustomDomain(host)
 			},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Content-Type", "Authorization"},

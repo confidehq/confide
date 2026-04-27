@@ -38,6 +38,18 @@ type Credential struct {
 	UpdatedAt        pgtype.Timestamptz
 }
 
+type CustomDomain struct {
+	ID          string
+	WorkspaceID string
+	Domain      string
+	TxtToken    string
+	CnameOk     bool
+	TxtOk       bool
+	Enabled     bool
+	CreatedAt   pgtype.Timestamptz
+	VerifiedAt  pgtype.Timestamptz
+}
+
 type Form struct {
 	ID                      string
 	CreatedAt               pgtype.Timestamptz
@@ -56,10 +68,9 @@ type Form struct {
 	WorkspaceID             string
 	CreatedByAccountID      pgtype.Text
 	WorkspaceWrappedFormKey []byte
-	UseCustomDomain         bool
 	HasUnpublishedChanges   bool
 	NotificationEmail       pgtype.Text
-	PGPPublicKey            pgtype.Text
+	PgpPublicKey            pgtype.Text
 	NotificationFrom        pgtype.Text
 	NotificationSubject     pgtype.Text
 }
@@ -115,8 +126,6 @@ type Workspace struct {
 	PlanPeriodEnd        pgtype.Timestamptz
 	CreatedAt            pgtype.Timestamptz
 	UpdatedAt            pgtype.Timestamptz
-	CustomDomain         pgtype.Text
-	CustomDomainVerified bool
 }
 
 type WorkspaceInvitation struct {

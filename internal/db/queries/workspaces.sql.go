@@ -11,16 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const clearWorkspaceCustomDomain = `-- name: ClearWorkspaceCustomDomain :exec
-UPDATE workspaces SET custom_domain = NULL, custom_domain_verified = FALSE, updated_at = NOW()
-WHERE id = $1
-`
-
-func (q *Queries) ClearWorkspaceCustomDomain(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, clearWorkspaceCustomDomain, id)
-	return err
-}
-
 const countNonOwnerMembers = `-- name: CountNonOwnerMembers :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner'
 `
@@ -69,7 +59,7 @@ func (q *Queries) CountWorkspaceOwners(ctx context.Context, workspaceID string) 
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, name, slug, plan, plan_status, created_at)
 VALUES ($1, $2, $3, 'free', 'active', NOW())
-RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at, custom_domain, custom_domain_verified
+RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at
 `
 
 type CreateWorkspaceParams struct {
@@ -92,8 +82,6 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.CustomDomain,
-		&i.CustomDomainVerified,
 	)
 	return i, err
 }
@@ -111,6 +99,15 @@ type CreateWorkspaceMemberParams struct {
 
 func (q *Queries) CreateWorkspaceMember(ctx context.Context, arg CreateWorkspaceMemberParams) error {
 	_, err := q.db.Exec(ctx, createWorkspaceMember, arg.WorkspaceID, arg.AccountID, arg.Role)
+	return err
+}
+
+const deleteCustomDomain = `-- name: DeleteCustomDomain :exec
+DELETE FROM custom_domains WHERE workspace_id = $1
+`
+
+func (q *Queries) DeleteCustomDomain(ctx context.Context, workspaceID string) error {
+	_, err := q.db.Exec(ctx, deleteCustomDomain, workspaceID)
 	return err
 }
 
@@ -149,6 +146,57 @@ type DeleteWorkspaceMemberKeyParams struct {
 func (q *Queries) DeleteWorkspaceMemberKey(ctx context.Context, arg DeleteWorkspaceMemberKeyParams) error {
 	_, err := q.db.Exec(ctx, deleteWorkspaceMemberKey, arg.WorkspaceID, arg.AccountID)
 	return err
+}
+
+const enableCustomDomain = `-- name: EnableCustomDomain :exec
+UPDATE custom_domains SET enabled = TRUE, verified_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) EnableCustomDomain(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, enableCustomDomain, id)
+	return err
+}
+
+const getCustomDomainByHost = `-- name: GetCustomDomainByHost :one
+SELECT id, workspace_id, domain, txt_token, cname_ok, txt_ok, enabled, created_at, verified_at FROM custom_domains WHERE domain = $1
+`
+
+func (q *Queries) GetCustomDomainByHost(ctx context.Context, domain string) (CustomDomain, error) {
+	row := q.db.QueryRow(ctx, getCustomDomainByHost, domain)
+	var i CustomDomain
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Domain,
+		&i.TxtToken,
+		&i.CnameOk,
+		&i.TxtOk,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.VerifiedAt,
+	)
+	return i, err
+}
+
+const getCustomDomainByWorkspace = `-- name: GetCustomDomainByWorkspace :one
+SELECT id, workspace_id, domain, txt_token, cname_ok, txt_ok, enabled, created_at, verified_at FROM custom_domains WHERE workspace_id = $1
+`
+
+func (q *Queries) GetCustomDomainByWorkspace(ctx context.Context, workspaceID string) (CustomDomain, error) {
+	row := q.db.QueryRow(ctx, getCustomDomainByWorkspace, workspaceID)
+	var i CustomDomain
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Domain,
+		&i.TxtToken,
+		&i.CnameOk,
+		&i.TxtOk,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.VerifiedAt,
+	)
+	return i, err
 }
 
 const getMembersWithoutWorkspaceKey = `-- name: GetMembersWithoutWorkspaceKey :many
@@ -247,17 +295,6 @@ func (q *Queries) GetPersonalWorkspace(ctx context.Context, accountID string) (G
 	return i, err
 }
 
-const getWorkspaceByCustomDomain = `-- name: GetWorkspaceByCustomDomain :one
-SELECT id FROM workspaces WHERE custom_domain = $1 AND custom_domain_verified = TRUE
-`
-
-func (q *Queries) GetWorkspaceByCustomDomain(ctx context.Context, customDomain pgtype.Text) (string, error) {
-	row := q.db.QueryRow(ctx, getWorkspaceByCustomDomain, customDomain)
-	var id string
-	err := row.Scan(&id)
-	return id, err
-}
-
 const getWorkspaceByID = `-- name: GetWorkspaceByID :one
 SELECT id, name, slug, plan, plan_status, plan_period_end, created_at
 FROM workspaces WHERE id = $1
@@ -285,22 +322,6 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id string) (GetWorkspace
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
 	)
-	return i, err
-}
-
-const getWorkspaceCustomDomain = `-- name: GetWorkspaceCustomDomain :one
-SELECT custom_domain, custom_domain_verified FROM workspaces WHERE id = $1
-`
-
-type GetWorkspaceCustomDomainRow struct {
-	CustomDomain         pgtype.Text
-	CustomDomainVerified bool
-}
-
-func (q *Queries) GetWorkspaceCustomDomain(ctx context.Context, id string) (GetWorkspaceCustomDomainRow, error) {
-	row := q.db.QueryRow(ctx, getWorkspaceCustomDomain, id)
-	var i GetWorkspaceCustomDomainRow
-	err := row.Scan(&i.CustomDomain, &i.CustomDomainVerified)
 	return i, err
 }
 
@@ -350,23 +371,59 @@ func (q *Queries) GetWorkspaceMemberKey(ctx context.Context, arg GetWorkspaceMem
 	return i, err
 }
 
-const listAllCustomDomains = `-- name: ListAllCustomDomains :many
-SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL
+const insertCustomDomain = `-- name: InsertCustomDomain :one
+INSERT INTO custom_domains (workspace_id, domain, txt_token)
+VALUES ($1, $2, $3)
+ON CONFLICT (workspace_id) DO UPDATE
+    SET domain    = EXCLUDED.domain,
+        txt_token = EXCLUDED.txt_token,
+        cname_ok  = FALSE,
+        txt_ok    = FALSE,
+        enabled   = FALSE,
+        verified_at = NULL
+RETURNING id, workspace_id, domain, txt_token, cname_ok, txt_ok, enabled, created_at, verified_at
 `
 
-func (q *Queries) ListAllCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
-	rows, err := q.db.Query(ctx, listAllCustomDomains)
+type InsertCustomDomainParams struct {
+	WorkspaceID string
+	Domain      string
+	TxtToken    string
+}
+
+func (q *Queries) InsertCustomDomain(ctx context.Context, arg InsertCustomDomainParams) (CustomDomain, error) {
+	row := q.db.QueryRow(ctx, insertCustomDomain, arg.WorkspaceID, arg.Domain, arg.TxtToken)
+	var i CustomDomain
+	err := row.Scan(
+		&i.ID,
+		&i.WorkspaceID,
+		&i.Domain,
+		&i.TxtToken,
+		&i.CnameOk,
+		&i.TxtOk,
+		&i.Enabled,
+		&i.CreatedAt,
+		&i.VerifiedAt,
+	)
+	return i, err
+}
+
+const listAllEnabledDomains = `-- name: ListAllEnabledDomains :many
+SELECT domain FROM custom_domains WHERE enabled = TRUE
+`
+
+func (q *Queries) ListAllEnabledDomains(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, listAllEnabledDomains)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []pgtype.Text
+	var items []string
 	for rows.Next() {
-		var custom_domain pgtype.Text
-		if err := rows.Scan(&custom_domain); err != nil {
+		var domain string
+		if err := rows.Scan(&domain); err != nil {
 			return nil, err
 		}
-		items = append(items, custom_domain)
+		items = append(items, domain)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -374,23 +431,33 @@ func (q *Queries) ListAllCustomDomains(ctx context.Context) ([]pgtype.Text, erro
 	return items, nil
 }
 
-const listAllVerifiedCustomDomains = `-- name: ListAllVerifiedCustomDomains :many
-SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE
+const listAllUnverifiedDomains = `-- name: ListAllUnverifiedDomains :many
+SELECT id, workspace_id, domain, txt_token, cname_ok, txt_ok, enabled, created_at, verified_at FROM custom_domains WHERE enabled = FALSE
 `
 
-func (q *Queries) ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error) {
-	rows, err := q.db.Query(ctx, listAllVerifiedCustomDomains)
+func (q *Queries) ListAllUnverifiedDomains(ctx context.Context) ([]CustomDomain, error) {
+	rows, err := q.db.Query(ctx, listAllUnverifiedDomains)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []pgtype.Text
+	var items []CustomDomain
 	for rows.Next() {
-		var custom_domain pgtype.Text
-		if err := rows.Scan(&custom_domain); err != nil {
+		var i CustomDomain
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Domain,
+			&i.TxtToken,
+			&i.CnameOk,
+			&i.TxtOk,
+			&i.Enabled,
+			&i.CreatedAt,
+			&i.VerifiedAt,
+		); err != nil {
 			return nil, err
 		}
-		items = append(items, custom_domain)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -532,16 +599,6 @@ func (q *Queries) ListWorkspacesByAccount(ctx context.Context, accountID string)
 	return items, nil
 }
 
-const markCustomDomainVerified = `-- name: MarkCustomDomainVerified :exec
-UPDATE workspaces SET custom_domain_verified = TRUE, updated_at = NOW()
-WHERE custom_domain = $1
-`
-
-func (q *Queries) MarkCustomDomainVerified(ctx context.Context, customDomain pgtype.Text) error {
-	_, err := q.db.Exec(ctx, markCustomDomainVerified, customDomain)
-	return err
-}
-
 const renameWorkspace = `-- name: RenameWorkspace :exec
 UPDATE workspaces SET name = $2, updated_at = NOW() WHERE id = $1
 `
@@ -556,18 +613,18 @@ func (q *Queries) RenameWorkspace(ctx context.Context, arg RenameWorkspaceParams
 	return err
 }
 
-const setWorkspaceCustomDomain = `-- name: SetWorkspaceCustomDomain :exec
-UPDATE workspaces SET custom_domain = $2, custom_domain_verified = FALSE, updated_at = NOW()
-WHERE id = $1
+const updateDNSStatus = `-- name: UpdateDNSStatus :exec
+UPDATE custom_domains SET cname_ok = $2, txt_ok = $3 WHERE id = $1
 `
 
-type SetWorkspaceCustomDomainParams struct {
-	ID           string
-	CustomDomain pgtype.Text
+type UpdateDNSStatusParams struct {
+	ID      string
+	CnameOk bool
+	TxtOk   bool
 }
 
-func (q *Queries) SetWorkspaceCustomDomain(ctx context.Context, arg SetWorkspaceCustomDomainParams) error {
-	_, err := q.db.Exec(ctx, setWorkspaceCustomDomain, arg.ID, arg.CustomDomain)
+func (q *Queries) UpdateDNSStatus(ctx context.Context, arg UpdateDNSStatusParams) error {
+	_, err := q.db.Exec(ctx, updateDNSStatus, arg.ID, arg.CnameOk, arg.TxtOk)
 	return err
 }
 

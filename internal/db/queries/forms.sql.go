@@ -19,7 +19,7 @@ INSERT INTO forms (
     workspace_wrapped_form_key
 ) VALUES (
     $1, $2, $3, NOW(), NOW(), 'draft', 1, 0, $4, $5, $6, $7, $8, $9, $10, $11, $12
-) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain, has_unpublished_changes, notification_email, pgp_public_key, notification_from, notification_subject
+) RETURNING id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, has_unpublished_changes, notification_email, pgp_public_key, notification_from, notification_subject
 `
 
 type CreateFormParams struct {
@@ -71,10 +71,9 @@ func (q *Queries) CreateForm(ctx context.Context, arg CreateFormParams) (Form, e
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
-		&i.UseCustomDomain,
 		&i.HasUnpublishedChanges,
 		&i.NotificationEmail,
-		&i.PGPPublicKey,
+		&i.PgpPublicKey,
 		&i.NotificationFrom,
 		&i.NotificationSubject,
 	)
@@ -96,7 +95,7 @@ func (q *Queries) DeleteForm(ctx context.Context, arg DeleteFormParams) error {
 }
 
 const getFormByWorkspace = `-- name: GetFormByWorkspace :one
-SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, use_custom_domain, has_unpublished_changes, notification_email, pgp_public_key, notification_from, notification_subject FROM forms WHERE id = $1 AND workspace_id = $2
+SELECT id, created_at, updated_at, status, schema_version, response_count, encrypted_schema, render_encrypted_schema, public_form_key, render_key_salt, expires_at, response_limit, response_ttl_days, burn_after_reading, workspace_id, created_by_account_id, workspace_wrapped_form_key, has_unpublished_changes, notification_email, pgp_public_key, notification_from, notification_subject FROM forms WHERE id = $1 AND workspace_id = $2
 `
 
 type GetFormByWorkspaceParams struct {
@@ -125,50 +124,11 @@ func (q *Queries) GetFormByWorkspace(ctx context.Context, arg GetFormByWorkspace
 		&i.WorkspaceID,
 		&i.CreatedByAccountID,
 		&i.WorkspaceWrappedFormKey,
-		&i.UseCustomDomain,
 		&i.HasUnpublishedChanges,
 		&i.NotificationEmail,
-		&i.PGPPublicKey,
+		&i.PgpPublicKey,
 		&i.NotificationFrom,
 		&i.NotificationSubject,
-	)
-	return i, err
-}
-
-const getFormPublic = `-- name: GetFormPublic :one
-SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain, pgp_public_key
-FROM forms WHERE id = $1
-`
-
-type GetFormPublicRow struct {
-	ID                    string
-	Status                string
-	SchemaVersion         int32
-	ResponseCount         int32
-	RenderEncryptedSchema []byte
-	PublicFormKey         []byte
-	ExpiresAt             pgtype.Date
-	ResponseLimit         pgtype.Int4
-	WorkspaceID           string
-	UseCustomDomain       bool
-	PGPPublicKey          pgtype.Text
-}
-
-func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRow, error) {
-	row := q.db.QueryRow(ctx, getFormPublic, id)
-	var i GetFormPublicRow
-	err := row.Scan(
-		&i.ID,
-		&i.Status,
-		&i.SchemaVersion,
-		&i.ResponseCount,
-		&i.RenderEncryptedSchema,
-		&i.PublicFormKey,
-		&i.ExpiresAt,
-		&i.ResponseLimit,
-		&i.WorkspaceID,
-		&i.UseCustomDomain,
-		&i.PGPPublicKey,
 	)
 	return i, err
 }
@@ -190,35 +150,40 @@ func (q *Queries) GetFormNotificationInfo(ctx context.Context, id string) (GetFo
 	return i, err
 }
 
-const updateFormPGPNotification = `-- name: UpdateFormPGPNotification :exec
-UPDATE forms
-SET notification_email   = $3,
-    pgp_public_key       = $4,
-    notification_from    = $5,
-    notification_subject = $6,
-    updated_at           = NOW()
-WHERE id = $1 AND workspace_id = $2
+const getFormPublic = `-- name: GetFormPublic :one
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, pgp_public_key
+FROM forms WHERE id = $1
 `
 
-type UpdateFormPGPNotificationParams struct {
-	ID                  string
-	WorkspaceID         string
-	NotificationEmail   pgtype.Text
-	PGPPublicKey        pgtype.Text
-	NotificationFrom    pgtype.Text
-	NotificationSubject pgtype.Text
+type GetFormPublicRow struct {
+	ID                    string
+	Status                string
+	SchemaVersion         int32
+	ResponseCount         int32
+	RenderEncryptedSchema []byte
+	PublicFormKey         []byte
+	ExpiresAt             pgtype.Date
+	ResponseLimit         pgtype.Int4
+	WorkspaceID           string
+	PgpPublicKey          pgtype.Text
 }
 
-func (q *Queries) UpdateFormPGPNotification(ctx context.Context, arg UpdateFormPGPNotificationParams) error {
-	_, err := q.db.Exec(ctx, updateFormPGPNotification,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.NotificationEmail,
-		arg.PGPPublicKey,
-		arg.NotificationFrom,
-		arg.NotificationSubject,
+func (q *Queries) GetFormPublic(ctx context.Context, id string) (GetFormPublicRow, error) {
+	row := q.db.QueryRow(ctx, getFormPublic, id)
+	var i GetFormPublicRow
+	err := row.Scan(
+		&i.ID,
+		&i.Status,
+		&i.SchemaVersion,
+		&i.ResponseCount,
+		&i.RenderEncryptedSchema,
+		&i.PublicFormKey,
+		&i.ExpiresAt,
+		&i.ResponseLimit,
+		&i.WorkspaceID,
+		&i.PgpPublicKey,
 	)
-	return err
+	return i, err
 }
 
 const getFormWorkspaceID = `-- name: GetFormWorkspaceID :one
@@ -283,7 +248,7 @@ func (q *Queries) InsertSchemaVersion(ctx context.Context, arg InsertSchemaVersi
 }
 
 const listFormsByWorkspace = `-- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain, has_unpublished_changes
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, has_unpublished_changes
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC
 `
 
@@ -298,7 +263,6 @@ type ListFormsByWorkspaceRow struct {
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
 	BurnAfterReading      bool
-	UseCustomDomain       bool
 	HasUnpublishedChanges bool
 }
 
@@ -322,7 +286,6 @@ func (q *Queries) ListFormsByWorkspace(ctx context.Context, workspaceID string) 
 			&i.ResponseLimit,
 			&i.ResponseTtlDays,
 			&i.BurnAfterReading,
-			&i.UseCustomDomain,
 			&i.HasUnpublishedChanges,
 		); err != nil {
 			return nil, err
@@ -365,19 +328,30 @@ func (q *Queries) ListSchemaVersions(ctx context.Context, formID string) ([]List
 	return items, nil
 }
 
-const setFormCustomDomain = `-- name: SetFormCustomDomain :exec
-UPDATE forms SET use_custom_domain = $3, updated_at = NOW()
+const publishForm = `-- name: PublishForm :exec
+UPDATE forms
+SET render_encrypted_schema = $3,
+    render_key_salt = $4,
+    status = 'open',
+    has_unpublished_changes = false,
+    updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
 `
 
-type SetFormCustomDomainParams struct {
-	ID              string
-	WorkspaceID     string
-	UseCustomDomain bool
+type PublishFormParams struct {
+	ID                    string
+	WorkspaceID           string
+	RenderEncryptedSchema []byte
+	RenderKeySalt         []byte
 }
 
-func (q *Queries) SetFormCustomDomain(ctx context.Context, arg SetFormCustomDomainParams) error {
-	_, err := q.db.Exec(ctx, setFormCustomDomain, arg.ID, arg.WorkspaceID, arg.UseCustomDomain)
+func (q *Queries) PublishForm(ctx context.Context, arg PublishFormParams) error {
+	_, err := q.db.Exec(ctx, publishForm,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.RenderEncryptedSchema,
+		arg.RenderKeySalt,
+	)
 	return err
 }
 
@@ -429,6 +403,37 @@ func (q *Queries) UpdateFormExpiration(ctx context.Context, arg UpdateFormExpira
 	return err
 }
 
+const updateFormPGPNotification = `-- name: UpdateFormPGPNotification :exec
+UPDATE forms
+SET notification_email   = $3,
+    pgp_public_key       = $4,
+    notification_from    = $5,
+    notification_subject = $6,
+    updated_at           = NOW()
+WHERE id = $1 AND workspace_id = $2
+`
+
+type UpdateFormPGPNotificationParams struct {
+	ID                  string
+	WorkspaceID         string
+	NotificationEmail   pgtype.Text
+	PgpPublicKey        pgtype.Text
+	NotificationFrom    pgtype.Text
+	NotificationSubject pgtype.Text
+}
+
+func (q *Queries) UpdateFormPGPNotification(ctx context.Context, arg UpdateFormPGPNotificationParams) error {
+	_, err := q.db.Exec(ctx, updateFormPGPNotification,
+		arg.ID,
+		arg.WorkspaceID,
+		arg.NotificationEmail,
+		arg.PgpPublicKey,
+		arg.NotificationFrom,
+		arg.NotificationSubject,
+	)
+	return err
+}
+
 const updateFormSchema = `-- name: UpdateFormSchema :one
 UPDATE forms
 SET encrypted_schema = $3,
@@ -446,41 +451,10 @@ type UpdateFormSchemaParams struct {
 }
 
 func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaParams) (int32, error) {
-	row := q.db.QueryRow(ctx, updateFormSchema,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.EncryptedSchema,
-	)
+	row := q.db.QueryRow(ctx, updateFormSchema, arg.ID, arg.WorkspaceID, arg.EncryptedSchema)
 	var schema_version int32
 	err := row.Scan(&schema_version)
 	return schema_version, err
-}
-
-const publishForm = `-- name: PublishForm :exec
-UPDATE forms
-SET render_encrypted_schema = $3,
-    render_key_salt = $4,
-    status = 'open',
-    has_unpublished_changes = false,
-    updated_at = NOW()
-WHERE id = $1 AND workspace_id = $2
-`
-
-type PublishFormParams struct {
-	ID                    string
-	WorkspaceID           string
-	RenderEncryptedSchema []byte
-	RenderKeySalt         []byte
-}
-
-func (q *Queries) PublishForm(ctx context.Context, arg PublishFormParams) error {
-	_, err := q.db.Exec(ctx, publishForm,
-		arg.ID,
-		arg.WorkspaceID,
-		arg.RenderEncryptedSchema,
-		arg.RenderKeySalt,
-	)
-	return err
 }
 
 const updateFormStatus = `-- name: UpdateFormStatus :exec

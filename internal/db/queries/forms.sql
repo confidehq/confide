@@ -15,11 +15,11 @@ SELECT workspace_id FROM forms WHERE id = $1;
 SELECT * FROM forms WHERE id = $1 AND workspace_id = $2;
 
 -- name: GetFormPublic :one
-SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, use_custom_domain, pgp_public_key
+SELECT id, status, schema_version, response_count, render_encrypted_schema, public_form_key, expires_at, response_limit, workspace_id, pgp_public_key
 FROM forms WHERE id = $1;
 
 -- name: ListFormsByWorkspace :many
-SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, use_custom_domain, has_unpublished_changes
+SELECT id, status, schema_version, response_count, created_at, updated_at, expires_at, response_limit, response_ttl_days, burn_after_reading, has_unpublished_changes
 FROM forms WHERE workspace_id = $1 ORDER BY created_at DESC;
 
 -- name: UpdateFormSchema :one
@@ -72,10 +72,6 @@ WHERE id = $1 AND workspace_id = $2;
 
 -- name: GetFormNotificationInfo :one
 SELECT notification_email, notification_from, notification_subject FROM forms WHERE id = $1;
-
--- name: SetFormCustomDomain :exec
-UPDATE forms SET use_custom_domain = $3, updated_at = NOW()
-WHERE id = $1 AND workspace_id = $2;
 
 -- name: IncrementResponseCount :one
 UPDATE forms

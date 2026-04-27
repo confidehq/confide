@@ -47,13 +47,12 @@ type Config struct {
 	FormsDomain string
 
 	// CustomDomainTarget is the CNAME hostname users must point their custom domain to.
-	// Defaults to AppDomain if unset.
+	// Defaults to the forms subdomain (or AppDomain if FormsDomain is unset).
 	CustomDomainTarget string
 
-	// TraefikDynamicDir is the directory Traefik watches for dynamic config files.
-	// When set, the app writes confide-custom-domains.yml there on domain changes.
-	// Leave empty in local dev (disables file writes).
-	TraefikDynamicDir string
+	// DomainVerifyInterval controls how often the background worker polls unverified
+	// custom domains for CNAME and TXT record changes. Defaults to 2 minutes.
+	DomainVerifyInterval time.Duration
 }
 
 func Load() (*Config, error) {
@@ -93,10 +92,18 @@ func Load() (*Config, error) {
 
 	if t := os.Getenv("CONFIDE_CUSTOM_DOMAIN_TARGET"); t != "" {
 		cfg.CustomDomainTarget = t
+	} else if cfg.FormsDomain != "" {
+		cfg.CustomDomainTarget = cfg.FormsDomain
 	} else {
 		cfg.CustomDomainTarget = cfg.AppDomain
 	}
-	cfg.TraefikDynamicDir = os.Getenv("CONFIDE_TRAEFIK_DYNAMIC_DIR")
+
+	cfg.DomainVerifyInterval = 2 * time.Minute
+	if v := os.Getenv("CONFIDE_DOMAIN_VERIFY_INTERVAL"); v != "" {
+		if d, err := time.ParseDuration(v); err == nil && d > 0 {
+			cfg.DomainVerifyInterval = d
+		}
+	}
 
 	var errs []error
 

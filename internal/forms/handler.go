@@ -40,7 +40,6 @@ func Handler(svc *Service, wsSvc workspaceSvc) http.Handler {
 	r.Put("/{id}/status", updateFormStatus(svc, wsSvc))
 	r.Put("/{id}/expiration", updateFormExpiration(svc, wsSvc))
 	r.Put("/{id}/workspace-form-key", setWorkspaceFormKey(svc, wsSvc))
-	r.Put("/{id}/custom-domain", setFormCustomDomain(svc, wsSvc))
 	r.Put("/{id}/notification", updateFormPGPNotification(svc, wsSvc))
 	r.Delete("/{id}", deleteForm(svc, wsSvc))
 	r.Get("/{id}/schema-versions/{version}", getSchemaVersion(svc, wsSvc))
@@ -69,9 +68,7 @@ func resolveFormWorkspace(w http.ResponseWriter, r *http.Request, svc *Service, 
 
 // PublicSchemaHandler handles GET /api/f/{id}/schema — no authentication.
 // appHost is the bare hostname of the app's own domain (no scheme, no port).
-// resolver is used to enforce custom-domain routing: forms with use_custom_domain=false
-// are blocked when accessed via a custom domain, and forms from other workspaces are
-// never served on a domain they don't own.
+// resolver enforces that forms are only served on a custom domain owned by their workspace.
 func PublicSchemaHandler(svc *Service, guard *botguard.Guard, appHost string, resolver customDomainResolver) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		formID := chi.URLParam(r, "id")
@@ -85,24 +82,19 @@ func PublicSchemaHandler(svc *Service, guard *botguard.Guard, appHost string, re
 			return
 		}
 
-		// Enforce custom-domain routing rules when the request arrives on a
-		// registered custom domain (not the app host and not an unknown host
-		// like localhost in dev).
+		// When the request arrives on a registered custom domain, enforce that
+		// the form belongs to the workspace that owns that domain.
 		host := r.Host
 		if i := strings.LastIndex(host, ":"); i > 0 {
 			host = host[:i]
 		}
 		if host != "" && host != appHost {
 			wsID, lookupErr := resolver.GetWorkspaceIDByCustomDomain(r.Context(), host)
-			if lookupErr == nil {
-				// Registered custom domain: the form must opt in and must
-				// belong to the workspace that owns this domain.
-				if !rec.UseCustomDomain || wsID != rec.WorkspaceID {
-					writeError(w, http.StatusNotFound, "not_found", "form not found")
-					return
-				}
+			if lookupErr == nil && wsID != rec.WorkspaceID {
+				writeError(w, http.StatusNotFound, "not_found", "form not found")
+				return
 			}
-			// Unknown host (e.g. localhost in dev) — no restriction.
+			// Unknown host (e.g. localhost in dev) or matching workspace — no restriction.
 		}
 
 		status := effectiveStatus(rec.Status, rec.ResponseCount, rec.ExpiresAt, rec.ResponseLimit)
@@ -253,7 +245,6 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			ResponseLimit         *int32  `json:"responseLimit,omitempty"`
 			ResponseTtlDays       *int32  `json:"responseTtlDays,omitempty"`
 			BurnAfterReading      bool    `json:"burnAfterReading"`
-			UseCustomDomain       bool    `json:"useCustomDomain"`
 			HasUnpublishedChanges bool    `json:"hasUnpublishedChanges"`
 		}
 		out := make([]formJSON, len(forms))
@@ -269,7 +260,6 @@ func listForms(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 				ResponseLimit:         nullableInt32(f.ResponseLimit),
 				ResponseTtlDays:       nullableInt32(f.ResponseTtlDays),
 				BurnAfterReading:      f.BurnAfterReading,
-				UseCustomDomain:       f.UseCustomDomain,
 				HasUnpublishedChanges: f.HasUnpublishedChanges,
 			}
 		}
@@ -308,7 +298,6 @@ func getForm(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 			"renderEncryptedSchema": base64.StdEncoding.EncodeToString(form.RenderEncryptedSchema),
 			"publicFormKey":         base64.StdEncoding.EncodeToString(form.PublicFormKey),
 			"burnAfterReading":      form.BurnAfterReading,
-			"useCustomDomain":       form.UseCustomDomain,
 			"hasUnpublishedChanges": form.HasUnpublishedChanges,
 			"notificationEmail":     form.NotificationEmail,
 			"pgpPublicKey":          form.PGPPublicKey,
@@ -527,32 +516,6 @@ func setWorkspaceFormKey(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
 
 		if err := svc.SetWorkspaceFormKey(r.Context(), workspaceID, formID, wrappedKey); err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to set workspace form key")
-			return
-		}
-
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func setFormCustomDomain(svc *Service, wsSvc workspaceSvc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
-		formID := chi.URLParam(r, "id")
-		workspaceID, ok := resolveFormWorkspace(w, r, svc, wsSvc, accountID, formID)
-		if !ok {
-			return
-		}
-
-		var req struct {
-			Enabled bool `json:"enabled"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
-			return
-		}
-
-		if err := svc.SetCustomDomainToggle(r.Context(), workspaceID, formID, req.Enabled); err != nil {
-			writeError(w, http.StatusInternalServerError, "internal", "failed to update custom domain setting")
 			return
 		}
 

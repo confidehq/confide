@@ -198,6 +198,20 @@ func (q *Queries) DeleteCredentialsByAccount(ctx context.Context, accountID stri
 	return err
 }
 
+const deleteOtherSessions = `-- name: DeleteOtherSessions :exec
+DELETE FROM sessions WHERE account_id = $1 AND id != $2
+`
+
+type DeleteOtherSessionsParams struct {
+	AccountID string
+	ID        string
+}
+
+func (q *Queries) DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) error {
+	_, err := q.db.Exec(ctx, deleteOtherSessions, arg.AccountID, arg.ID)
+	return err
+}
+
 const deleteRecoveryCodesByAccount = `-- name: DeleteRecoveryCodesByAccount :exec
 DELETE FROM recovery_codes WHERE account_id=$1
 `
@@ -218,20 +232,6 @@ type DeleteSessionParams struct {
 
 func (q *Queries) DeleteSession(ctx context.Context, arg DeleteSessionParams) error {
 	_, err := q.db.Exec(ctx, deleteSession, arg.ID, arg.AccountID)
-	return err
-}
-
-const deleteOtherSessions = `-- name: DeleteOtherSessions :exec
-DELETE FROM sessions WHERE account_id = $1 AND id != $2
-`
-
-type DeleteOtherSessionsParams struct {
-	AccountID string
-	ID        string
-}
-
-func (q *Queries) DeleteOtherSessions(ctx context.Context, arg DeleteOtherSessionsParams) error {
-	_, err := q.db.Exec(ctx, deleteOtherSessions, arg.AccountID, arg.ID)
 	return err
 }
 

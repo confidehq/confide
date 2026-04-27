@@ -13,10 +13,20 @@ export interface Workspace {
 	status: 'active' | 'pending';
 }
 
+export interface DnsRecord {
+	type: string;
+	name: string;
+	value: string;
+}
+
 export interface CustomDomainInfo {
 	domain: string | null;
-	verified: boolean;
 	cnameTarget: string;
+	cnameRecord?: DnsRecord;
+	txtRecord?: DnsRecord;
+	cnameOK?: boolean;
+	txtOK?: boolean;
+	enabled?: boolean;
 }
 
 export interface WorkspaceMember {
@@ -139,18 +149,30 @@ export async function getCustomDomain(workspaceId: string): Promise<CustomDomain
 	return res.json() as Promise<CustomDomainInfo>;
 }
 
-export async function setCustomDomain(workspaceId: string, domain: string): Promise<void> {
+export async function setCustomDomain(workspaceId: string, domain: string): Promise<CustomDomainInfo> {
 	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ domain })
 	});
-	if (!res.ok && res.status !== 204) {
+	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'set_failed';
 		const message = (body as { message?: string }).message ?? `Failed to set custom domain (${res.status})`;
 		throw new WorkspaceError(code, message);
 	}
+	return res.json() as Promise<CustomDomainInfo>;
+}
+
+export async function verifyCustomDomain(workspaceId: string): Promise<CustomDomainInfo> {
+	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain/verify`, { method: 'POST' });
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'verify_failed';
+		const message = (body as { message?: string }).message ?? `Failed to verify custom domain (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return res.json() as Promise<CustomDomainInfo>;
 }
 
 export async function clearCustomDomain(workspaceId: string): Promise<void> {

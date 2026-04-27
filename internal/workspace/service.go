@@ -18,7 +18,6 @@ import (
 
 	"github.com/phantompunk/confide/internal/db/queries"
 	"github.com/phantompunk/confide/internal/permission"
-	"github.com/phantompunk/confide/internal/traefik"
 )
 
 var (
@@ -59,12 +58,11 @@ type DB interface {
 	CountNonOwnerMembers(ctx context.Context, workspaceID string) (int64, error)
 	GetWorkspaceForBilling(ctx context.Context, id string) (queries.GetWorkspaceForBillingRow, error)
 
-	SetWorkspaceCustomDomain(ctx context.Context, arg queries.SetWorkspaceCustomDomainParams) error
-	ClearWorkspaceCustomDomain(ctx context.Context, id string) error
-	GetWorkspaceCustomDomain(ctx context.Context, id string) (queries.GetWorkspaceCustomDomainRow, error)
-	GetWorkspaceByCustomDomain(ctx context.Context, customDomain pgtype.Text) (string, error)
-	MarkCustomDomainVerified(ctx context.Context, customDomain pgtype.Text) error
-	ListAllVerifiedCustomDomains(ctx context.Context) ([]pgtype.Text, error)
+	InsertCustomDomain(ctx context.Context, arg queries.InsertCustomDomainParams) (queries.CustomDomain, error)
+	GetCustomDomainByWorkspace(ctx context.Context, workspaceID string) (queries.CustomDomain, error)
+	GetCustomDomainByHost(ctx context.Context, domain string) (queries.CustomDomain, error)
+	DeleteCustomDomain(ctx context.Context, workspaceID string) error
+	ListAllEnabledDomains(ctx context.Context) ([]string, error)
 }
 
 type Service struct {
@@ -72,8 +70,20 @@ type Service struct {
 	db       DB
 	pool     *pgxpool.Pool
 	cache    *permission.RoleCache
-	traefik  *traefik.Writer
+	registry domainRegistry
+	checker  domainChecker
 	canceler SubscriptionCanceler
+}
+
+type domainRegistry interface {
+	IsEnabled(domain string) bool
+	Enable(domain string)
+	Disable(domain string)
+}
+
+// domainChecker performs an on-demand DNS verification pass.
+type domainChecker interface {
+	CheckNow(ctx context.Context, cd queries.CustomDomain) (cnameOK, txtOK bool)
 }
 
 func NewService(pool *pgxpool.Pool) *Service {
@@ -90,9 +100,16 @@ func NewServiceWithDB(db DB) *Service {
 	return &Service{db: db}
 }
 
-// WithTraefikWriter attaches a Traefik config writer to the service.
-func (s *Service) WithTraefikWriter(w *traefik.Writer) {
-	s.traefik = w
+// WithRegistry attaches the domain registry to the service so domain changes
+// are reflected in the in-memory routing table immediately.
+func (s *Service) WithRegistry(r domainRegistry) {
+	s.registry = r
+}
+
+// WithDomainChecker attaches the worker so the /verify endpoint can trigger
+// an on-demand DNS check.
+func (s *Service) WithDomainChecker(c domainChecker) {
+	s.checker = c
 }
 
 // WithSubscriptionCanceler attaches a billing canceler used during workspace deletion.
@@ -541,85 +558,129 @@ func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID string) ([]P
 
 // CustomDomainInfo holds the workspace's current custom domain configuration.
 type CustomDomainInfo struct {
+	ID       string
 	Domain   string // empty string when no domain is configured
-	Verified bool
+	TxtToken string
+	CnameOK  bool
+	TxtOK    bool
+	Enabled  bool
 }
 
-// SetCustomDomain stores a new custom domain for the workspace.
+// SetCustomDomain stores a new custom domain for the workspace, replacing any
+// existing one. Generates a fresh TXT verification token.
 // Returns UpgradeRequiredError if the workspace is on the free plan.
 // Returns ErrInvalidDomain if the value is not a plain hostname.
-func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain string) error {
+func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain string) (CustomDomainInfo, error) {
 	if !permission.PlanAllows(plan, permission.FeatureCustomDomains) {
-		return &permission.UpgradeRequiredError{Feature: permission.FeatureCustomDomains}
+		return CustomDomainInfo{}, &permission.UpgradeRequiredError{Feature: permission.FeatureCustomDomains}
 	}
 	if !isValidHostname(domain) {
-		return ErrInvalidDomain
+		return CustomDomainInfo{}, ErrInvalidDomain
 	}
-	if s.traefik != nil {
-		// Remove any previous domain before adding the new one.
-		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomain.Valid {
-			_ = s.traefik.Remove(prev.CustomDomain.String)
+
+	// Disable previous domain in registry if any.
+	if s.registry != nil {
+		if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+			s.registry.Disable(prev.Domain)
 		}
 	}
-	if err := s.db.SetWorkspaceCustomDomain(ctx, queries.SetWorkspaceCustomDomainParams{
-		ID:           workspaceID,
-		CustomDomain: pgtype.Text{String: domain, Valid: true},
-	}); err != nil {
-		return err
+
+	token, err := randomToken()
+	if err != nil {
+		return CustomDomainInfo{}, err
 	}
-	// Add to Traefik immediately so the first inbound request can be routed and
-	// Let's Encrypt can begin issuing a certificate once DNS propagates.
-	if s.traefik != nil {
-		_ = s.traefik.Add(domain)
+	cd, err := s.db.InsertCustomDomain(ctx, queries.InsertCustomDomainParams{
+		WorkspaceID: workspaceID,
+		Domain:      domain,
+		TxtToken:    token,
+	})
+	if err != nil {
+		return CustomDomainInfo{}, err
 	}
-	return nil
+	return domainInfoFrom(cd), nil
 }
 
 // ClearCustomDomain removes the custom domain from the workspace.
 func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) error {
-	if s.traefik != nil {
-		if prev, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID); err == nil && prev.CustomDomain.Valid {
-			_ = s.traefik.Remove(prev.CustomDomain.String)
+	if s.registry != nil {
+		if prev, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID); err == nil {
+			s.registry.Disable(prev.Domain)
 		}
 	}
-	return s.db.ClearWorkspaceCustomDomain(ctx, workspaceID)
+	return s.db.DeleteCustomDomain(ctx, workspaceID)
 }
 
 // GetCustomDomain returns the current custom domain configuration for a workspace.
+// Returns an empty CustomDomainInfo (Domain == "") when none is set.
 func (s *Service) GetCustomDomain(ctx context.Context, workspaceID string) (CustomDomainInfo, error) {
-	row, err := s.db.GetWorkspaceCustomDomain(ctx, workspaceID)
+	cd, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID)
 	if err != nil {
+		if isNotFound(err) {
+			return CustomDomainInfo{}, nil
+		}
 		return CustomDomainInfo{}, err
 	}
-	return CustomDomainInfo{
-		Domain:   row.CustomDomain.String,
-		Verified: row.CustomDomainVerified,
-	}, nil
+	return domainInfoFrom(cd), nil
 }
 
-// MarkCustomDomainVerified marks the given hostname as verified. Called by middleware
-// on the first inbound request whose Host header matches a registered custom domain.
-// The domain is already in Traefik config from when it was set — this just updates
-// the verified flag used for UI status.
-func (s *Service) MarkCustomDomainVerified(ctx context.Context, domain string) error {
-	return s.db.MarkCustomDomainVerified(ctx, pgtype.Text{String: domain, Valid: true})
+// CheckCustomDomain triggers an immediate DNS verification pass for the
+// workspace's custom domain and returns the refreshed status.
+func (s *Service) CheckCustomDomain(ctx context.Context, workspaceID string) (CustomDomainInfo, error) {
+	cd, err := s.db.GetCustomDomainByWorkspace(ctx, workspaceID)
+	if err != nil {
+		if isNotFound(err) {
+			return CustomDomainInfo{}, ErrNotFound
+		}
+		return CustomDomainInfo{}, err
+	}
+	if s.checker != nil && !cd.Enabled {
+		cnameOK, txtOK := s.checker.CheckNow(ctx, cd)
+		cd.CnameOk = cnameOK
+		cd.TxtOk = txtOK
+		cd.Enabled = cnameOK && txtOK
+	}
+	return domainInfoFrom(cd), nil
 }
 
 // GetWorkspaceIDByCustomDomain returns the workspace ID that owns the given
-// verified custom domain, or an error if not found.
+// enabled custom domain, or an error if not found.
 func (s *Service) GetWorkspaceIDByCustomDomain(ctx context.Context, domain string) (string, error) {
-	return s.db.GetWorkspaceByCustomDomain(ctx, pgtype.Text{String: domain, Valid: true})
+	cd, err := s.db.GetCustomDomainByHost(ctx, domain)
+	if err != nil {
+		return "", err
+	}
+	if !cd.Enabled {
+		return "", ErrNotFound
+	}
+	return cd.WorkspaceID, nil
 }
 
-// IsVerifiedCustomDomain reports whether hostname is a verified custom domain.
-// Uses the in-memory Traefik writer set when available (zero DB hits); falls
-// back to a direct DB lookup otherwise.
-func (s *Service) IsVerifiedCustomDomain(ctx context.Context, hostname string) bool {
-	if s.traefik != nil {
-		return s.traefik.Contains(hostname)
+// IsEnabledCustomDomain reports whether hostname is an enabled custom domain.
+// Uses the in-memory registry (zero DB hits).
+func (s *Service) IsEnabledCustomDomain(hostname string) bool {
+	if s.registry != nil {
+		return s.registry.IsEnabled(hostname)
 	}
-	_, err := s.db.GetWorkspaceByCustomDomain(ctx, pgtype.Text{String: hostname, Valid: true})
-	return err == nil
+	return false
+}
+
+func domainInfoFrom(cd queries.CustomDomain) CustomDomainInfo {
+	return CustomDomainInfo{
+		ID:       cd.ID,
+		Domain:   cd.Domain,
+		TxtToken: cd.TxtToken,
+		CnameOK:  cd.CnameOk,
+		TxtOK:    cd.TxtOk,
+		Enabled:  cd.Enabled,
+	}
+}
+
+func randomToken() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
 // isValidHostname returns true if s is a plain DNS hostname with no scheme, path, or port.
@@ -646,6 +707,10 @@ func isValidHostname(s string) bool {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+func isNotFound(err error) bool {
+	return errors.Is(err, pgx.ErrNoRows)
+}
 
 func randomID() (string, error) {
 	b := make([]byte, 16)

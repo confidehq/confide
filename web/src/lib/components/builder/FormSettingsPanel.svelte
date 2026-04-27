@@ -49,12 +49,10 @@
 		store: ReturnType<typeof createBuilderStore>;
 		formId: string;
 		workspaceDomain: CustomDomainInfo | null;
-		useCustomDomain: boolean;
 		customDomainBase: () => string | undefined;
-		onToggleCustomDomain: () => Promise<void>;
 	}
 
-	const { store, formId, workspaceDomain, useCustomDomain, customDomainBase, onToggleCustomDomain }: Props = $props();
+	const { store, formId, workspaceDomain, customDomainBase }: Props = $props();
 
 	let closeOnDatePending = $state(false);
 	let limitResponsesPending = $state(false);
@@ -220,22 +218,10 @@
 					</div>
 					<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
 
-					{#if workspaceDomain?.verified && workspaceDomain.domain}
-						<div class="flex items-center gap-2.5">
-							<button
-								role="switch"
-								aria-checked={useCustomDomain}
-								onclick={onToggleCustomDomain}
-								class="relative w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer shrink-0
-									{useCustomDomain ? 'bg-primary' : 'bg-border-deep'}"
-							>
-								<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-									{useCustomDomain ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
-							</button>
-							<span class="text-sm text-muted font-mono">
-								Serve on <span class="text-text-dim">{workspaceDomain.domain}</span>
-							</span>
-						</div>
+					{#if workspaceDomain?.enabled && workspaceDomain.domain}
+						<p class="m-0 text-xs text-muted-dark font-mono">
+							Served on <span class="text-text-dim">{workspaceDomain.domain}</span>
+						</p>
 					{/if}
 
 					<button

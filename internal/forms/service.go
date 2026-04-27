@@ -32,7 +32,6 @@ type DB interface {
 	InsertSchemaVersion(ctx context.Context, arg queries.InsertSchemaVersionParams) error
 	GetSchemaVersion(ctx context.Context, arg queries.GetSchemaVersionParams) ([]byte, error)
 	SetWorkspaceFormKey(ctx context.Context, arg queries.SetWorkspaceFormKeyParams) error
-	SetFormCustomDomain(ctx context.Context, arg queries.SetFormCustomDomainParams) error
 	UpdateFormPGPNotification(ctx context.Context, arg queries.UpdateFormPGPNotificationParams) error
 }
 
@@ -68,7 +67,6 @@ type FormRecord struct {
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool
 	WorkspaceWrappedFormKey []byte // nil if not yet set
-	UseCustomDomain         bool
 	HasUnpublishedChanges   bool
 	NotificationEmail       string // empty if not configured
 	PGPPublicKey            string // ASCII-armored PGP public key; empty if not configured
@@ -88,7 +86,6 @@ type FormSummary struct {
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
 	BurnAfterReading      bool
-	UseCustomDomain       bool
 	HasUnpublishedChanges bool
 }
 
@@ -103,7 +100,6 @@ type PublicFormRecord struct {
 	ExpiresAt             pgtype.Date
 	ResponseLimit         pgtype.Int4
 	WorkspaceID           string
-	UseCustomDomain       bool
 	PGPPublicKey          string // ASCII-armored PGP public key; empty if not configured
 }
 
@@ -219,7 +215,6 @@ func (s *Service) ListForms(ctx context.Context, workspaceID string) ([]FormSumm
 			ResponseLimit:         r.ResponseLimit,
 			ResponseTtlDays:       r.ResponseTtlDays,
 			BurnAfterReading:      r.BurnAfterReading,
-			UseCustomDomain:       r.UseCustomDomain,
 			HasUnpublishedChanges: r.HasUnpublishedChanges,
 		}
 	}
@@ -330,10 +325,9 @@ func (s *Service) GetPublicSchema(ctx context.Context, formID string) (PublicFor
 		ExpiresAt:             row.ExpiresAt,
 		ResponseLimit:         row.ResponseLimit,
 		WorkspaceID:           row.WorkspaceID,
-		UseCustomDomain:       row.UseCustomDomain,
 	}
-	if row.PGPPublicKey.Valid {
-		rec.PGPPublicKey = row.PGPPublicKey.String
+	if row.PgpPublicKey.Valid {
+		rec.PGPPublicKey = row.PgpPublicKey.String
 	}
 	return rec, nil
 }
@@ -344,15 +338,6 @@ func (s *Service) SetWorkspaceFormKey(ctx context.Context, workspaceID, formID s
 		ID:                      formID,
 		WorkspaceID:             workspaceID,
 		WorkspaceWrappedFormKey: wrappedKey,
-	})
-}
-
-// SetCustomDomainToggle enables or disables custom domain serving for a form.
-func (s *Service) SetCustomDomainToggle(ctx context.Context, workspaceID, formID string, enable bool) error {
-	return s.db.SetFormCustomDomain(ctx, queries.SetFormCustomDomainParams{
-		ID:              formID,
-		WorkspaceID:     workspaceID,
-		UseCustomDomain: enable,
 	})
 }
 
@@ -379,7 +364,7 @@ func (s *Service) UpdatePGPNotification(ctx context.Context, workspaceID, formID
 		ID:                  formID,
 		WorkspaceID:         workspaceID,
 		NotificationEmail:   email,
-		PGPPublicKey:        pgpKey,
+		PgpPublicKey:        pgpKey,
 		NotificationFrom:    from,
 		NotificationSubject: subject,
 	})
@@ -438,14 +423,13 @@ func formRecordFromDB(f queries.Form) FormRecord {
 		ResponseTtlDays:         f.ResponseTtlDays,
 		BurnAfterReading:        f.BurnAfterReading,
 		WorkspaceWrappedFormKey: f.WorkspaceWrappedFormKey,
-		UseCustomDomain:         f.UseCustomDomain,
 		HasUnpublishedChanges:   f.HasUnpublishedChanges,
 	}
 	if f.NotificationEmail.Valid {
 		rec.NotificationEmail = f.NotificationEmail.String
 	}
-	if f.PGPPublicKey.Valid {
-		rec.PGPPublicKey = f.PGPPublicKey.String
+	if f.PgpPublicKey.Valid {
+		rec.PGPPublicKey = f.PgpPublicKey.String
 	}
 	if f.NotificationFrom.Valid {
 		rec.NotificationFrom = f.NotificationFrom.String

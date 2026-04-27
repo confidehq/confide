@@ -41,7 +41,8 @@ func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http
 		r.Route("/custom-domain", func(r chi.Router) {
 			r.Use(permission.RequireAction(permission.ActionManageCustomDomain))
 			r.Get("/", getCustomDomain(svc, cnameTarget))
-			r.Put("/", setCustomDomain(svc))
+			r.Put("/", setCustomDomain(svc, cnameTarget))
+			r.Post("/verify", verifyCustomDomain(svc, cnameTarget))
 			r.Delete("/", clearCustomDomain(svc))
 		})
 
@@ -368,6 +369,31 @@ func pendingKeyGrants(svc *Service) http.HandlerFunc {
 
 // ─── Custom Domain ────────────────────────────────────────────────────────────
 
+func domainResponse(info CustomDomainInfo, cnameTarget string) map[string]any {
+	if info.Domain == "" {
+		return map[string]any{
+			"domain":      nil,
+			"cnameTarget": cnameTarget,
+		}
+	}
+	return map[string]any{
+		"domain": info.Domain,
+		"cnameRecord": map[string]string{
+			"type":  "CNAME",
+			"name":  info.Domain,
+			"value": cnameTarget,
+		},
+		"txtRecord": map[string]string{
+			"type":  "TXT",
+			"name":  "_confide-verify." + info.Domain,
+			"value": "confide-verification=" + info.TxtToken,
+		},
+		"cnameOK": info.CnameOK,
+		"txtOK":   info.TxtOK,
+		"enabled": info.Enabled,
+	}
+}
+
 func getCustomDomain(svc *Service, cnameTarget string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workspaceID := chi.URLParam(r, "id")
@@ -378,19 +404,11 @@ func getCustomDomain(svc *Service, cnameTarget string) http.HandlerFunc {
 			return
 		}
 
-		var domainVal any = nil
-		if info.Domain != "" {
-			domainVal = info.Domain
-		}
-		writeJSON(w, http.StatusOK, map[string]any{
-			"domain":      domainVal,
-			"verified":    info.Verified,
-			"cnameTarget": cnameTarget,
-		})
+		writeJSON(w, http.StatusOK, domainResponse(info, cnameTarget))
 	}
 }
 
-func setCustomDomain(svc *Service) http.HandlerFunc {
+func setCustomDomain(svc *Service, cnameTarget string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workspaceID := chi.URLParam(r, "id")
 
@@ -406,7 +424,6 @@ func setCustomDomain(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		// Fetch the workspace to get the current plan for the Pro gate.
 		callerRole := permission.WorkspaceRole(r.Context())
 		ws, err := svc.Get(r.Context(), workspaceID, callerRole)
 		if err != nil {
@@ -414,7 +431,8 @@ func setCustomDomain(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		if err := svc.SetCustomDomain(r.Context(), workspaceID, ws.Plan, req.Domain); err != nil {
+		info, err := svc.SetCustomDomain(r.Context(), workspaceID, ws.Plan, req.Domain)
+		if err != nil {
 			if isUpgradeRequired(err) {
 				writeError(w, http.StatusPaymentRequired, "upgrade_required", "custom domains require the Pro plan")
 				return
@@ -427,7 +445,25 @@ func setCustomDomain(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusNoContent)
+		writeJSON(w, http.StatusOK, domainResponse(info, cnameTarget))
+	}
+}
+
+func verifyCustomDomain(svc *Service, cnameTarget string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+
+		info, err := svc.CheckCustomDomain(r.Context(), workspaceID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "no custom domain configured")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to verify custom domain")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, domainResponse(info, cnameTarget))
 	}
 }
 

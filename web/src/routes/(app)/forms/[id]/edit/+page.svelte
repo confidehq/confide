@@ -5,7 +5,6 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
-	import { setFormCustomDomain } from '$lib/forms';
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
@@ -41,10 +40,7 @@
 	let newLocaleInput = $state('');
 	let showLocaleInput = $state(false);
 
-	// Custom domain state
-	let useCustomDomain = $state(false);
 	let workspaceDomain = $state<CustomDomainInfo | null>(null);
-	let customDomainToggling = $state(false);
 	let formsBaseUrl = $state('');
 
 	onMount(async () => {
@@ -54,7 +50,6 @@
 		}
 		try {
 			const record = await store.load();
-			useCustomDomain = record.useCustomDomain ?? false;
 			if (record.workspaceId) {
 				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});
 			}
@@ -67,22 +62,10 @@
 	});
 
 	function customDomainBase(): string | undefined {
-		if (useCustomDomain && workspaceDomain?.verified && workspaceDomain.domain) {
+		if (workspaceDomain?.enabled && workspaceDomain.domain) {
 			return `https://${workspaceDomain.domain}`;
 		}
 		return formsBaseUrl || undefined;
-	}
-
-	async function toggleCustomDomain() {
-		customDomainToggling = true;
-		try {
-			await setFormCustomDomain(formId, !useCustomDomain);
-			useCustomDomain = !useCustomDomain;
-		} catch {
-			// ignore toggle errors silently
-		} finally {
-			customDomainToggling = false;
-		}
 	}
 
 	function handleAddLocale() {
@@ -234,9 +217,7 @@
 					{store}
 					{formId}
 					{workspaceDomain}
-					{useCustomDomain}
 					customDomainBase={customDomainBase}
-					onToggleCustomDomain={toggleCustomDomain}
 				/>
 			{/if}
 		</div>

@@ -104,29 +104,38 @@ JOIN account_identity_keys aik ON aik.account_id = wm.account_id
 WHERE wm.workspace_id = $1
 ORDER BY wm.joined_at ASC;
 
--- name: SetWorkspaceCustomDomain :exec
-UPDATE workspaces SET custom_domain = $2, custom_domain_verified = FALSE, updated_at = NOW()
-WHERE id = $1;
+-- name: InsertCustomDomain :one
+INSERT INTO custom_domains (workspace_id, domain, txt_token)
+VALUES ($1, $2, $3)
+ON CONFLICT (workspace_id) DO UPDATE
+    SET domain    = EXCLUDED.domain,
+        txt_token = EXCLUDED.txt_token,
+        cname_ok  = FALSE,
+        txt_ok    = FALSE,
+        enabled   = FALSE,
+        verified_at = NULL
+RETURNING *;
 
--- name: ClearWorkspaceCustomDomain :exec
-UPDATE workspaces SET custom_domain = NULL, custom_domain_verified = FALSE, updated_at = NOW()
-WHERE id = $1;
+-- name: GetCustomDomainByWorkspace :one
+SELECT * FROM custom_domains WHERE workspace_id = $1;
 
--- name: GetWorkspaceCustomDomain :one
-SELECT custom_domain, custom_domain_verified FROM workspaces WHERE id = $1;
+-- name: GetCustomDomainByHost :one
+SELECT * FROM custom_domains WHERE domain = $1;
 
--- name: GetWorkspaceByCustomDomain :one
-SELECT id FROM workspaces WHERE custom_domain = $1 AND custom_domain_verified = TRUE;
+-- name: UpdateDNSStatus :exec
+UPDATE custom_domains SET cname_ok = $2, txt_ok = $3 WHERE id = $1;
 
--- name: MarkCustomDomainVerified :exec
-UPDATE workspaces SET custom_domain_verified = TRUE, updated_at = NOW()
-WHERE custom_domain = $1;
+-- name: EnableCustomDomain :exec
+UPDATE custom_domains SET enabled = TRUE, verified_at = NOW() WHERE id = $1;
 
--- name: ListAllVerifiedCustomDomains :many
-SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL AND custom_domain_verified = TRUE;
+-- name: DeleteCustomDomain :exec
+DELETE FROM custom_domains WHERE workspace_id = $1;
 
--- name: ListAllCustomDomains :many
-SELECT custom_domain FROM workspaces WHERE custom_domain IS NOT NULL;
+-- name: ListAllEnabledDomains :many
+SELECT domain FROM custom_domains WHERE enabled = TRUE;
+
+-- name: ListAllUnverifiedDomains :many
+SELECT * FROM custom_domains WHERE enabled = FALSE;
 
 -- name: GetMembersWithoutWorkspaceKeyWithUsername :many
 SELECT wm.account_id, a.username

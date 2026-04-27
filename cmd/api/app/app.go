@@ -71,6 +71,7 @@ func New() (*App, error) {
 	svc := server.NewServices(pool, wa, cfg)
 
 	runCtx, runCancel := context.WithCancel(context.Background())
+	svc.Start(runCtx)
 	go reaper.Start(runCtx, &combinedDeleter{svc.Responses, svc.Invitation}, cfg.ReaperInterval)
 
 	h := server.New(cfg, svc, ui.FS, Version, Commit)

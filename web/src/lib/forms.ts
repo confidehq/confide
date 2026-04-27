@@ -36,7 +36,6 @@ export interface FormSummary {
 	responseLimit?: number | null;
 	responseTtlDays?: number | null;
 	burnAfterReading: boolean;
-	useCustomDomain: boolean;
 	hasUnpublishedChanges: boolean;
 }
 
@@ -49,6 +48,8 @@ export interface FormRecord extends FormSummary {
 	workspaceWrappedFormKey?: string | null; // base64, null if not yet set
 	notificationEmail?: string;
 	pgpPublicKey?: string; // ASCII-armored PGP public key
+	notificationFrom?: string;
+	notificationSubject?: string;
 }
 
 export interface EncryptedResponseRecord {
@@ -236,19 +237,6 @@ export async function updateFormStatus(formId: string, status: 'open' | 'closed'
  */
 export async function deleteForm(formId: string): Promise<void> {
 	const res = await fetch(`/api/forms/${formId}`, { method: 'DELETE' });
-	if (!res.ok) throw new ApiError(res.status, await res.json());
-}
-
-/**
- * Enable or disable custom domain serving for a specific form.
- * The workspace must have a verified custom domain for the setting to take effect.
- */
-export async function setFormCustomDomain(formId: string, enabled: boolean): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}/custom-domain`, {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ enabled })
-	});
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
