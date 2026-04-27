@@ -26,6 +26,8 @@ services:
         condition: service_healthy
     ports:                                                                                                                     
       - "8080:8080"
+    volumes:
+      - /etc/dokploy/traefik/dynamic:/traefik-config
     env_file:
       - .env
     environment:
