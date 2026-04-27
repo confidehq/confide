@@ -19,10 +19,11 @@ type workerDB interface {
 // Worker polls unverified custom domains and drives them to enabled once both
 // CNAME and TXT records are confirmed. It runs until ctx is cancelled.
 type Worker struct {
-	db       workerDB
-	verifier *Verifier
-	registry *Registry
-	interval time.Duration
+	db               workerDB
+	verifier         *Verifier
+	registry         *Registry
+	interval         time.Duration
+	traefikConfigDir string
 }
 
 func NewWorker(db workerDB, verifier *Verifier, registry *Registry, interval time.Duration) *Worker {
@@ -30,6 +31,12 @@ func NewWorker(db workerDB, verifier *Verifier, registry *Registry, interval tim
 		interval = 2 * time.Minute
 	}
 	return &Worker{db: db, verifier: verifier, registry: registry, interval: interval}
+}
+
+// WithTraefikConfigDir enables writing per-domain Traefik config files so
+// Traefik can obtain Let's Encrypt certs for custom domains.
+func (w *Worker) WithTraefikConfigDir(dir string) {
+	w.traefikConfigDir = dir
 }
 
 func (w *Worker) Run(ctx context.Context) {
@@ -83,6 +90,11 @@ func (w *Worker) check(ctx context.Context, cd queries.CustomDomain) {
 			return
 		}
 		w.registry.Enable(cd.Domain)
+		if w.traefikConfigDir != "" {
+			if err := writeTraefikConfig(w.traefikConfigDir, cd.Domain); err != nil {
+				log.Error().Err(err).Str("domain", cd.Domain).Msg("domain worker: write traefik config")
+			}
+		}
 		log.Info().Str("domain", cd.Domain).Msg("domain worker: custom domain enabled")
 	}
 }

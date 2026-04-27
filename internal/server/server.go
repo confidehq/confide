@@ -66,6 +66,9 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	// Start the background DNS verification worker.
 	verifier := &domain.Verifier{CNAMETarget: mw.StripScheme(cfg.CustomDomainTarget)}
 	worker := domain.NewWorker(queries.New(pool), verifier, reg, cfg.DomainVerifyInterval)
+	if cfg.TraefikConfigDir != "" {
+		worker.WithTraefikConfigDir(cfg.TraefikConfigDir)
+	}
 	wsSvc.WithDomainChecker(worker)
 
 	billingSvc := billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg)

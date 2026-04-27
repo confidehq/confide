@@ -53,6 +53,11 @@ type Config struct {
 	// DomainVerifyInterval controls how often the background worker polls unverified
 	// custom domains for CNAME and TXT record changes. Defaults to 2 minutes.
 	DomainVerifyInterval time.Duration
+
+	// TraefikConfigDir is the directory where per-domain Traefik config files are
+	// written so Traefik can obtain Let's Encrypt certs for custom domains.
+	// Leave empty to disable file writing (e.g. in local dev).
+	TraefikConfigDir string
 }
 
 func Load() (*Config, error) {
@@ -104,6 +109,8 @@ func Load() (*Config, error) {
 			cfg.DomainVerifyInterval = d
 		}
 	}
+
+	cfg.TraefikConfigDir = os.Getenv("CONFIDE_TRAEFIK_DYNAMIC_DIR")
 
 	var errs []error
 
