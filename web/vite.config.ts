@@ -4,6 +4,9 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit()],
+	define: {
+		'import.meta.env.VITE_FORMS_DOMAIN': JSON.stringify(process.env.CONFIDE_FORMS_DOMAIN ?? '')
+	},
 	server: {
 		port: 3000,
 		proxy: {

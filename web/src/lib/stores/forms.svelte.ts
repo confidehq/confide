@@ -6,6 +6,7 @@
  */
 
 import { listForms, getForm, deriveShareUrl, type FormSummary } from '$lib/forms';
+import { getAppConfig } from '$lib/config';
 
 let _workspaceId = $state<string | null>(null);
 let _forms = $state<FormSummary[]>([]);
@@ -72,8 +73,12 @@ export const formsStore = {
 		// Decrypt names and derive share URLs in parallel (best-effort; failures silently ignored)
 		if (_loaded && _forms.length > 0 && _workspaceId === workspaceId) {
 			const snap = _forms;
-			const results = await Promise.allSettled(snap.map((f) => getForm(masterKey, f.formId)));
+			const [results, config] = await Promise.all([
+				Promise.allSettled(snap.map((f) => getForm(masterKey, f.formId))),
+				getAppConfig().catch(() => ({ formsDomain: '' }))
+			]);
 			if (_workspaceId !== workspaceId) return; // stale
+			const formsBase = config.formsDomain ? `https://${config.formsDomain}` : undefined;
 			const names = new Map(_formNames);
 			const descriptions = new Map(_formDescriptions);
 			const urlEntries: Array<Promise<void>> = [];
@@ -87,7 +92,7 @@ export const formsStore = {
 					if (desc) descriptions.set(snap[i].formId, desc);
 					if (record.renderKeySalt && snap[i].status !== 'draft') {
 						urlEntries.push(
-							deriveShareUrl(snap[i].formId, record.renderKeySalt, formKey).then(url => {
+							deriveShareUrl(snap[i].formId, record.renderKeySalt, formKey, formsBase).then(url => {
 								_shareUrls = new Map([..._shareUrls, [snap[i].formId, url]]);
 							}).catch(() => {})
 						);
