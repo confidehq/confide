@@ -12,6 +12,7 @@
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
 	import FormSettingsPanel from '$lib/components/builder/FormSettingsPanel.svelte';
 	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check, Languages } from '@lucide/svelte';
+	import { publishForm } from '$lib/forms';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import type { Component } from 'svelte';
 
@@ -73,6 +74,34 @@
 		store.addLocale(newLocaleInput.trim().toLowerCase());
 		newLocaleInput = '';
 		showLocaleInput = false;
+	}
+
+	let publishing = $state(false);
+
+	const publishButtonLabel = $derived(
+		!store ? 'Publish'
+		: publishing ? 'Publishing…'
+		: store.formStatus === 'draft' ? 'Publish'
+		: store.hasUnpublishedChanges ? 'Update'
+		: 'Up to date'
+	);
+	const publishButtonDisabled = $derived(
+		!store || store.saving || publishing || (store.formStatus !== 'draft' && !store.hasUnpublishedChanges)
+	);
+
+	async function handlePublish() {
+		if (!auth.masterKey || !store) return;
+		publishing = true;
+		try {
+			await store.flushSave();
+			const isFirstPublish = store.formStatus === 'draft';
+			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
+			store.setRenderKeySalt(result.renderKeySalt);
+			store.markPublished();
+			if (isFirstPublish) store.setShowFormSettings(true);
+		} finally {
+			publishing = false;
+		}
 	}
 </script>
 
@@ -198,9 +227,10 @@
 
 			<!-- Publish button -->
 			<button
-				onclick={() => store!.setShowFormSettings(true)}
-				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm bg-primary hover:bg-primary-hover cursor-pointer transition-[background] duration-100"
-			>Publish</button>
+				onclick={handlePublish}
+				disabled={publishButtonDisabled}
+				class="shrink-0 px-3.5 h-7 text-white border-none rounded-md font-mono text-sm bg-primary hover:bg-primary-hover cursor-pointer transition-[background] duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
+			>{publishButtonLabel}</button>
 		</div>
 
 		<!-- Body -->

@@ -8,7 +8,7 @@
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import DropdownMenuItem from '$lib/components/DropdownMenuItem.svelte';
 	import DropdownMenuSeparator from '$lib/components/DropdownMenuSeparator.svelte';
-	import { Users, Ellipsis, Link, Check, Building2 } from '@lucide/svelte';
+	import { Users, Ellipsis, Link, Check, Building2, Pencil } from '@lucide/svelte';
 
 	function planLabel(plan: string, planStatus: string): string {
 		if (plan === 'pro') {
@@ -222,6 +222,13 @@
 							{/if}
 						</button>
 					{/if}
+
+					<!-- Edit link -->
+					<button
+						onclick={e => { e.stopPropagation(); goto(`/forms/${form.formId}/edit`); }}
+						title="Edit form"
+						class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer text-muted-dim hover:text-text-body transition-colors duration-100"
+					><Pencil size={15} strokeWidth={1.75} /></button>
 
 					<!-- Actions menu -->
 					<div
