@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { untrack } from 'svelte';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { CustomDomainInfo } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
-	import { Copy, Check, X } from '@lucide/svelte';
+	import { Link, Check, X, QrCode, Download } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import QRCode from 'qrcode';
 
 	const LANGUAGES: { code: string; name: string }[] = [
 		{ code: 'af', name: 'Afrikaans' },
@@ -73,16 +74,17 @@
 	let expirationSaving = $state(false);
 	let expirationError = $state<string | null>(null);
 
-	// Derive share URL on mount if form was previously published
-	onMount(async () => {
-		if (store.formStatus !== 'draft' && store.renderKeySalt && store.formKey) {
-			try {
-				const saltBase64 = btoa(String.fromCharCode(...store.renderKeySalt));
-				shareUrl = await deriveShareUrl(formId, saltBase64, store.formKey, customDomainBase());
-			} catch {
-				// non-critical: share URL will be shown after next publish
-			}
-		}
+	// Re-derive share URL whenever the custom domain becomes available or changes.
+	// Using $effect instead of onMount so it re-runs after the parent's async
+	// getCustomDomain() fetch resolves and updates customDomainBase().
+	$effect(() => {
+		const base = customDomainBase();
+		const { formStatus, renderKeySalt, formKey } = store;
+		if (formStatus === 'draft' || !renderKeySalt || !formKey) return;
+		const saltBase64 = btoa(String.fromCharCode(...renderKeySalt));
+		deriveShareUrl(formId, saltBase64, formKey, base).then(url => {
+			untrack(() => { shareUrl = url; });
+		}).catch(() => {});
 	});
 
 	const isFirstPublish = $derived(store.formStatus === 'draft');
@@ -172,6 +174,33 @@
 	const availableLanguages = $derived(
 		LANGUAGES.filter((l) => !store.schema.locales.includes(l.code))
 	);
+
+	let qrCanvas = $state<HTMLCanvasElement | null>(null);
+	let qrVisible = $state(false);
+	let qrError = $state('');
+
+	async function showQRCode() {
+		if (!shareUrl) return;
+		qrVisible = true;
+		qrError = '';
+		// Render after DOM update
+		await new Promise((r) => setTimeout(r, 0));
+		try {
+			if (qrCanvas) {
+				await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
+			}
+		} catch {
+			qrError = 'Failed to generate QR code';
+		}
+	}
+
+	function downloadQR() {
+		if (!qrCanvas) return;
+		const a = document.createElement('a');
+		a.href = qrCanvas.toDataURL('image/png');
+		a.download = `form-qr-${formId}.png`;
+		a.click();
+	}
 </script>
 
 <aside
@@ -206,14 +235,16 @@
 						/>
 						<button
 							onclick={copyShareUrl}
-							class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 flex items-center gap-1.5
+							class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 grid items-center
 								{copied ? 'bg-success-muted text-success cursor-default' : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
 						>
-							{#if copied}
+							<!-- Both labels share the same grid cell so the button width never changes -->
+							<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? '' : 'invisible'}">
 								<Check size={13} strokeWidth={2} />Copied
-							{:else}
-								<Copy size={13} strokeWidth={1.75} />Copy link
-							{/if}
+							</span>
+							<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? 'invisible' : ''}">
+								<Link size={13} strokeWidth={1.75} />Copy secure link
+							</span>
 						</button>
 					</div>
 					<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
@@ -223,6 +254,38 @@
 							Served on <span class="text-text-dim">{workspaceDomain.domain}</span>
 						</p>
 					{/if}
+
+					<!-- QR Code section -->
+					<div class="border-t border-border-deep pt-3 flex flex-col gap-2">
+						{#if !qrVisible}
+							<button
+								onclick={showQRCode}
+								class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100"
+							>
+								<QrCode size={13} strokeWidth={1.75} />Get QR code
+							</button>
+						{:else}
+							<div class="flex flex-col items-center gap-2">
+								<canvas bind:this={qrCanvas} class="rounded-md"></canvas>
+								<button
+									onclick={downloadQR}
+									class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100 w-full justify-center"
+								>
+									<Download size={13} strokeWidth={1.75} />Download PNG
+								</button>
+								<button
+									onclick={() => { qrVisible = false; }}
+									class="text-xs text-muted-dark hover:text-muted cursor-pointer bg-transparent border-none"
+								>Hide</button>
+							</div>
+						{/if}
+						{#if qrError}
+							<p class="m-0 text-xs text-error">{qrError}</p>
+						{/if}
+						<p class="m-0 text-xs text-muted-dark">QR code stays valid when you edit your form. Rotating your link will require a new QR code.</p>
+					</div>
+
+					<div class="h-px bg-border-deep"></div>
 
 					<button
 						onclick={() => { confirmRotate = true; }}
