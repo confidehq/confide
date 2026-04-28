@@ -247,7 +247,11 @@
 							</span>
 						</button>
 					</div>
-					<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
+					{#if store.formStatus === 'closed'}
+						<p class="m-0 text-xs text-closed-text">This form is closed — the link is active but not accepting responses.</p>
+					{:else}
+						<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
+					{/if}
 
 					{#if workspaceDomain?.enabled && workspaceDomain.domain}
 						<p class="m-0 text-xs text-muted-dark font-mono">

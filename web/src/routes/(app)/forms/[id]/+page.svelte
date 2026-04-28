@@ -12,6 +12,8 @@
 		validatePGPKey,
 		deleteForm,
 		publishForm,
+		rotateRenderKey,
+		deriveShareUrl,
 		listResponses,
 		decryptResponseRecord,
 		deleteResponse,
@@ -20,10 +22,12 @@
 		type EncryptedResponseRecord
 	} from '$lib/forms';
 	import { getAppConfig } from '$lib/config';
+	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
-	import { RefreshCw, Copy, Check, ExternalLink, Pencil } from '@lucide/svelte';
+	import { RefreshCw, Copy, Check, ExternalLink, Pencil, Link, QrCode, Download } from '@lucide/svelte';
 	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import QRCode from 'qrcode';
 
 	type AnswerValue = string | string[] | number | null | undefined;
 
@@ -88,6 +92,11 @@
 	let publishing = $state(false);
 	let publishError = $state('');
 	let copied = $state(false);
+	let confirmRotate = $state(false);
+	let customDomainInfo = $state<CustomDomainInfo | null>(null);
+	let qrCanvas = $state<HTMLCanvasElement | null>(null);
+	let qrVisible = $state(false);
+	let qrError = $state('');
 
 	let pendingDeleteForm = $state(false);
 	let deleteFormLoading = $state(false);
@@ -130,6 +139,18 @@
 			resolvedFormKey = formKey;
 			const title = schema.translations[schema.defaultLocale]?.formTitle;
 			if (title) formsStore.updateName(formId, title);
+			if (r.workspaceId) {
+				getCustomDomain(r.workspaceId).then(async d => {
+					customDomainInfo = d;
+					if (r.renderKeySalt && r.status !== 'draft') {
+						const base = d?.enabled && d.domain ? `https://${d.domain}` : undefined;
+						shareUrl = await deriveShareUrl(formId, r.renderKeySalt, formKey, base);
+					}
+				}).catch(() => {});
+			}
+			if (r.renderKeySalt && r.status !== 'draft' && !r.workspaceId) {
+				deriveShareUrl(formId, r.renderKeySalt, formKey).then(u => { shareUrl = u; }).catch(() => {});
+			}
 			expiresAt = r.expiresAt ?? '';
 			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
 			responseTtlDays = r.responseTtlDays != null ? String(r.responseTtlDays) : '';
@@ -217,8 +238,7 @@
 				? Uint8Array.from(atob(record.renderKeySalt), c => c.charCodeAt(0))
 				: null;
 			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
-			const config = await getAppConfig();
-			const base = config.formsDomain ? `https://${config.formsDomain}` : undefined;
+			const base = customDomainBase() ?? (await getAppConfig().then(c => c.formsDomain ? `https://${c.formsDomain}` : undefined));
 			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey, base);
 			shareUrl = result.shareUrl;
 			// publishForm atomically sets status='open' on the server
@@ -236,6 +256,49 @@
 		await navigator.clipboard.writeText(shareUrl);
 		copied = true;
 		setTimeout(() => { copied = false; }, 2000);
+	}
+
+	function customDomainBase(): string | undefined {
+		if (customDomainInfo?.enabled && customDomainInfo.domain) return `https://${customDomainInfo.domain}`;
+		return undefined;
+	}
+
+	async function handleRotateKey() {
+		if (!auth.masterKey || !record) return;
+		publishing = true;
+		publishError = '';
+		confirmRotate = false;
+		try {
+			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
+			const result = await rotateRenderKey(auth.masterKey, formId, schema as any, formKey, customDomainBase());
+			shareUrl = result.shareUrl;
+			record = { ...record, renderKeySalt: btoa(String.fromCharCode(...result.renderKeySalt)) };
+			qrVisible = false;
+		} catch (e) {
+			publishError = e instanceof Error ? e.message : 'Key rotation failed';
+		} finally {
+			publishing = false;
+		}
+	}
+
+	async function showQRCode() {
+		if (!shareUrl) return;
+		qrVisible = true;
+		qrError = '';
+		await new Promise(r => setTimeout(r, 0));
+		try {
+			if (qrCanvas) await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
+		} catch {
+			qrError = 'Failed to generate QR code';
+		}
+	}
+
+	function downloadQR() {
+		if (!qrCanvas) return;
+		const a = document.createElement('a');
+		a.href = qrCanvas.toDataURL('image/png');
+		a.download = `form-qr-${formId}.png`;
+		a.click();
 	}
 
 	async function confirmDeleteForm() {
@@ -412,6 +475,15 @@
 		cursor: pointer;
 	}
 </style>
+
+<!-- Rotate key confirm -->
+<ConfirmDialog
+	open={confirmRotate}
+	title="Generate new link?"
+	description="This will invalidate the current share link and QR code. Anyone using the old link will no longer be able to access the form."
+	onconfirm={handleRotateKey}
+	oncancel={() => { confirmRotate = false; }}
+/>
 
 <!-- Form delete confirm -->
 <ConfirmDialog
@@ -620,60 +692,99 @@
 
 								{:else if activeTab === 'share'}
 									<!-- Share link -->
-									<section class="flex flex-col gap-4">
+									<section class="flex flex-col gap-3">
 										{#if shareUrl}
-											<p class="m-0 text-base text-warning-text-dark">This link is public — anyone with it can view and submit this form.</p>
-											<div class="flex items-center gap-2">
+											<div class="flex gap-1.5">
 												<input
+													type="text"
 													readonly
 													value={shareUrl}
-													class="flex-1 min-w-0 text-base text-muted-dim bg-canvas border border-border-deep rounded px-3 py-2 font-mono outline-none"
+													class="flex-1 px-3 py-2 bg-canvas border border-border-deep text-muted-dim rounded-md font-mono text-sm outline-none min-w-0"
 												/>
 												<button
 													onclick={copyShareUrl}
-													class="shrink-0 flex items-center gap-1.5 px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
-														{copied
-															? 'bg-[#0e1a0e] text-success-text-dark border-success-text'
-															: 'bg-transparent text-muted-dim border-border-deep hover:text-text-body hover:border-border-subtle'}"
+													class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 grid items-center
+														{copied ? 'bg-success-muted text-success cursor-default' : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
 												>
-													{#if copied}
-														<Check size={13} strokeWidth={2} />
-														Copied
-													{:else}
-														<Copy size={13} strokeWidth={1.75} />
-														Copy
-													{/if}
+													<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? '' : 'invisible'}">
+														<Check size={13} strokeWidth={2} />Copied
+													</span>
+													<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? 'invisible' : ''}">
+														<Link size={13} strokeWidth={1.75} />Copy secure link
+													</span>
 												</button>
 											</div>
-											{#if record.hasUnpublishedChanges}
-												<p class="m-0 text-base text-warning-text-dark">This link reflects the last published version. <a href="/forms/{formId}/edit" class="text-text-blue underline">Update</a> to publish your latest changes.</p>
+
+											{#if record.status === 'closed'}
+												<p class="m-0 text-sm text-closed-text">This form is closed — the link is active but not accepting responses.</p>
+											{:else if record.hasUnpublishedChanges}
+												<p class="m-0 text-sm text-warning-text-dark">This link reflects the last published version. <a href="/forms/{formId}/edit" class="text-text-blue underline">Update</a> to publish your latest changes.</p>
 											{:else}
-												<p class="m-0 text-base text-muted-mid">Anyone with this link can submit a response. Rotate the key on the edit page to invalidate old links.</p>
+												<p class="m-0 text-sm text-muted-dark">Anyone with the link can access this form.</p>
 											{/if}
-										{:else}
-											<div class="flex flex-col gap-2">
-												{#if publishError}
-													<p class="m-0 text-base text-error-light">{publishError}</p>
-												{/if}
-												<div>
+
+											{#if customDomainInfo?.enabled && customDomainInfo.domain}
+												<p class="m-0 text-sm text-muted-dark font-mono">
+													Served on <span class="text-text-dim">{customDomainInfo.domain}</span>
+												</p>
+											{/if}
+
+											<!-- QR Code -->
+											<div class="border-t border-border-deep pt-3 flex flex-col gap-2">
+												{#if !qrVisible}
 													<button
-														onclick={handlePublish}
-														disabled={publishing}
-														class="flex items-center gap-2 px-4 py-2 border rounded font-mono text-lg cursor-pointer transition-colors duration-100
-															{publishing
-																? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
-																: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
-													>
-														{#if publishing}
-															<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
-															Generating…
-														{:else}
-															<ExternalLink size={14} strokeWidth={1.75} />
-															Publish form
-														{/if}
-													</button>
-													<p class="mt-2 m-0 text-base text-muted-mid">Publishing makes the form live and generates an encrypted share link for respondents.</p>
+														onclick={showQRCode}
+														class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100"
+													><QrCode size={13} strokeWidth={1.75} />Get QR code</button>
+												{:else}
+													<div class="flex flex-col items-center gap-2">
+														<canvas bind:this={qrCanvas} class="rounded-md"></canvas>
+														<button
+															onclick={downloadQR}
+															class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100 w-full justify-center"
+														><Download size={13} strokeWidth={1.75} />Download PNG</button>
+														<button
+															onclick={() => { qrVisible = false; }}
+															class="text-xs text-muted-dark hover:text-muted cursor-pointer bg-transparent border-none"
+														>Hide</button>
+													</div>
+												{/if}
+												{#if qrError}<p class="m-0 text-sm text-error">{qrError}</p>{/if}
+												<p class="m-0 text-xs text-muted-dark">QR code stays valid when you edit your form. Rotating your link will require a new QR code.</p>
+											</div>
+
+											<div class="h-px bg-border-deep"></div>
+
+											{#if publishError}
+												<p class="m-0 text-sm text-error-light">{publishError}</p>
+											{/if}
+											<button
+												onclick={() => { confirmRotate = true; }}
+												disabled={publishing}
+												class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm
+													{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text-dim hover:border-border transition-colors duration-100'}"
+											>Generate new link</button>
+										{:else}
+											<div class="py-4 flex flex-col items-center gap-3 text-center">
+												<div>
+													<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
+													<p class="m-0 text-xs text-muted-dark mt-1">Publish to make it accessible and get a share link.</p>
 												</div>
+												{#if publishError}
+													<p class="m-0 text-sm text-error-light">{publishError}</p>
+												{/if}
+												<button
+													onclick={handlePublish}
+													disabled={publishing}
+													class="flex items-center gap-2 px-4 py-2 bg-primary text-white border-none rounded-md font-mono text-sm cursor-pointer transition-[background] duration-100 hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed"
+												>
+													{#if publishing}
+														<div class="spinner w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"></div>
+														Publishing…
+													{:else}
+														Publish form
+													{/if}
+												</button>
 											</div>
 										{/if}
 									</section>
