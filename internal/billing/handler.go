@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog/log"
 
 	mw "github.com/phantompunk/confide/internal/middleware"
 )
@@ -167,8 +168,10 @@ func stripeWebhook(svc *Service) http.HandlerFunc {
 				writeError(w, http.StatusServiceUnavailable, "stripe_disabled", "webhook not configured")
 				return
 			}
-			// Signature validation failure or parse error → 400.
-			writeError(w, http.StatusBadRequest, "webhook_error", err.Error())
+			// Log the real error server-side; return a generic message to the caller
+			// so internal Stripe SDK details are not leaked in the response body.
+			log.Error().Err(err).Msg("billing: stripe webhook error")
+			writeError(w, http.StatusBadRequest, "webhook_error", "invalid webhook payload")
 			return
 		}
 

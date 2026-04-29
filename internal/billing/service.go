@@ -146,7 +146,7 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 		if err != nil {
 			return "", err
 		}
-		s.log.Info().Str("workspace_id", workspaceID).Str("stripe_customer_id", c.ID).Msg("created new stripe customer")
+		s.log.Info().Str("workspace_id", workspaceID).Msg("created new stripe customer")
 		if err := s.db.SetStripeCustomerID(ctx, queries.SetStripeCustomerIDParams{
 			ID:               workspaceID,
 			StripeCustomerID: pgtype.Text{String: c.ID, Valid: true},
@@ -261,7 +261,7 @@ func (s *Service) handleSubscriptionCreated(ctx context.Context, event stripe.Ev
 	if sub.Customer == nil || sub.ID == "" {
 		return nil
 	}
-	s.log.Info().Str("customer_id", sub.Customer.ID).Str("subscription_id", sub.ID).Msg("subscription created")
+	s.log.Info().Msg("subscription created")
 	return s.db.SetStripeSubscriptionID(ctx, queries.SetStripeSubscriptionIDParams{
 		StripeCustomerID:     pgtype.Text{String: sub.Customer.ID, Valid: true},
 		StripeSubscriptionID: pgtype.Text{String: sub.ID, Valid: true},
@@ -305,7 +305,7 @@ func (s *Service) handlePaymentSucceeded(ctx context.Context, event stripe.Event
 		subID = inv.Parent.SubscriptionDetails.Subscription.ID
 	}
 
-	s.log.Info().Str("workspace_id", ws.ID).Str("customer_id", inv.Customer.ID).Msg("payment succeeded")
+	s.log.Info().Str("workspace_id", ws.ID).Str("plan", plan).Msg("payment succeeded")
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
 		ID:                   ws.ID,
 		Plan:                 plan,
@@ -347,7 +347,7 @@ func (s *Service) handleSubscriptionUpdated(ctx context.Context, event stripe.Ev
 	if sub.CancelAtPeriodEnd && status == "active" {
 		status = "canceling"
 	}
-	s.log.Info().Str("workspace_id", ws.ID).Str("customer_id", sub.Customer.ID).Bool("cancel_at_period_end", sub.CancelAtPeriodEnd).Msg("subscription updated")
+	s.log.Info().Str("workspace_id", ws.ID).Str("plan", plan).Str("status", status).Bool("cancel_at_period_end", sub.CancelAtPeriodEnd).Msg("subscription updated")
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
 		ID:                   ws.ID,
 		Plan:                 plan,
@@ -372,7 +372,7 @@ func (s *Service) handleSubscriptionDeleted(ctx context.Context, event stripe.Ev
 		}
 		return err
 	}
-	s.log.Info().Str("workspace_id", ws.ID).Str("customer_id", sub.Customer.ID).Msg("subscription deleted")
+	s.log.Info().Str("workspace_id", ws.ID).Str("plan", ws.Plan).Msg("subscription deleted")
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
 		ID:         ws.ID,
 		Plan:       "free",
@@ -398,7 +398,7 @@ func (s *Service) handlePaymentFailed(ctx context.Context, event stripe.Event) e
 		return err
 	}
 
-	s.log.Warn().Str("workspace_id", ws.ID).Str("customer_id", inv.Customer.ID).Msg("invoice payment failed")
+	s.log.Warn().Str("workspace_id", ws.ID).Str("plan", ws.Plan).Msg("invoice payment failed")
 
 	return s.db.UpdateWorkspacePlan(ctx, queries.UpdateWorkspacePlanParams{
 		ID:                   ws.ID,
@@ -414,17 +414,15 @@ func (s *Service) handlePaymentIntentFailed(ctx context.Context, event stripe.Ev
 		return err
 	}
 
-	ev := s.log.Warn().Str("payment_intent_id", pi.ID)
+	ev := s.log.Warn()
 	if pi.Customer != nil {
-		ev = ev.Str("customer_id", pi.Customer.ID)
 		ws, err := s.db.GetWorkspaceByStripeCustomerID(ctx, pgtype.Text{String: pi.Customer.ID, Valid: true})
 		if err == nil {
-			ev = ev.Str("workspace_id", ws.ID)
+			ev = ev.Str("workspace_id", ws.ID).Str("plan", ws.Plan)
 		}
 	}
 	if pi.LastPaymentError != nil {
-		e := pi.LastPaymentError
-		ev = ev.Str("decline_code", string(e.DeclineCode)).Str("error_code", string(e.Code)).Str("error_message", e.Msg)
+		ev = ev.Str("decline_code", string(pi.LastPaymentError.DeclineCode)).Str("error_code", string(pi.LastPaymentError.Code))
 	}
 	ev.Msg("payment intent failed")
 	return nil
