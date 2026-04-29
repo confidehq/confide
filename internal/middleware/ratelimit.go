@@ -117,6 +117,23 @@ func RelayRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
 	return limiter.Handler
 }
 
+// UsernameCheckRateLimit limits username availability checks: 10 per minute per IP.
+func UsernameCheckRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
+	rk := newRotatingHMACKey(hmacSeed)
+
+	limiter := httprate.NewRateLimiter(10, time.Minute,
+		httprate.WithKeyFuncs(func(r *http.Request) (string, error) {
+			ip, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				ip = r.RemoteAddr
+			}
+			return rk.IPKey(ip), nil
+		}),
+	)
+
+	return limiter.Handler
+}
+
 // RecoveryRateLimit is a stricter limiter: 5 requests per 5 minutes.
 func RecoveryRateLimit(hmacSeed []byte) func(http.Handler) http.Handler {
 	rk := newRotatingHMACKey(hmacSeed)

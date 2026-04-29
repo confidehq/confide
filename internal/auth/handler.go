@@ -32,7 +32,7 @@ const sessionCookieName = "session"
 func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
 	r := chi.NewRouter()
 
-	r.Get("/check-username", checkUsername(svc))
+	r.With(mw.UsernameCheckRateLimit(recoveryHMACKey)).Get("/check-username", checkUsername(svc))
 	r.Post("/register/begin", registerBegin(svc, registrationOpen))
 	r.Post("/register/finish", registerFinish(svc, dev))
 	r.Post("/login/begin", loginBegin(svc))
@@ -67,6 +67,11 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 
 func checkUsername(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := r.URL.Query().Get("accountId")
+		if accountID == "" || !svc.HasRegistrationChallenge(accountID) {
+			writeError(w, http.StatusForbidden, "forbidden", "active registration session required")
+			return
+		}
 		username := r.URL.Query().Get("username")
 		if username == "" {
 			writeError(w, http.StatusBadRequest, "missing_param", "username required")
@@ -100,7 +105,7 @@ func registerBegin(svc *Service, registrationOpen bool) http.HandlerFunc {
 		json.Unmarshal(body, &req) //nolint:errcheck
 		res, err := svc.RegisterBegin(r.Context(), req.Username)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "register_begin_failed", err.Error())
+			writeError(w, http.StatusInternalServerError, "register_begin_failed", safeErr(err))
 			return
 		}
 

@@ -103,6 +103,17 @@ func (cs *challengeStore) take(key string) (*webauthn.SessionData, bool) {
 	return e.data, true
 }
 
+func (cs *challengeStore) has(key string) bool {
+	cs.mu.Lock()
+	defer cs.mu.Unlock()
+	e, ok := cs.items[key]
+	if !ok || time.Now().After(e.expires) {
+		delete(cs.items, key)
+		return false
+	}
+	return true
+}
+
 func (cs *challengeStore) gcLoop() {
 	t := time.NewTicker(2 * time.Minute)
 	defer t.Stop()
@@ -359,8 +370,15 @@ func (s *Service) LoginBegin(ctx context.Context, credentialID []byte, username 
 	return s.loginBeginDiscoverable(ctx)
 }
 
+// HasRegistrationChallenge reports whether accountID has an active registration
+// challenge in the store, without consuming it.
+func (s *Service) HasRegistrationChallenge(accountID string) bool {
+	return s.challenges.has(accountID)
+}
+
 // loginBeginByUsername looks up an account by username, finds its primary
-// credential, and delegates to targeted mode.
+// credential, and delegates to targeted mode. All errors map to ErrNotFound so
+// the response does not reveal whether the username exists.
 func (s *Service) loginBeginByUsername(ctx context.Context, username string) (*LoginBeginResult, error) {
 	account, err := s.db.GetAccountByUsername(ctx, pgtype.Text{String: username, Valid: true})
 	if err != nil {
@@ -370,7 +388,11 @@ func (s *Service) loginBeginByUsername(ctx context.Context, username string) (*L
 	if err != nil {
 		return nil, ErrNotFound
 	}
-	return s.loginBeginTargeted(ctx, credID)
+	res, err := s.loginBeginTargeted(ctx, credID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return res, nil
 }
 
 // loginBeginTargeted uses prf.eval.first with the known credential's PRF salt.
