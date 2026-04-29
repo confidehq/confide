@@ -134,6 +134,12 @@ DELETE FROM custom_domains WHERE workspace_id = $1;
 -- name: ListAllEnabledDomains :many
 SELECT domain FROM custom_domains WHERE enabled = TRUE;
 
+-- name: ListAllEnabledCustomDomains :many
+SELECT * FROM custom_domains WHERE enabled = TRUE;
+
+-- name: DisableCustomDomain :exec
+UPDATE custom_domains SET enabled = FALSE, cname_ok = FALSE, txt_ok = FALSE WHERE id = $1;
+
 -- name: ListAllUnverifiedDomains :many
 SELECT * FROM custom_domains WHERE enabled = FALSE;
 

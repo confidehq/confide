@@ -592,7 +592,9 @@ func (s *Service) SetCustomDomain(ctx context.Context, workspaceID, plan, domain
 			s.registry.Disable(prev.Domain)
 		}
 		if s.traefikConfigDir != "" {
-			_ = domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain)
+			if err := domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain); err != nil {
+				log.Error().Err(err).Str("domain", prev.Domain).Msg("workspace: delete traefik config on domain change")
+			}
 		}
 	}
 
@@ -618,7 +620,9 @@ func (s *Service) ClearCustomDomain(ctx context.Context, workspaceID string) err
 			s.registry.Disable(prev.Domain)
 		}
 		if s.traefikConfigDir != "" {
-			_ = domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain)
+			if err := domainpkg.DeleteTraefikConfig(s.traefikConfigDir, prev.Domain); err != nil {
+				log.Error().Err(err).Str("domain", prev.Domain).Msg("workspace: delete traefik config on domain clear")
+			}
 		}
 	}
 	return s.db.DeleteCustomDomain(ctx, workspaceID)

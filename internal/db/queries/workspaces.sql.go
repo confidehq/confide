@@ -407,6 +407,49 @@ func (q *Queries) InsertCustomDomain(ctx context.Context, arg InsertCustomDomain
 	return i, err
 }
 
+const disableCustomDomain = `-- name: DisableCustomDomain :exec
+UPDATE custom_domains SET enabled = FALSE, cname_ok = FALSE, txt_ok = FALSE WHERE id = $1
+`
+
+func (q *Queries) DisableCustomDomain(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, disableCustomDomain, id)
+	return err
+}
+
+const listAllEnabledCustomDomains = `-- name: ListAllEnabledCustomDomains :many
+SELECT id, workspace_id, domain, txt_token, cname_ok, txt_ok, enabled, created_at, verified_at FROM custom_domains WHERE enabled = TRUE
+`
+
+func (q *Queries) ListAllEnabledCustomDomains(ctx context.Context) ([]CustomDomain, error) {
+	rows, err := q.db.Query(ctx, listAllEnabledCustomDomains)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CustomDomain
+	for rows.Next() {
+		var i CustomDomain
+		if err := rows.Scan(
+			&i.ID,
+			&i.WorkspaceID,
+			&i.Domain,
+			&i.TxtToken,
+			&i.CnameOk,
+			&i.TxtOk,
+			&i.Enabled,
+			&i.CreatedAt,
+			&i.VerifiedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listAllEnabledDomains = `-- name: ListAllEnabledDomains :many
 SELECT domain FROM custom_domains WHERE enabled = TRUE
 `
