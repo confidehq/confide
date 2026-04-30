@@ -28,6 +28,7 @@ import {
 	generateRecoveryCode,
 	parseRecoveryCode
 } from '$lib/crypto';
+import { clearWorkspaceKeyCache } from '$lib/workspaces';
 
 import type {
 	RegisterBeginResponse,
@@ -456,6 +457,7 @@ export async function revokeOtherSessions(): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
+	clearWorkspaceKeyCache();
 	await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 }
 

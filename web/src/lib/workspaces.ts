@@ -3,6 +3,10 @@ import { generateAndWrapWorkspaceKey, unwrapIdentityPrivateKey, rewrapWorkspaceK
 // In-memory cache: workspaceId → decrypted workspace CryptoKey
 const workspaceKeyCache = new Map<string, CryptoKey>();
 
+export function clearWorkspaceKeyCache(): void {
+	workspaceKeyCache.clear();
+}
+
 export interface Workspace {
 	id: string;
 	name: string;
