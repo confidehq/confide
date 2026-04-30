@@ -98,6 +98,16 @@ async function hkdfDeriveAesKey(
 }
 
 /**
+ * Build AES-GCM algorithm params, optionally binding a context via AAD.
+ * Pass additionalData to prevent cross-context ciphertext substitution.
+ */
+function aesGcmParams(iv: Uint8Array<ArrayBuffer>, additionalData?: BufferSource): AesGcmParams {
+	const params: AesGcmParams = { name: AES_ALGORITHM, iv, tagLength: 128 };
+	if (additionalData !== undefined) params.additionalData = additionalData;
+	return params;
+}
+
+/**
  * Derive raw bits via HKDF from an HKDF IKM key.
  */
 async function hkdfDeriveBits(hkdfKey: CryptoKey, info: Uint8Array<ArrayBuffer>, bits: number): Promise<ArrayBuffer> {
@@ -304,12 +314,12 @@ export async function unwrapKey(wrapped: ArrayBuffer, kek: CryptoKey): Promise<C
  * Output layout: [12B random IV][ciphertext + 16B GCM tag]
  * Total overhead: 28 bytes (12 IV + 16 tag).
  */
-export async function encryptSchema(schema: FormSchema, key: CryptoKey): Promise<ArrayBuffer> {
+export async function encryptSchema(schema: FormSchema, key: CryptoKey, additionalData?: BufferSource): Promise<ArrayBuffer> {
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const plaintext = encode(JSON.stringify(schema));
 
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		key,
 		plaintext
 	);
@@ -324,13 +334,13 @@ export async function encryptSchema(schema: FormSchema, key: CryptoKey): Promise
  * Decrypt a FormSchema blob encrypted with encryptSchema.
  * Throws DOMException on authentication failure (wrong key, tampered data).
  */
-export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey): Promise<FormSchema> {
+export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey, additionalData?: BufferSource): Promise<FormSchema> {
 	const bytes = new Uint8Array(blob);
 	const iv = bytes.slice(0, AES_IV_BYTES);
 	const ciphertext = bytes.slice(AES_IV_BYTES);
 
 	const plaintext = await crypto.subtle.decrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		key,
 		ciphertext
 	);
@@ -357,7 +367,8 @@ export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey): Promise<
  */
 export async function encryptResponse(
 	payload: ResponsePayload,
-	recipientPublicKey: CryptoKey
+	recipientPublicKey: CryptoKey,
+	additionalData?: BufferSource
 ): Promise<EncryptedResponse> {
 	// Step 1: ephemeral keypair
 	const ephemeral = (await crypto.subtle.generateKey(
@@ -389,7 +400,7 @@ export async function encryptResponse(
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const plaintext = encode(JSON.stringify(payload));
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		encryptionKey,
 		plaintext
 	);
@@ -411,7 +422,8 @@ export async function encryptResponse(
 export async function decryptResponse(
 	encryptedData: ArrayBuffer,
 	ephemeralPublicKey: ArrayBuffer,
-	formPrivateKey: CryptoKey
+	formPrivateKey: CryptoKey,
+	additionalData?: BufferSource
 ): Promise<ResponsePayload> {
 	// Import ephemeral public key
 	const ephemeralPubKey = await crypto.subtle.importKey(
@@ -445,7 +457,7 @@ export async function decryptResponse(
 	const ciphertext = bytes.slice(AES_IV_BYTES);
 
 	const plaintext = await crypto.subtle.decrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		decryptionKey,
 		ciphertext
 	);
@@ -478,7 +490,8 @@ export async function hashForVerification(data: BufferSource): Promise<ArrayBuff
  *   ephemeralPublicKey  — raw 32-byte X25519 public key used in the ECDH exchange
  */
 export async function generateAndWrapWorkspaceKey(
-	recipientPublicKeyBytes: ArrayBuffer
+	recipientPublicKeyBytes: ArrayBuffer,
+	additionalData?: BufferSource
 ): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
 	// Generate workspace AES-256-GCM key and export raw bytes
 	const workspaceKey = await crypto.subtle.generateKey(
@@ -517,7 +530,7 @@ export async function generateAndWrapWorkspaceKey(
 	// AES-GCM encrypt the raw workspace key bytes → [IV][ciphertext]
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		encKey,
 		workspaceKeyRaw
 	);
@@ -577,7 +590,8 @@ export async function unwrapIdentityPrivateKey(
 export async function decryptWorkspaceKey(
 	wrappedKey: ArrayBuffer,
 	ephPubBytes: ArrayBuffer,
-	identityPrivKey: CryptoKey
+	identityPrivKey: CryptoKey,
+	additionalData?: BufferSource
 ): Promise<CryptoKey> {
 	const ephPubKey = await crypto.subtle.importKey('raw', ephPubBytes, { name: 'X25519' }, false, []);
 	const sharedSecret = await crypto.subtle.deriveKey(
@@ -593,7 +607,7 @@ export async function decryptWorkspaceKey(
 	const iv = wrappedBytes.slice(0, AES_IV_BYTES);
 	const ciphertext = wrappedBytes.slice(AES_IV_BYTES);
 	const rawWorkspaceKey = await crypto.subtle.decrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		decKey,
 		ciphertext
 	);
@@ -620,7 +634,8 @@ export async function rewrapWorkspaceKey(
 	wrappedKey: ArrayBuffer,
 	ephPubBytes: ArrayBuffer,
 	identityPrivKey: CryptoKey,
-	recipientPubKeyBytes: ArrayBuffer
+	recipientPubKeyBytes: ArrayBuffer,
+	additionalData?: BufferSource
 ): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
 	// ── Decrypt ──────────────────────────────────────────────────────────────
 
@@ -645,7 +660,7 @@ export async function rewrapWorkspaceKey(
 	const decIv = wrappedBytes.slice(0, AES_IV_BYTES);
 	const decCiphertext = wrappedBytes.slice(AES_IV_BYTES);
 	const rawWorkspaceKey = await crypto.subtle.decrypt(
-		{ name: AES_ALGORITHM, iv: decIv, tagLength: 128 },
+		aesGcmParams(decIv, additionalData),
 		decKey,
 		decCiphertext
 	);
@@ -677,7 +692,7 @@ export async function rewrapWorkspaceKey(
 
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		encKey,
 		rawWorkspaceKey
 	);
@@ -705,12 +720,13 @@ export async function rewrapWorkspaceKey(
  */
 export async function wrapFormKey(
 	formKey: CryptoKey,
-	workspaceKey: CryptoKey
+	workspaceKey: CryptoKey,
+	additionalData?: BufferSource
 ): Promise<ArrayBuffer> {
 	const rawFormKey = await crypto.subtle.exportKey('raw', formKey);
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		workspaceKey,
 		rawFormKey
 	);
@@ -727,13 +743,14 @@ export async function wrapFormKey(
  */
 export async function unwrapFormKey(
 	blob: ArrayBuffer,
-	workspaceKey: CryptoKey
+	workspaceKey: CryptoKey,
+	additionalData?: BufferSource
 ): Promise<CryptoKey> {
 	const bytes = new Uint8Array(blob);
 	const iv = bytes.slice(0, AES_IV_BYTES);
 	const ciphertext = bytes.slice(AES_IV_BYTES);
 	const rawFormKey = await crypto.subtle.decrypt(
-		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		aesGcmParams(iv, additionalData),
 		workspaceKey,
 		ciphertext
 	);

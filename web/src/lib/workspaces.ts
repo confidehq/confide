@@ -474,11 +474,13 @@ export async function grantKey(
 	const recipientPub = base64ToBytes(targetIdentityPubKeyB64).buffer as ArrayBuffer;
 
 	// 4. Re-wrap for recipient
+	const enc = new TextEncoder();
 	const { wrappedWorkspaceKey, ephemeralPublicKey } = await rewrapWorkspaceKey(
 		wrappedKey,
 		ephPub,
 		identityPrivKey,
-		recipientPub
+		recipientPub,
+		enc.encode(workspaceId)
 	);
 
 	// 5. POST
@@ -515,8 +517,14 @@ export async function loadWorkspaceKey(workspaceId: string, masterKey: CryptoKey
 
 	const wrappedKey = base64ToBytes(wkBody.wrappedWorkspaceKey).buffer as ArrayBuffer;
 	const ephPub = base64ToBytes(wkBody.ephemeralPublicKey).buffer as ArrayBuffer;
+	const enc = new TextEncoder();
 
-	const workspaceKey = await decryptWorkspaceKey(wrappedKey, ephPub, identityPrivKey);
+	let workspaceKey: CryptoKey;
+	try {
+		workspaceKey = await decryptWorkspaceKey(wrappedKey, ephPub, identityPrivKey, enc.encode(workspaceId));
+	} catch {
+		workspaceKey = await decryptWorkspaceKey(wrappedKey, ephPub, identityPrivKey);
+	}
 
 	workspaceKeyCache.set(workspaceId, workspaceKey);
 	return workspaceKey;
@@ -527,28 +535,41 @@ export async function loadWorkspaceKey(workspaceId: string, masterKey: CryptoKey
  * caller's identity public key via ECIES, then POSTs to the API.
  */
 export async function createWorkspace(name: string, masterKey: CryptoKey): Promise<Workspace> {
-	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
-	const { wrappedWorkspaceKey, ephemeralPublicKey } =
-		await generateAndWrapWorkspaceKey(identityPublicKey);
+	// Step 1: create the workspace to obtain the server-assigned ID.
+	const createRes = await fetch('/api/workspaces', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ name })
+	});
+	const createBody = await createRes.json().catch(() => ({}));
+	if (!createRes.ok) {
+		const code = (createBody as { code?: string }).code ?? 'create_failed';
+		const message = (createBody as { message?: string }).message ?? `Failed to create workspace (${createRes.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	const workspace = createBody as Workspace;
 
-	const res = await fetch('/api/workspaces', {
+	// Step 2: generate and wrap the workspace key, binding it to the workspaceId via AAD.
+	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
+	const enc = new TextEncoder();
+	const { wrappedWorkspaceKey, ephemeralPublicKey } =
+		await generateAndWrapWorkspaceKey(identityPublicKey, enc.encode(workspace.id));
+
+	const keyRes = await fetch(`/api/workspaces/${workspace.id}/member-key`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			name,
 			wrappedWorkspaceKey: bytesToBase64(new Uint8Array(wrappedWorkspaceKey)),
 			ephemeralPublicKey: bytesToBase64(new Uint8Array(ephemeralPublicKey))
 		})
 	});
-
-	const body = await res.json().catch(() => ({}));
-	if (!res.ok) {
-		const code = (body as { code?: string }).code ?? 'create_failed';
-		const message = (body as { message?: string }).message ?? `Failed to create workspace (${res.status})`;
+	if (!keyRes.ok && keyRes.status !== 204) {
+		const code = 'workspace_key_failed';
+		const message = `Workspace created but key upload failed (${keyRes.status})`;
 		throw new WorkspaceError(code, message);
 	}
 
-	return body as Workspace;
+	return workspace;
 }
 
 /**
@@ -565,8 +586,9 @@ export async function setupPersonalWorkspaceKey(masterKey: CryptoKey, accountId:
 	if (existing.ok) return;
 
 	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
+	const enc = new TextEncoder();
 	const { wrappedWorkspaceKey, ephemeralPublicKey } =
-		await generateAndWrapWorkspaceKey(identityPublicKey);
+		await generateAndWrapWorkspaceKey(identityPublicKey, enc.encode(personal.id));
 
 	const res = await fetch(`/api/workspaces/${personal.id}/member-key`, {
 		method: 'POST',

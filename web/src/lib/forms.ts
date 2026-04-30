@@ -21,6 +21,46 @@ import type { FormSchema, ResponsePayload } from './types/crypto';
 import type { BuilderSchema } from './types/builder';
 import * as openpgp from 'openpgp';
 
+const enc = new TextEncoder();
+const aad = (id: string) => enc.encode(id);
+
+// ---------------------------------------------------------------------------
+// AAD-migration compat helpers
+//
+// New blobs are always encrypted WITH AAD. Legacy blobs (pre-migration) have
+// none. These wrappers try the AAD path first; if the tag fails they fall back
+// to the legacy path so existing data remains accessible during migration.
+// ---------------------------------------------------------------------------
+
+async function decryptSchemaCompat(blob: ArrayBuffer, key: CryptoKey, formId: string): Promise<FormSchema> {
+	try {
+		return await decryptSchema(blob, key, aad(formId));
+	} catch {
+		return await decryptSchema(blob, key);
+	}
+}
+
+async function unwrapFormKeyCompat(blob: ArrayBuffer, wsKey: CryptoKey, formId: string): Promise<CryptoKey> {
+	try {
+		return await unwrapFormKey(blob, wsKey, aad(formId));
+	} catch {
+		return await unwrapFormKey(blob, wsKey);
+	}
+}
+
+async function decryptResponseCompat(
+	encData: ArrayBuffer,
+	ephPub: ArrayBuffer,
+	privKey: CryptoKey,
+	formId: string
+): Promise<ResponsePayload> {
+	try {
+		return await decryptResponse(encData, ephPub, privKey, aad(formId));
+	} catch {
+		return await decryptResponse(encData, ephPub, privKey);
+	}
+}
+
 export type { FormSchema, ResponsePayload };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -87,12 +127,12 @@ export async function createForm(
 	const keypair = await deriveFormKeypair(formKey);
 
 	// Encrypt schema for the owner (with formKey).
-	const encryptedSchema = await encryptSchema(schema, formKey);
+	const encryptedSchema = await encryptSchema(schema, formKey, aad(formId));
 
 	// Generate a random salt and derive a stable renderKey from it.
 	const renderKeySalt = crypto.getRandomValues(new Uint8Array(16));
 	const renderKey = await deriveRenderKey(formKey, renderKeySalt.buffer as ArrayBuffer);
-	const renderEncryptedSchema = await encryptSchema(schema, renderKey);
+	const renderEncryptedSchema = await encryptSchema(schema, renderKey, aad(formId));
 
 	// Export public key as raw bytes (32 bytes for X25519).
 	const publicFormKeyBytes = await crypto.subtle.exportKey('raw', keypair.publicKey);
@@ -106,7 +146,7 @@ export async function createForm(
 	};
 	if (workspaceId) body.workspaceId = workspaceId;
 	if (workspaceKey) {
-		const wrapped = await wrapFormKey(formKey, workspaceKey);
+		const wrapped = await wrapFormKey(formKey, workspaceKey, aad(formId));
 		body.workspaceWrappedFormKey = arrayBufferToBase64(wrapped);
 	}
 
@@ -140,22 +180,22 @@ export async function getForm(
 
 	// If a workspace key was provided and the record has a wrapped form key, use it directly.
 	if (workspaceKey && record.workspaceWrappedFormKey) {
-		const formKey = await unwrapFormKey(base64ToArrayBuffer(record.workspaceWrappedFormKey), workspaceKey);
-		const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+		const formKey = await unwrapFormKeyCompat(base64ToArrayBuffer(record.workspaceWrappedFormKey), workspaceKey, formId);
+		const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
 		return { schema, record, formKey };
 	}
 
 	// Try creator path (derive from masterKey).
 	try {
 		const formKey = await deriveFormKey(masterKey, formId);
-		const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+		const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
 		return { schema, record, formKey };
 	} catch {
 		// Creator path failed. If there's a workspace key path available, try it.
 		if (record.workspaceId && record.workspaceWrappedFormKey) {
 			const wsKey = await loadWorkspaceKey(record.workspaceId, masterKey);
-			const formKey = await unwrapFormKey(base64ToArrayBuffer(record.workspaceWrappedFormKey), wsKey);
-			const schema = await decryptSchema(base64ToArrayBuffer(record.encryptedSchema), formKey);
+			const formKey = await unwrapFormKeyCompat(base64ToArrayBuffer(record.workspaceWrappedFormKey), wsKey, formId);
+			const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
 			return { schema, record, formKey };
 		}
 		throw new Error('Unable to decrypt form: no workspace key available');
@@ -186,7 +226,7 @@ export async function updateFormSchema(
 	formKey?: CryptoKey
 ): Promise<{ schemaVersion: number }> {
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
-	const encryptedSchema = await encryptSchema(schema, key);
+	const encryptedSchema = await encryptSchema(schema, key, aad(formId));
 
 	const res = await fetch(`/api/forms/${formId}`, {
 		method: 'PUT',
@@ -284,10 +324,11 @@ export async function decryptResponseRecord(
 	const formKey = formKeyOverride ?? (await deriveFormKey(masterKey, formId));
 	const keypair = await deriveFormKeypair(formKey);
 
-	return decryptResponse(
+	return decryptResponseCompat(
 		base64ToArrayBuffer(record.encryptedData),
 		base64ToArrayBuffer(record.ephemeralPublicKey),
-		keypair.privateKey
+		keypair.privateKey,
+		formId
 	);
 }
 
@@ -301,7 +342,7 @@ export async function setWorkspaceFormKey(
 	workspaceKey: CryptoKey
 ): Promise<void> {
 	const formKey = await deriveFormKey(masterKey, formId);
-	const wrapped = await wrapFormKey(formKey, workspaceKey);
+	const wrapped = await wrapFormKey(formKey, workspaceKey, aad(formId));
 	const res = await fetch(`/api/forms/${formId}/workspace-form-key`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
@@ -332,7 +373,7 @@ export async function getPublicSchema(
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
-	const schema = await decryptSchema(base64ToArrayBuffer(body.renderEncryptedSchema), renderKey);
+	const schema = await decryptSchemaCompat(base64ToArrayBuffer(body.renderEncryptedSchema), renderKey, formId);
 	const publicFormKey = base64ToArrayBuffer(body.publicFormKey);
 
 	return {
@@ -371,7 +412,7 @@ export async function submitResponse(
 		[]
 	);
 
-	const { encryptedData, ephemeralPublicKey } = await encryptResponse(payload, publicFormKey);
+	const { encryptedData, ephemeralPublicKey } = await encryptResponse(payload, publicFormKey, aad(formId));
 
 	let pgpEncryptedData: string | undefined;
 	if (pgpPublicKey) {
@@ -443,7 +484,7 @@ export async function publishForm(
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
 
 	const renderKey = await deriveRenderKey(key, salt.buffer as ArrayBuffer);
-	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey);
+	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey, aad(formId));
 
 	const res = await fetch(`/api/forms/${formId}/publish`, {
 		method: 'POST',
@@ -492,7 +533,7 @@ export async function getSchemaVersion(
 
 	const body = await res.json();
 	const formKey = formKeyOverride ?? (await deriveFormKey(masterKey, formId));
-	const schema = await decryptSchema(base64ToArrayBuffer(body.encryptedSchema), formKey);
+	const schema = await decryptSchemaCompat(base64ToArrayBuffer(body.encryptedSchema), formKey, formId);
 	return schema as BuilderSchema;
 }
 
