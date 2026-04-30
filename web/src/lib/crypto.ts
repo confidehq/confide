@@ -567,6 +567,47 @@ export async function unwrapIdentityPrivateKey(
 }
 
 /**
+ * ECIES-decrypt a wrapped workspace key with the caller's identity private key.
+ *
+ * Inverse of generateAndWrapWorkspaceKey:
+ *   ECDH(X25519) → HKDF(SHA-256, info="confide-workspace-key-v1") → AES-256-GCM decrypt
+ *
+ * Returns an AES-256-GCM CryptoKey suitable for encrypt/decrypt operations.
+ */
+export async function decryptWorkspaceKey(
+	wrappedKey: ArrayBuffer,
+	ephPubBytes: ArrayBuffer,
+	identityPrivKey: CryptoKey
+): Promise<CryptoKey> {
+	const ephPubKey = await crypto.subtle.importKey('raw', ephPubBytes, { name: 'X25519' }, false, []);
+	const sharedSecret = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: ephPubKey },
+		identityPrivKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const decKey = await hkdfDeriveAesKey(sharedSecret, INFO.workspaceKey(), ['decrypt'], false);
+
+	const wrappedBytes = new Uint8Array(wrappedKey);
+	const iv = wrappedBytes.slice(0, AES_IV_BYTES);
+	const ciphertext = wrappedBytes.slice(AES_IV_BYTES);
+	const rawWorkspaceKey = await crypto.subtle.decrypt(
+		{ name: AES_ALGORITHM, iv, tagLength: 128 },
+		decKey,
+		ciphertext
+	);
+
+	return crypto.subtle.importKey(
+		'raw',
+		rawWorkspaceKey,
+		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
+		true,
+		['encrypt', 'decrypt']
+	);
+}
+
+/**
  * ECIES-decrypt a wrapped workspace key with the caller's identity private key,
  * then ECIES-re-encrypt it for a new recipient's identity public key.
  *

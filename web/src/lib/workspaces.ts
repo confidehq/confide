@@ -1,4 +1,4 @@
-import { generateAndWrapWorkspaceKey, unwrapIdentityPrivateKey, rewrapWorkspaceKey } from '$lib/crypto';
+import { generateAndWrapWorkspaceKey, unwrapIdentityPrivateKey, rewrapWorkspaceKey, decryptWorkspaceKey } from '$lib/crypto';
 
 // In-memory cache: workspaceId → decrypted workspace CryptoKey
 const workspaceKeyCache = new Map<string, CryptoKey>();
@@ -514,45 +514,7 @@ export async function loadWorkspaceKey(workspaceId: string, masterKey: CryptoKey
 	const wrappedKey = base64ToBytes(wkBody.wrappedWorkspaceKey).buffer as ArrayBuffer;
 	const ephPub = base64ToBytes(wkBody.ephemeralPublicKey).buffer as ArrayBuffer;
 
-	// ECIES-decrypt: ephPub × identityPrivKey → HKDF → AES-GCM decrypt raw workspace key bytes
-	// Reuse the same decrypt path as rewrapWorkspaceKey but just import the raw bytes
-	const ephPubKey = await crypto.subtle.importKey('raw', ephPub, { name: 'X25519' }, false, []);
-	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: ephPubKey },
-		identityPrivKey,
-		{ name: 'HKDF' },
-		false,
-		['deriveKey']
-	);
-	const encoder = new TextEncoder();
-	const decKey = await crypto.subtle.deriveKey(
-		{
-			name: 'HKDF',
-			hash: 'SHA-256',
-			salt: new ArrayBuffer(0),
-			info: encoder.encode('confide-workspace-key-v1')
-		},
-		sharedSecret,
-		{ name: 'AES-GCM', length: 256 },
-		false,
-		['decrypt']
-	);
-	const wrappedBytes = new Uint8Array(wrappedKey);
-	const iv = wrappedBytes.slice(0, 12);
-	const ciphertext = wrappedBytes.slice(12);
-	const rawWorkspaceKey = await crypto.subtle.decrypt(
-		{ name: 'AES-GCM', iv, tagLength: 128 },
-		decKey,
-		ciphertext
-	);
-
-	const workspaceKey = await crypto.subtle.importKey(
-		'raw',
-		rawWorkspaceKey,
-		{ name: 'AES-GCM', length: 256 },
-		true,
-		['encrypt', 'decrypt']
-	);
+	const workspaceKey = await decryptWorkspaceKey(wrappedKey, ephPub, identityPrivKey);
 
 	workspaceKeyCache.set(workspaceId, workspaceKey);
 	return workspaceKey;
