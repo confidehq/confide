@@ -109,8 +109,8 @@ function prfOutputToBuffer(value: string | ArrayBuffer | ArrayBufferView | numbe
 		// Chromium + 1Password returns a plain number array instead of a BufferSource
 		return Uint8Array.from(value).buffer;
 	}
-	// ArrayBufferView (Uint8Array etc.)
-	return value.buffer as ArrayBuffer;
+	// ArrayBufferView (Uint8Array etc.) — slice to respect byteOffset/byteLength
+	return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
 }
 
 /** Extract PRF output from a registration response and import as AES-KW KEK. */
