@@ -1,4 +1,5 @@
 import { generateAndWrapWorkspaceKey, unwrapIdentityPrivateKey, rewrapWorkspaceKey, decryptWorkspaceKey } from '$lib/crypto';
+import { bytesToBase64, base64ToBytes } from '$lib/encoding';
 
 // In-memory cache: workspaceId → decrypted workspace CryptoKey
 const workspaceKeyCache = new Map<string, CryptoKey>();
@@ -49,18 +50,6 @@ export class WorkspaceError extends Error {
 	) {
 		super(message);
 	}
-}
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function bytesToBase64(bytes: Uint8Array): string {
-	let binary = '';
-	for (const b of bytes) binary += String.fromCharCode(b);
-	return btoa(binary);
-}
-
-function base64ToBytes(b64: string): Uint8Array {
-	return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 // ─── Identity key ─────────────────────────────────────────────────────────────

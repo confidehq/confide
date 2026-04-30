@@ -29,6 +29,7 @@ import {
 	parseRecoveryCode
 } from '$lib/crypto';
 import { clearWorkspaceKeyCache } from '$lib/workspaces';
+import { bytesToBase64, base64ToBytes, base64urlToBytes, bufToBase64 } from '$lib/encoding';
 
 import type {
 	RegisterBeginResponse,
@@ -43,32 +44,6 @@ import type {
 	AddCredentialFinishResponse,
 	CredentialSummary
 } from '$lib/types/auth';
-
-// ─── Base64 Helpers ───────────────────────────────────────────────────────────
-
-/** base64url string → Uint8Array. */
-export function base64urlToBytes(b64url: string): Uint8Array {
-	const pad = (4 - (b64url.length % 4)) % 4;
-	const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad);
-	return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
-
-/** Uint8Array → base64 standard string. */
-export function bytesToBase64(bytes: Uint8Array): string {
-	let binary = '';
-	for (const b of bytes) binary += String.fromCharCode(b);
-	return btoa(binary);
-}
-
-/** base64 standard string → Uint8Array. */
-export function base64ToBytes(b64: string): Uint8Array {
-	return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
-
-/** ArrayBuffer → base64 standard string. */
-function bufToBase64(buf: ArrayBuffer): string {
-	return bytesToBase64(new Uint8Array(buf));
-}
 
 // ─── PRF Key Derivation ───────────────────────────────────────────────────────
 

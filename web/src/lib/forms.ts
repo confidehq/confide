@@ -20,6 +20,7 @@ import { loadWorkspaceKey } from './workspaces';
 import type { FormSchema, ResponsePayload } from './types/crypto';
 import type { BuilderSchema } from './types/builder';
 import * as openpgp from 'openpgp';
+import { bufToBase64, base64ToBuf, bufToBase64url, base64urlToBuf, randomBase64url } from '$lib/encoding';
 
 const enc = new TextEncoder();
 const aad = (id: string) => enc.encode(id);
@@ -139,15 +140,15 @@ export async function createForm(
 
 	const body: Record<string, unknown> = {
 		formId,
-		encryptedSchema: arrayBufferToBase64(encryptedSchema),
-		renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
-		publicFormKey: arrayBufferToBase64(publicFormKeyBytes),
-		renderKeySalt: arrayBufferToBase64(renderKeySalt.buffer as ArrayBuffer)
+		encryptedSchema: bufToBase64(encryptedSchema),
+		renderEncryptedSchema: bufToBase64(renderEncryptedSchema),
+		publicFormKey: bufToBase64(publicFormKeyBytes),
+		renderKeySalt: bufToBase64(renderKeySalt.buffer as ArrayBuffer)
 	};
 	if (workspaceId) body.workspaceId = workspaceId;
 	if (workspaceKey) {
 		const wrapped = await wrapFormKey(formKey, workspaceKey, aad(formId));
-		body.workspaceWrappedFormKey = arrayBufferToBase64(wrapped);
+		body.workspaceWrappedFormKey = bufToBase64(wrapped);
 	}
 
 	const res = await fetch('/api/forms', {
@@ -180,22 +181,22 @@ export async function getForm(
 
 	// If a workspace key was provided and the record has a wrapped form key, use it directly.
 	if (workspaceKey && record.workspaceWrappedFormKey) {
-		const formKey = await unwrapFormKeyCompat(base64ToArrayBuffer(record.workspaceWrappedFormKey), workspaceKey, formId);
-		const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
+		const formKey = await unwrapFormKeyCompat(base64ToBuf(record.workspaceWrappedFormKey), workspaceKey, formId);
+		const schema = await decryptSchemaCompat(base64ToBuf(record.encryptedSchema), formKey, formId);
 		return { schema, record, formKey };
 	}
 
 	// Try creator path (derive from masterKey).
 	try {
 		const formKey = await deriveFormKey(masterKey, formId);
-		const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
+		const schema = await decryptSchemaCompat(base64ToBuf(record.encryptedSchema), formKey, formId);
 		return { schema, record, formKey };
 	} catch {
 		// Creator path failed. If there's a workspace key path available, try it.
 		if (record.workspaceId && record.workspaceWrappedFormKey) {
 			const wsKey = await loadWorkspaceKey(record.workspaceId, masterKey);
-			const formKey = await unwrapFormKeyCompat(base64ToArrayBuffer(record.workspaceWrappedFormKey), wsKey, formId);
-			const schema = await decryptSchemaCompat(base64ToArrayBuffer(record.encryptedSchema), formKey, formId);
+			const formKey = await unwrapFormKeyCompat(base64ToBuf(record.workspaceWrappedFormKey), wsKey, formId);
+			const schema = await decryptSchemaCompat(base64ToBuf(record.encryptedSchema), formKey, formId);
 			return { schema, record, formKey };
 		}
 		throw new Error('Unable to decrypt form: no workspace key available');
@@ -232,7 +233,7 @@ export async function updateFormSchema(
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			encryptedSchema: arrayBufferToBase64(encryptedSchema)
+			encryptedSchema: bufToBase64(encryptedSchema)
 		})
 	});
 
@@ -325,8 +326,8 @@ export async function decryptResponseRecord(
 	const keypair = await deriveFormKeypair(formKey);
 
 	return decryptResponseCompat(
-		base64ToArrayBuffer(record.encryptedData),
-		base64ToArrayBuffer(record.ephemeralPublicKey),
+		base64ToBuf(record.encryptedData),
+		base64ToBuf(record.ephemeralPublicKey),
 		keypair.privateKey,
 		formId
 	);
@@ -346,7 +347,7 @@ export async function setWorkspaceFormKey(
 	const res = await fetch(`/api/forms/${formId}/workspace-form-key`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ workspaceWrappedFormKey: arrayBufferToBase64(wrapped) })
+		body: JSON.stringify({ workspaceWrappedFormKey: bufToBase64(wrapped) })
 	});
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
@@ -373,8 +374,8 @@ export async function getPublicSchema(
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
-	const schema = await decryptSchemaCompat(base64ToArrayBuffer(body.renderEncryptedSchema), renderKey, formId);
-	const publicFormKey = base64ToArrayBuffer(body.publicFormKey);
+	const schema = await decryptSchemaCompat(base64ToBuf(body.renderEncryptedSchema), renderKey, formId);
+	const publicFormKey = base64ToBuf(body.publicFormKey);
 
 	return {
 		schema,
@@ -422,8 +423,8 @@ export async function submitResponse(
 
 	const body = JSON.stringify({
 		formId,
-		encryptedData: arrayBufferToBase64(encryptedData),
-		ephemeralPublicKey: arrayBufferToBase64(ephemeralPublicKey),
+		encryptedData: bufToBase64(encryptedData),
+		ephemeralPublicKey: bufToBase64(ephemeralPublicKey),
 		schemaVersion,
 		loadToken,
 		honeypotFields: honeypotValues,
@@ -490,8 +491,8 @@ export async function publishForm(
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
-			renderEncryptedSchema: arrayBufferToBase64(renderEncryptedSchema),
-			renderKeySalt: arrayBufferToBase64(salt.buffer as ArrayBuffer)
+			renderEncryptedSchema: bufToBase64(renderEncryptedSchema),
+			renderKeySalt: bufToBase64(salt.buffer as ArrayBuffer)
 		})
 	});
 
@@ -499,7 +500,7 @@ export async function publishForm(
 
 	const renderKeyRaw = await crypto.subtle.exportKey('raw', renderKey);
 	const base = customDomainBase ?? window.location.origin;
-	const shareUrl = `${base}/f/${formId}#rk=${arrayBufferToBase64url(renderKeyRaw)}`;
+	const shareUrl = `${base}/f/${formId}#rk=${bufToBase64url(renderKeyRaw)}`;
 
 	return { shareUrl, renderKeySalt: salt };
 }
@@ -533,7 +534,7 @@ export async function getSchemaVersion(
 
 	const body = await res.json();
 	const formKey = formKeyOverride ?? (await deriveFormKey(masterKey, formId));
-	const schema = await decryptSchemaCompat(base64ToArrayBuffer(body.encryptedSchema), formKey, formId);
+	const schema = await decryptSchemaCompat(base64ToBuf(body.encryptedSchema), formKey, formId);
 	return schema as BuilderSchema;
 }
 
@@ -541,7 +542,7 @@ export async function getSchemaVersion(
  * Import a renderKey from raw base64url bytes (parsed from #rk=<base64url> fragment).
  */
 export async function importRenderKey(base64url: string): Promise<CryptoKey> {
-	const bytes = base64urlToArrayBuffer(base64url);
+	const bytes = base64urlToBuf(base64url);
 	return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM', length: 256 }, false, [
 		'decrypt'
 	]);
@@ -552,7 +553,7 @@ export async function importRenderKey(base64url: string): Promise<CryptoKey> {
  */
 export async function exportRenderKey(key: CryptoKey): Promise<string> {
 	const raw = await crypto.subtle.exportKey('raw', key);
-	return arrayBufferToBase64url(raw);
+	return bufToBase64url(raw);
 }
 
 /**
@@ -565,11 +566,11 @@ export async function deriveShareUrl(
 	formKey: CryptoKey,
 	base?: string
 ): Promise<string> {
-	const salt = base64ToArrayBuffer(renderKeySalt);
+	const salt = base64ToBuf(renderKeySalt);
 	const renderKey = await deriveRenderKey(formKey, salt);
 	const raw = await crypto.subtle.exportKey('raw', renderKey);
 	const origin = base ?? window.location.origin;
-	return `${origin}/f/${formId}#rk=${arrayBufferToBase64url(raw)}`;
+	return `${origin}/f/${formId}#rk=${bufToBase64url(raw)}`;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -607,34 +608,6 @@ export class ApiError extends Error {
 	) {
 		super(`API error ${status}`);
 	}
-}
-
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-	const bytes = new Uint8Array(buf);
-	let binary = '';
-	for (const b of bytes) binary += String.fromCharCode(b);
-	return btoa(binary);
-}
-
-function base64ToArrayBuffer(b64: string): ArrayBuffer {
-	const binary = atob(b64);
-	const bytes = new Uint8Array(binary.length);
-	for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-	return bytes.buffer;
-}
-
-function arrayBufferToBase64url(buf: ArrayBuffer): string {
-	return arrayBufferToBase64(buf).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64urlToArrayBuffer(s: string): ArrayBuffer {
-	const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-	return base64ToArrayBuffer(b64);
-}
-
-function randomBase64url(bytes: number): string {
-	const buf = crypto.getRandomValues(new Uint8Array(bytes));
-	return arrayBufferToBase64url(buf.buffer);
 }
 
 function sleep(ms: number): Promise<void> {
