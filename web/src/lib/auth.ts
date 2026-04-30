@@ -359,15 +359,23 @@ export interface RecoverResult {
  * Recover a master key using username + recovery code.
  *
  * Parses the GHRK-XXXX-...-XXXX string into 12 segments.
- * Sends the first segment to the server (which burns it).
+ * Sends SHA-256(segments[0]) to the server (which burns it against the stored hash).
+ * The plaintext segment is never transmitted — the server already holds the hash
+ * from registration and can identify and invalidate the code without seeing it.
  * Derives the recovery key from all 12 segments locally and unwraps.
+ *
+ * Backend requirement: /api/auth/recover must accept `codeHash` (base64 SHA-256)
+ * instead of `code` (plaintext) and match it against the stored per-segment hashes.
  */
 export async function recover(username: string, recoveryCode: string): Promise<RecoverResult> {
 	const segments = parseRecoveryCode(recoveryCode);
 
+	const enc = new TextEncoder();
+	const segmentHash = await hashForVerification(enc.encode(segments[0]));
+
 	const res = await apiPost<RecoverResponse>('/api/auth/recover', {
 		username,
-		code: segments[0] // first segment is burned server-side
+		codeHash: bufToBase64(segmentHash)
 	});
 
 	const recoveryKey = await deriveRecoveryKey(segments);

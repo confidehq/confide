@@ -375,7 +375,7 @@ func TestRecover_InvalidCode_Returns401(t *testing.T) {
 	}
 	svc := newServiceWithDB(db, newTestWA(t))
 
-	_, err := svc.Recover(context.Background(), "acc1", "WRONG-CODE")
+	_, err := svc.Recover(context.Background(), "acc1", []byte("not-a-valid-hash"))
 	if err != ErrInvalidCode {
 		t.Errorf("expected ErrInvalidCode, got %v", err)
 	}
@@ -400,7 +400,7 @@ func TestRecover_BurnsCode(t *testing.T) {
 	}
 
 	svc := newServiceWithDB(db, newTestWA(t))
-	res, err := svc.Recover(context.Background(), "acc1", "TESTCODE")
+	res, err := svc.Recover(context.Background(), "acc1", hash)
 	if err != nil {
 		t.Fatalf("Recover: %v", err)
 	}

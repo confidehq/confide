@@ -303,14 +303,20 @@ func recover_(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Username string `json:"username"`
-			Code     string `json:"code"`
+			CodeHash string `json:"codeHash"` // base64 SHA-256 of segments[0], never plaintext
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_request", "username and code required")
+			writeError(w, http.StatusBadRequest, "invalid_request", "username and codeHash required")
 			return
 		}
 
-		res, err := svc.Recover(r.Context(), req.Username, req.Code)
+		codeHash, err := base64.StdEncoding.DecodeString(req.CodeHash)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request", "codeHash must be base64-encoded")
+			return
+		}
+
+		res, err := svc.Recover(r.Context(), req.Username, codeHash)
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, "invalid_code", "invalid or expired recovery code")
 			return

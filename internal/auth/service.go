@@ -818,18 +818,15 @@ type RecoverResult struct {
 	RekeyToken            string // short-lived proof-of-recovery token
 }
 
-func (s *Service) Recover(ctx context.Context, username, code string) (*RecoverResult, error) {
+func (s *Service) Recover(ctx context.Context, username string, codeHash []byte) (*RecoverResult, error) {
 	account, err := s.db.GetAccountByUsername(ctx, pgtype.Text{String: username, Valid: true})
 	if err != nil {
 		return nil, ErrInvalidCode // don't leak whether the username exists
 	}
 
-	normalised := strings.ToUpper(strings.ReplaceAll(code, "-", ""))
-	hash := sha256Sum([]byte(normalised))
-
 	rc, err := s.db.GetUnusedRecoveryCode(ctx, queries.GetUnusedRecoveryCodeParams{
 		AccountID: account.ID,
-		CodeHash:  hash,
+		CodeHash:  codeHash,
 	})
 	if err != nil {
 		return nil, ErrInvalidCode
