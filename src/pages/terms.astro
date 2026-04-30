@@ -1,0 +1,141 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { marked } from "marked";
+import fs from "node:fs";
+import path from "node:path";
+
+const raw = fs.readFileSync(path.resolve("src/content/tos.md"), "utf-8");
+const content = marked(raw);
+---
+
+<Layout title="Terms of Service — Confide" description="Confide Terms of Service">
+  <div class="doc-page">
+    <a href="/" class="back-link">← Confide</a>
+    <div class="doc-inner" set:html={content} />
+  </div>
+</Layout>
+
+<style>
+  .doc-page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 5rem 1.5rem 6rem;
+  }
+
+  .back-link {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    color: var(--color-brand-accent);
+    margin-bottom: 3rem;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+  }
+
+  .back-link:hover {
+    opacity: 1;
+  }
+
+  .doc-inner :global(h1) {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    font-weight: 700;
+    color: var(--color-brand-text);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .doc-inner :global(h2) {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-brand-accent);
+    margin: 3rem 0 1rem;
+  }
+
+  .doc-inner :global(h3) {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--color-brand-text);
+    margin: 2rem 0 0.75rem;
+  }
+
+  .doc-inner :global(p) {
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin: 0 0 1rem;
+  }
+
+  .doc-inner :global(ul),
+  .doc-inner :global(ol) {
+    padding-left: 1.5rem;
+    margin: 0 0 1rem;
+  }
+
+  .doc-inner :global(li) {
+    font-size: 1rem;
+    font-weight: 300;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: 0.35rem;
+  }
+
+  .doc-inner :global(strong) {
+    font-weight: 500;
+    color: var(--color-brand-text);
+  }
+
+  .doc-inner :global(hr) {
+    border: none;
+    border-top: 1px solid rgba(232, 232, 240, 0.07);
+    margin: 2.5rem 0;
+  }
+
+  .doc-inner :global(a) {
+    color: var(--color-brand-accent);
+    text-decoration: underline;
+    text-decoration-color: rgba(129, 191, 187, 0.35);
+    text-underline-offset: 3px;
+  }
+
+  .doc-inner :global(a:hover) {
+    text-decoration-color: var(--color-brand-accent);
+  }
+
+  .doc-inner :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin: 1.5rem 0;
+  }
+
+  .doc-inner :global(th) {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-brand-accent);
+    text-align: left;
+    padding: 0.6rem 1rem 0.6rem 0;
+    border-bottom: 1px solid rgba(232, 232, 240, 0.1);
+  }
+
+  .doc-inner :global(td) {
+    font-size: 0.9rem;
+    font-weight: 300;
+    color: var(--color-text-secondary);
+    padding: 0.6rem 1rem 0.6rem 0;
+    border-bottom: 1px solid rgba(232, 232, 240, 0.05);
+    vertical-align: top;
+    line-height: 1.65;
+  }
+</style>
