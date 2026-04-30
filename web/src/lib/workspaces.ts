@@ -50,7 +50,9 @@ export class WorkspaceError extends Error {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function bytesToBase64(bytes: Uint8Array): string {
-	return btoa(String.fromCharCode(...bytes));
+	let binary = '';
+	for (const b of bytes) binary += String.fromCharCode(b);
+	return btoa(binary);
 }
 
 function base64ToBytes(b64: string): Uint8Array {
