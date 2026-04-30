@@ -151,7 +151,7 @@ export async function createForm(
 		body.workspaceWrappedFormKey = bufToBase64(wrapped);
 	}
 
-	const res = await fetch('/api/forms', {
+	const res = await apiFetch('/api/forms', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)
@@ -174,7 +174,7 @@ export async function getForm(
 	formId: string,
 	workspaceKey?: CryptoKey
 ): Promise<{ schema: FormSchema; record: FormRecord; formKey: CryptoKey }> {
-	const res = await fetch(`/api/forms/${formId}`);
+	const res = await apiFetch(`/api/forms/${formId}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const record: FormRecord = await res.json();
@@ -229,7 +229,7 @@ export async function updateFormSchema(
 	const key = formKey ?? (await deriveFormKey(masterKey, formId));
 	const encryptedSchema = await encryptSchema(schema, key, aad(formId));
 
-	const res = await fetch(`/api/forms/${formId}`, {
+	const res = await apiFetch(`/api/forms/${formId}`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
@@ -252,7 +252,7 @@ export async function updateFormExpiration(
 	responseTtlDays: number | null = null,
 	burnAfterReading = false
 ): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}/expiration`, {
+	const res = await apiFetch(`/api/forms/${formId}/expiration`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ expiresAt, responseLimit, responseTtlDays, burnAfterReading })
@@ -265,7 +265,7 @@ export async function updateFormExpiration(
  * Draft forms cannot be opened via this — use publishForm instead.
  */
 export async function updateFormStatus(formId: string, status: 'open' | 'closed'): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}/status`, {
+	const res = await apiFetch(`/api/forms/${formId}/status`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ status })
@@ -277,7 +277,7 @@ export async function updateFormStatus(formId: string, status: 'open' | 'closed'
  * Hard-delete a form and all its responses.
  */
 export async function deleteForm(formId: string): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}`, { method: 'DELETE' });
+	const res = await apiFetch(`/api/forms/${formId}`, { method: 'DELETE' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
@@ -294,7 +294,7 @@ export async function listResponses(
 	const params = new URLSearchParams({ limit: String(limit) });
 	if (cursor) params.set('after', cursor);
 
-	const res = await fetch(`/api/forms/${formId}/responses?${params}`);
+	const res = await apiFetch(`/api/forms/${formId}/responses?${params}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 	return res.json();
 }
@@ -306,7 +306,7 @@ export async function getResponseRecord(
 	formId: string,
 	responseId: string
 ): Promise<EncryptedResponseRecord> {
-	const res = await fetch(`/api/forms/${formId}/responses/${responseId}`);
+	const res = await apiFetch(`/api/forms/${formId}/responses/${responseId}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 	return res.json();
 }
@@ -344,7 +344,7 @@ export async function setWorkspaceFormKey(
 ): Promise<void> {
 	const formKey = await deriveFormKey(masterKey, formId);
 	const wrapped = await wrapFormKey(formKey, workspaceKey, aad(formId));
-	const res = await fetch(`/api/forms/${formId}/workspace-form-key`, {
+	const res = await apiFetch(`/api/forms/${formId}/workspace-form-key`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ workspaceWrappedFormKey: bufToBase64(wrapped) })
@@ -356,7 +356,7 @@ export async function setWorkspaceFormKey(
  * Hard-delete a single response.
  */
 export async function deleteResponse(formId: string, responseId: string): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}/responses/${responseId}`, { method: 'DELETE' });
+	const res = await apiFetch(`/api/forms/${formId}/responses/${responseId}`, { method: 'DELETE' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 }
 
@@ -370,7 +370,7 @@ export async function getPublicSchema(
 	formId: string,
 	renderKey: CryptoKey
 ): Promise<{ schema: FormSchema; status: string; schemaVersion: number; publicFormKey: ArrayBuffer; honeypotFields: string[]; loadToken: string; pgpPublicKey: string | null }> {
-	const res = await fetch(`/api/f/${formId}/schema`, { credentials: 'omit' });
+	const res = await apiFetch(`/api/f/${formId}/schema`, { credentials: 'omit' });
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
@@ -455,7 +455,7 @@ export async function updateFormPGPNotification(
 	notificationFrom: string,
 	notificationSubject: string
 ): Promise<void> {
-	const res = await fetch(`/api/forms/${formId}/notification`, {
+	const res = await apiFetch(`/api/forms/${formId}/notification`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ notificationEmail, pgpPublicKey, notificationFrom, notificationSubject })
@@ -487,7 +487,7 @@ export async function publishForm(
 	const renderKey = await deriveRenderKey(key, salt.buffer as ArrayBuffer);
 	const renderEncryptedSchema = await encryptSchema(schema as FormSchema, renderKey, aad(formId));
 
-	const res = await fetch(`/api/forms/${formId}/publish`, {
+	const res = await apiFetch(`/api/forms/${formId}/publish`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
@@ -529,7 +529,7 @@ export async function getSchemaVersion(
 	version: number,
 	formKeyOverride?: CryptoKey
 ): Promise<BuilderSchema> {
-	const res = await fetch(`/api/forms/${formId}/schema-versions/${version}`);
+	const res = await apiFetch(`/api/forms/${formId}/schema-versions/${version}`);
 	if (!res.ok) throw new ApiError(res.status, await res.json());
 
 	const body = await res.json();
@@ -608,6 +608,10 @@ export class ApiError extends Error {
 	) {
 		super(`API error ${status}`);
 	}
+}
+
+function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+	return fetch(path, { credentials: 'include', ...init });
 }
 
 function sleep(ms: number): Promise<void> {

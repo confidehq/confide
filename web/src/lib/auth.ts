@@ -222,7 +222,7 @@ export async function register(username: string): Promise<RegisterResult> {
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
 		recoveryVerifier: bufToBase64(recoveryVerifier),
 		recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
-		credential: JSON.parse(JSON.stringify(credential))
+		credential
 	});
 
 	return {
@@ -280,7 +280,7 @@ export async function login(credentialId?: string | null, username?: string): Pr
 	// Step 3: finish — challengeKey replaces credentialIdBase64
 	const finish = await apiPost<LoginFinishResponse>('/api/auth/login/finish', {
 		challengeKey: begin.challengeKey,
-		credential: JSON.parse(JSON.stringify(credential))
+		credential
 	});
 
 	// Step 4: PRF → KEK; unwrap master key
@@ -312,7 +312,7 @@ export async function reauthenticate(): Promise<LoginResult> {
 	// Step 3: finish — verify assertion server-side, return wrappedMasterKey
 	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
 		challengeKey: begin.challengeKey,
-		credential: JSON.parse(JSON.stringify(credential))
+		credential
 	});
 
 	// Step 4: PRF → KEK; unwrap master key
@@ -413,7 +413,7 @@ export async function rekey(masterKey: CryptoKey, rekeyToken: string): Promise<R
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
 		recoveryVerifier: bufToBase64(recoveryVerifier),
 		recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
-		credential: JSON.parse(JSON.stringify(credential))
+		credential
 	});
 
 	return { credentialId: credential.id };
@@ -468,7 +468,7 @@ export async function reauthenticateForAddCredential(): Promise<string> {
 
 	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
 		challengeKey: begin.challengeKey,
-		credential: JSON.parse(JSON.stringify(credential)),
+		credential,
 		purpose: 'add-credential'
 	});
 
@@ -515,7 +515,7 @@ export async function addCredential(
 		prfSalt: begin.prfSalt,
 		wrappedMasterKey: bufToBase64(wrappedMasterKey),
 		name,
-		credential: JSON.parse(JSON.stringify(credential))
+		credential
 	});
 }
 

@@ -52,6 +52,12 @@ export class WorkspaceError extends Error {
 	}
 }
 
+// ─── Internal fetch wrapper ───────────────────────────────────────────────────
+
+function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+	return fetch(path, { credentials: 'include', ...init });
+}
+
 // ─── Identity key ─────────────────────────────────────────────────────────────
 
 /**
@@ -60,7 +66,7 @@ export class WorkspaceError extends Error {
  */
 async function getOrCreateIdentityKey(masterKey: CryptoKey): Promise<ArrayBuffer> {
 	// Try to load an existing key first
-	const res = await fetch('/api/account/identity-key');
+	const res = await apiFetch('/api/account/identity-key');
 	if (res.ok) {
 		const body = await res.json();
 		return base64ToBytes(body.identityPublicKey).buffer as ArrayBuffer;
@@ -92,7 +98,7 @@ async function getOrCreateIdentityKey(masterKey: CryptoKey): Promise<ArrayBuffer
 	wrapped.set(iv, 0);
 	wrapped.set(new Uint8Array(encrypted), 12);
 
-	const put = await fetch('/api/account/identity-key', {
+	const put = await apiFetch('/api/account/identity-key', {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
@@ -110,7 +116,7 @@ async function getOrCreateIdentityKey(masterKey: CryptoKey): Promise<ArrayBuffer
 // ─── API ─────────────────────────────────────────────────────────────────────
 
 export async function renameWorkspace(id: string, name: string): Promise<void> {
-	const res = await fetch(`/api/workspaces/${id}`, {
+	const res = await apiFetch(`/api/workspaces/${id}`, {
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ name })
@@ -124,7 +130,7 @@ export async function renameWorkspace(id: string, name: string): Promise<void> {
 }
 
 export async function deleteWorkspace(id: string): Promise<void> {
-	const res = await fetch(`/api/workspaces/${id}`, { method: 'DELETE' });
+	const res = await apiFetch(`/api/workspaces/${id}`, { method: 'DELETE' });
 	if (!res.ok && res.status !== 204) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'delete_failed';
@@ -134,7 +140,7 @@ export async function deleteWorkspace(id: string): Promise<void> {
 }
 
 export async function getCustomDomain(workspaceId: string): Promise<CustomDomainInfo> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/custom-domain`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'fetch_failed';
@@ -145,7 +151,7 @@ export async function getCustomDomain(workspaceId: string): Promise<CustomDomain
 }
 
 export async function setCustomDomain(workspaceId: string, domain: string): Promise<CustomDomainInfo> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/custom-domain`, {
 		method: 'PUT',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ domain })
@@ -160,7 +166,7 @@ export async function setCustomDomain(workspaceId: string, domain: string): Prom
 }
 
 export async function verifyCustomDomain(workspaceId: string): Promise<CustomDomainInfo> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain/verify`, { method: 'POST' });
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/custom-domain/verify`, { method: 'POST' });
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'verify_failed';
@@ -171,7 +177,7 @@ export async function verifyCustomDomain(workspaceId: string): Promise<CustomDom
 }
 
 export async function clearCustomDomain(workspaceId: string): Promise<void> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/custom-domain`, { method: 'DELETE' });
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/custom-domain`, { method: 'DELETE' });
 	if (!res.ok && res.status !== 204) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'clear_failed';
@@ -193,7 +199,7 @@ export interface BillingInfo {
 }
 
 export async function getBillingInfo(workspaceId: string): Promise<BillingInfo> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/billing`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/billing`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'billing_fetch_failed';
@@ -209,7 +215,7 @@ export async function subscribe(
 	successUrl: string,
 	cancelUrl: string
 ): Promise<string> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/billing/subscribe`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/billing/subscribe`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ plan, successUrl, cancelUrl })
@@ -224,7 +230,7 @@ export async function subscribe(
 }
 
 export async function openBillingPortal(workspaceId: string, returnUrl: string): Promise<string> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/billing/portal`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/billing/portal`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ returnUrl })
@@ -239,14 +245,14 @@ export async function openBillingPortal(workspaceId: string, returnUrl: string):
 }
 
 export async function listWorkspaces(): Promise<Workspace[]> {
-	const res = await fetch('/api/workspaces');
+	const res = await apiFetch('/api/workspaces');
 	if (!res.ok) throw new WorkspaceError('list_failed', `Failed to load workspaces (${res.status})`);
 	const body = await res.json();
 	return body.workspaces ?? [];
 }
 
 export async function listMembers(workspaceId: string): Promise<WorkspaceMember[]> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/members`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/members`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'list_failed';
@@ -262,7 +268,7 @@ export async function updateMemberRole(
 	accountId: string,
 	role: string
 ): Promise<void> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
 		method: 'PATCH',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ role })
@@ -276,7 +282,7 @@ export async function updateMemberRole(
 }
 
 export async function removeMember(workspaceId: string, accountId: string): Promise<void> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/members/${accountId}`, {
 		method: 'DELETE'
 	});
 	if (!res.ok && res.status !== 204) {
@@ -304,7 +310,7 @@ export async function createInvitation(
 	email: string | null,
 	role: string
 ): Promise<WorkspaceInvitation> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/invitations`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/invitations`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ email: email ?? '', role })
@@ -319,7 +325,7 @@ export async function createInvitation(
 }
 
 export async function listInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/invitations`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/invitations`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'list_failed';
@@ -331,7 +337,7 @@ export async function listInvitations(workspaceId: string): Promise<WorkspaceInv
 }
 
 export async function revokeInvitation(workspaceId: string, inviteId: string): Promise<void> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/invitations/${inviteId}`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/invitations/${inviteId}`, {
 		method: 'DELETE'
 	});
 	if (!res.ok && res.status !== 204) {
@@ -362,7 +368,7 @@ export interface InvitePreview {
 }
 
 export async function resolveInvitation(token: string): Promise<InvitePreview> {
-	const res = await fetch(`/api/invitations/${token}`);
+	const res = await apiFetch(`/api/invitations/${token}`);
 	if (res.status === 404) throw new WorkspaceError('not_found', 'Invitation not found.');
 	if (res.status === 410) throw new WorkspaceError('expired', 'This invitation has expired or already been used.');
 	if (!res.ok) throw new WorkspaceError('resolve_failed', `Failed to load invitation (${res.status})`);
@@ -370,7 +376,7 @@ export async function resolveInvitation(token: string): Promise<InvitePreview> {
 }
 
 export async function acceptInvitation(token: string): Promise<void> {
-	const res = await fetch(`/api/invitations/${token}/accept`, { method: 'POST' });
+	const res = await apiFetch(`/api/invitations/${token}/accept`, { method: 'POST' });
 	if (res.status === 204 || res.ok) return;
 	const body = await res.json().catch(() => ({}));
 	const code = (body as { code?: string }).code ?? 'accept_failed';
@@ -391,7 +397,7 @@ export interface MemberIdentityKey {
 }
 
 export async function listPendingGrants(workspaceId: string): Promise<PendingGrant[]> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/pending-key-grants`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/pending-key-grants`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'list_failed';
@@ -403,7 +409,7 @@ export async function listPendingGrants(workspaceId: string): Promise<PendingGra
 }
 
 export async function listMemberIdentityKeys(workspaceId: string): Promise<MemberIdentityKey[]> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/members/identity-keys`);
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/members/identity-keys`);
 	if (!res.ok) {
 		const body = await res.json().catch(() => ({}));
 		const code = (body as { code?: string }).code ?? 'list_failed';
@@ -420,7 +426,7 @@ export async function grantMemberKey(
 	wrappedWorkspaceKey: string,
 	ephemeralPublicKey: string
 ): Promise<void> {
-	const res = await fetch(`/api/workspaces/${workspaceId}/member-key`, {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/member-key`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ accountId, wrappedWorkspaceKey, ephemeralPublicKey })
@@ -449,7 +455,7 @@ export async function grantKey(
 	masterKey: CryptoKey
 ): Promise<void> {
 	// 1. Own identity keypair
-	const ikRes = await fetch('/api/account/identity-key');
+	const ikRes = await apiFetch('/api/account/identity-key');
 	if (!ikRes.ok) throw new WorkspaceError('identity_key', 'Failed to load your identity key');
 	const ikBody = await ikRes.json() as { wrappedIdentityPrivateKey: string };
 
@@ -458,7 +464,7 @@ export async function grantKey(
 	const identityPrivKey = await unwrapIdentityPrivateKey(wrappedPrivBlob, masterKey);
 
 	// 3. Own workspace key
-	const wkRes = await fetch(`/api/workspaces/${workspaceId}/member-key`);
+	const wkRes = await apiFetch(`/api/workspaces/${workspaceId}/member-key`);
 	if (!wkRes.ok) throw new WorkspaceError('workspace_key', 'Failed to load workspace key');
 	const wkBody = await wkRes.json() as { wrappedWorkspaceKey: string; ephemeralPublicKey: string };
 
@@ -497,14 +503,14 @@ export async function loadWorkspaceKey(workspaceId: string, masterKey: CryptoKey
 	if (cached) return cached;
 
 	// Own identity private key
-	const ikRes = await fetch('/api/account/identity-key');
+	const ikRes = await apiFetch('/api/account/identity-key');
 	if (!ikRes.ok) throw new WorkspaceError('identity_key', 'Failed to load identity key');
 	const ikBody = await ikRes.json() as { wrappedIdentityPrivateKey: string };
 	const wrappedPrivBlob = base64ToBytes(ikBody.wrappedIdentityPrivateKey).buffer as ArrayBuffer;
 	const identityPrivKey = await unwrapIdentityPrivateKey(wrappedPrivBlob, masterKey);
 
 	// Own workspace key entry
-	const wkRes = await fetch(`/api/workspaces/${workspaceId}/member-key`);
+	const wkRes = await apiFetch(`/api/workspaces/${workspaceId}/member-key`);
 	if (!wkRes.ok) throw new WorkspaceError('workspace_key', 'No workspace key — not yet granted access');
 	const wkBody = await wkRes.json() as { wrappedWorkspaceKey: string; ephemeralPublicKey: string };
 
@@ -529,7 +535,7 @@ export async function loadWorkspaceKey(workspaceId: string, masterKey: CryptoKey
  */
 export async function createWorkspace(name: string, masterKey: CryptoKey): Promise<Workspace> {
 	// Step 1: create the workspace to obtain the server-assigned ID.
-	const createRes = await fetch('/api/workspaces', {
+	const createRes = await apiFetch('/api/workspaces', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({ name })
@@ -548,7 +554,7 @@ export async function createWorkspace(name: string, masterKey: CryptoKey): Promi
 	const { wrappedWorkspaceKey, ephemeralPublicKey } =
 		await generateAndWrapWorkspaceKey(identityPublicKey, enc.encode(workspace.id));
 
-	const keyRes = await fetch(`/api/workspaces/${workspace.id}/member-key`, {
+	const keyRes = await apiFetch(`/api/workspaces/${workspace.id}/member-key`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
@@ -575,7 +581,7 @@ export async function setupPersonalWorkspaceKey(masterKey: CryptoKey, accountId:
 	if (!personal) return;
 
 	// Skip if a key is already in place — avoids overwriting on every login.
-	const existing = await fetch(`/api/workspaces/${personal.id}/member-key`);
+	const existing = await apiFetch(`/api/workspaces/${personal.id}/member-key`);
 	if (existing.ok) return;
 
 	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
@@ -583,7 +589,7 @@ export async function setupPersonalWorkspaceKey(masterKey: CryptoKey, accountId:
 	const { wrappedWorkspaceKey, ephemeralPublicKey } =
 		await generateAndWrapWorkspaceKey(identityPublicKey, enc.encode(personal.id));
 
-	const res = await fetch(`/api/workspaces/${personal.id}/member-key`, {
+	const res = await apiFetch(`/api/workspaces/${personal.id}/member-key`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify({
