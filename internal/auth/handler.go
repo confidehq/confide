@@ -67,11 +67,6 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 
 func checkUsername(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := r.URL.Query().Get("accountId")
-		if accountID == "" || !svc.HasRegistrationChallenge(accountID) {
-			writeError(w, http.StatusForbidden, "forbidden", "active registration session required")
-			return
-		}
 		username := r.URL.Query().Get("username")
 		if username == "" {
 			writeError(w, http.StatusBadRequest, "missing_param", "username required")
