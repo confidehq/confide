@@ -19,7 +19,6 @@ import {
 import { loadWorkspaceKey } from './workspaces';
 import type { FormSchema, ResponsePayload } from './types/crypto';
 import type { BuilderSchema } from './types/builder';
-import * as openpgp from 'openpgp';
 import { bufToBase64, base64ToBuf, bufToBase64url, base64urlToBuf, randomBase64url } from '$lib/encoding';
 
 const enc = new TextEncoder();
@@ -590,14 +589,16 @@ export async function validatePGPKey(armoredKey: string): Promise<string> {
 		}
 		throw new Error('Not a PGP public key. The key must start with "-----BEGIN PGP PUBLIC KEY BLOCK-----".');
 	}
-	const key = await openpgp.readKey({ armoredKey: trimmed });
+	const { readKey } = await import('openpgp');
+	const key = await readKey({ armoredKey: trimmed });
 	return key.getFingerprint().toUpperCase();
 }
 
 async function pgpEncryptPayload(plaintext: string, armoredPublicKey: string): Promise<string> {
-	const publicKey = await openpgp.readKey({ armoredKey: armoredPublicKey.trim() });
-	const message = await openpgp.createMessage({ text: plaintext });
-	const encrypted = await openpgp.encrypt({ message, encryptionKeys: publicKey });
+	const { readKey, createMessage, encrypt } = await import('openpgp');
+	const publicKey = await readKey({ armoredKey: armoredPublicKey.trim() });
+	const message = await createMessage({ text: plaintext });
+	const encrypted = await encrypt({ message, encryptionKeys: publicKey });
 	return encrypted as string;
 }
 

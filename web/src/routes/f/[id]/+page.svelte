@@ -62,6 +62,9 @@
 				: result.schema.defaultLocale;
 
 			formState = 'ready';
+
+			// Warm the openpgp module cache in the background while the user fills the form
+			if (result.pgpPublicKey) import('openpgp');
 		} catch (err) {
 			if (err instanceof ApiError && err.status === 404) {
 				formState = 'invalid';
