@@ -329,6 +329,26 @@
 			</div>
 		{/if}
 
+		<!-- Branding -->
+		<div class="border-t border-border-deep pt-4">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="m-0 text-sm text-text-dim">Show Confide watermark</p>
+					<p class="m-0 text-xs text-muted-dark mt-0.5">Display the Confide logo at the bottom of the form.</p>
+				</div>
+				<button
+					role="switch"
+					aria-checked={store.schema.showWatermark !== false}
+					onclick={() => store.setShowWatermark(store.schema.showWatermark === false)}
+					class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+						{store.schema.showWatermark !== false ? 'bg-primary' : 'bg-border-deep'}"
+				>
+					<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+						{store.schema.showWatermark !== false ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+				</button>
+			</div>
+		</div>
+
 		<!-- Scheduling options -->
 		<div class="border-t border-border-deep pt-4 flex flex-col divide-y divide-border-deep">
 

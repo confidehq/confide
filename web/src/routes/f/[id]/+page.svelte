@@ -5,6 +5,7 @@
 	import type { FormSchema } from '$lib/forms';
 	import ScrollRenderer from '$lib/components/form/ScrollRenderer.svelte';
 	import StepsRenderer from '$lib/components/form/StepsRenderer.svelte';
+	import { ShieldCheck } from '@lucide/svelte';
 
 	type FormState = 'loading' | 'ready' | 'submitted' | 'closed' | 'invalid' | 'error';
 
@@ -81,6 +82,8 @@
 </script>
 
 <svelte:head>
+	<title>{schema?.translations?.[locale]?.formTitle ?? schema?.translations?.[schema.defaultLocale]?.formTitle ?? 'Confide'}</title>
+	<link rel="icon" href="/favicon.svg" />
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
@@ -104,6 +107,10 @@
 {:else if formState === 'submitted'}
 	<div class="shell">
 		<p class="muted">{schema?.translations?.[locale]?.convoCompletionMessage ?? 'Your response has been submitted.'}</p>
+		<p class="muted small encrypted-note">
+			<ShieldCheck size={13} strokeWidth={2} />
+			Your data was encrypted locally and safely submitted.
+		</p>
 	</div>
 {:else if formState === 'ready' && schema && publicFormKey}
 	{#if schema.layout === 'steps'}
@@ -161,5 +168,11 @@
 
 	.small {
 		font-size: 0.85rem;
+	}
+
+	.encrypted-note {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
 	}
 </style>

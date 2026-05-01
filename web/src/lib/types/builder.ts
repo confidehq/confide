@@ -117,6 +117,7 @@ export interface BuilderSchema {
 	locales: string[];
 	layout: 'scroll' | 'steps' | 'convo';
 	convoAllowEdit?: boolean;
+	showWatermark?: boolean;
 	fields: BuilderField[];
 	translations: Record<string, TranslationMap>;
 	/** Per-locale field ordering: maps locale → ordered array of field IDs.

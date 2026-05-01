@@ -6,6 +6,7 @@
 	import { validateAll } from '$lib/validation';
 	import type { AnswerValue } from '$lib/validation';
 	import FieldRenderer from './FieldRenderer.svelte';
+	import { Languages, ShieldCheck, Lock } from '@lucide/svelte';
 
 	interface Props {
 		schema: BuilderSchema;
@@ -118,21 +119,50 @@
 </script>
 
 <div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-form-text">
-	{#if locales.length > 1}
-		<div class="flex justify-center gap-1.5 mb-6">
-			{#each locales as code (code)}
-				<button
-					onclick={() => onlocalechange(code)}
-					class="px-3 py-1 rounded-full text-sm font-medium transition-colors duration-100 cursor-pointer border-none
-						{locale === code
-							? 'bg-form-primary text-white'
-							: 'bg-form-surface text-form-muted hover:bg-form-border-light hover:text-form-text-mid'}"
-				>
-					{new Intl.DisplayNames([code, 'en'], { type: 'language' }).of(code) ?? code}
-				</button>
-			{/each}
+	<div class="flex justify-between items-center mb-4">
+		<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-form-surface border border-form-border text-xs text-form-muted">
+			<ShieldCheck size={12} strokeWidth={2} class="text-form-primary shrink-0" />
+			<span class="sm:hidden">Your response is encrypted</span>
+			<span class="hidden sm:inline">Your response is end-to-end encrypted</span>
 		</div>
-	{/if}
+		{#if locales.length > 1}
+			<!-- Mobile: compact with locale codes -->
+			<div class="relative inline-flex items-center sm:hidden">
+				<Languages class="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-form-muted pointer-events-none" />
+				<select
+					value={locale}
+					onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
+					class="appearance-none pl-7 pr-5 py-1 text-xs rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40 uppercase"
+				>
+					{#each locales as code (code)}
+						<option value={code}>{code.toUpperCase()}</option>
+					{/each}
+				</select>
+				<svg class="absolute right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 text-form-muted pointer-events-none" viewBox="0 0 12 12" fill="none">
+					<path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
+			<!-- Desktop: full language names -->
+			<div class="relative hidden sm:inline-flex items-center">
+				<Languages class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-form-muted pointer-events-none" />
+				<select
+					value={locale}
+					onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
+					class="appearance-none pl-8 pr-7 py-1.5 text-sm rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40"
+				>
+					{#each locales as code (code)}
+						<option value={code}>
+							{new Intl.DisplayNames([code, 'en'], { type: 'language' }).of(code) ?? code}
+						</option>
+					{/each}
+				</select>
+				<svg class="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-form-muted pointer-events-none" viewBox="0 0 12 12" fill="none">
+					<path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
+		{/if}
+	</div>
+
 	<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 	{#if translation?.formDescription}
 		<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>
@@ -174,7 +204,23 @@
 			class="mt-8 px-8 py-3 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
 				{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 		>
+			<span class="inline-flex items-center gap-2">
+			<Lock size={13} strokeWidth={2} class="opacity-70" />
 			{submitting ? 'Submitting…' : 'Submit'}
+		</span>
 		</button>
 	</form>
+
+	{#if schema.showWatermark !== false}
+		<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer" class="sm:hidden flex justify-center items-center gap-1.5 mt-8 pt-4 border-t border-form-border text-xs text-form-muted no-underline hover:text-form-text-mid transition-colors duration-100">
+			Made with
+			<img src="/favicon.svg" alt="" class="w-4 h-4" />
+			<span class="font-medium text-form-text-mid">Confide</span>
+		</a>
+		<div class="hidden sm:flex justify-end mt-6">
+			<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer">
+				<img src="/watermark.svg" alt="Powered by Confide" class="w-[100px] opacity-70 hover:opacity-100 transition-opacity duration-100" />
+			</a>
+		</div>
+	{/if}
 </div>
