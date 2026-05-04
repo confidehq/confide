@@ -45,6 +45,7 @@
 	// Form inputs
 	let username = $state("");
 	let workspaceName = $state("");
+	let agreedToTerms = $state(false);
 
 	// Username availability check
 	type UsernameStatus = "idle" | "checking" | "available" | "taken";
@@ -100,6 +101,10 @@
 		}
 		if (usernameStatus === "taken") {
 			registerError = null;
+			return;
+		}
+		if (!agreedToTerms) {
+			registerError = "Please agree to the Terms of Service and Privacy Policy.";
 			return;
 		}
 		registerError = null;
@@ -318,6 +323,30 @@
 							<span class="text-error text-sm">Username taken</span>
 						{/if}
 					</div>
+
+					<label class="flex items-start gap-2.5 mb-4 cursor-pointer select-none">
+						<input
+							type="checkbox"
+							bind:checked={agreedToTerms}
+							class="mt-0.5 shrink-0 accent-primary w-4 h-4 cursor-pointer"
+						/>
+						<span class="text-sm text-muted-dim leading-snug">
+							I agree to the
+							<a
+								href="https://useconfide.app/terms/"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-text-blue hover:underline"
+							>Terms of Service</a>
+							and
+							<a
+								href="https://useconfide.app/privacy/"
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-text-blue hover:underline"
+							>Privacy Policy</a>
+						</span>
+					</label>
 
 					{#if registerError}
 						<p class="text-error text-sm mb-3">{registerError}</p>
