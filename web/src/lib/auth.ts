@@ -175,6 +175,24 @@ export interface RegisterResult {
 	recoveryCode: string; // single GHRK-XXXX-...-XXXX string
 }
 
+function deviceName(): string {
+	const ua = navigator.userAgent;
+	let browser = 'Browser';
+	if (ua.includes('Firefox/')) browser = 'Firefox';
+	else if (ua.includes('Edg/')) browser = 'Edge';
+	else if (ua.includes('Chrome/')) browser = 'Chrome';
+	else if (ua.includes('Safari/')) browser = 'Safari';
+
+	let os = 'Device';
+	if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+	else if (ua.includes('Android')) os = 'Android';
+	else if (ua.includes('Win')) os = 'Windows';
+	else if (ua.includes('Mac')) os = 'macOS';
+	else if (ua.includes('Linux')) os = 'Linux';
+
+	return `${browser} on ${os}`;
+}
+
 /**
  * Complete the full registration ceremony.
  *
@@ -225,6 +243,7 @@ export async function register(username: string): Promise<RegisterResult> {
 	const finish = await apiPost<{ accountId: string }>('/api/auth/register/finish', {
 		accountId: begin.accountId,
 		username,
+		name: deviceName(),
 		prfSalt: begin.prfSalt,
 		wrappedMasterKey: bufToBase64(wrappedMasterKey),
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),

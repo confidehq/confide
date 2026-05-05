@@ -230,6 +230,7 @@ func (s *Service) RegisterBegin(ctx context.Context, username string) (*Register
 type RegisterFinishRequest struct {
 	AccountID             string   `json:"accountId"`
 	Username              string   `json:"username"`
+	Name                  string   `json:"name"`
 	WrappedMasterKey      []byte   `json:"wrappedMasterKey"`         // base64 in JSON
 	RecoveryWrappedMaster []byte   `json:"recoveryWrappedMasterKey"` // base64 in JSON
 	RecoveryVerifier      []byte   `json:"recoveryVerifier"`         // base64 in JSON
@@ -296,7 +297,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 			PrfSalt:          req.PRFSalt,
 			WrappedMasterKey: req.WrappedMasterKey,
 			BackupEligible:   cred.Flags.BackupEligible,
-			Name:             "",
+			Name:             req.Name,
 		}); err != nil {
 			if isDuplicateKey(err) {
 				return ErrDuplicateAccount
@@ -491,20 +492,10 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 			})
 		}
 	} else {
-		// Discoverable login: session started with BeginDiscoverableLogin.
-		// Look up account via userHandle (authoritative) or rawID (fallback).
+		// Discoverable login: look up the credential by rawID — that is the one
+		// that actually signed, and go-webauthn requires it to be present in the
+		// returned user's credential list.
 		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-			if len(userHandle) > 0 {
-				// userHandle is the account ID; get its primary credential for verification.
-				credID, err := s.db.GetPrimaryCredentialIDByAccount(ctx, string(userHandle))
-				if err == nil {
-					credRow, err := s.db.GetCredentialByWebAuthnID(ctx, credID)
-					if err == nil {
-						accountID = credRow.AccountID
-						return credRowToWAUser(credRow), nil
-					}
-				}
-			}
 			credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 			if err != nil {
 				return nil, ErrNotFound
@@ -614,19 +605,11 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 
 	var usedCredID []byte
 	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-		if len(userHandle) > 0 {
-			credID, err := s.db.GetPrimaryCredentialIDByAccount(ctx, string(userHandle))
-			if err == nil {
-				credRow, err := s.db.GetCredentialByWebAuthnID(ctx, credID)
-				if err == nil {
-					return credRowToWAUser(credRow), nil
-				}
-			}
-		}
 		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 		if err != nil {
 			return nil, ErrNotFound
 		}
+		accountID = credRow.AccountID
 		return credRowToWAUser(credRow), nil
 	}
 

@@ -133,6 +133,7 @@ func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 		var req struct {
 			AccountID             string          `json:"accountId"`
 			Username              string          `json:"username"`
+			Name                  string          `json:"name"`
 			WrappedMasterKey      string          `json:"wrappedMasterKey"`
 			RecoveryWrappedMaster string          `json:"recoveryWrappedMasterKey"`
 			RecoveryVerifier      string          `json:"recoveryVerifier"`
@@ -192,6 +193,7 @@ func registerFinish(svc *Service, dev bool) http.HandlerFunc {
 		svcReq := &RegisterFinishRequest{
 			AccountID:             req.AccountID,
 			Username:              req.Username,
+			Name:                  req.Name,
 			WrappedMasterKey:      wmk,
 			RecoveryWrappedMaster: rwmk,
 			RecoveryVerifier:      rv,
