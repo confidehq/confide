@@ -7,7 +7,7 @@
 	import type { Component } from 'svelte';
 	import {
 		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
-		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical
+		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical, Copy
 	} from '@lucide/svelte';
 
 	const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> = [
@@ -306,6 +306,11 @@
 							></textarea>
 						</div>
 						<button
+							onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
+							class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 hover:text-muted transition-colors duration-100"
+							aria-label="Duplicate field" title="Duplicate field"
+						><Copy size={15} strokeWidth={1.75} /></button>
+						<button
 							onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
 							class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 hover:text-muted transition-colors duration-100"
 							aria-label="Delete field" title="Delete field"
@@ -328,6 +333,11 @@
 							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
 							<span class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0">{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</span>
 							<span class="flex-1"></span>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Duplicate field" title="Duplicate field"
+							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
 								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
@@ -386,6 +396,11 @@
 								class="px-1.5 py-px border rounded-full text-xs shrink-0"
 							>{accentVariant}</span>
 							<span class="flex-1"></span>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Duplicate field" title="Duplicate field"
+							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
 								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
@@ -447,6 +462,11 @@
 								class="px-1.5 py-0.5 border-none rounded-full text-xs shrink-0 cursor-pointer font-mono transition-colors duration-100 hover:opacity-80"
 							>{field.required ? 'required' : 'optional'}</button>
 
+							<button
+								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Duplicate field" title="Duplicate field"
+							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
 								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"

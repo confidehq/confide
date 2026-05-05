@@ -43,6 +43,7 @@ export interface BuilderStore {
 	addField(type: FieldType): void;
 	addFieldAt(type: FieldType, afterIndex: number): void;
 	removeField(id: string): void;
+	duplicateField(id: string): void;
 	reorderFields(newOrder: BuilderField[]): void;
 	updateField(id: string, patch: Partial<BuilderField>): void;
 	updateFieldConfig(id: string, patch: Partial<FieldConfig>): void;
@@ -287,6 +288,56 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			...(updatedFieldOrders ? { fieldOrders: updatedFieldOrders } : {})
 		};
 		if (selectedFieldId === id) selectedFieldId = null;
+		markDirty();
+	}
+
+	function duplicateField(id: string): void {
+		const original = schema.fields.find((f) => f.id === id);
+		if (!original) return;
+
+		const newId = crypto.randomUUID();
+		const orderedIds = getOrderedFields(schema, activeLocale).map((f) => f.id);
+		const afterIndex = orderedIds.indexOf(id);
+
+		const newField: BuilderField = {
+			...original,
+			id: newId,
+			order: schema.fields.length,
+			config: JSON.parse(JSON.stringify(original.config))
+		};
+
+		const updatedTranslations = { ...schema.translations };
+		for (const locale of schema.locales) {
+			const fieldTranslation = schema.translations[locale]?.fields[id];
+			updatedTranslations[locale] = {
+				...updatedTranslations[locale],
+				fields: {
+					...updatedTranslations[locale]?.fields,
+					[newId]: fieldTranslation ? JSON.parse(JSON.stringify(fieldTranslation)) : { label: '' }
+				}
+			};
+		}
+
+		const baseIds = [...orderedIds];
+		baseIds.splice(afterIndex + 1, 0, newId);
+
+		const updatedFieldOrders: Record<string, string[]> = {};
+		for (const locale of schema.locales) {
+			if (locale === activeLocale) {
+				updatedFieldOrders[locale] = baseIds;
+			} else {
+				const existing = schema.fieldOrders?.[locale] ?? getOrderedFields(schema, locale).map((f) => f.id);
+				updatedFieldOrders[locale] = [...existing, newId];
+			}
+		}
+
+		schema = {
+			...schema,
+			fields: [...schema.fields, newField],
+			translations: updatedTranslations,
+			fieldOrders: updatedFieldOrders
+		};
+		selectedFieldId = newId;
 		markDirty();
 	}
 
@@ -567,6 +618,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		addField,
 		addFieldAt,
 		removeField,
+		duplicateField,
 		reorderFields,
 		updateField,
 		updateFieldConfig,
