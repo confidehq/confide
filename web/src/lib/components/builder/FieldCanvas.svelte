@@ -7,7 +7,7 @@
 	import type { Component } from 'svelte';
 	import {
 		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
-		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus
+		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical
 	} from '@lucide/svelte';
 
 	const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> = [
@@ -29,18 +29,24 @@
 	let popoverAnchor = $state<{ top: number; left: number } | null>(null);
 	let ratingHover = $state<{ fieldId: string; value: number } | null>(null);
 
-	function openSlot(e: MouseEvent, afterIndex: number) {
+	function openSlot(e: MouseEvent, afterIndex: number, anchor: 'left' | 'above' = 'left') {
 		e.stopPropagation();
 		const btn = e.currentTarget as HTMLElement;
 		const rect = btn.getBoundingClientRect();
 		const popoverH = 230;
-		const popoverW = 280;
+		const popoverW = 288;
 		const margin = 8;
-		const left = Math.max(margin, rect.left - popoverW - 8);
-		const top = Math.max(margin, Math.min(
-			rect.top + rect.height / 2 - popoverH / 2,
-			window.innerHeight - popoverH - margin
-		));
+		let left: number, top: number;
+		if (anchor === 'above') {
+			left = Math.max(margin, Math.min(rect.left + rect.width / 2 - popoverW / 2, window.innerWidth - popoverW - margin));
+			top = rect.top - popoverH - 8 > margin ? rect.top - popoverH - 8 : rect.bottom + 8;
+		} else {
+			left = Math.max(margin, rect.left - popoverW - 8);
+			top = Math.max(margin, Math.min(
+				rect.top + rect.height / 2 - popoverH / 2,
+				window.innerHeight - popoverH - margin
+			));
+		}
 		insertSlot = afterIndex;
 		popoverAnchor = { top, left };
 	}
@@ -196,7 +202,7 @@
 {@const defaultLocaleDesc = store.activeLocale !== store.schema.defaultLocale
 	? (store.schema.translations[store.schema.defaultLocale]?.formDescription ?? '')
 		: ''}
-	<div class="max-w-2xl mx-auto w-full">
+	<div class="max-w-4xl mx-auto w-full">
 		<!-- Form title and description -->
 		<div
 			onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
@@ -270,6 +276,7 @@
 				{@const defaultHelpText = getDefaultHelpText(field.id)}
 				{@const defaultPlaceholder = getDefaultPlaceholder(field.id)}
 				<div
+					data-field-id={field.id}
 					class="relative"
 					onmouseenter={() => hoveredSlot = fieldIndex}
 					onmouseleave={() => hoveredSlot = null}
@@ -297,7 +304,7 @@
 						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'transparent'};"
 						class="flex items-center gap-3 px-3 py-2 border rounded-md cursor-pointer"
 					>
-						<span class="text-muted-dark cursor-grab text-sm">⠿</span>
+						<span class="text-muted-dark cursor-grab flex"><GripVertical size={15} strokeWidth={1.75} /></span>
 						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
 							<textarea
 								rows={1}
@@ -315,9 +322,9 @@
 						</div>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-							class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono"
-							aria-label="Delete field"
-						>×</button>
+							class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 hover:text-muted transition-colors duration-100"
+							aria-label="Delete field" title="Delete field"
+						><Trash2 size={15} strokeWidth={1.75} /></button>
 					</div>
 				{:else if isHeading}
 					{@const headingLevel = (field.config as import('$lib/types/builder').HeadingConfig).level ?? 2}
@@ -333,14 +340,14 @@
 						class="px-3 py-2 border rounded-md cursor-pointer"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
+							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
 							<span class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0">{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</span>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
-								aria-label="Delete field"
-							>×</button>
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Delete field" title="Delete field"
+							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
 						<textarea
 							rows={1}
@@ -388,7 +395,7 @@
 						class="px-3 py-2.5 rounded-r-md cursor-pointer"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
+							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
 							<span
 								style="background: {accentColors.badgeBg}; color: {accentColors.badge}; border-color: {accentColors.border}44;"
 								class="px-1.5 py-px border rounded-full text-xs shrink-0"
@@ -396,9 +403,9 @@
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
-								aria-label="Delete field"
-							>×</button>
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Delete field" title="Delete field"
+							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
 						<textarea
 							rows={1}
@@ -434,7 +441,7 @@
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-muted-dark cursor-grab text-sm shrink-0">⠿</span>
+							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
 
 							<span class="px-2 py-0.5 bg-border text-muted rounded-full text-xs shrink-0">
 								{FIELD_TYPE_LABELS[field.type] ?? field.type}
@@ -443,23 +450,23 @@
 							<span class="flex-1"></span>
 
 							{#if !label}
-								<span
-									title="Missing translation for {store.activeLocale}"
-									class="text-warning-border text-sm shrink-0"
-								>⚠</span>
-							{/if}
-
-							{#if field.required}
-								<span class="px-1.5 py-0.5 bg-info-bg-dark text-text-blue rounded-full text-xs shrink-0">
-									required
+								<span title="Missing translation for {store.activeLocale}" class="text-warning-border shrink-0 flex">
+									<TriangleAlert size={15} strokeWidth={1.75} />
 								</span>
 							{/if}
 
 							<button
+								onclick={(e) => { e.stopPropagation(); store.updateField(field.id, { required: !field.required }); }}
+								title={field.required ? 'Mark as optional' : 'Mark as required'}
+								style={field.required ? 'background: var(--color-info-bg-dark); color: var(--color-text-blue);' : 'background: transparent; color: var(--color-muted-dark);'}
+								class="px-1.5 py-0.5 border-none rounded-full text-xs shrink-0 cursor-pointer font-mono transition-colors duration-100 hover:opacity-80"
+							>{field.required ? 'required' : 'optional'}</button>
+
+							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer text-lg px-1.5 py-0.5 font-mono shrink-0"
-								aria-label="Delete field"
-							>×</button>
+								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								aria-label="Delete field" title="Delete field"
+							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
 
 						<!-- Label inline editor -->
@@ -551,9 +558,9 @@
 										/>
 										<button
 											onclick={(e) => { e.stopPropagation(); if (opt) removeOption(field.id, opt.id); }}
-											class="bg-transparent border-none text-border cursor-pointer font-mono text-lg px-0.5 shrink-0 leading-none hover:text-muted-dark transition-colors duration-100"
-											aria-label="Remove option"
-										>×</button>
+											class="bg-transparent border-none text-border cursor-pointer flex items-center px-0.5 shrink-0 hover:text-muted-dark transition-colors duration-100"
+											aria-label="Remove option" title="Remove option"
+										><Trash2 size={15} strokeWidth={1.75} /></button>
 									</div>
 								{/each}
 								{#if isMultiple && (field.config as MultipleChoiceConfig).allowOther}
@@ -642,6 +649,15 @@
 			{/each}
 		</div>
 	{/if}
+
+	<!-- Add field button -->
+	<button
+		onclick={(e) => openSlot(e, fields.length - 1, 'above')}
+		class="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
+	>
+		<Plus size={14} strokeWidth={2} />
+		Add field
+	</button>
 	</div>
 	{/if}
 

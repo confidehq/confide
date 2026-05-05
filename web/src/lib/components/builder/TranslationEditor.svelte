@@ -76,40 +76,6 @@
 		{/if}
 	</div>
 
-	<!-- Help text -->
-	<div>
-		<label class="block text-xs text-muted mb-1">Help text</label>
-		<textarea
-			value={currentFieldTranslation?.helpText ?? ''}
-			oninput={(e) => fieldId && store.updateTranslation(fieldId, 'helpText', (e.target as HTMLTextAreaElement).value)}
-			rows={2}
-			class="input-base"
-		></textarea>
-		{#if isNonDefaultLocale && defaultLocaleTranslation?.helpText}
-			<p class="mt-1 m-0 text-sm text-muted-dark">
-				{store.schema.defaultLocale}: {defaultLocaleTranslation.helpText}
-			</p>
-		{/if}
-	</div>
-
-	<!-- Placeholder (for text fields) -->
-	{#if selectedField?.type === 'short_text' || selectedField?.type === 'long_text'}
-		<div>
-			<label class="block text-xs text-muted mb-1">Placeholder</label>
-			<input
-				type="text"
-				value={currentFieldTranslation?.placeholder ?? ''}
-				oninput={(e) => fieldId && store.updateTranslation(fieldId, 'placeholder', (e.target as HTMLInputElement).value)}
-				class="input-base"
-			/>
-			{#if isNonDefaultLocale && defaultLocaleTranslation?.placeholder}
-				<p class="mt-1 m-0 text-sm text-muted-dark">
-					{store.schema.defaultLocale}: {defaultLocaleTranslation.placeholder}
-				</p>
-			{/if}
-		</div>
-	{/if}
-
 	<!-- Options (for choice fields) -->
 	{#if hasOptions}
 		<div>

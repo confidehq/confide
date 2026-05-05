@@ -12,7 +12,6 @@
 		AccentConfig,
 		ChoiceOption
 	} from '$lib/types/builder';
-	import TranslationEditor from './TranslationEditor.svelte';
 
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
@@ -21,6 +20,27 @@
 	const { store }: Props = $props();
 
 	const field = $derived(store.selectedField);
+
+	let panelEl = $state<HTMLElement | null>(null);
+	let panelTop = $state(8);
+
+	function updatePosition() {
+		if (!store.selectedFieldId || !panelEl) return;
+		const fieldEl = document.querySelector<HTMLElement>(`[data-field-id="${store.selectedFieldId}"]`);
+		const container = panelEl.parentElement;
+		if (!fieldEl || !container) return;
+		const fieldRect = fieldEl.getBoundingClientRect();
+		const containerRect = container.getBoundingClientRect();
+		panelTop = Math.max(8, fieldRect.top - containerRect.top);
+	}
+
+	$effect(() => {
+		store.selectedFieldId; // reactive dependency
+		updatePosition();
+		const canvas = document.querySelector<HTMLElement>('main[role="presentation"]');
+		canvas?.addEventListener('scroll', updatePosition);
+		return () => canvas?.removeEventListener('scroll', updatePosition);
+	});
 
 	function addOption() {
 		if (!field) return;
@@ -41,9 +61,11 @@
 </script>
 
 <aside
+	bind:this={panelEl}
+	style="top: {panelTop}px;"
 	class="properties-panel {store.selectedField ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
-		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-72 sm:max-h-none sm:rounded-xl
+		sm:absolute sm:bottom-auto sm:left-auto sm:right-2 sm:w-64 sm:max-h-none sm:rounded-xl
 		bg-canvas border border-border-deep overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
@@ -53,20 +75,10 @@
 
 	{#if field}
 		<!-- Field selected: single scrollable panel -->
-		<div class="p-4 flex flex-col gap-5">
-
-			<!-- Translation section -->
-			<div>
-				<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Content</p>
-				<TranslationEditor {store} fieldId={field.id} />
-			</div>
-
-			<!-- Divider -->
-			<div class="h-px bg-border"></div>
+		<div class="p-3 flex flex-col gap-3.5">
 
 			<!-- Settings section -->
 			<div>
-				<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Settings</p>
 				<div class="flex flex-col gap-3.5">
 
 					<!-- Required toggle -->
@@ -296,13 +308,13 @@
 
 					{#if field.type === 'section_break'}
 						<p class="text-sm text-muted-dark m-0">
-							Section breaks have no settings. Use the Content section above to add a label.
+							Section breaks have no settings. Edit the label directly on the field.
 						</p>
 					{/if}
 
 					{#if field.type === 'accordion'}
 						<p class="text-sm text-muted-dark m-0">
-							Set the title and body text in the Content section above.
+							Edit the title and body text directly on the field.
 						</p>
 					{/if}
 
