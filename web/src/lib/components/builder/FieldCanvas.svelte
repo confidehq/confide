@@ -25,7 +25,6 @@
 	];
 
 	let insertSlot = $state<number | null>(null);
-	let hoveredSlot = $state<number | null>(null);
 	let popoverAnchor = $state<{ top: number; left: number } | null>(null);
 	let ratingHover = $state<{ fieldId: string; value: number } | null>(null);
 
@@ -278,22 +277,8 @@
 				<div
 					data-field-id={field.id}
 					class="relative"
-					onmouseenter={() => hoveredSlot = fieldIndex}
-					onmouseleave={() => hoveredSlot = null}
 					role="none"
 				>
-					<button
-						onclick={(e) => openSlot(e, fieldIndex)}
-						style="
-							background: {insertSlot === fieldIndex ? 'var(--color-surface)' : 'transparent'};
-							border-color: {hoveredSlot === fieldIndex || insertSlot === fieldIndex ? 'var(--color-border)' : 'transparent'};
-							color: {hoveredSlot === fieldIndex || insertSlot === fieldIndex ? 'var(--color-muted-dark)' : 'transparent'};
-						"
-						class="absolute left-[-26px] top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 border rounded-full cursor-pointer transition-all duration-100 p-0"
-						aria-label="Add field here"
-					>
-						<Plus size={10} strokeWidth={2.5} />
-					</button>
 				{#if isSectionBreak}
 					<!-- Section break: horizontal rule with inline-editable label -->
 					<div
@@ -650,14 +635,19 @@
 		</div>
 	{/if}
 
+	</div>
+	{/if}
+
 	<!-- Add field button -->
-	<button
-		onclick={(e) => openSlot(e, fields.length - 1, 'above')}
-		class="mt-4 flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
-	>
-		<Plus size={14} strokeWidth={2} />
-		Add field
-	</button>
+	{#if store.mode !== 'preview'}
+	<div class="sticky bottom-0 max-w-4xl mx-auto w-full pt-3 pb-4" style="background: linear-gradient(to bottom, transparent, var(--color-surface) 40%);">
+		<button
+			onclick={(e) => openSlot(e, fields.length > 0 ? fields.length - 1 : -1, 'above')}
+			class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
+		>
+			<Plus size={14} strokeWidth={2} />
+			Add field
+		</button>
 	</div>
 	{/if}
 
