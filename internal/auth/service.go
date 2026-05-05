@@ -249,7 +249,7 @@ func (s *Service) RegisterFinish(ctx context.Context, req *RegisterFinishRequest
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
-	user := &waUser{id: []byte(req.AccountID), name: req.AccountID, displayName: req.AccountID}
+	user := &waUser{id: []byte(req.AccountID)}
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
 		return nil, fmt.Errorf("FinishRegistration: %w", err)
@@ -669,7 +669,11 @@ func (s *Service) AddCredentialBegin(ctx context.Context, accountID, addCredToke
 		return nil, fmt.Errorf("randomBytes: %w", err)
 	}
 
-	user := &waUser{id: []byte(accountID), name: accountID, displayName: accountID}
+	account, err := s.db.GetAccountByID(ctx, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("GetAccountByID: %w", err)
+	}
+	user := accountToWAUser(account)
 	creation, sd, err := s.wa.BeginRegistration(user,
 		webauthn.WithExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
@@ -711,7 +715,7 @@ func (s *Service) AddCredentialFinish(ctx context.Context, accountID string, req
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
-	user := &waUser{id: []byte(accountID), name: accountID, displayName: accountID}
+	user := &waUser{id: []byte(accountID)}
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
 		return nil, fmt.Errorf("FinishRegistration: %w", err)
@@ -799,7 +803,11 @@ func (s *Service) PairingRequest(ctx context.Context, token string, newDevicePub
 		return nil, fmt.Errorf("randomBytes: %w", err)
 	}
 
-	user := &waUser{id: []byte(accountID), name: accountID, displayName: accountID}
+	account, err := s.db.GetAccountByID(ctx, accountID)
+	if err != nil {
+		return nil, fmt.Errorf("GetAccountByID: %w", err)
+	}
+	user := accountToWAUser(account)
 	creation, sd, err := s.wa.BeginRegistration(user,
 		webauthn.WithExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
@@ -849,7 +857,7 @@ func (s *Service) PairingComplete(ctx context.Context, token string, prfSalt, wr
 		return nil, fmt.Errorf("registration challenge not found or expired")
 	}
 
-	user := &waUser{id: []byte(sess.accountID), name: sess.accountID, displayName: sess.accountID}
+	user := &waUser{id: []byte(sess.accountID)}
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
 		return nil, fmt.Errorf("FinishRegistration: %w", err)
