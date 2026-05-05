@@ -26,7 +26,10 @@ import {
 	deriveRecoveryKey,
 	hashForVerification,
 	generateRecoveryCode,
-	parseRecoveryCode
+	parseRecoveryCode,
+	generatePairingKeypair,
+	wrapMasterKeyForPairing,
+	unwrapMasterKeyFromPairing
 } from '$lib/crypto';
 import { clearWorkspaceKeyCache } from '$lib/workspaces';
 import { bytesToBase64, base64ToBytes, base64urlToBytes, bufToBase64 } from '$lib/encoding';
@@ -42,7 +45,12 @@ import type {
 	RekeyFinishResponse,
 	AddCredentialBeginResponse,
 	AddCredentialFinishResponse,
-	CredentialSummary
+	CredentialSummary,
+	PairingCreateResponse,
+	PairingByCodeResponse,
+	PairingRequestResponse,
+	PairingPollResponse,
+	PairingCompleteResponse
 } from '$lib/types/auth';
 
 // ─── PRF Key Derivation ───────────────────────────────────────────────────────
@@ -544,6 +552,155 @@ export async function deleteCredential(id: string): Promise<void> {
 
 export async function deleteAccount(): Promise<void> {
 	return apiDelete('/api/auth/account');
+}
+
+// ─── Device Pairing — existing device (authenticated) ────────────────────────
+
+export interface PairingSession {
+	token: string;
+	shortCode: string;
+	expiresAt: string;
+}
+
+/** Create a new pairing session from the logged-in device. */
+export async function createPairingSession(): Promise<PairingSession> {
+	return apiPost<PairingCreateResponse>('/api/auth/pairing', {});
+}
+
+/** Poll the pairing session state. Called by both devices. */
+export async function pollPairing(token: string): Promise<PairingPollResponse> {
+	return apiGet<PairingPollResponse>(`/api/auth/pairing/${encodeURIComponent(token)}`);
+}
+
+/**
+ * Fulfill the pairing by ECIES-wrapping the master key for the new device.
+ * Called by the existing device after the user confirms the fingerprint.
+ */
+export async function fulfillPairing(
+	token: string,
+	masterKey: CryptoKey,
+	newDevicePubKeyBase64: string
+): Promise<void> {
+	const newDevicePubKeyBytes = base64ToBytes(newDevicePubKeyBase64).buffer as ArrayBuffer;
+	const { wrappedMasterKey, ephemeralPublicKey } = await wrapMasterKeyForPairing(
+		masterKey,
+		newDevicePubKeyBytes
+	);
+
+	// Encode as JSON: wrappedMasterKey = [ephemeralPublicKey (32 bytes)][IV (12 bytes)][ciphertext]
+	// We send them as separate fields so the new device can use them independently.
+	const combined = new Uint8Array(ephemeralPublicKey.byteLength + wrappedMasterKey.byteLength);
+	combined.set(new Uint8Array(ephemeralPublicKey), 0);
+	combined.set(new Uint8Array(wrappedMasterKey), ephemeralPublicKey.byteLength);
+
+	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/fulfill`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		credentials: 'include',
+		body: JSON.stringify({ wrappedMasterKey: bufToBase64(combined.buffer as ArrayBuffer) })
+	});
+	if (!res.ok) {
+		const data = await res.json().catch(() => ({}));
+		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+	}
+}
+
+// ─── Device Pairing — new device (unauthenticated) ────────────────────────────
+
+/** Resolve a short code to its full pairing token. */
+export async function lookupPairingByCode(code: string): Promise<string> {
+	const res = await fetch(`/api/auth/pairing/code/${encodeURIComponent(code)}`);
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+	return (data as PairingByCodeResponse).token;
+}
+
+export interface PairingRequestResult {
+	/** The new device's ephemeral private key — held in memory, never sent to server. */
+	privateKey: CryptoKey;
+	/** The public key bytes — already sent to server in /request. */
+	publicKeyBytes: ArrayBuffer;
+	/** WebAuthn registration options returned by the server. */
+	options: unknown;
+	/** PRF salt for the new passkey, as base64 standard. */
+	prfSalt: string;
+}
+
+/**
+ * Register the new device's ephemeral public key with the server and begin
+ * the WebAuthn registration ceremony. The caller must hold onto privateKey
+ * in memory until completePairing() is called.
+ */
+export async function requestPairing(token: string): Promise<PairingRequestResult> {
+	const { privateKey, publicKeyBytes } = await generatePairingKeypair();
+
+	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/request`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ ephemeralPublicKey: bufToBase64(publicKeyBytes) })
+	});
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok) {
+		throw Object.assign(
+			new Error((data as { message?: string }).message ?? `HTTP ${res.status}`),
+			{ code: (data as { code?: string }).code }
+		);
+	}
+	const body = data as PairingRequestResponse;
+	return { privateKey, publicKeyBytes, options: body.options, prfSalt: body.prfSalt };
+}
+
+/**
+ * Complete the pairing: finish WebAuthn registration, ECIES-decrypt the master
+ * key, wrap it for the new passkey, and submit to the server. Returns the
+ * session token (already set as cookie) and wrapped master key for in-memory use.
+ */
+export async function completePairing(
+	token: string,
+	pairingRequest: PairingRequestResult,
+	wrappedMasterKeyFromServer: string
+): Promise<{ masterKey: CryptoKey; accountId: string; credentialId: string }> {
+	// Parse the combined blob: [ephemeralPublicKey (32 bytes)][IV+ciphertext]
+	const combined = base64ToBytes(wrappedMasterKeyFromServer);
+	const ephemeralPubKeyBytes = combined.slice(0, 32).buffer as ArrayBuffer;
+	const wrappedKeyBytes = combined.slice(32).buffer as ArrayBuffer;
+
+	// ECIES decrypt to recover the raw master key
+	const masterKey = await unwrapMasterKeyFromPairing(
+		wrappedKeyBytes,
+		ephemeralPubKeyBytes,
+		pairingRequest.privateKey
+	);
+
+	// Start WebAuthn registration ceremony
+	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(
+		pairingRequest.options
+	);
+	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	}
+	const credential = await startRegistration({ optionsJSON });
+
+	// PRF → KEK; wrap master key for the new passkey
+	const kek = await extractRegistrationKek(credential);
+	const wrappedMasterKeyForPasskey = await wrapKey(masterKey, kek);
+
+	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/complete`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			prfSalt: pairingRequest.prfSalt,
+			wrappedMasterKey: bufToBase64(wrappedMasterKeyForPasskey),
+			name: '',
+			credential
+		})
+	});
+	const data = await res.json().catch(() => ({}));
+	if (!res.ok) throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+
+	const complete = data as PairingCompleteResponse;
+	return { masterKey, accountId: complete.accountId, credentialId: credential.id };
 }
 
 // ─── Recovery Code Rotation ───────────────────────────────────────────────────

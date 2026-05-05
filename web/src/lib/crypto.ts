@@ -44,7 +44,8 @@ const INFO = {
 	recoveryKey: () => encode('wisp-recovery-key-v1'),
 	responseEncKey: () => encode('wisp-response-enc-key-v1'),
 	renderKey: () => encode('wisp-render-key-v1'),
-	workspaceKey: () => encode('confide-workspace-key-v1')
+	workspaceKey: () => encode('confide-workspace-key-v1'),
+	pairingKey: () => encode('confide-pairing-key-v1')
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -813,4 +814,172 @@ export function parseRecoveryCode(code: string): string[] {
 		throw new Error('Invalid recovery code — expected GHRK-XXXX-XXXX-...-XXXX (12 segments)');
 	}
 	return parts.slice(1);
+}
+
+// ---------------------------------------------------------------------------
+// Public interface — device pairing
+// ---------------------------------------------------------------------------
+
+/**
+ * 256-word list for human-readable fingerprints (one word per byte).
+ * Fingerprint = SHA-256(pubKey)[0:4] → 4 words joined with '-'.
+ */
+const FINGERPRINT_WORDS: readonly string[] = [
+	'able','acid','aged','also','arch','army','aunt','away',
+	'back','bald','ball','band','barn','base','bath','beam',
+	'bean','bear','beat','been','bell','best','bird','blow',
+	'blue','bolt','bond','bone','book','born','both','bowl',
+	'brew','brow','bull','burn','cafe','cage','cake','call',
+	'calm','came','camp','card','care','cart','case','cash',
+	'cave','cell','chat','chip','cite','city','clam','clap',
+	'clay','clip','club','clue','coal','coat','code','coil',
+	'coin','cold','comb','come','cool','cope','copy','cord',
+	'core','corn','cost','cozy','crab','crew','crop','crow',
+	'cube','cult','curb','cure','dark','dart','dash','data',
+	'date','dawn','deal','dean','debt','deck','deed','deep',
+	'deny','desk','dial','dice','diet','dirt','disk','dock',
+	'dome','door','dose','dove','down','drag','draw','drip',
+	'drop','drum','dual','dull','dump','dune','dust','duty',
+	'each','earn','ease','edge','emit','epic','even','exam',
+	'exit','fact','fade','fail','fair','fall','fame','fare',
+	'farm','fast','fate','fear','feed','feel','fell','fern',
+	'fill','film','find','fire','firm','fish','fist','flag',
+	'flat','flew','flip','flow','foam','fold','folk','font',
+	'food','fool','ford','fork','form','fort','foul','four',
+	'free','from','fuel','full','fume','fund','fuse','gain',
+	'gale','game','gate','gave','gaze','gear','germ','gift',
+	'give','glad','glow','glue','goal','gone','good','gown',
+	'grab','gram','gray','grew','grin','grip','grow','gulf',
+	'gust','half','hall','halt','hand','hang','hard','harm',
+	'hash','haze','head','heal','heap','heat','heel','held',
+	'helm','help','herb','here','hero','hide','high','hill',
+	'hint','hire','hold','hole','holy','home','hood','hook',
+	'hope','horn','host','hour','howl','hull','hunt','hurt',
+	'icon','idea','idle','iris','iron','isle','item','jade',
+	'jail','jest','jolt','jump','just','keep','kelp','knot',
+];
+
+/**
+ * Derive a 4-word fingerprint from 32 bytes of an X25519 public key.
+ * Uses SHA-256(pubKeyBytes)[0:4], one word per byte from FINGERPRINT_WORDS.
+ */
+export async function pairingFingerprint(pubKeyBytes: ArrayBuffer): Promise<string> {
+	const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', pubKeyBytes));
+	return [
+		FINGERPRINT_WORDS[hash[0]],
+		FINGERPRINT_WORDS[hash[1]],
+		FINGERPRINT_WORDS[hash[2]],
+		FINGERPRINT_WORDS[hash[3]],
+	].join('-');
+}
+
+/**
+ * Generate an ephemeral X25519 keypair for the new device side of a pairing.
+ * Returns the private key (non-extractable, held in memory) and the raw public key bytes.
+ */
+export async function generatePairingKeypair(): Promise<{
+	privateKey: CryptoKey;
+	publicKeyBytes: ArrayBuffer;
+}> {
+	const keypair = (await crypto.subtle.generateKey(
+		{ name: 'X25519' },
+		false, // private key stays non-extractable
+		['deriveKey', 'deriveBits']
+	)) as CryptoKeyPair;
+	const publicKeyBytes = (await crypto.subtle.exportKey('raw', keypair.publicKey)) as ArrayBuffer;
+	return { privateKey: keypair.privateKey, publicKeyBytes };
+}
+
+/**
+ * ECIES-wrap the master key for transport to the new device.
+ *
+ * Uses an ephemeral X25519 keypair (existing device side):
+ *   ECDH(ephemeralPriv, newDevicePub) → HKDF → AES-256-GCM encrypt(masterKeyRaw)
+ *
+ * Returns the ciphertext blob [IV][ciphertext] and the ephemeral public key bytes.
+ * These are sent to the server, which relays them to the new device.
+ */
+export async function wrapMasterKeyForPairing(
+	masterKey: CryptoKey,
+	newDevicePubKeyBytes: ArrayBuffer
+): Promise<{ wrappedMasterKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
+	const masterKeyRaw = await crypto.subtle.exportKey('raw', masterKey);
+
+	const recipientKey = await crypto.subtle.importKey(
+		'raw',
+		newDevicePubKeyBytes,
+		{ name: 'X25519' },
+		false,
+		[]
+	);
+
+	const ephemeral = (await crypto.subtle.generateKey(
+		{ name: 'X25519' },
+		true,
+		['deriveKey', 'deriveBits']
+	)) as CryptoKeyPair;
+
+	const sharedSecret = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: recipientKey },
+		ephemeral.privateKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const encKey = await hkdfDeriveAesKey(sharedSecret, INFO.pairingKey(), ['encrypt'], false);
+
+	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
+	const ciphertext = await crypto.subtle.encrypt(aesGcmParams(iv), encKey, masterKeyRaw);
+
+	const wrapped = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
+	wrapped.set(iv);
+	wrapped.set(new Uint8Array(ciphertext), AES_IV_BYTES);
+
+	const ephemeralPubKeyRaw = (await crypto.subtle.exportKey('raw', ephemeral.publicKey)) as ArrayBuffer;
+	return { wrappedMasterKey: wrapped.buffer as ArrayBuffer, ephemeralPublicKey: ephemeralPubKeyRaw };
+}
+
+/**
+ * ECIES-unwrap the master key received from the existing device.
+ *
+ * Uses the new device's ephemeral private key:
+ *   ECDH(newDevicePriv, ephemeralPub) → HKDF → AES-256-GCM decrypt → masterKeyRaw
+ *
+ * Returns the master key as an extractable AES-256-GCM CryptoKey.
+ */
+export async function unwrapMasterKeyFromPairing(
+	wrappedMasterKey: ArrayBuffer,
+	ephemeralPubKeyBytes: ArrayBuffer,
+	privateKey: CryptoKey
+): Promise<CryptoKey> {
+	const ephemeralPubKey = await crypto.subtle.importKey(
+		'raw',
+		ephemeralPubKeyBytes,
+		{ name: 'X25519' },
+		false,
+		[]
+	);
+
+	const sharedSecret = await crypto.subtle.deriveKey(
+		{ name: 'X25519', public: ephemeralPubKey },
+		privateKey,
+		{ name: 'HKDF' },
+		false,
+		['deriveKey']
+	);
+	const decKey = await hkdfDeriveAesKey(sharedSecret, INFO.pairingKey(), ['decrypt'], false);
+
+	const bytes = new Uint8Array(wrappedMasterKey);
+	const iv = bytes.slice(0, AES_IV_BYTES);
+	const ciphertext = bytes.slice(AES_IV_BYTES);
+
+	const masterKeyRaw = await crypto.subtle.decrypt(aesGcmParams(iv), decKey, ciphertext);
+
+	return crypto.subtle.importKey(
+		'raw',
+		masterKeyRaw,
+		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
+		true,
+		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+	);
 }

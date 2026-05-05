@@ -154,6 +154,7 @@ type Service struct {
 	challenges  *challengeStore
 	rekeys      *rekeyTokenStore
 	addCredToks *addCredTokenStore
+	pairings    *pairingStore
 }
 
 func NewService(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Service {
@@ -165,6 +166,7 @@ func NewService(pool *pgxpool.Pool, wa *webauthn.WebAuthn) *Service {
 		challenges:  newChallengeStore(),
 		rekeys:      newRekeyTokenStore(),
 		addCredToks: newAddCredTokenStore(),
+		pairings:    newPairingStore(),
 	}
 	svc.startSessionCleanup()
 	return svc
@@ -178,6 +180,7 @@ func newServiceWithDB(db DB, wa *webauthn.WebAuthn) *Service {
 		challenges:  newChallengeStore(),
 		rekeys:      newRekeyTokenStore(),
 		addCredToks: newAddCredTokenStore(),
+		pairings:    newPairingStore(),
 	}
 }
 
@@ -731,32 +734,173 @@ func (s *Service) AddCredentialFinish(ctx context.Context, accountID string, req
 		return nil, fmt.Errorf("FinishRegistration: %w", err)
 	}
 
-	credRowID, err := randomBase64URL(16)
+	row, err := s.insertCredential(ctx, accountID, cred, req.PRFSalt, req.WrappedMasterKey, req.Name)
 	if err != nil {
 		return nil, err
-	}
-
-	row, err := s.db.CreateCredential(ctx, queries.CreateCredentialParams{
-		ID:               credRowID,
-		AccountID:        accountID,
-		CredentialID:     cred.ID,
-		PublicKey:        cred.PublicKey,
-		PrfSalt:          req.PRFSalt,
-		WrappedMasterKey: req.WrappedMasterKey,
-		BackupEligible:   cred.Flags.BackupEligible,
-		Name:             req.Name,
-	})
-	if err != nil {
-		if isDuplicateKey(err) {
-			return nil, ErrDuplicateAccount
-		}
-		return nil, fmt.Errorf("CreateCredential: %w", err)
 	}
 
 	return &AddCredentialFinishResult{
 		ID:        row.ID,
 		Name:      row.Name,
 		CreatedAt: row.CreatedAt.Time.Format(time.RFC3339),
+	}, nil
+}
+
+// insertCredential creates a credential row. Used by AddCredentialFinish and PairingComplete.
+func (s *Service) insertCredential(ctx context.Context, accountID string, cred *webauthn.Credential, prfSalt, wrappedMasterKey []byte, name string) (queries.Credential, error) {
+	credRowID, err := randomBase64URL(16)
+	if err != nil {
+		return queries.Credential{}, err
+	}
+	row, err := s.db.CreateCredential(ctx, queries.CreateCredentialParams{
+		ID:               credRowID,
+		AccountID:        accountID,
+		CredentialID:     cred.ID,
+		PublicKey:        cred.PublicKey,
+		PrfSalt:          prfSalt,
+		WrappedMasterKey: wrappedMasterKey,
+		BackupEligible:   cred.Flags.BackupEligible,
+		Name:             name,
+	})
+	if err != nil {
+		if isDuplicateKey(err) {
+			return queries.Credential{}, ErrDuplicateAccount
+		}
+		return queries.Credential{}, fmt.Errorf("CreateCredential: %w", err)
+	}
+	return row, nil
+}
+
+// ─── Device Pairing ───────────────────────────────────────────────────────────
+
+type PairingCreateResult struct {
+	Token     string
+	ShortCode string
+	ExpiresAt time.Time
+}
+
+// PairingCreate issues a new pairing session for an authenticated user.
+func (s *Service) PairingCreate(ctx context.Context, accountID string) (*PairingCreateResult, error) {
+	sess, err := s.pairings.create(accountID)
+	if err != nil {
+		return nil, err
+	}
+	return &PairingCreateResult{
+		Token:     sess.token,
+		ShortCode: sess.shortCode,
+		ExpiresAt: sess.expiresAt,
+	}, nil
+}
+
+// PairingByCode looks up a full pairing token by its short code.
+func (s *Service) PairingByCode(code string) (string, bool) {
+	return s.pairings.getByCode(code)
+}
+
+type PairingRequestResult struct {
+	PRFSalt  []byte
+	Creation *protocol.CredentialCreation
+}
+
+// PairingRequest stores the new device's ephemeral public key, transitions the
+// session to "requested", and begins a WebAuthn registration ceremony so the
+// new device can start the passkey creation while waiting for approval.
+func (s *Service) PairingRequest(ctx context.Context, token string, newDevicePubKey []byte) (*PairingRequestResult, error) {
+	accountID, err := s.pairings.request(token, newDevicePubKey)
+	if err != nil {
+		return nil, err
+	}
+
+	prfSalt, err := randomBytes(32)
+	if err != nil {
+		return nil, fmt.Errorf("randomBytes: %w", err)
+	}
+
+	user := &waUser{id: []byte(accountID), name: accountID, displayName: accountID}
+	creation, sd, err := s.wa.BeginRegistration(user,
+		webauthn.WithExtensions(protocol.AuthenticationExtensions{
+			"prf": map[string]any{
+				"eval": map[string]any{
+					"first": protocol.URLEncodedBase64(prfSalt),
+				},
+			},
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("BeginRegistration: %w", err)
+	}
+
+	s.challenges.set("pairing:"+token, sd)
+	return &PairingRequestResult{PRFSalt: prfSalt, Creation: creation}, nil
+}
+
+// PairingFulfill stores the wrapped master key and transitions the session to
+// "fulfilled". Only the account that created the pairing session can fulfill it.
+func (s *Service) PairingFulfill(ctx context.Context, accountID, token string, wrappedMasterKey []byte) error {
+	return s.pairings.fulfill(token, accountID, wrappedMasterKey)
+}
+
+// PairingPoll returns the current state of a pairing session.
+func (s *Service) PairingPoll(ctx context.Context, token string) (*PairingPollResult, bool) {
+	return s.pairings.poll(token)
+}
+
+type PairingCompleteResult struct {
+	AccountID        string
+	SessionToken     string
+	SessionID        string
+	CredentialID     []byte
+	WrappedMasterKey []byte
+}
+
+// PairingComplete finishes the WebAuthn registration on the new device,
+// inserts the credential, and issues a session.
+func (s *Service) PairingComplete(ctx context.Context, token string, prfSalt, wrappedMasterKey []byte, name, userAgent string, r *http.Request) (*PairingCompleteResult, error) {
+	sess, err := s.pairings.complete(token)
+	if err != nil {
+		return nil, err
+	}
+
+	sd, ok := s.challenges.take("pairing:" + token)
+	if !ok {
+		return nil, fmt.Errorf("registration challenge not found or expired")
+	}
+
+	user := &waUser{id: []byte(sess.accountID), name: sess.accountID, displayName: sess.accountID}
+	cred, err := s.wa.FinishRegistration(user, *sd, r)
+	if err != nil {
+		return nil, fmt.Errorf("FinishRegistration: %w", err)
+	}
+
+	credRow, err := s.insertCredential(ctx, sess.accountID, cred, prfSalt, wrappedMasterKey, name)
+	if err != nil {
+		return nil, err
+	}
+
+	sessionToken, tokenHash, err := newSessionToken()
+	if err != nil {
+		return nil, err
+	}
+	sessionID, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := s.db.CreateSession(ctx, queries.CreateSessionParams{
+		ID:           sessionID,
+		AccountID:    sess.accountID,
+		TokenHash:    tokenHash,
+		CredentialID: cred.ID,
+		UserAgent:    userAgent,
+	}); err != nil {
+		return nil, fmt.Errorf("CreateSession: %w", err)
+	}
+
+	return &PairingCompleteResult{
+		AccountID:        sess.accountID,
+		SessionToken:     sessionToken,
+		SessionID:        sessionID,
+		CredentialID:     credRow.CredentialID,
+		WrappedMasterKey: wrappedMasterKey,
 	}, nil
 }
 

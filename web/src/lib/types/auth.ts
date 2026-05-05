@@ -77,3 +77,34 @@ export interface ApiError {
 	code: string;
 	message: string;
 }
+
+// ─── Device Pairing ──────────────────────────────────────────────────────────
+
+export interface PairingCreateResponse {
+	token: string;
+	shortCode: string;
+	expiresAt: string;
+}
+
+export interface PairingByCodeResponse {
+	token: string;
+}
+
+export interface PairingRequestResponse {
+	options: unknown; // PublicKeyCredentialCreationOptionsJSON
+	prfSalt: string;  // base64 standard
+}
+
+export interface PairingPollResponse {
+	state: 'created' | 'requested' | 'fulfilled' | 'completed' | 'expired';
+	newDevicePublicKey?: string; // base64 standard — present when state = requested or fulfilled
+	wrappedMasterKey?: string;   // base64 standard — present when state = fulfilled
+}
+
+export interface PairingCompleteResponse {
+	accountId: string;
+	sessionToken: string;
+	sessionId: string;
+	credentialId: string;     // base64 standard
+	wrappedMasterKey: string; // base64 standard
+}

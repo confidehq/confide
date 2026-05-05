@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
+	import QRCode from 'qrcode';
 	import {
 		KeyRound,
 		Plus,
@@ -12,7 +13,8 @@
 		ShieldAlert,
 		Copy,
 		Check,
-		RefreshCw
+		RefreshCw,
+		X
 	} from '@lucide/svelte';
 	import {
 		listCredentials,
@@ -25,9 +27,14 @@
 		revokeOtherSessions,
 		deleteAccount,
 		rotateRecoveryCode,
-		reauthenticate
+		reauthenticate,
+		createPairingSession,
+		pollPairing,
+		fulfillPairing
 	} from '$lib/auth';
 	import type { CredentialSummary, SessionInfo } from '$lib/types/auth';
+	import { pairingFingerprint } from '$lib/crypto';
+	import { base64ToBytes } from '$lib/encoding';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import { goto } from '$app/navigation';
@@ -49,6 +56,94 @@
 	let addStep = $state<'idle' | 'naming' | 'reauth' | 'registering'>('idle');
 	let newName = $state('');
 	let addError = $state<string | null>(null);
+
+	// ─── Device pairing ──────────────────────────────────────────────────────────
+
+	type PairStep = 'idle' | 'loading' | 'qr' | 'fingerprint' | 'done' | 'error';
+	let pairStep = $state<PairStep>('idle');
+	let pairToken = $state('');
+	let pairShortCode = $state('');
+	let pairQrDataUrl = $state('');
+	let pairFingerprint = $state('');
+	let pairNewDevicePubKey = $state('');
+	let pairError = $state<string | null>(null);
+	let pairConfirming = $state(false);
+	let pairPollTimer: ReturnType<typeof setInterval> | null = null;
+
+	function stopPairPoll() {
+		if (pairPollTimer !== null) { clearInterval(pairPollTimer); pairPollTimer = null; }
+	}
+
+	onDestroy(stopPairPoll);
+
+	async function startPairing() {
+		pairStep = 'loading';
+		pairError = null;
+		try {
+			const session = await createPairingSession();
+			pairToken = session.token;
+			pairShortCode = session.shortCode;
+			const pairUrl = `${window.location.origin}/pair?t=${encodeURIComponent(session.token)}`;
+			pairQrDataUrl = await QRCode.toDataURL(pairUrl, { width: 200, margin: 2, color: { dark: '#e2e8f0', light: '#0d1117' } });
+			pairStep = 'qr';
+			startPairPoll();
+		} catch (err: unknown) {
+			pairError = err instanceof Error ? err.message : 'Failed to start pairing.';
+			pairStep = 'error';
+		}
+	}
+
+	function startPairPoll() {
+		stopPairPoll();
+		pairPollTimer = setInterval(async () => {
+			try {
+				const status = await pollPairing(pairToken);
+				if (status.state === 'expired') {
+					stopPairPoll();
+					pairError = 'Pairing expired. Please try again.';
+					pairStep = 'error';
+					return;
+				}
+				if (status.state === 'requested' && status.newDevicePublicKey && pairStep === 'qr') {
+					stopPairPoll();
+					pairNewDevicePubKey = status.newDevicePublicKey;
+					const pubKeyBytes = base64ToBytes(status.newDevicePublicKey).buffer as ArrayBuffer;
+					pairFingerprint = await pairingFingerprint(pubKeyBytes);
+					pairStep = 'fingerprint';
+				}
+			} catch {
+				// transient — keep polling
+			}
+		}, 2000);
+	}
+
+	async function confirmPairing() {
+		const mk = auth.masterKey;
+		if (!mk) { pairError = 'Master key unavailable. Please re-authenticate.'; return; }
+		pairConfirming = true;
+		try {
+			await fulfillPairing(pairToken, mk, pairNewDevicePubKey);
+			pairStep = 'done';
+			await loadCredentials();
+		} catch (err: unknown) {
+			pairError = err instanceof Error ? err.message : 'Failed to approve pairing.';
+			pairStep = 'error';
+		} finally {
+			pairConfirming = false;
+		}
+	}
+
+	function cancelPairing() {
+		stopPairPoll();
+		pairStep = 'idle';
+		pairToken = '';
+		pairShortCode = '';
+		pairQrDataUrl = '';
+		pairFingerprint = '';
+		pairNewDevicePubKey = '';
+		pairError = null;
+		pairConfirming = false;
+	}
 
 	// ─── Sessions ────────────────────────────────────────────────────────────────
 
@@ -527,19 +622,101 @@
 							Passkeys
 						</span>
 					</h2>
-					{#if addStep === 'idle'}
-						<button
-							onclick={() => (addStep = 'naming')}
-							class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
-						>
-							<Plus size={13} strokeWidth={2} />
-							Add passkey
-						</button>
+					{#if addStep === 'idle' && pairStep === 'idle'}
+						<div class="flex gap-2">
+							<button
+								onclick={() => (addStep = 'naming')}
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							>
+								<Plus size={13} strokeWidth={2} />
+								Add passkey
+							</button>
+							<button
+								onclick={startPairing}
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+							>
+								<Monitor size={13} strokeWidth={2} />
+								Add new device
+							</button>
+						</div>
 					{/if}
 				</div>
 
 				{#if credsError}
 					<p class="text-error-light text-base mb-3">{credsError}</p>
+				{/if}
+
+				<!-- Add new device (pairing) panel -->
+				{#if pairStep === 'loading'}
+					<div class="mb-3 p-4 border border-border-deep rounded-lg">
+						<p class="text-muted-dim text-base animate-pulse m-0">Setting up pairing session…</p>
+					</div>
+				{:else if pairStep === 'qr'}
+					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-4">
+						<div class="flex items-start justify-between">
+							<p class="text-text-body text-base m-0">On your new device, scan this QR or enter the code below.</p>
+							<button onclick={cancelPairing} class="text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
+								<X size={14} strokeWidth={2} />
+							</button>
+						</div>
+						<div class="flex flex-col sm:flex-row gap-6 items-start">
+							{#if pairQrDataUrl}
+								<img src={pairQrDataUrl} alt="Pairing QR code" class="w-[140px] h-[140px] rounded border border-border-deep shrink-0" />
+							{/if}
+							<div class="flex flex-col gap-2">
+								<p class="text-muted-dim text-sm m-0">Or enter this code on the other device:</p>
+								<span class="text-text-bright text-lg tracking-[0.2em] font-mono">
+									{pairShortCode.slice(0, 4)}-{pairShortCode.slice(4)}
+								</span>
+								<div class="flex items-center gap-2 mt-1">
+									<span class="inline-block w-2 h-2 bg-[#3a5a7a] rounded-full animate-pulse"></span>
+									<span class="text-muted-dim text-sm">Waiting for new device…</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				{:else if pairStep === 'fingerprint'}
+					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-4">
+						<div class="flex items-start justify-between">
+							<p class="text-text-body text-base m-0">Confirm these words match what you see on the new device:</p>
+							<button onclick={cancelPairing} class="text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
+								<X size={14} strokeWidth={2} />
+							</button>
+						</div>
+						<div class="flex gap-2 flex-wrap">
+							{#each pairFingerprint.split('-') as word}
+								<span class="px-2.5 py-1 bg-[#0d2233] border border-border-deep rounded text-sm text-[#7aadcf] font-mono tracking-wide">
+									{word}
+								</span>
+							{/each}
+						</div>
+						<div class="flex gap-2">
+							<button
+								onclick={confirmPairing}
+								disabled={pairConfirming}
+								class="px-4 py-2 bg-[#0d2a1a] border border-border-success-dark rounded text-base text-[#4a9060] hover:bg-[#112e1e] transition-colors cursor-pointer font-mono disabled:opacity-50"
+							>
+								{pairConfirming ? 'Approving…' : 'Yes, these match'}
+							</button>
+							<button
+								onclick={cancelPairing}
+								class="px-4 py-2 bg-transparent border border-border-subtle rounded text-base text-muted-dim hover:text-error-light transition-colors cursor-pointer font-mono"
+							>
+								No, cancel
+							</button>
+						</div>
+					</div>
+				{:else if pairStep === 'done'}
+					<div class="mb-3 p-3 border border-border-success-dark rounded-lg bg-[#0d2a1a]">
+						<p class="text-[#4a9060] text-base m-0">New device successfully added.</p>
+					</div>
+				{:else if pairStep === 'error'}
+					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-2">
+						<p class="text-error-light text-base m-0">{pairError}</p>
+						<button onclick={cancelPairing} class="text-sm text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0 self-start">
+							Dismiss
+						</button>
+					</div>
 				{/if}
 
 				<!-- Add passkey panel -->

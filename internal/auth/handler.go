@@ -41,6 +41,12 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 	r.Post("/recover/rekey/begin", rekeyBegin(svc))
 	r.Post("/recover/rekey/finish", rekeyFinish(svc, dev))
 
+	// Pairing — unauthenticated endpoints (order matters: specific before wildcard).
+	r.Get("/pairing/code/{code}", pairingByCode(svc))
+	r.Get("/pairing/{token}", pairingPoll(svc))
+	r.Post("/pairing/{token}/request", pairingRequest(svc))
+	r.Post("/pairing/{token}/complete", pairingComplete(svc, dev))
+
 	// Authenticated routes.
 	r.Group(func(r chi.Router) {
 		r.Use(mw.Authenticator(svc))
@@ -58,6 +64,10 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 		r.Delete("/credentials/{id}", deleteCredential(svc))
 		r.Post("/recovery-code/rotate", rotateRecoveryCodes(svc))
 		r.Delete("/account", deleteAccount(svc, billing))
+
+		// Pairing — authenticated endpoints.
+		r.Post("/pairing", createPairing(svc))
+		r.Post("/pairing/{token}/fulfill", pairingFulfill(svc))
 	})
 
 	return r
@@ -849,6 +859,196 @@ func deleteAccount(svc *Service, billing SubscriptionCanceller) http.HandlerFunc
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// ─── Device Pairing ───────────────────────────────────────────────────────────
+
+func createPairing(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		res, err := svc.PairingCreate(r.Context(), accountID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "pairing_create_failed", safeErr(err))
+			return
+		}
+		writeJSON(w, http.StatusCreated, map[string]any{
+			"token":     res.Token,
+			"shortCode": res.ShortCode,
+			"expiresAt": res.ExpiresAt.UTC().Format(time.RFC3339),
+		})
+	}
+}
+
+func pairingByCode(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		code := chi.URLParam(r, "code")
+		token, ok := svc.PairingByCode(code)
+		if !ok {
+			writeError(w, http.StatusNotFound, "pairing_not_found", "pairing expired or not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]string{"token": token})
+	}
+}
+
+func pairingPoll(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+		res, ok := svc.PairingPoll(r.Context(), token)
+		if !ok {
+			writeError(w, http.StatusNotFound, "pairing_not_found", "pairing expired or not found")
+			return
+		}
+		resp := map[string]any{"state": res.State}
+		if len(res.NewDevicePubKey) > 0 {
+			resp["newDevicePublicKey"] = base64.StdEncoding.EncodeToString(res.NewDevicePubKey)
+		}
+		if len(res.WrappedMasterKey) > 0 {
+			resp["wrappedMasterKey"] = base64.StdEncoding.EncodeToString(res.WrappedMasterKey)
+		}
+		writeJSON(w, http.StatusOK, resp)
+	}
+}
+
+func pairingRequest(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+
+		var req struct {
+			EphemeralPublicKey string `json:"ephemeralPublicKey"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.EphemeralPublicKey == "" {
+			writeError(w, http.StatusBadRequest, "invalid_request", "ephemeralPublicKey required")
+			return
+		}
+		pubKey, err := base64.StdEncoding.DecodeString(req.EphemeralPublicKey)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "ephemeralPublicKey must be base64")
+			return
+		}
+
+		res, err := svc.PairingRequest(r.Context(), token, pubKey)
+		if err != nil {
+			switch err {
+			case ErrNotFound:
+				writeError(w, http.StatusNotFound, "pairing_not_found", "pairing expired or not found")
+			case ErrConflict:
+				writeError(w, http.StatusConflict, "pairing_claimed", "this pairing request was already accepted by another device")
+			case ErrTooManyAttempts:
+				writeError(w, http.StatusTooManyRequests, "too_many_attempts", "too many attempts")
+			default:
+				writeError(w, http.StatusInternalServerError, "pairing_request_failed", safeErr(err))
+			}
+			return
+		}
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"options": res.Creation,
+			"prfSalt": base64.StdEncoding.EncodeToString(res.PRFSalt),
+		})
+	}
+}
+
+func pairingFulfill(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		token := chi.URLParam(r, "token")
+
+		var req struct {
+			WrappedMasterKey string `json:"wrappedMasterKey"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.WrappedMasterKey == "" {
+			writeError(w, http.StatusBadRequest, "invalid_request", "wrappedMasterKey required")
+			return
+		}
+		wmk, err := base64.StdEncoding.DecodeString(req.WrappedMasterKey)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "wrappedMasterKey must be base64")
+			return
+		}
+
+		if err := svc.PairingFulfill(r.Context(), accountID, token, wmk); err != nil {
+			switch err {
+			case ErrNotFound:
+				writeError(w, http.StatusNotFound, "pairing_not_found", "pairing expired or not found")
+			case ErrConflict:
+				writeError(w, http.StatusConflict, "pairing_conflict", "pairing is not in the expected state")
+			default:
+				writeError(w, http.StatusInternalServerError, "pairing_fulfill_failed", safeErr(err))
+			}
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func pairingComplete(svc *Service, dev bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "read_body", "failed to read body")
+			return
+		}
+
+		var req struct {
+			PRFSalt          string          `json:"prfSalt"`
+			WrappedMasterKey string          `json:"wrappedMasterKey"`
+			Name             string          `json:"name"`
+			Credential       json.RawMessage `json:"credential"`
+		}
+		if err := json.Unmarshal(body, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+
+		prfSalt, err := base64.StdEncoding.DecodeString(req.PRFSalt)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "prfSalt must be base64")
+			return
+		}
+		wmk, err := base64.StdEncoding.DecodeString(req.WrappedMasterKey)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_field", "wrappedMasterKey must be base64")
+			return
+		}
+
+		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
+			io.NopCloser(bytes.NewReader(req.Credential)))
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to rebuild request")
+			return
+		}
+		newReq.Header.Set("Content-Type", "application/json")
+
+		res, err := svc.PairingComplete(r.Context(), token, prfSalt, wmk, req.Name, r.Header.Get("User-Agent"), newReq)
+		if err != nil {
+			switch err {
+			case ErrNotFound:
+				writeError(w, http.StatusNotFound, "pairing_not_found", "pairing expired or not found")
+			case ErrConflict:
+				writeError(w, http.StatusConflict, "pairing_conflict", "pairing is not in the expected state")
+			case ErrTooManyAttempts:
+				writeError(w, http.StatusTooManyRequests, "too_many_attempts", "too many attempts")
+			case ErrDuplicateAccount:
+				writeError(w, http.StatusConflict, "credential_exists", safeErr(err))
+			default:
+				log.Error().Err(err).Msg("pairing_complete_failed")
+				writeError(w, http.StatusInternalServerError, "pairing_complete_failed", safeErr(err))
+			}
+			return
+		}
+
+		setSessionCookie(w, res.SessionToken, dev)
+		writeJSON(w, http.StatusOK, map[string]any{
+			"accountId":        res.AccountID,
+			"sessionToken":     res.SessionToken,
+			"sessionId":        res.SessionID,
+			"credentialId":     base64.StdEncoding.EncodeToString(res.CredentialID),
+			"wrappedMasterKey": base64.StdEncoding.EncodeToString(res.WrappedMasterKey),
+		})
 	}
 }
 
