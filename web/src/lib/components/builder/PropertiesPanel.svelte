@@ -43,7 +43,7 @@
 <aside
 	class="properties-panel {store.selectedField ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
-		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-[280px] sm:max-h-none sm:rounded-xl
+		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-72 sm:max-h-none sm:rounded-xl
 		bg-canvas border border-border-deep overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->

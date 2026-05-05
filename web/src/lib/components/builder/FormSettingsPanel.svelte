@@ -206,7 +206,7 @@
 <aside
 	class="form-settings-panel {store.showFormSettings ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
-		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-[380px] sm:max-h-none sm:rounded-xl
+		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-96 sm:max-h-none sm:rounded-xl
 		bg-canvas border border-border-deep overflow-y-auto z-20 flex flex-col"
 >
 	<!-- Mobile drag handle -->
@@ -344,7 +344,7 @@
 						{store.schema.showWatermark !== false ? 'bg-primary' : 'bg-border-deep'}"
 				>
 					<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-						{store.schema.showWatermark !== false ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+						{store.schema.showWatermark !== false ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 				</button>
 			</div>
 		</div>
@@ -374,7 +374,7 @@
 							{closeOnDateOpen ? 'bg-primary' : 'bg-border-deep'}"
 					>
 						<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-							{closeOnDateOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+							{closeOnDateOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 					</button>
 				</div>
 				{#if closeOnDateOpen}
@@ -414,7 +414,7 @@
 							{limitResponsesOpen ? 'bg-primary' : 'bg-border-deep'}"
 					>
 						<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-							{limitResponsesOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+							{limitResponsesOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 					</button>
 				</div>
 				{#if limitResponsesOpen}
@@ -456,7 +456,7 @@
 							{autoDeleteOpen ? 'bg-primary' : 'bg-border-deep'}"
 					>
 						<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-							{autoDeleteOpen ? 'translate-x-[14px]' : 'translate-x-0'}"></span>
+							{autoDeleteOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 					</button>
 				</div>
 				{#if autoDeleteOpen}

@@ -36,24 +36,11 @@
 		const popoverH = 230;
 		const popoverW = 280;
 		const margin = 8;
-		let top: number;
-		let left: number;
-		if (window.innerWidth < 1440) {
-			// Palette is hidden — float popover to the left of the field card
-			left = Math.max(margin, rect.left - popoverW - 8);
-			top = Math.max(margin, Math.min(
-				rect.top + rect.height / 2 - popoverH / 2,
-				window.innerHeight - popoverH - margin
-			));
-		} else {
-			// Palette is visible — keep original below/above positioning
-			top = rect.bottom + 6 + popoverH > window.innerHeight
-				? rect.top - popoverH - 6
-				: rect.bottom + 6;
-			left = rect.left + popoverW > window.innerWidth
-				? window.innerWidth - popoverW - margin
-				: rect.left;
-		}
+		const left = Math.max(margin, rect.left - popoverW - 8);
+		const top = Math.max(margin, Math.min(
+			rect.top + rect.height / 2 - popoverH / 2,
+			window.innerHeight - popoverH - margin
+		));
 		insertSlot = afterIndex;
 		popoverAnchor = { top, left };
 	}
@@ -196,7 +183,7 @@
 
 <main
 	style="background: {store.mode === 'preview' ? 'var(--color-form-surface)' : 'var(--color-surface)'};"
-	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 sm:pr-[320px] min-w-0"
+	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 min-w-0"
 	onclick={() => { store.setSelectedField(null); closeSlot(); }}
 	role="presentation"
 >
@@ -209,7 +196,7 @@
 {@const defaultLocaleDesc = store.activeLocale !== store.schema.defaultLocale
 	? (store.schema.translations[store.schema.defaultLocale]?.formDescription ?? '')
 		: ''}
-	<div class="max-w-[680px] mx-auto w-full">
+	<div class="max-w-2xl mx-auto w-full">
 		<!-- Form title and description -->
 		<div
 			onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
@@ -251,7 +238,7 @@
 		{/if}
 
 		{#if fields.length === 0}
-		<div class="flex flex-col items-center justify-center min-h-[300px] border-2 border-dashed border-border rounded-lg text-muted-dark">
+		<div class="flex flex-col items-center justify-center min-h-72 border-2 border-dashed border-border rounded-lg text-muted-dark">
 			<button
 				onclick={(e) => openSlot(e, -1)}
 				class="flex items-center gap-2 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm px-4 py-2.5 transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
@@ -265,7 +252,7 @@
 			use:dndzone={{ items: fields, flipDurationMs: 150 }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
-			class="flex flex-col gap-3 min-h-[100px]"
+			class="flex flex-col gap-3 min-h-24"
 		>
 			{#each fields as field, fieldIndex (field.id)}
 				{@const isSelected = store.selectedFieldId === field.id}
@@ -295,7 +282,7 @@
 							border-color: {hoveredSlot === fieldIndex || insertSlot === fieldIndex ? 'var(--color-border)' : 'transparent'};
 							color: {hoveredSlot === fieldIndex || insertSlot === fieldIndex ? 'var(--color-muted-dark)' : 'transparent'};
 						"
-						class="absolute left-[-26px] top-1/2 -translate-y-1/2 flex items-center justify-center w-[18px] h-[18px] border rounded-full cursor-pointer transition-all duration-100 p-0"
+						class="absolute left-[-26px] top-1/2 -translate-y-1/2 flex items-center justify-center w-4 h-4 border rounded-full cursor-pointer transition-all duration-100 p-0"
 						aria-label="Add field here"
 					>
 						<Plus size={10} strokeWidth={2.5} />
@@ -323,7 +310,7 @@
 									autoGrow(el);
 									store.updateTranslation(field.id, 'label', el.value);
 								}}
-								class="relative z-[1] bg-canvas border-none outline-none text-muted text-sm font-mono text-center px-2 py-0 resize-none overflow-hidden w-auto min-w-[80px] max-w-[200px]"
+								class="relative z-[1] bg-canvas border-none outline-none text-muted text-sm font-mono text-center px-2 py-0 resize-none overflow-hidden w-auto min-w-20 max-w-48"
 							></textarea>
 						</div>
 						<button
@@ -547,11 +534,11 @@
 									>
 										<!-- Type indicator -->
 										{#if isMultiple}
-											<span class="inline-block shrink-0 w-[13px] h-[13px] border-[1.5px] border-text-subtle rounded-full"></span>
+											<span class="inline-block shrink-0 w-3 h-3 border-[1.5px] border-text-subtle rounded-full"></span>
 										{:else if isCheckbox}
-											<span class="inline-block shrink-0 w-[13px] h-[13px] border-[1.5px] border-text-subtle rounded-sm"></span>
+											<span class="inline-block shrink-0 w-3 h-3 border-[1.5px] border-text-subtle rounded-sm"></span>
 										{:else}
-											<span class="text-muted-dark text-xs font-mono shrink-0 w-[14px] text-right">{i + 1}.</span>
+											<span class="text-muted-dark text-xs font-mono shrink-0 w-3.5 text-right">{i + 1}.</span>
 										{/if}
 										<input
 											type="text"
@@ -571,7 +558,7 @@
 								{/each}
 								{#if isMultiple && (field.config as MultipleChoiceConfig).allowOther}
 									<div class="flex items-center gap-2 px-1.5 py-1 rounded opacity-50 select-none">
-										<span class="inline-block shrink-0 w-[13px] h-[13px] border-[1.5px] border-text-subtle rounded-full"></span>
+										<span class="inline-block shrink-0 w-3 h-3 border-[1.5px] border-text-subtle rounded-full"></span>
 										<span class="text-sm font-[inherit] text-text-subtle py-px">Other…</span>
 									</div>
 								{/if}
@@ -662,7 +649,7 @@
 	{#if insertSlot !== null && popoverAnchor}
 		<div
 			style="top: {popoverAnchor.top}px; left: {popoverAnchor.left}px;"
-			class="fixed bg-surface border border-border-field rounded-lg p-1.5 z-50 shadow-[0_8px_32px_var(--color-overlay)] grid grid-cols-2 gap-0.5 w-[280px]"
+			class="fixed bg-surface border border-border-field rounded-lg p-1.5 z-50 shadow-[0_8px_32px_var(--color-overlay)] grid grid-cols-2 gap-0.5 w-72"
 		>
 			{#each fieldPalette as item}
 				<button

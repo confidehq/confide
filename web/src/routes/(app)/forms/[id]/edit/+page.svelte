@@ -8,7 +8,6 @@
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
-	import FieldPalette from '$lib/components/builder/FieldPalette.svelte';
 	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
 	import FormSettingsPanel from '$lib/components/builder/FormSettingsPanel.svelte';
 	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check, Languages } from '@lucide/svelte';
@@ -131,7 +130,7 @@
 
 <!-- Layout selector — hidden for now -->
 			<div class="hidden items-center gap-2 shrink-0">
-				<div class="w-px h-[18px] bg-border-field"></div>
+				<div class="w-px h-4 bg-border-field"></div>
 				<div class="relative">
 					{#if layoutOpen}
 						<div onclick={() => layoutOpen = false} class="fixed inset-0 z-10"></div>
@@ -151,7 +150,7 @@
 					</button>
 
 					{#if layoutOpen}
-						<div class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border-field rounded-lg p-1 min-w-[210px] z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
+						<div class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border-field rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
 							{#each layoutModes as mode}
 								{@const active = mode.value === store.schema.layout}
 								<button
@@ -216,7 +215,7 @@
 				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
-			<div class="w-px h-[18px] bg-border-field shrink-0"></div>
+			<div class="w-px h-4 bg-border-field shrink-0"></div>
 
 			<!-- Preview toggle -->
 			<button
@@ -235,10 +234,6 @@
 
 		<!-- Body -->
 		<div class="flex flex-1 overflow-hidden relative">
-			{#if store.mode === 'edit'}
-				<FieldPalette {store} />
-			{/if}
-
 			<FieldCanvas {store} />
 
 			{#if store.mode === 'edit'}
