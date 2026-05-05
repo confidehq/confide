@@ -112,7 +112,7 @@
 
 	// null means "details view"; a string means a response ID is selected
 	let selectedId = $state<string | null>(null);
-	let activeTab = $state<'details' | 'share' | 'settings'>('details');
+	let activeTab = $state<'details' | 'share' | 'settings' | 'responses'>('details');
 	let decrypted = $state<Map<string, DecryptedResponse>>(new Map());
 	let decrypting = $state<Set<string>>(new Set());
 	let decryptErrors = $state<Map<string, string>>(new Map());
@@ -335,6 +335,7 @@
 
 	async function selectResponse(id: string) {
 		selectedId = id;
+		if (activeTab === 'responses') activeTab = 'details';
 		const rec = responses.find(r => r.id === id);
 		if (rec && !decrypted.has(id) && !decrypting.has(id)) {
 			await handleDecrypt(rec);
@@ -510,28 +511,29 @@
 <div class="flex flex-col flex-1 min-h-0 h-full font-mono">
 
 	<!-- Top bar -->
-	<div class="flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-hidden">
+	<div class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 h-9 border-b border-border-deep shrink-0 overflow-hidden">
 		<Breadcrumb items={[
 			{ label: 'Forms', href: '/forms' },
 			{ label: formName || formId.slice(0, 12) + '…', onclick: selectedId ? () => { selectedId = null; } : undefined },
-			...(selectedRecord ? [{ label: selectedRecord.id }] : [])
+			...(selectedRecord ? [{ label: selectedRecord.id.slice(0, 8) + '…' }] : [])
 		]} />
-		<div class="flex-1 shrink-0"></div>
+		<div class="flex-1 min-w-0"></div>
 		<a
 			href="/forms/{formId}/edit"
 			class="shrink-0 font-mono text-base text-muted-dim no-underline px-2.5 py-0.5 border border-border-deep rounded-sm whitespace-nowrap
 				hover:text-text-body hover:border-border-subtle transition-colors duration-100 flex items-center gap-1.5"
 		>
 			<Pencil size={12} strokeWidth={1.75} />
-			Edit form
+			<span class="hidden sm:inline">Edit form</span>
+			<span class="sm:hidden">Edit</span>
 		</a>
 	</div>
 
 	<!-- Shell -->
-	<div class="flex flex-1 min-h-0 font-mono">
+	<div class="flex flex-col sm:flex-row flex-1 min-h-0 font-mono">
 
-		<!-- Left panel: response list -->
-		<div class="w-[280px] shrink-0 flex flex-col border-r border-surface-card min-h-0">
+		<!-- Left panel: response list (desktop only) -->
+		<div class="hidden sm:flex sm:w-[280px] shrink-0 flex-col border-r border-surface-card min-h-0">
 
 			<!-- List header -->
 			<div class="px-4 py-3 border-b border-surface-card shrink-0 flex items-center justify-between gap-2">
@@ -596,7 +598,7 @@
 		</div>
 
 		<!-- Right panel -->
-		<div class="flex-1 min-w-0 flex flex-col min-h-0">
+		<div class="flex flex-1 min-w-0 flex-col min-h-0">
 
 			{#if selectedId === null}
 				<!-- ── Details / Settings view ──────────────────────────────────── -->
@@ -604,11 +606,18 @@
 
 					<!-- Form name heading -->
 					{#if formName}
-						<h1 class="m-0 px-5 pt-5 pb-3 text-xl text-text-body font-mono font-normal shrink-0">{formName}</h1>
+						<h1 class="m-0 px-4 sm:px-5 pt-4 sm:pt-5 pb-2 sm:pb-3 text-lg sm:text-xl text-text-body font-mono font-normal shrink-0">{formName}</h1>
 					{/if}
 
 					<!-- Tab bar -->
 					<div class="flex items-end h-9 border-b border-border-deep shrink-0 px-4 gap-1">
+						<button
+							onclick={() => { activeTab = 'responses'; }}
+							class="sm:hidden h-full px-3 text-base font-mono bg-transparent border-0 border-b-2 -mb-px cursor-pointer transition-colors duration-100 whitespace-nowrap
+								{activeTab === 'responses'
+									? 'text-text-body border-b-[#3b82f6]'
+									: 'text-muted-dim border-b-transparent hover:text-muted-blue'}"
+						>Responses{record ? ` (${record.responseCount})` : ''}</button>
 						{#each [['details', 'Details'], ['share', 'Share'], ['settings', 'Settings']] as [id, label]}
 							<button
 								onclick={() => { activeTab = id as typeof activeTab; }}
@@ -630,32 +639,81 @@
 						{:else if loadError}
 							<div class="p-8 text-lg text-error-light">{loadError}</div>
 						{:else if record}
-							<div class="max-w-3xl px-8 py-8">
+							<div class="max-w-3xl px-4 py-4 sm:px-8 sm:py-8">
 
-								{#if activeTab === 'details'}
+								{#if activeTab === 'responses'}
+									<!-- Responses (mobile inline list) -->
+									<div class="sm:hidden flex flex-col min-h-0 -mx-4 -mt-4">
+										{#if responsesLoading}
+											<div class="flex items-center justify-center text-muted-dim text-base gap-2.5 py-12">
+												<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
+												Loading…
+											</div>
+										{:else if responsesError}
+											<div class="flex items-center justify-center text-error-light text-base p-8 text-center">{responsesError}</div>
+										{:else if responses.length === 0}
+											<div class="flex flex-col items-center justify-center text-border-subtle text-center py-16 px-8">
+												<div class="text-4xl mb-3 opacity-40">○</div>
+												<p class="text-base m-0">No responses yet</p>
+											</div>
+										{:else}
+											<div>
+												{#each responses as resp, i (resp.id)}
+													<button
+														onclick={() => selectResponse(resp.id)}
+														class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-deep cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface-3"
+													>
+														<div class="flex items-center justify-between gap-2">
+															<span class="text-base overflow-hidden text-ellipsis whitespace-nowrap flex-1 text-muted-blue">
+																#{i + 1} · {resp.id.slice(0, 12)}…
+															</span>
+															{#if decrypted.has(resp.id)}
+																<span class="w-[5px] h-[5px] rounded-full bg-success-border shrink-0" title="Decrypted"></span>
+															{/if}
+															<span class="text-base text-muted-dim bg-canvas border border-surface-card rounded-sm px-1.5 py-px shrink-0">v{resp.schemaVersion}</span>
+														</div>
+														<div class="text-base text-muted-dim mt-0.5">{formatDateShort(resp.receivedAt)}</div>
+													</button>
+												{/each}
+											</div>
+											{#if hasMore}
+												<div class="px-4 py-3 border-t border-border-deep">
+													<button
+														onclick={() => loadResponses(nextCursor)}
+														disabled={loadingMore}
+														class="w-full px-3 py-1.5 bg-transparent text-muted-dim border border-surface-card rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100 hover:not-disabled:text-muted-blue hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+													>
+														{loadingMore ? 'Loading…' : 'Load more'}
+													</button>
+												</div>
+											{/if}
+										{/if}
+									</div>
+
+								{:else if activeTab === 'details'}
 									<!-- Details -->
 									<section class="flex flex-col gap-4">
 										<div class="border border-border-deep rounded-lg overflow-hidden">
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Name</span>
-												<span class="text-lg text-text-body flex-1 min-w-0 truncate">{formName || '—'}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Name</span>
+												<span class="text-base sm:text-lg text-text-body flex-1 min-w-0 truncate">{formName || '—'}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Status</span>
-												<div class="flex items-center gap-2.5 flex-1">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Status</span>
+												<div class="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
 													<span class="w-2 h-2 rounded-full shrink-0 {statusColor}"></span>
-													<span class="text-lg text-text-body capitalize">{record.status}</span>
+													<span class="text-base sm:text-lg text-text-body capitalize">{record.status}</span>
 													{#if record.status === 'draft'}
 														<a
 															href="/forms/{formId}/edit"
-															class="ml-auto px-3 py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100 no-underline
+															class="ml-auto px-2.5 sm:px-3 py-1 sm:py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100 no-underline
 																bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border"
 														>Publish</a>
 													{:else}
 														<button
 															onclick={toggleStatus}
 															disabled={statusSaving}
-															class="ml-auto px-3 py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100
+															class="ml-auto px-2.5 sm:px-3 py-1 sm:py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100
 																{statusSaving
 																	? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
 																	: record.status === 'open'
@@ -667,25 +725,25 @@
 													{/if}
 												</div>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Form ID</span>
-												<span class="text-lg text-muted-dim font-mono flex-1 min-w-0 truncate">{formId}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Form ID</span>
+												<span class="text-base sm:text-lg text-muted-dim font-mono flex-1 min-w-0 truncate">{formId}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Responses</span>
-												<span class="text-lg text-text-body tabular-nums">{record.responseCount}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Responses</span>
+												<span class="text-base sm:text-lg text-text-body tabular-nums">{record.responseCount}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Version</span>
-												<span class="text-lg text-muted-dim tabular-nums">v{record.schemaVersion}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Version</span>
+												<span class="text-base sm:text-lg text-muted-dim tabular-nums">v{record.schemaVersion}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5 border-b border-border-deep">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Created</span>
-												<span class="text-lg text-muted-dim">{formatDate(record.createdAt)}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-deep">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Created</span>
+												<span class="text-base sm:text-lg text-muted-dim">{formatDate(record.createdAt)}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3.5">
-												<span class="w-32 shrink-0 text-base text-muted-dim">Updated</span>
-												<span class="text-lg text-muted-dim">{formatDate(record.updatedAt)}</span>
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5">
+												<span class="w-24 sm:w-32 shrink-0 text-base text-muted-dim">Updated</span>
+												<span class="text-base sm:text-lg text-muted-dim">{formatDate(record.updatedAt)}</span>
 											</div>
 										</div>
 									</section>
@@ -694,7 +752,7 @@
 									<!-- Share link -->
 									<section class="flex flex-col gap-3">
 										{#if shareUrl}
-											<div class="flex gap-1.5">
+											<div class="flex flex-col sm:flex-row gap-1.5">
 												<input
 													type="text"
 													readonly
@@ -703,7 +761,7 @@
 												/>
 												<button
 													onclick={copyShareUrl}
-													class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 grid items-center
+													class="sm:shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 grid items-center
 														{copied ? 'bg-success-muted text-success cursor-default' : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
 												>
 													<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? '' : 'invisible'}">
@@ -990,16 +1048,16 @@
 									<!-- Danger zone -->
 									<section class="flex flex-col gap-4 mt-8">
 										<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
-										<div class="border border-border-danger-muted rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+										<div class="border border-border-danger-muted rounded-lg px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 											<div class="min-w-0">
-												<p class="m-0 text-lg text-text-body">Delete this form</p>
+												<p class="m-0 text-base sm:text-lg text-text-body">Delete this form</p>
 												<p class="m-0 mt-0.5 text-base text-muted-dim">
 													Permanently deletes the form and all {record.responseCount} response{record.responseCount === 1 ? '' : 's'}. Cannot be undone.
 												</p>
 											</div>
 											<button
 												onclick={() => { pendingDeleteForm = true; }}
-												class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-muted rounded cursor-pointer font-mono text-lg
+												class="sm:shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-muted rounded cursor-pointer font-mono text-base sm:text-lg
 													hover:bg-danger-hover hover:border-border-danger-dark transition-colors duration-100"
 											>Delete</button>
 										</div>
@@ -1019,28 +1077,34 @@
 					</div>
 				{:else}
 					<!-- Detail header -->
-					<div class="px-6 pt-5 pb-4 border-b border-surface-card shrink-0 flex items-start justify-between gap-4">
-						<div class="min-w-0">
-							<p class="text-lg text-muted-blue m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
-							<p class="text-base text-muted-dim m-0">
-								Received {formatDateLong(selectedRecord.receivedAt)}
-								{#if selectedDecrypted}
-									<span class="inline-block text-base text-muted-dim bg-canvas border border-surface-card rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
-								{/if}
-							</p>
+					<div class="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 sm:pb-4 border-b border-surface-card shrink-0">
+						<div class="flex items-start justify-between gap-3 sm:gap-4">
+							<div class="min-w-0">
+								<p class="text-base sm:text-lg text-muted-blue m-0 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">{selectedRecord.id}</p>
+								<p class="text-sm sm:text-base text-muted-dim m-0">
+									Received {formatDateLong(selectedRecord.receivedAt)}
+									{#if selectedDecrypted}
+										<span class="inline-block text-base text-muted-dim bg-canvas border border-surface-card rounded-sm px-1.5 py-px ml-2 align-middle">{selectedDecrypted.locale}</span>
+									{/if}
+								</p>
+							</div>
+							<div class="flex items-center gap-2 shrink-0">
+								<button
+									onclick={() => (confirmDeleteResponse = selectedRecord.id)}
+									class="px-3 sm:px-4 py-1.5 sm:py-2 bg-transparent text-error-light border border-border-deep rounded cursor-pointer font-mono text-base sm:text-lg transition-colors duration-100 hover:bg-danger-hover hover:border-border-danger-dark"
+								>
+									Delete
+								</button>
+							</div>
 						</div>
-						<div class="flex items-center gap-2 shrink-0">
-							<button
-								onclick={() => (confirmDeleteResponse = selectedRecord.id)}
-								class="px-4 py-2 bg-transparent text-error-light border border-border-deep rounded cursor-pointer font-mono text-lg transition-colors duration-100 hover:bg-danger-hover hover:border-border-danger-dark"
-							>
-								Delete
-							</button>
-						</div>
+						<button
+							class="sm:hidden mt-2 text-sm text-muted-dim hover:text-muted-blue bg-transparent border-none cursor-pointer p-0 font-mono"
+							onclick={() => { selectedId = null; activeTab = 'responses'; }}
+						>← All responses</button>
 					</div>
 
 					<!-- Detail content -->
-					<div class="flex-1 overflow-y-auto p-6">
+					<div class="flex-1 overflow-y-auto p-4 sm:p-6">
 						{#if isDecryptingSelected}
 							<div class="flex items-center gap-2.5 text-muted-dim text-lg py-8">
 								<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
