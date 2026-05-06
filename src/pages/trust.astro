@@ -1,0 +1,461 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Trust & Safety — Confide">
+	<div class="container">
+		<nav class="nav">
+			<div class="logo-group">
+				<a href="/" class="logo">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span>Confide</span>
+				</a>
+				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+			</div>
+			<div class="nav-actions">
+				<ul class="nav-links">
+					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="#login">Log in</a></li>
+				</ul>
+				<a href="#" class="btn btn-primary">Sign Up Free</a>
+			</div>
+		</nav>
+
+		<main>
+			<header class="page-header">
+				<span class="page-label">TRUST & SAFETY</span>
+				<h1>Real questions. Honest answers.</h1>
+				<p>These are the questions organizations ask before trusting a tool with sensitive data. We've answered them directly — including the limits of what we can and can't protect.</p>
+			</header>
+
+			<section class="qa-group">
+				<h2 class="group-heading">Protecting respondents</h2>
+
+				<div class="qa-item">
+					<h3>Can this system betray someone even if everything goes wrong?</h3>
+					<div class="qa-answer">
+						<p>Submissions are encrypted in the user's browser before being sent. We don't log IP addresses or use tracking scripts. Even if our servers were compromised, responses remain encrypted and cannot be linked back to a person.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Can using your tool contribute to harm?</h3>
+					<div class="qa-answer">
+						<p>We reduce the risk of doxxing by not collecting identifying metadata (like IP addresses) and encrypting all submissions end-to-end.</p>
+						<p>However, doxxing can still happen if identifying information is included in responses or shared outside the platform. We encourage organizations to design forms that minimize collecting unnecessary personal data.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="qa-group">
+				<h2 class="group-heading">Threat model</h2>
+
+				<div class="qa-item">
+					<h3>What threats are you actually designed for?</h3>
+					<div class="qa-answer">
+						<p>This tool is designed to protect against:</p>
+						<ul class="check-list">
+							<li>Data breaches (your database being exposed)</li>
+							<li>Platform access (we cannot read your data)</li>
+							<li>Third-party tracking (no analytics, no profiling)</li>
+							<li>Unauthorized internal access (through access controls)</li>
+						</ul>
+						<p>It does not protect against:</p>
+						<ul class="cross-list">
+							<li>Someone in your organization misusing access</li>
+							<li>A compromised device or email account</li>
+							<li>Information shared outside the platform</li>
+						</ul>
+					</div>
+				</div>
+			</section>
+
+			<section class="qa-group">
+				<h2 class="group-heading">Your team</h2>
+
+				<div class="qa-item">
+					<h3>Can sensitive data be exposed through you — or through us messing up?</h3>
+					<div class="qa-answer">
+						<p>Client data is encrypted end-to-end and only accessible to your workspace members. You can automatically delete responses after a set period to reduce long-term risk.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will normal human mistakes cause a breach?</h3>
+					<div class="qa-answer">
+						<p>We design for safe defaults — no public dashboards, no accidental sharing. Access is scoped to your team, and audit logs show when data is accessed so you can catch mistakes early.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will collaboration weaken security?</h3>
+					<div class="qa-answer">
+						<p>Invite team members to your workspace with controlled access. You can grant or revoke permissions at any time, and all access is logged.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Can the wrong person inside my org see sensitive reports?</h3>
+					<div class="qa-answer">
+						<p>Access to reports is controlled at the workspace level. You decide who can view data, and access can be revoked at any time.</p>
+						<p>We recommend limiting access to only those who need it and regularly reviewing permissions. Audit logs help you see when data has been accessed.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will exporting undo all the security?</h3>
+					<div class="qa-answer">
+						<p>You can export decrypted data when needed. Once exported, you control how it's stored and shared — we recommend secure storage practices to maintain privacy.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="qa-group">
+				<h2 class="group-heading">Your organization</h2>
+
+				<div class="qa-item">
+					<h3>Does this reduce our liability?</h3>
+					<div class="qa-answer">
+						<p>We can't provide legal guarantees, but we help reduce risk by minimizing the data you store, encrypting it end-to-end, and giving you control over retention and access.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will I lose everything forever?</h3>
+					<div class="qa-answer">
+						<p>Because data is end-to-end encrypted, we cannot recover it if you lose access to your account. We provide backup options to help you store recovery keys safely.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will your tool help us avoid causing harm?</h3>
+					<div class="qa-answer">
+						<p>Our goal is to reduce the risk of mishandling sensitive data by:</p>
+						<ul class="check-list">
+							<li>Encrypting all submissions end-to-end</li>
+							<li>Allowing automatic deletion of data</li>
+							<li>Limiting who can access responses</li>
+						</ul>
+						<p>But technology alone isn't enough. Safe handling of sensitive information also depends on internal practices — like access policies, training, and data minimization.</p>
+					</div>
+				</div>
+
+				<div class="qa-item">
+					<h3>Will using your tool help us maintain credibility?</h3>
+					<div class="qa-answer">
+						<p>Trust is built on how you handle sensitive information — not just what tools you use. We support that by ensuring:</p>
+						<ul class="check-list">
+							<li>You can clearly communicate that submissions are encrypted end-to-end</li>
+							<li>You are not exposing respondents to tracking or hidden data collection</li>
+							<li>You can minimize and delete data when it's no longer needed</li>
+						</ul>
+						<p>Many organizations use these guarantees to be transparent with their communities about how data is handled.</p>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-brand">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span class="footer-logo-text">Confide</span>
+				</div>
+				<ul class="footer-links">
+					<li><a href="#login">Sign in</a></li>
+					<li><a href="https://status.confide.com">Status</a></li>
+					<li><a href="/trust">Trust & Safety</a></li>
+					<li><a href="/privacy">Privacy Policy</a></li>
+					<li><a href="/terms">Terms of Service</a></li>
+				</ul>
+			</div>
+		</footer>
+	</div>
+</Layout>
+
+<style>
+	.container {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* Nav */
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem 0;
+	}
+
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.tagline {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
+
+	.logo {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.logo-icon {
+		width: 24px;
+		height: 24px;
+	}
+
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.nav-links a {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
+
+	/* Page Header */
+	.page-header {
+		padding: 4.5rem 0 3.5rem;
+		max-width: 680px;
+	}
+
+	.page-label {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		color: var(--muted-color);
+		margin-bottom: 1.25rem;
+	}
+
+	.page-header h1 {
+		font-size: clamp(2rem, 6vw, 3rem);
+		font-weight: 800;
+		letter-spacing: -0.04em;
+		line-height: 1.1;
+		margin-bottom: 1.25rem;
+	}
+
+	.page-header p {
+		font-size: 1.125rem;
+		color: var(--muted-color);
+		line-height: 1.65;
+	}
+
+	/* Q&A Groups */
+	.qa-group {
+		border-top: 1px solid var(--border-color);
+		padding: 3.5rem 0;
+	}
+
+	.group-heading {
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--muted-color);
+		margin-bottom: 2.5rem;
+	}
+
+	.qa-item {
+		display: grid;
+		grid-template-columns: 1fr 1.3fr;
+		gap: 3rem;
+		padding: 2rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.qa-item:first-of-type {
+		border-top: none;
+		padding-top: 0;
+	}
+
+	.qa-item h3 {
+		font-size: 1.1875rem;
+		font-weight: 700;
+		line-height: 1.3;
+		letter-spacing: -0.02em;
+	}
+
+	.qa-answer p {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.65;
+		margin-bottom: 1rem;
+	}
+
+	.qa-answer p:last-child {
+		margin-bottom: 0;
+	}
+
+	/* Check / Cross lists */
+	.check-list,
+	.cross-list {
+		margin: 0.75rem 0 1rem;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+
+	.check-list li,
+	.cross-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		padding-left: 1.5rem;
+		position: relative;
+		line-height: 1.5;
+	}
+
+	.check-list li::before {
+		content: '✓';
+		position: absolute;
+		left: 0;
+		font-weight: 700;
+		color: var(--fg-color);
+	}
+
+	.cross-list li::before {
+		content: '✕';
+		position: absolute;
+		left: 0;
+		font-weight: 600;
+		color: var(--muted-color);
+		opacity: 0.5;
+	}
+
+	/* Buttons */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		transition: all 0.2s;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.btn-primary {
+		background-color: var(--primary-color);
+		color: var(--primary-fg);
+	}
+
+	.btn-primary:hover {
+		opacity: 0.85;
+		transform: translateY(-1px);
+	}
+
+	/* Footer */
+	.footer {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+		margin-top: auto;
+	}
+
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--muted-color);
+	}
+
+	.footer-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.footer-logo-text {
+		font-weight: 700;
+		color: var(--fg-color);
+		font-size: 1.0625rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--fg-color);
+		text-decoration: underline;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 0 1.25rem;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1rem 0;
+		}
+
+		.page-header {
+			padding: 3rem 0 2.5rem;
+		}
+
+		.qa-group {
+			padding: 2.5rem 0;
+		}
+
+		.qa-item {
+			grid-template-columns: 1fr;
+			gap: 1rem;
+			padding: 1.75rem 0;
+		}
+
+		.footer-content {
+			flex-direction: column;
+			gap: 2rem;
+			text-align: center;
+		}
+
+		.footer-brand {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.footer-links {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1rem 1.5rem;
+		}
+	}
+</style>

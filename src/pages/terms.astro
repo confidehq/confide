@@ -1,141 +1,430 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import { marked } from "marked";
-import fs from "node:fs";
-import path from "node:path";
-
-const raw = fs.readFileSync(path.resolve("src/content/tos.md"), "utf-8");
-const content = marked(raw);
+import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Terms of Service — Confide" description="Confide Terms of Service">
-  <div class="doc-page">
-    <a href="/" class="back-link">← Confide</a>
-    <div class="doc-inner" set:html={content} />
-  </div>
+<Layout title="Terms of Service — Confide">
+	<div class="container">
+		<nav class="nav">
+			<div class="logo-group">
+				<a href="/" class="logo">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span>Confide</span>
+				</a>
+				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+			</div>
+			<div class="nav-actions">
+				<ul class="nav-links">
+					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="#login">Log in</a></li>
+				</ul>
+				<a href="#" class="btn btn-primary">Sign Up Free</a>
+			</div>
+		</nav>
+
+		<main>
+			<header class="page-header">
+				<span class="page-label">LEGAL</span>
+				<h1>Terms of Service</h1>
+				<p class="last-updated">Last Updated: May 4, 2026</p>
+			</header>
+
+			<div class="doc">
+				<p class="doc-intro">Welcome to Confide. By using our service, you agree to these terms. Please read them carefully.</p>
+
+				<section class="doc-section">
+					<h2><span class="section-num">1.</span> Using Confide</h2>
+					<p><strong>Eligibility:</strong> You must be at least 18 years old to use Confide. If you're using it for a company, you must have the authority to agree to these terms for that organization.</p>
+					<p><strong>The Service:</strong> Confide provides an end-to-end encrypted form builder. These terms apply to our hosted service at useconfide.app. (Our open-source software has its own license, the AGPL).</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">2.</span> Your Account & Security</h2>
+					<p><strong>Passkeys:</strong> We don't use passwords. You log in using passkeys (like FaceID, TouchID, or hardware keys).</p>
+					<p><strong>Recovery Codes:</strong> When you sign up, we give you a one-time recovery code. Store it safely. If you lose your passkey and your recovery code, we cannot help you get back into your account. Your data will be lost forever.</p>
+					<p><strong>Your Responsibility:</strong> You are responsible for keeping your devices, passkeys, and recovery codes secure.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">3.</span> How Encryption Works (and its limits)</h2>
+					<p><strong>Privacy by Design:</strong> Everything you create is encrypted on your device before it reaches us. We cannot read your forms or your responses.</p>
+					<p><strong>Security Disclaimer:</strong> While we use end-to-end encryption, no system is 100% secure. You acknowledge that the security of your data also depends on the safety of your own devices and that zero-day exploits or localized breaches are possible.</p>
+					<p><strong>Shared Access:</strong> In Team Workspaces, data is shared securely between members you authorize. Creators have full control over who is invited and what level of access each team member is granted.</p>
+					<div class="callout">
+						<p><strong>The Golden Rule:</strong> Because we can't see your data, we can't reset your keys or recover your files if you lose access. If you lose your keys and your recovery code, your data is gone.</p>
+					</div>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">4.</span> Rules of the Road</h2>
+					<p>You agree not to use Confide for:</p>
+					<ul class="plain-list">
+						<li>Anything illegal.</li>
+						<li>Phishing, fraud, or spreading malware.</li>
+						<li>Spamming or abusive behavior.</li>
+						<li>Infringing on others' intellectual property.</li>
+					</ul>
+					<p><strong>Moderation:</strong> Because your data is encrypted, we can't moderate content. However, we may suspend accounts based on metadata (like usage patterns) or external reports if we suspect abuse.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">5.</span> Fees and Billing</h2>
+					<p><strong>Payments:</strong> Some features require a paid subscription. When you upgrade from a free account to a Pro account, you are billed that day and your billing cycle starts immediately.</p>
+					<p><strong>Renewals:</strong> Subscriptions renew automatically. You can cancel anytime.</p>
+					<p><strong>Non-Payment:</strong> If a payment fails or is not made, your account will be reverted to a free account. All free account limits will be applied to your data and forms until a successful payment is made.</p>
+					<p><strong>Refunds:</strong> Generally, payments are non-refundable unless required by law.</p>
+					<p><strong>Changes:</strong> We'll give you at least 30 days' notice before changing our prices.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">6.</span> Data & Deletion</h2>
+					<p><strong>Export:</strong> You can export your data at any time.</p>
+					<p><strong>Deletion:</strong> When you delete your account, your data is removed from our active systems immediately. It stays in our encrypted backups for up to 7 days before being permanently erased.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">7.</span> Intellectual Property</h2>
+					<p><strong>Your Content:</strong> You own the content you create.</p>
+					<p><strong>DMCA:</strong> If you believe someone is using Confide to infringe on your copyright, email us at <a href="mailto:legal@useconfide.app">legal@useconfide.app</a>. Because we can't see encrypted content, we can only take action on public forms or account metadata.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">8.</span> The Fine Print</h2>
+					<p><strong>"As Is":</strong> We provide Confide "as is." We can't guarantee it will always be available or error-free.</p>
+					<p><strong>Liability:</strong> To the extent permitted by law, we are not liable for any amount or damages of any kind that result from the use of the service. This includes, but is not limited to, damages arising from localized device breaches, zero-day exploits, or any unauthorized access beyond our control. We aren't responsible for data loss caused by lost encryption keys.</p>
+					<p><strong>Governing Law:</strong> These terms are governed by the laws of the Commonwealth of Virginia. Any disputes will be handled in Virginia courts.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">9.</span> Changes</h2>
+					<p>If we make major changes to these terms, we'll notify you by email or by posting a notice on our site. Continuing to use Confide means you agree to the new terms.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">10.</span> Contact</h2>
+					<p>Questions? Reach out at <a href="mailto:legal@useconfide.app">legal@useconfide.app</a>.</p>
+					<p class="company-name">Confide LLC</p>
+				</section>
+			</div>
+		</main>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-brand">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span class="footer-logo-text">Confide</span>
+				</div>
+				<ul class="footer-links">
+					<li><a href="#login">Sign in</a></li>
+					<li><a href="https://status.confide.com">Status</a></li>
+					<li><a href="/trust">Trust & Safety</a></li>
+					<li><a href="/privacy">Privacy Policy</a></li>
+					<li><a href="/terms">Terms of Service</a></li>
+				</ul>
+			</div>
+		</footer>
+	</div>
 </Layout>
 
 <style>
-  .doc-page {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 5rem 1.5rem 6rem;
-  }
+	.container {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
 
-  .back-link {
-    display: inline-block;
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    color: var(--color-brand-accent);
-    margin-bottom: 3rem;
-    text-decoration: none;
-    opacity: 0.7;
-    transition: opacity 0.15s;
-  }
+	/* Nav */
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem 0;
+	}
 
-  .back-link:hover {
-    opacity: 1;
-  }
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
 
-  .doc-inner :global(h1) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: clamp(1.4rem, 3vw, 1.9rem);
-    font-weight: 700;
-    color: var(--color-brand-text);
-    margin: 0 0 0.5rem;
-    letter-spacing: -0.01em;
-  }
+	.tagline {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
 
-  .doc-inner :global(h2) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-brand-accent);
-    margin: 3rem 0 1rem;
-  }
+	.logo {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
 
-  .doc-inner :global(h3) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--color-brand-text);
-    margin: 2rem 0 0.75rem;
-  }
+	.logo-icon {
+		width: 24px;
+		height: 24px;
+	}
 
-  .doc-inner :global(p) {
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    line-height: 1.8;
-    margin: 0 0 1rem;
-  }
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
 
-  .doc-inner :global(ul),
-  .doc-inner :global(ol) {
-    padding-left: 1.5rem;
-    margin: 0 0 1rem;
-  }
+	.nav-links {
+		display: flex;
+		gap: 1rem;
+	}
 
-  .doc-inner :global(li) {
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    line-height: 1.8;
-    margin-bottom: 0.35rem;
-  }
+	.nav-links a {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+		transition: color 0.2s;
+	}
 
-  .doc-inner :global(strong) {
-    font-weight: 500;
-    color: var(--color-brand-text);
-  }
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
 
-  .doc-inner :global(hr) {
-    border: none;
-    border-top: 1px solid rgba(232, 232, 240, 0.07);
-    margin: 2.5rem 0;
-  }
+	/* Page Header */
+	.page-header {
+		padding: 4.5rem 0 3rem;
+	}
 
-  .doc-inner :global(a) {
-    color: var(--color-brand-accent);
-    text-decoration: underline;
-    text-decoration-color: rgba(129, 191, 187, 0.35);
-    text-underline-offset: 3px;
-  }
+	.page-label {
+		display: block;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		color: var(--muted-color);
+		margin-bottom: 1rem;
+	}
 
-  .doc-inner :global(a:hover) {
-    text-decoration-color: var(--color-brand-accent);
-  }
+	.page-header h1 {
+		font-size: clamp(2.25rem, 6vw, 3rem);
+		font-weight: 800;
+		letter-spacing: -0.04em;
+		line-height: 1.1;
+		margin-bottom: 0.75rem;
+	}
 
-  .doc-inner :global(table) {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    margin: 1.5rem 0;
-  }
+	.last-updated {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+	}
 
-  .doc-inner :global(th) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-brand-accent);
-    text-align: left;
-    padding: 0.6rem 1rem 0.6rem 0;
-    border-bottom: 1px solid rgba(232, 232, 240, 0.1);
-  }
+	/* Document */
+	.doc {
+		max-width: 680px;
+		padding-bottom: 6rem;
+	}
 
-  .doc-inner :global(td) {
-    font-size: 0.9rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    padding: 0.6rem 1rem 0.6rem 0;
-    border-bottom: 1px solid rgba(232, 232, 240, 0.05);
-    vertical-align: top;
-    line-height: 1.65;
-  }
+	.doc-intro {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.7;
+		padding: 2rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section {
+		padding: 2.75rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section h2 {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 1.25rem;
+		display: flex;
+		align-items: baseline;
+		gap: 0.5rem;
+	}
+
+	.section-num {
+		color: var(--muted-color);
+		font-weight: 500;
+		font-size: 1rem;
+	}
+
+	.doc-section p {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.7;
+		margin-bottom: 1rem;
+	}
+
+	.doc-section p:last-child {
+		margin-bottom: 0;
+	}
+
+	.doc-section a {
+		color: var(--fg-color);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.doc-section a:hover {
+		opacity: 0.7;
+	}
+
+	.doc-section strong {
+		color: var(--fg-color);
+		font-weight: 600;
+	}
+
+	/* List */
+	.plain-list {
+		margin: 0.75rem 0 1rem;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.plain-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.6;
+		padding-left: 1.25rem;
+		position: relative;
+	}
+
+	.plain-list li::before {
+		content: '—';
+		position: absolute;
+		left: 0;
+		color: var(--border-color);
+	}
+
+	/* Callout */
+	.callout {
+		margin: 1.25rem 0 0;
+		padding: 1.125rem 1.375rem;
+		background-color: var(--secondary-bg);
+		border-radius: 0.75rem;
+		border-left: 3px solid var(--fg-color);
+	}
+
+	.callout p {
+		margin-bottom: 0 !important;
+		font-size: 1rem !important;
+	}
+
+	.company-name {
+		font-weight: 700;
+		color: var(--fg-color) !important;
+		font-size: 1rem !important;
+		margin-top: 1.5rem !important;
+	}
+
+	/* Buttons */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		transition: all 0.2s;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.btn-primary {
+		background-color: var(--primary-color);
+		color: var(--primary-fg);
+	}
+
+	.btn-primary:hover {
+		opacity: 0.85;
+		transform: translateY(-1px);
+	}
+
+	/* Footer */
+	.footer {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+		margin-top: auto;
+	}
+
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--muted-color);
+	}
+
+	.footer-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.footer-logo-text {
+		font-weight: 700;
+		color: var(--fg-color);
+		font-size: 1.0625rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--fg-color);
+		text-decoration: underline;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 0 1.25rem;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1rem 0;
+		}
+
+		.page-header {
+			padding: 3rem 0 2rem;
+		}
+
+		.doc-section {
+			padding: 2.25rem 0;
+		}
+
+		.footer-content {
+			flex-direction: column;
+			gap: 2rem;
+			text-align: center;
+		}
+
+		.footer-brand {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.footer-links {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1rem 1.5rem;
+		}
+	}
 </style>

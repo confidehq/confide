@@ -1,1723 +1,734 @@
 ---
-import Layout from "../layouts/Layout.astro";
+import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout>
-    <!-- Background decoration -->
-    <div class="bg-grid" aria-hidden="true"></div>
-    <div class="glow glow-hero" aria-hidden="true"></div>
-    <div class="glow glow-mid" aria-hidden="true"></div>
-
-    <!-- ── Header ─────────────────────────────────── -->
-    <header class="site-header">
-        <div class="header-inner">
-            <a href="/" class="wordmark">Confide</a>
-            <nav class="header-nav">
-                <a
-                    href="https://github.com/confidehq/confide"
-                    rel="noopener noreferrer"
-                    class="nav-link">GitHub</a
-                >
-                <a href="/docs/self-hosting" class="nav-link">Docs</a>
-                <a
-                    href="https://admin.useconfide.app/login"
-                    class="btn btn-ghost btn-sm">Sign in</a
-                >
-                <a
-                    href="https://admin.useconfide.app/signup"
-                    class="btn btn-primary btn-sm">Get started</a
-                >
-                <button
-                    class="theme-toggle"
-                    id="themeToggle"
-                    aria-label="Toggle theme"
-                >
-                    <svg
-                        class="icon-sun"
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        aria-hidden="true"
-                    >
-                        <circle cx="12" cy="12" r="4"></circle>
-                        <path
-                            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-                        ></path>
-                    </svg>
-                    <svg
-                        class="icon-moon"
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        aria-hidden="true"
-                    >
-                        <path
-                            d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
-                        ></path>
-                    </svg>
-                </button>
-            </nav>
-            <button
-                class="mobile-menu-toggle"
-                aria-label="Toggle menu"
-                id="menuToggle"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
-        <nav class="mobile-nav" id="mobileNav">
-            <a
-                    href="https://github.com/confidehq/confide"
-                rel="noopener noreferrer">GitHub</a
-            >
-            <a href="/docs/self-hosting">Docs</a>
-            <a href="https://admin.useconfide.app/login">Sign in</a>
-            <a
-                href="https://admin.useconfide.app/signup"
-                class="btn btn-primary">Get started</a
-            >
-        </nav>
-    </header>
-
-    <!-- ── Hero ───────────────────────────────────── -->
-    <section class="hero">
-        <div class="hero-badge">
-            <span class="badge-dot"></span>
-            Open source · AGPL licensed
-        </div>
-        <div class="tagline-block">
-            <span class="word word-1">collect.</span>
-            <span class="word word-2">encrypt.</span>
-            <span class="word word-3">forget.</span>
-        </div>
-        <p class="hero-sub">Forms without footprints.</p>
-        <div class="cta-group">
-            <a
-                href="https://admin.useconfide.app"
-                class="btn btn-primary btn-lg">Create an account</a
-            >
-            <a
-                href="https://github.com/confidehq/confide"
-                class="btn btn-ghost btn-lg"
-                rel="noopener noreferrer"
-            >
-                <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    aria-hidden="true"
-                >
-                    <path
-                        d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"
-                    ></path>
-                </svg>
-                View on GitHub
-            </a>
-        </div>
-        <div class="hero-terminal">
-            <div class="terminal-bar">
-                <span class="t-dot t-red"></span>
-                <span class="t-dot t-yellow"></span>
-                <span class="t-dot t-green"></span>
-                <span class="t-label">response.json</span>
-            </div>
-            <pre
-                class="terminal-body"><code><span class="t-key">"id"</span><span class="t-punct">:</span> <span class="t-str">"resp_9f3a..."</span><span class="t-punct">,</span>
-<span class="t-key">"encrypted_payload"</span><span class="t-punct">:</span> <span class="t-str">"U2FsdGVkX1+mK9..."</span><span class="t-punct">,</span>
-<span class="t-key">"submitted_at"</span><span class="t-punct">:</span> <span class="t-str">"2026-04-15T22:00:00Z"</span><span class="t-punct">,</span>
-<span class="t-comment">// No IP. No identity. No trace.</span></code></pre>
-        </div>
-    </section>
-
-    <!-- ── Prose sections ─────────────────────────── -->
-    <section class="prose-sections">
-        <div class="prose-inner">
-            <div class="prose-item">
-                <div class="prose-left">
-                    <h3 class="prose-heading">
-                        The problem with<br />form providers
-                    </h3>
-                </div>
-                <div class="prose-body">
-                    <p>
-                        Most form builders <em>are</em> built to extract, not protect.
-                        They log IP addresses that can reveal a respondent’s location.
-                        Use device fingerprinting to re-identify <em
-                            >anonymous</em
-                        > users. Embed third-party trackers that monetize behavior.
-                        And store responses in plaintext, accessible to insiders or
-                        through legal requests.
-                    </p>
-                </div>
-            </div>
-
-            <div class="prose-divider"></div>
-
-            <div class="prose-item prose-item--centered">
-                <div class="prose-left">
-                    <h3 class="prose-heading">
-                        How is <br />Confide different?
-                    </h3>
-                </div>
-                <div class="prose-body">
-                    <p>
-                        Confide is a zero-knowledge form builder. We don't log
-                        IP addresses, fingerprint devices, or use third party
-                        tracking scripts. Responses are encrypted in the
-                        respondent's browser before they hit submit. We
-                        mathematically cannot access your data.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- ── How it works ────────────────────────────── -->
-        <section class="section-how">
-            <div class="section-inner">
-                <h2 class="section-label">How it works</h2>
-                <div class="steps-grid">
-                    <div class="step">
-                        <div class="step-num">01</div>
-                        <h3 class="step-title">You create a form</h3>
-                        <p class="step-body">
-                            Your browser generates encryption keys. They stay on
-                            your device. We never see them.
-                        </p>
-                    </div>
-                    <div class="step-arrow" aria-hidden="true">→</div>
-                    <div class="step">
-                        <div class="step-num">02</div>
-                        <h3 class="step-title">You share a link</h3>
-                        <p class="step-body">
-                            The link contains a public key that lets anyone
-                            encrypt responses — but not decrypt them.
-                        </p>
-                    </div>
-                    <div class="step-arrow" aria-hidden="true">→</div>
-                    <div class="step">
-                        <div class="step-num">03</div>
-                        <h3 class="step-title">Someone fills it out</h3>
-                        <p class="step-body">
-                            Their answers are encrypted in their browser before
-                            submission. We receive unreadable ciphertext.
-                        </p>
-                    </div>
-                    <div class="step-arrow" aria-hidden="true">→</div>
-                    <div class="step">
-                        <div class="step-num">04</div>
-                        <h3 class="step-title">Only you can read it</h3>
-                        <p class="step-body">
-                            You (and teammates you authorize) hold the private
-                            keys. Only you can decrypt responses.
-                        </p>
-                    </div>
-                </div>
-                <p class="how-footer">
-                    We don't have a backdoor. We don't have a master key. We
-                    built a system where we can't access your data — by design.
-                </p>
-            </div>
-        </section>
-
-        <!-- ── Implications ─────────────────────────────── -->
-        <section class="implications">
-            <div class="implications-inner">
-                <h2 class="section-label">What this means for you</h2>
-                <div class="implications-grid">
-                    <div class="implication-item">
-                        <h3 class="implication-title">
-                            You're not liable for our security
-                        </h3>
-                        <p class="implication-body">
-                            If we get breached, hackers get encrypted gibberish.
-                            Your data stays safe.
-                        </p>
-                    </div>
-
-                    <div class="implication-item">
-                        <h3 class="implication-title">Subpoena-resistant</h3>
-                        <p class="implication-body">
-                            If we're served a warrant for your data, we can only
-                            hand over encrypted blobs. We don't hold the keys.
-                            We can't decrypt on behalf of law enforcement.
-                        </p>
-                        <p class="implication-note">
-                            Note: You can still be compelled to decrypt and
-                            share data you control.
-                        </p>
-                    </div>
-
-                    <div class="implication-item">
-                        <h3 class="implication-title">
-                            Team collaboration without compromise
-                        </h3>
-                        <p class="implication-body">
-                            Grant decryption access to trusted teammates. Each
-                            person gets their own secure keys — no shared
-                            passwords. Revoke access anytime without
-                            re-encrypting existing data.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── Respondent implications ──────────────────── -->
-        <section class="implications implications--alt">
-            <div class="implications-inner">
-                <h2 class="section-label">
-                    What this means for your respondents
-                </h2>
-                <div class="implications-grid">
-                    <div class="implication-item">
-                        <h3 class="implication-title">No account required</h3>
-                        <p class="implication-body">
-                            They click your link, fill out the form, submit.
-                            That's it.
-                        </p>
-                    </div>
-
-                    <div class="implication-item">
-                        <h3 class="implication-title">No surveillance</h3>
-                        <p class="implication-body">
-                            We don't log IP addresses, fingerprint devices, or
-                            embed tracking scripts. No cookies. No analytics. No
-                            third parties watching.
-                        </p>
-                    </div>
-
-                    <div class="implication-item">
-                        <h3 class="implication-title">No metadata trails</h3>
-                        <p class="implication-body">
-                            We don't record who submitted what, or when, or from
-                            where. Responses can't be traced back to individuals
-                            — even by you, unless you explicitly ask for
-                            identifying info.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── Transparency ─────────────────────────────── -->
-        <section class="transparency">
-            <div class="transparency-inner">
-                <h2 class="section-label">What we <em>do</em> see</h2>
-                <p class="transparency-intro">
-                    We're transparent about what we collect:
-                </p>
-                <div class="transparency-cols">
-                    <div class="transparency-col">
-                        <ul class="t-list t-list--yes">
-                            <li>
-                                <span class="t-marker">✓</span><div>
-                                    <strong>Form metadata</strong> — Form titles,
-                                    field names, when forms were created
-                                </div>
-                            </li>
-                            <li>
-                                <span class="t-marker">✓</span><div>
-                                    <strong>Response counts</strong> — How many responses
-                                    each form has received (but not who sent them)
-                                </div>
-                            </li>
-                            <li>
-                                <span class="t-marker">✓</span><div>
-                                    <strong>Account info</strong> — Your email, workspace
-                                    name, billing details
-                                </div>
-                            </li>
-                            <li>
-                                <span class="t-marker">✓</span><div>
-                                    <strong>Usage data</strong> — When you log in,
-                                    which forms you access (to provide the service)
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="transparency-col">
-                        <p class="t-col-label">We <em>don't</em> see:</p>
-                        <ul class="t-list t-list--no">
-                            <li>
-                                <span class="t-marker">✗</span><div>
-                                    <strong>Form responses</strong> — encrypted
-                                </div>
-                            </li>
-                            <li>
-                                <span class="t-marker">✗</span><div>
-                                    <strong>Respondent identities</strong> — no IP
-                                    logs, no tracking
-                                </div>
-                            </li>
-                            <li>
-                                <span class="t-marker">✗</span><div>
-                                    <strong>What questions reveal</strong> — field
-                                    <em>labels</em> yes, actual answers no
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <p class="transparency-footer">
-                    This metadata is necessary to operate the service — but it
-                    can't decrypt your responses.
-                </p>
-            </div>
-        </section>
-
-        <!-- ── Feature grid ────────────────────────────── -->
-        <section class="features">
-            <div class="features-inner">
-                <h2 class="section-label center">Built for trust</h2>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <rect x="3" y="11" width="18" height="11" rx="2"
-                                ></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Client-side encryption</h4>
-                        <p class="feature-body">
-                            Encryption happens in the browser. Your private key
-                            never touches our servers.
-                        </p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <path
-                                    d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-                                ></path>
-                                <circle cx="9" cy="7" r="4"></circle>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Anonymous responses</h4>
-                        <p class="feature-body">
-                            No IP addresses logged. No device fingerprinting. No
-                            way to tie a response to a person.
-                        </p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <polyline points="16 18 22 12 16 6"></polyline>
-                                <polyline points="8 6 2 12 8 18"></polyline>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Open source</h4>
-                        <p class="feature-body">
-                            AGPL licensed. Read the code, audit the encryption,
-                            or self-host your own instance.
-                        </p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <rect x="2" y="3" width="20" height="14" rx="2"
-                                ></rect>
-                                <path d="M8 21h8M12 17v4"></path>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Form builder</h4>
-                        <p class="feature-body">
-                            Rich field types — text, multiple choice, ratings,
-                            file uploads — with a clean drag-and-drop editor.
-                        </p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <path
-                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Multi-step flows</h4>
-                        <p class="feature-body">
-                            Guide respondents through accordion or paginated
-                            step layouts with progress indicators.
-                        </p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">
-                            <svg
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.5"
-                            >
-                                <circle cx="12" cy="12" r="3"></circle>
-                                <path
-                                    d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"
-                                ></path>
-                            </svg>
-                        </div>
-                        <h4 class="feature-title">Self-hostable</h4>
-                        <p class="feature-body">
-                            Deploy on your own infrastructure with Docker
-                            Compose in minutes. Own your stack end to end.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── FAQ ───────────────────────────────────────── -->
-        <section class="faq">
-            <div class="faq-inner">
-                <h2 class="section-label">FAQ</h2>
-                <div class="faq-list">
-                    <details class="faq-item">
-                        <summary class="faq-q"
-                            >What if I lose my passkey?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                You get a one-time recovery code when you create
-                                an account. Store it somewhere safe (password
-                                manager, printed copy, secure note).
-                            </p>
-                            <p>
-                                Without it, your data is permanently lost. We
-                                can't recover it. That the point.
-                            </p>
-                        </div>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary class="faq-q"
-                            >Can you recover my data if I forget my password?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                No. We don't have a backdoor. We don't have a
-                                master key.
-                            </p>
-                            <p>This is a feature, not a bug.</p>
-                        </div>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary class="faq-q"
-                            >What if a team member leaves?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                Revoke their access instantly. They lose the
-                                ability to decrypt new responses.
-                            </p>
-                            <p class="faq-note">
-                                Note: They may have already downloaded past
-                                responses — manage team access carefully.
-                            </p>
-                        </div>
-                    </details>
-
-                    <!-- <details class="faq-item">
-                        <summary class="faq-q"
-                            >Is this actually HIPAA-compliant?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                Our architecture aligns with HIPAA requirements
-                                — we never have access to PHI.
-                            </p>
-                            <p>
-                                You still need a Business Associate Agreement
-                                (BAA) for covered entities. <a
-                                    href="/docs/hipaa"
-                                    class="faq-link"
-                                    >See our compliance docs →</a
-                                >
-                            </p>
-                        </div>
-                    </details> -->
-
-                    <details class="faq-item">
-                        <summary class="faq-q"
-                            >What happens if Confide shuts down?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                Your data is yours. Export encrypted backups
-                                anytime. Decrypt them locally using our
-                                open-source decryption tool.
-                            </p>
-                            <p>You're never locked in.</p>
-                        </div>
-                    </details>
-
-                    <details class="faq-item">
-                        <summary class="faq-q"
-                            >How do I know you're not lying?</summary
-                        >
-                        <div class="faq-a">
-                            <p>
-                                Our encryption code is <a
-                                    href="https://github.com/confidehq/confide"
-                                    class="faq-link"
-                                    rel="noopener noreferrer">open source</a
-                                >. Read it, audit it, run it yourself.
-                            </p>
-                            <p>
-                                Try it yourself: inspect the network traffic.
-                                You'll see encrypted payloads, nothing else.
-                            </p>
-                        </div>
-                    </details>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── Bottom CTA ──────────────────────────────── -->
-        <section class="bottom-cta">
-            <div class="bottom-cta-inner">
-                <p class="bottom-cta-eyebrow">
-                    Free to start. Open to inspect.
-                </p>
-                <h2 class="bottom-cta-heading">
-                    Ready to collect without compromise?
-                </h2>
-                <div class="cta-group">
-                    <a
-                        href="https://admin.useconfide.app"
-                        class="btn btn-primary btn-lg">Create an account</a
-                    >
-                    <a
-                        href="https://github.com/confidehq/confide"
-                        class="btn btn-ghost btn-lg"
-                        rel="noopener noreferrer">Self-host instead →</a
-                    >
-                </div>
-            </div>
-        </section>
-
-        <!-- ── Footer ─────────────────────────────────── -->
-        <footer class="site-footer">
-            <div class="footer-inner">
-                <span class="footer-wordmark">Confide</span>
-                <div class="footer-links">
-                    <a
-                        href="https://github.com/confidehq/confide"
-                        rel="noopener noreferrer">GitHub</a
-                    >
-                    <span aria-hidden="true">·</span>
-                    <a href="/docs/self-hosting">Self-hosting guide</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="/privacy">Privacy Policy</a>
-                    <span aria-hidden="true">·</span>
-                    <a href="/terms">Terms of Service</a>
-                    <span aria-hidden="true">·</span>
-                    <span>Open source, AGPL licensed</span>
-                </div>
-            </div>
-        </footer>
-    </section>
-
-    <script>
-        const toggle = document.getElementById("menuToggle");
-        const nav = document.getElementById("mobileNav");
-        toggle?.addEventListener("click", () => {
-            nav?.classList.toggle("open");
-            toggle.classList.toggle("active");
-        });
-
-        const themeToggle = document.getElementById("themeToggle");
-        themeToggle?.addEventListener("click", () => {
-            const html = document.documentElement;
-            const next =
-                html.getAttribute("data-theme") === "light" ? "dark" : "light";
-            if (next === "light") {
-                html.setAttribute("data-theme", "light");
-            } else {
-                html.removeAttribute("data-theme");
-            }
-            localStorage.setItem("theme", next);
-        });
-    </script>
-
-    <style>
-        /* ── Background ─────────────────────────────────── */
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            background-image: radial-gradient(
-                circle,
-                rgba(255, 255, 255, 0.04) 1px,
-                transparent 1px
-            );
-            background-size: 28px 28px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .glow {
-            position: fixed;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        .glow-hero {
-            top: -15%;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 900px;
-            height: 600px;
-            background: radial-gradient(
-                ellipse at center,
-                rgba(129, 191, 187, 0.09) 0%,
-                transparent 65%
-            );
-        }
-
-        .glow-mid {
-            top: 130vh;
-            left: 20%;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(
-                ellipse at center,
-                rgba(129, 191, 187, 0.05) 0%,
-                transparent 65%
-            );
-        }
-
-        /* ── Header ────────────────────────────────────── */
-        .site-header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            width: 100%;
-            background: rgba(8, 8, 16, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .header-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .wordmark {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.875rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: var(--color-brand-text);
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-nav {
-            display: flex;
-            align-items: center;
-            gap: 1.75rem;
-        }
-
-        .nav-link {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem;
-            letter-spacing: 0.06em;
-            color: rgba(232, 232, 240, 0.4);
-            transition: color 0.15s;
-        }
-
-        .nav-link:hover {
-            color: rgba(232, 232, 240, 0.85);
-        }
-
-        /* Mobile toggle */
-        .mobile-menu-toggle {
-            display: none;
-            flex-direction: column;
-            gap: 5px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px;
-        }
-
-        .mobile-menu-toggle span {
-            display: block;
-            width: 22px;
-            height: 1.5px;
-            background: rgba(232, 232, 240, 0.6);
-            transition:
-                transform 0.2s,
-                opacity 0.2s;
-        }
-
-        .mobile-menu-toggle.active span:nth-child(1) {
-            transform: translateY(6.5px) rotate(45deg);
-        }
-        .mobile-menu-toggle.active span:nth-child(2) {
-            opacity: 0;
-        }
-        .mobile-menu-toggle.active span:nth-child(3) {
-            transform: translateY(-6.5px) rotate(-45deg);
-        }
-
-        .mobile-nav {
-            display: none;
-            flex-direction: column;
-            padding: 1rem 1.5rem 1.5rem;
-            gap: 1rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .mobile-nav.open {
-            display: flex;
-        }
-
-        .mobile-nav a {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.8rem;
-            color: rgba(232, 232, 240, 0.55);
-            letter-spacing: 0.04em;
-        }
-
-        /* ── Buttons ───────────────────────────────────── */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-family: "IBM Plex Mono", monospace;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            border-radius: 4px;
-            text-decoration: none;
-            transition:
-                background 0.15s,
-                color 0.15s,
-                border-color 0.15s,
-                box-shadow 0.15s;
-            cursor: pointer;
-        }
-
-        .btn-sm {
-            font-size: 0.7rem;
-            padding: 0.45rem 1rem;
-        }
-        .btn-lg {
-            font-size: 0.8rem;
-            padding: 0.75rem 1.75rem;
-        }
-
-        .btn-primary {
-            background: var(--color-brand-accent);
-            color: var(--color-brand-bg);
-            border: 1px solid var(--color-brand-accent);
-        }
-
-        .btn-primary:hover {
-            background: var(--color-brand-accent-hover);
-            border-color: var(--color-brand-accent-hover);
-            box-shadow: 0 0 22px rgba(129, 191, 187, 0.28);
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: rgba(232, 232, 240, 0.6);
-            border: 1px solid rgba(232, 232, 240, 0.15);
-        }
-
-        .btn-ghost:hover {
-            border-color: rgba(232, 232, 240, 0.35);
-            color: var(--color-brand-text);
-        }
-
-        /* ── Hero ──────────────────────────────────────── */
-        .hero {
-            position: relative;
-            z-index: 1;
-            max-width: 860px;
-            margin: 0 auto;
-            padding: 7rem 1.5rem 5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.75rem;
-            text-align: center;
-        }
-
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.06em;
-            color: var(--color-brand-accent);
-            border: 1px solid rgba(129, 191, 187, 0.25);
-            border-radius: 2rem;
-            padding: 0.3rem 0.9rem;
-        }
-
-        .badge-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--color-brand-accent);
-            box-shadow: 0 0 6px rgba(129, 191, 187, 0.6);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%,
-            100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.4;
-            }
-        }
-
-        .tagline-block {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 0.1em 0.5em;
-            line-height: 1;
-        }
-
-        .word {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: clamp(2.8rem, 9vw, 4rem);
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            opacity: 0;
-            animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .word-1 {
-            animation-delay: 0.1s;
-            color: var(--color-brand-text);
-        }
-        .word-2 {
-            animation-delay: 0.3s;
-            color: var(--color-brand-text-mid);
-        }
-        .word-3 {
-            animation-delay: 0.5s;
-            color: var(--color-brand-accent);
-        }
-
-        @keyframes rise {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .hero-sub {
-            font-size: clamp(0.95rem, 2vw, 1.15rem);
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            margin: 0;
-            opacity: 0;
-            animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
-        }
-
-        .br-desktop {
-            display: none;
-        }
-
-        .cta-group {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            justify-content: center;
-            opacity: 0;
-            animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
-        }
-
-        /* Terminal mockup */
-        .hero-terminal {
-            margin-top: 1rem;
-            width: 100%;
-            max-width: 560px;
-            background: rgba(17, 24, 39, 0.7);
-            border: 1px solid rgba(232, 232, 240, 0.08);
-            border-radius: 8px;
-            overflow: hidden;
-            opacity: 0;
-            animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) 1.05s forwards;
-        }
-
-        .terminal-bar {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.6rem 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border-bottom: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .t-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-        .t-red {
-            background: #ff5f57;
-        }
-        .t-yellow {
-            background: #febc2e;
-        }
-        .t-green {
-            background: #28c840;
-        }
-
-        .t-label {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.68rem;
-            color: rgba(232, 232, 240, 0.25);
-            margin-left: 0.5rem;
-        }
-
-        .terminal-body {
-            padding: 1.1rem 1.25rem;
-            margin: 0;
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.78rem;
-            line-height: 1.75;
-            text-align: left;
-            overflow-x: auto;
-        }
-
-        .terminal-body code {
-            font-family: inherit;
-        }
-        .t-key {
-            color: #81bfbb;
-        }
-        .t-str {
-            color: #c8d8d6;
-        }
-        .t-punct {
-            color: rgba(232, 232, 240, 0.3);
-        }
-        .t-comment {
-            color: rgba(232, 232, 240, 0.22);
-        }
-
-        /* ── How it works ──────────────────────────────── */
-        .section-how {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 5rem 1.5rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-            border-bottom: 1px solid rgba(232, 232, 240, 0.06);
-            background: rgba(255, 255, 255, 0.015);
-        }
-
-        .section-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-        }
-
-        .section-label {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--color-brand-accent);
-            margin: 0 0 3rem;
-        }
-
-        .section-label.center {
-            text-align: center;
-        }
-
-        .steps-grid {
-            display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-        }
-
-        .step {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-
-        .step-num {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            color: var(--color-brand-accent);
-            opacity: 0.7;
-        }
-
-        .step-arrow {
-            font-size: 1.25rem;
-            color: rgba(129, 191, 187, 0.25);
-            padding-top: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .step-title {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--color-brand-text);
-            margin: 0;
-        }
-
-        .step-body {
-            font-size: 1.125rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            margin: 0;
-        }
-
-        .how-footer {
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 1px solid rgba(129, 191, 187, 0.15);
-            font-size: 1rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            max-width: 680px;
-        }
-
-        /* ── Prose sections ─────────────────────────────── */
-        .prose-sections {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 4rem 1.5rem;
-        }
-
-        .prose-inner {
-            max-width: 860px;
-            margin: 0 auto;
-        }
-
-        .prose-item {
-            display: grid;
-            grid-template-columns: 26% 1fr;
-            gap: 3.5rem;
-            padding: 3.5rem 0;
-            align-items: start;
-        }
-
-        .prose-item--centered {
-            grid-template-columns: 1fr;
-            text-align: center;
-        }
-
-        .prose-item--centered .prose-body {
-            margin: 0 auto;
-            max-width: calc(74% - 3.5rem);
-            text-align: left;
-        }
-
-        .prose-divider {
-            height: 1px;
-            background: rgba(232, 232, 240, 0.07);
-        }
-
-        .prose-heading {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.07em;
-            text-transform: uppercase;
-            color: var(--color-brand-accent);
-            margin: 0;
-            line-height: 1.6;
-        }
-
-        .prose-body {
-            display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
-        }
-
-        .prose-body p {
-            font-size: 1.175rem;
-            font-weight: 300;
-            color: var(--color-text-prose);
-            margin: 0;
-            line-height: 1.85;
-        }
-
-        .prose-body em {
-            font-style: normal;
-            color: var(--color-text-emphasis);
-        }
-
-        .prose-callout {
-            color: var(--color-text-callout) !important;
-            border-left: 2px solid rgba(129, 191, 187, 0.35) !important;
-            padding-left: 1rem !important;
-            font-style: italic;
-        }
-
-        /* ── Implications ──────────────────────────────────── */
-        .implications {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 5rem 1.5rem;
-        }
-
-        .implications-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-        }
-
-        .implications-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-
-        .implication-item {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            padding: 1.75rem;
-            border: 1px solid rgba(232, 232, 240, 0.07);
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .implication-title {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--color-brand-text);
-            margin: 0;
-            letter-spacing: 0.01em;
-            line-height: 1.45;
-        }
-
-        .implication-body {
-            font-size: 1.075rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            margin: 0;
-            line-height: 1.75;
-        }
-
-        .implication-note {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem;
-            color: var(--color-brand-accent);
-            opacity: 0.6;
-            margin: 0;
-            line-height: 1.6;
-            padding-top: 0.25rem;
-        }
-
-        /* ── Transparency ──────────────────────────────────── */
-        .transparency {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 5rem 1.5rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .transparency-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-        }
-
-        .transparency-intro {
-            font-size: 1.075rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            margin: 0 0 2.5rem;
-            line-height: 1.7;
-        }
-
-        .transparency-cols {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 3rem;
-        }
-
-        .t-col-label {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--color-brand-accent);
-            margin: 0 0 1rem;
-        }
-
-        .t-col-label em {
-            font-style: normal;
-        }
-
-        .t-list {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .t-list li {
-            display: flex;
-            gap: 0.85rem;
-            align-items: flex-start;
-            font-size: 1rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.65;
-        }
-
-        .t-list li strong {
-            font-weight: 500;
-            color: var(--color-brand-text);
-        }
-
-        .t-list li em {
-            font-style: normal;
-            color: var(--color-brand-text);
-        }
-
-        .t-marker {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.8rem;
-            font-weight: 600;
-            flex-shrink: 0;
-            margin-top: 0.2rem;
-        }
-
-        .t-list--yes .t-marker {
-            color: #4aac88;
-        }
-        .t-list--no .t-marker {
-            color: #e05a5a;
-        }
-
-        .transparency-footer {
-            margin-top: 2.5rem;
-            padding-top: 1.75rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.07);
-            font-size: 1rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            max-width: 680px;
-            font-style: italic;
-        }
-
-        .implications--alt {
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-            background: rgba(255, 255, 255, 0.015);
-        }
-
-        /* ── Features ───────────────────────────────────── */
-        .features {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 5rem 1.5rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-            background: rgba(255, 255, 255, 0.015);
-        }
-
-        .features-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .feature-card {
-            background: rgba(255, 255, 255, 0.025);
-            border: 1px solid rgba(232, 232, 240, 0.07);
-            border-radius: 6px;
-            padding: 1.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.7rem;
-            transition:
-                border-color 0.2s,
-                background 0.2s;
-        }
-
-        .feature-card:hover {
-            border-color: rgba(129, 191, 187, 0.2);
-            background: rgba(129, 191, 187, 0.03);
-        }
-
-        .feature-icon {
-            color: var(--color-brand-accent);
-            opacity: 0.8;
-        }
-
-        .feature-title {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--color-brand-text);
-            margin: 0;
-            letter-spacing: 0.02em;
-        }
-
-        .feature-body {
-            font-size: 1.075rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            line-height: 1.7;
-            margin: 0;
-        }
-
-        /* ── FAQ ────────────────────────────────────────── */
-        .faq {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 5rem 1.5rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-            background: rgba(255, 255, 255, 0.015);
-        }
-
-        .faq-inner {
-            max-width: 720px;
-            margin: 0 auto;
-        }
-
-        .faq-list {
-            display: flex;
-            flex-direction: column;
-            margin-top: 2rem;
-        }
-
-        .faq-item {
-            border-bottom: 1px solid rgba(232, 232, 240, 0.07);
-        }
-
-        .faq-item:first-child {
-            border-top: 1px solid rgba(232, 232, 240, 0.07);
-        }
-
-        .faq-q {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: 1.25rem 0;
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--color-brand-text);
-            cursor: pointer;
-            list-style: none;
-            line-height: 1.45;
-        }
-
-        .faq-q::-webkit-details-marker {
-            display: none;
-        }
-
-        .faq-q::after {
-            content: "+";
-            font-size: 1.1rem;
-            font-weight: 300;
-            color: var(--color-brand-accent);
-            flex-shrink: 0;
-            transition: transform 0.2s;
-        }
-
-        .faq-item[open] .faq-q::after {
-            transform: rotate(45deg);
-        }
-
-        .faq-a {
-            padding: 0 0 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.6rem;
-        }
-
-        .faq-a p {
-            font-size: 1rem;
-            font-weight: 300;
-            color: var(--color-text-secondary);
-            margin: 0;
-            line-height: 1.75;
-        }
-
-        .faq-a strong {
-            font-weight: 500;
-            color: var(--color-brand-text);
-        }
-
-        .faq-note {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem !important;
-            color: var(--color-brand-accent) !important;
-            opacity: 0.65;
-        }
-
-        .faq-link {
-            color: var(--color-brand-accent);
-            text-decoration: underline;
-            text-decoration-color: rgba(129, 191, 187, 0.35);
-            text-underline-offset: 3px;
-            transition: text-decoration-color 0.15s;
-        }
-
-        .faq-link:hover {
-            text-decoration-color: var(--color-brand-accent);
-        }
-
-        /* ── Bottom CTA ─────────────────────────────────── */
-        .bottom-cta {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 7rem 1.5rem;
-            text-align: center;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .bottom-cta-inner {
-            max-width: 680px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.25rem;
-        }
-
-        .bottom-cta-eyebrow {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: var(--color-brand-accent);
-            margin: 0;
-        }
-
-        .bottom-cta-heading {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: clamp(1.3rem, 3.5vw, 1.9rem);
-            font-weight: 700;
-            color: var(--color-brand-text);
-            margin: 0;
-            line-height: 1.3;
-            letter-spacing: -0.01em;
-        }
-
-        /* ── Footer ─────────────────────────────────────── */
-        .site-footer {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            padding: 1.75rem 1.5rem;
-            border-top: 1px solid rgba(232, 232, 240, 0.06);
-        }
-
-        .footer-inner {
-            max-width: 1080px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .footer-wordmark {
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.14em;
-            text-transform: uppercase;
-            color: rgba(232, 232, 240, 0.2);
-        }
-
-        .footer-links {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            font-family: "IBM Plex Mono", monospace;
-            font-size: 0.7rem;
-            letter-spacing: 0.03em;
-            color: rgba(232, 232, 240, 0.18);
-        }
-
-        .footer-links a {
-            transition: color 0.15s;
-        }
-        .footer-links a:hover {
-            color: rgba(232, 232, 240, 0.5);
-        }
-
-        /* ── Theme toggle ───────────────────────────────── */
-        .theme-toggle {
-            background: none;
-            border: 1px solid rgba(232, 232, 240, 0.15);
-            border-radius: 4px;
-            cursor: pointer;
-            padding: 0.35rem;
-            color: rgba(232, 232, 240, 0.45);
-            display: flex;
-            align-items: center;
-            transition:
-                color 0.15s,
-                border-color 0.15s;
-            flex-shrink: 0;
-        }
-
-        .theme-toggle:hover {
-            color: rgba(232, 232, 240, 0.85);
-            border-color: rgba(232, 232, 240, 0.35);
-        }
-
-        /* Dark mode: show sun to switch to light */
-        .icon-moon {
-            display: none;
-        }
-        .icon-sun {
-            display: block;
-        }
-
-        /* Light mode: show moon to switch to dark */
-        [data-theme="light"] .icon-moon {
-            display: block;
-        }
-        [data-theme="light"] .icon-sun {
-            display: none;
-        }
-
-        /* ── Responsive ─────────────────────────────────── */
-        @media (min-width: 860px) {
-            .br-desktop {
-                display: inline;
-            }
-        }
-
-        @media (max-width: 860px) {
-            .header-nav .nav-link {
-                display: none;
-            }
-            .mobile-menu-toggle {
-                display: flex;
-            }
-
-            .steps-grid {
-                flex-direction: column;
-                gap: 2rem;
-            }
-            .step-arrow {
-                display: none;
-            }
-
-            .transparency-cols {
-                grid-template-columns: 1fr;
-            }
-            .implications-grid {
-                grid-template-columns: 1fr;
-            }
-            .features-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .header-nav {
-                gap: 0.75rem;
-            }
-            .header-nav .btn {
-                display: none;
-            }
-
-            .prose-item {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
-                padding: 2.25rem 0;
-            }
-
-            .features-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+<Layout title="Confide">
+	<div class="container">
+		<nav class="nav">
+			<div class="logo-group">
+				<a href="/" class="logo">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span>Confide</span>
+				</a>
+				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+			</div>
+			<div class="nav-actions">
+				<ul class="nav-links">
+					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="#login">Log in</a></li>
+				</ul>
+				<a href="#" class="btn btn-primary">Sign Up Free</a>
+			</div>
+		</nav>
+
+		<main>
+			<section class="hero">
+				<div class="hero-badge">End-to-end encrypted</div>
+				<h1>Sensitive forms that keep your respondents safe</h1>
+				<p>Built for nonprofits, legal aid, and grassroots organizations. Protect the people who trust you with their most vulnerable data.</p>
+				<div class="hero-actions">
+					<a href="#" class="btn btn-primary btn-lg">Sign Up Free</a>
+				</div>
+			</section>
+
+			<section class="privacy-section">
+				<div class="privacy-grid">
+					<div class="privacy-title">
+						<span class="muted-label">NO ADS, NO TRACKING</span>
+						<h2>Break free from Big Tech</h2>
+					</div>
+					<div class="privacy-content">
+						<p>Most companies make money by tracking your activity, profiling you, and serving you ads. We believe this is an invasion of your privacy. We don't do this, period.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="privacy-section">
+				<div class="privacy-grid">
+					<div class="privacy-title">
+						<span class="muted-label">ENCRYPTED DATA</span>
+						<h2>Your data stays yours — we can't read it even if we tried</h2>
+					</div>
+					<div class="privacy-content">
+						<p>Forms are encrypted on your device before reaching our servers. Respondents use secure form links to decrypt your form and encrypt their responses. We cannot access this data even if we wanted to.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="privacy-section">
+				<div class="privacy-grid">
+					<div class="privacy-title">
+						<span class="muted-label">SECURE WORKSPACE</span>
+						<h2>Collaborate with your team</h2>
+					</div>
+					<div class="privacy-content">
+						<p>Shared workspaces enable your team to work together while maintaining full data encryption with respondents. You have full control over who can see what — with clear audit logs of what was accessed and when.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="privacy-section">
+				<div class="privacy-grid">
+					<div class="privacy-title">
+						<span class="muted-label">WHEN DATA IS SENSITIVE</span>
+						<h2>Privacy isn't optional</h2>
+					</div>
+					<div class="privacy-content">
+						<p>Whether you're collecting:</p>
+						<ul class="feature-list">
+							<li>incident or abuse reports</li>
+							<li>immigration or legal case details</li>
+							<li>whistleblower submissions</li>
+						</ul>
+						<p>A breach — or even internal misuse — can put real people at risk.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="highlights-section">
+				<div class="highlights-grid">
+					<div class="highlight-card">
+						<span class="highlight-icon">
+							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+								<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+								<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+							</svg>
+						</span>
+						<h3>Only you can read submissions</h3>
+						<p>Forms and responses are encrypted before they ever reach us. We cannot access them.</p>
+					</div>
+					<div class="highlight-card">
+						<span class="highlight-icon">
+							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
+								<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+								<line x1="1" y1="1" x2="23" y2="23"></line>
+							</svg>
+						</span>
+						<h3>Anonymous by default</h3>
+						<p>No trackers. No IP logging. No hidden analytics.</p>
+					</div>
+					<div class="highlight-card">
+						<span class="highlight-icon">
+							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+								<circle cx="9" cy="7" r="4"></circle>
+								<path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+								<path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+							</svg>
+						</span>
+						<h3>Safe team collaboration</h3>
+						<p>Workspaces, access controls, and audit logs — without exposing raw data unnecessarily.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="privacy-section">
+				<div class="privacy-grid">
+					<div class="privacy-title">
+						<h2>Built for real-world use.</h2>
+					</div>
+					<div class="privacy-content">
+						<p>Everything your organization needs to collect sensitive information responsibly.</p>
+						<ul class="feature-list">
+							<li>Auto-delete old responses to reduce risk</li>
+							<li>Close forms automatically when needed</li>
+							<li>Share via secure links or QR codes</li>
+							<li>Encrypted forwarding when needed</li>
+							<li>Multi-language support</li>
+							<li>Passkey-only authentication</li>
+						</ul>
+					</div>
+				</div>
+			</section>
+
+			<section class="faq-section">
+				<div class="faq-header">
+					<h2>I have questions about security and our data…</h2>
+				</div>
+				<div class="faq-list">
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>Can Confide read my form responses?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>No. Forms and responses are encrypted on your device using keys only you control. By the time data reaches our servers it's already encrypted — we have no way to decrypt or read it.</p>
+						</div>
+					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>What happens if Confide gets hacked?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>An attacker would only obtain ciphertext. Without your private keys — which never leave your device — the data is unreadable. End-to-end encryption means a server breach exposes nothing meaningful.</p>
+						</div>
+					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>Do respondents need to create an account?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>No. Respondents receive a secure link that contains everything needed to decrypt your form and encrypt their response. No sign-up, no email, no tracking.</p>
+						</div>
+					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>Is Confide open source?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>Yes. Confide is licensed under AGPL, so anyone can inspect, audit, or self-host the code. Security claims you can verify are more trustworthy than ones you can't.</p>
+						</div>
+					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>What metadata does Confide collect?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>We collect only what's necessary to run the service — timestamps of form submissions and basic account information for paying customers. We do not log IP addresses of respondents, track behavior, or sell data.</p>
+						</div>
+					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>Can I delete data automatically?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>Yes. You can configure forms to auto-delete responses after a set period, or close a form entirely once a submission limit is reached. Reducing the data you hold reduces your risk.</p>
+						</div>
+					</details>
+				</div>
+			</section>
+
+			<section class="final-cta">
+				<div class="cta-content">
+					<h2>Your data belongs to you — not tech companies, governments, or hackers.</h2>
+					<a href="#" class="btn btn-primary btn-lg">Create a secure form</a>
+				</div>
+			</section>
+		</main>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-brand">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span class="footer-logo-text">Confide</span>
+				</div>
+				<ul class="footer-links">
+					<li><a href="#login">Sign in</a></li>
+					<li><a href="https://status.confide.com">Status</a></li>
+					<li><a href="/trust">Trust & Safety</a></li>
+					<li><a href="/privacy">Privacy Policy</a></li>
+					<li><a href="/terms">Terms of Service</a></li>
+				</ul>
+			</div>
+		</footer>
+	</div>
 </Layout>
+
+<style>
+	.container {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* Nav */
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem 0;
+	}
+
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.tagline {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
+
+	.logo {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.logo-icon {
+		width: 24px;
+		height: 24px;
+	}
+
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.nav-links a {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
+
+	/* Hero */
+	.hero {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		padding: 5rem 0 7rem;
+	}
+
+	.hero-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--muted-color);
+		border: 1px solid var(--border-color);
+		padding: 0.3rem 0.875rem;
+		border-radius: 9999px;
+		margin-bottom: 2rem;
+	}
+
+	.hero-badge::before {
+		content: '';
+		display: inline-block;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background-color: currentColor;
+		opacity: 0.6;
+	}
+
+	.hero h1 {
+		font-size: clamp(2.25rem, 7vw, 3.75rem);
+		font-weight: 800;
+		line-height: 1.1;
+		margin-bottom: 1.5rem;
+		letter-spacing: -0.04em;
+		color: var(--fg-color);
+		max-width: 760px;
+	}
+
+	.hero p {
+		font-size: clamp(1.0625rem, 2.5vw, 1.1875rem);
+		color: var(--muted-color);
+		max-width: 540px;
+		margin-bottom: 2.5rem;
+		line-height: 1.65;
+	}
+
+	.hero-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+	}
+
+	/* Privacy Sections */
+	.privacy-section {
+		padding: 4rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.privacy-grid {
+		display: grid;
+		grid-template-columns: 1fr 1.2fr;
+		gap: 4rem;
+		align-items: start;
+	}
+
+	.muted-label {
+		display: block;
+		font-size: 0.8125rem;
+		color: var(--muted-color);
+		margin-bottom: 0.875rem;
+		letter-spacing: 0.1em;
+		font-weight: 600;
+	}
+
+	.privacy-title h2 {
+		font-size: 2.125rem;
+		font-weight: 700;
+		line-height: 1.15;
+		letter-spacing: -0.025em;
+	}
+
+	.privacy-content p {
+		font-size: 1.125rem;
+		color: var(--muted-color);
+		line-height: 1.65;
+		margin-bottom: 1rem;
+	}
+
+	.privacy-content p:last-child {
+		margin-bottom: 0;
+	}
+
+	.feature-list {
+		margin: 0.75rem 0;
+		padding-left: 0;
+	}
+
+	.feature-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		padding: 0.3rem 0 0.3rem 1.25rem;
+		position: relative;
+	}
+
+	.feature-list li::before {
+		content: '—';
+		position: absolute;
+		left: 0;
+		color: var(--border-color);
+		font-weight: 400;
+	}
+
+	/* Highlights Section */
+	.highlights-section {
+		padding: 4rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.highlights-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 3rem;
+	}
+
+	.highlight-card {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.highlight-icon {
+		display: flex;
+		align-items: center;
+		color: var(--fg-color);
+		opacity: 0.8;
+	}
+
+	.highlight-card h3 {
+		font-size: 1.25rem;
+		font-weight: 700;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+	}
+
+	.highlight-card p {
+		font-size: 1rem;
+		color: var(--muted-color);
+		line-height: 1.6;
+	}
+
+	/* FAQ Section */
+	.faq-section {
+		padding: 4rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.faq-header {
+		margin-bottom: 2.5rem;
+	}
+
+	.faq-header h2 {
+		font-size: clamp(1.5rem, 4vw, 2.125rem);
+		font-weight: 700;
+		letter-spacing: -0.025em;
+		line-height: 1.2;
+	}
+
+	.faq-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.faq-item {
+		border-radius: 0.875rem;
+		background-color: var(--secondary-bg);
+		overflow: hidden;
+	}
+
+	.faq-question {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		padding: 1.125rem 1.375rem;
+		font-size: 1.0625rem;
+		font-weight: 600;
+		cursor: pointer;
+		list-style: none;
+		user-select: none;
+	}
+
+	.faq-question::-webkit-details-marker {
+		display: none;
+	}
+
+	.faq-icon {
+		flex-shrink: 0;
+		width: 1.25rem;
+		height: 1.25rem;
+		position: relative;
+		color: var(--muted-color);
+	}
+
+	.faq-icon::before,
+	.faq-icon::after {
+		content: '';
+		position: absolute;
+		background-color: currentColor;
+		border-radius: 2px;
+		transition: transform 0.2s, opacity 0.2s;
+	}
+
+	.faq-icon::before {
+		width: 100%;
+		height: 1.5px;
+		top: 50%;
+		left: 0;
+		transform: translateY(-50%);
+	}
+
+	.faq-icon::after {
+		width: 1.5px;
+		height: 100%;
+		left: 50%;
+		top: 0;
+		transform: translateX(-50%);
+	}
+
+	details[open] .faq-icon::after {
+		transform: translateX(-50%) rotate(90deg);
+		opacity: 0;
+	}
+
+	.faq-answer {
+		padding: 0 1.375rem 1.25rem;
+	}
+
+	.faq-answer p {
+		font-size: 1rem;
+		color: var(--muted-color);
+		line-height: 1.65;
+	}
+
+	/* Final CTA */
+	.final-cta {
+		padding: 7rem 0;
+		text-align: center;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.cta-content {
+		max-width: 700px;
+		margin: 0 auto;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2.5rem;
+	}
+
+	.final-cta h2 {
+		font-size: clamp(1.625rem, 4.5vw, 2.375rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.025em;
+	}
+
+	/* Buttons */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		transition: all 0.2s;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.btn-lg {
+		padding: 0.75rem 1.75rem;
+		font-size: 1rem;
+	}
+
+	.btn-primary {
+		background-color: var(--primary-color);
+		color: var(--primary-fg);
+	}
+
+	.btn-primary:hover {
+		opacity: 0.85;
+		transform: translateY(-1px);
+	}
+
+	.btn-secondary {
+		background-color: var(--secondary-bg);
+		color: var(--fg-color);
+	}
+
+	.btn-secondary:hover {
+		background-color: var(--secondary-hover);
+		transform: translateY(-1px);
+	}
+
+	/* Footer */
+	.footer {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+		margin-top: auto;
+	}
+
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--muted-color);
+	}
+
+	.footer-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.footer-logo-text {
+		font-weight: 700;
+		color: var(--fg-color);
+		font-size: 1.0625rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--fg-color);
+		text-decoration: underline;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 0 1.25rem;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1rem 0;
+		}
+
+		.nav-actions {
+			gap: 0.5rem;
+		}
+
+		.hero {
+			padding: 3.5rem 0 5rem;
+		}
+
+		.hero h1 {
+			letter-spacing: -0.03em;
+		}
+
+		.hero-actions {
+			width: 100%;
+			max-width: 220px;
+			margin: 0 auto;
+		}
+
+		.hero-actions .btn {
+			width: 100%;
+		}
+
+		.privacy-section {
+			padding: 3rem 0;
+		}
+
+		.privacy-grid {
+			grid-template-columns: 1fr;
+			gap: 1.75rem;
+		}
+
+		.privacy-title h2 {
+			font-size: 1.875rem;
+		}
+
+		.highlights-section {
+			padding: 3rem 0;
+		}
+
+		.highlights-grid {
+			grid-template-columns: 1fr;
+			gap: 2.5rem;
+		}
+
+		.final-cta {
+			padding: 5rem 0;
+		}
+
+		.cta-content {
+			gap: 2rem;
+		}
+
+		.footer-content {
+			flex-direction: column;
+			gap: 2rem;
+			text-align: center;
+		}
+
+		.footer-brand {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.footer-links {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1rem 1.5rem;
+		}
+	}
+</style>

@@ -1,141 +1,413 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import { marked } from "marked";
-import fs from "node:fs";
-import path from "node:path";
-
-const raw = fs.readFileSync(path.resolve("src/content/privacy.md"), "utf-8");
-const content = marked(raw);
+import Layout from '../layouts/Layout.astro';
 ---
 
-<Layout title="Privacy Policy — Confide" description="Confide Privacy Policy">
-  <div class="doc-page">
-    <a href="/" class="back-link">← Confide</a>
-    <div class="doc-inner" set:html={content} />
-  </div>
+<Layout title="Privacy Policy — Confide">
+	<div class="container">
+		<nav class="nav">
+			<div class="logo-group">
+				<a href="/" class="logo">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span>Confide</span>
+				</a>
+				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+			</div>
+			<div class="nav-actions">
+				<ul class="nav-links">
+					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="#login">Log in</a></li>
+				</ul>
+				<a href="#" class="btn btn-primary">Sign Up Free</a>
+			</div>
+		</nav>
+
+		<main>
+			<header class="page-header">
+				<span class="page-label">LEGAL</span>
+				<h1>Privacy Policy</h1>
+				<p class="last-updated">Last Updated: May 4, 2026</p>
+			</header>
+
+			<div class="doc">
+				<section class="doc-section">
+					<h2>Overview</h2>
+					<p>We strongly support your right to privacy. Our policy is simple: <strong>Your data is none of our business.</strong></p>
+					<p>We make money by selling software, not by mining your or your respondents' personal information. Our core values guide every decision we make:</p>
+					<ul class="value-list">
+						<li><strong>Privacy by Design:</strong> Security is baked into the code, not bolted on.</li>
+						<li><strong>Encryption Made Easy:</strong> We handle the complexity of end-to-end encryption (E2EE) so you don't have to.</li>
+						<li><strong>Minimal Data Retention:</strong> We only keep what is strictly necessary to run the service.</li>
+						<li><strong>Transparency of Purpose:</strong> We are open about what we collect and why.</li>
+					</ul>
+					<p>We only collect what we need. Here's what that means in practice:</p>
+				</section>
+
+				<section class="doc-section">
+					<h2>Creating an Account</h2>
+					<p>When signing up for an account, we ask for a unique username or alias that will be used to identify you across workspaces.</p>
+					<p><strong>Passkeys:</strong> We use industry-standard Passkeys (TouchID, FaceID, Windows Hello, or hardware keys). We do not store your biometric data. We only store a secure, cryptographic code authenticated by your device. We do not use or store traditional passwords.</p>
+					<p><strong>Recovery Keys:</strong> Upon registration, you are provided a recovery key.</p>
+					<div class="callout">
+						<p><strong>Important:</strong> We do not have access to your account and we do not store your recovery keys. If you lose your device and your recovery key, you lose access to your account. We recommend storing your recovery code in a physical vault or adding a second device/Passkey to your account.</p>
+					</div>
+				</section>
+
+				<section class="doc-section">
+					<h2>Paying for an Account</h2>
+					<p>Confide offers a paid subscription service managed through Stripe. Stripe handles all credit card information and billing addresses on their secure servers.</p>
+					<p>We do not store payment or billing information on our servers. We maintain only a "thin connection" (a Stripe Customer ID and Subscription ID) to validate your Pro account status. For any questions regarding payments, contact us at <a href="mailto:support@useconfide.app">support@useconfide.app</a>.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2>Using Confide Service</h2>
+					<p>Our platform is built on a Zero Knowledge Architecture.</p>
+					<p><strong>Encryption:</strong> Your form schema and responses are encrypted on your device before they are uploaded to our servers. Each form is shared via a URL containing a fragment (the encryption key). This key is never sent to our servers, ensuring that only those with the link can decrypt the content.</p>
+					<p><strong>Shared Access:</strong> In shared workspaces, data remains encrypted between team members. You maintain full control over who has access and their level of permission.</p>
+					<p><strong>Metadata:</strong> To operate the service, some non-sensitive metadata is unencrypted (e.g., form status, schema version, etc.).</p>
+					<p><strong>Email Forwarding:</strong> We support forwarding responses to secure email platforms, which requires your PGP public key or continued encryption.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2>No Tracking or Advertising</h2>
+					<p>Confide is an ad-free service.</p>
+					<ul class="plain-list">
+						<li><strong>No Third-Party Tracking:</strong> We do not share data with third-party advertisers.</li>
+						<li><strong>No Fingerprinting:</strong> We do not log respondent IP addresses, device fingerprints, or browser User Agents.</li>
+						<li><strong>Privacy First:</strong> We use minimal, privacy-respecting analytics to monitor service health without identifying individual users.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>Deleting Your Data</h2>
+					<p>You own your data, and you control its lifecycle.</p>
+					<ul class="plain-list">
+						<li><strong>Immediate Deletion:</strong> When you delete a form or response, it is removed from our active database immediately.</li>
+						<li><strong>Backups:</strong> Our database backups are fully encrypted and retained for a maximum of seven days (to align with our recovery policies).</li>
+						<li><strong>Account Termination:</strong> When an account is terminated, all associated data — including forms and responses — is permanently purged from our systems.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>Disclosure to Law Enforcement</h2>
+					<p>We only disclose data if required by a valid legal subpoena. However, due to our encryption architecture, we cannot provide the unencrypted contents of your forms or responses to any third party, including law enforcement, as we do not possess the keys.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2>Questions?</h2>
+					<p>If you have questions about this policy or how your data is handled, please reach out to us at <a href="mailto:security@useconfide.app">security@useconfide.app</a>.</p>
+					<p class="company-name">Confide LLC</p>
+				</section>
+			</div>
+		</main>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-brand">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span class="footer-logo-text">Confide</span>
+				</div>
+				<ul class="footer-links">
+					<li><a href="#login">Sign in</a></li>
+					<li><a href="https://status.confide.com">Status</a></li>
+					<li><a href="/trust">Trust & Safety</a></li>
+					<li><a href="/privacy">Privacy Policy</a></li>
+					<li><a href="/terms">Terms of Service</a></li>
+				</ul>
+			</div>
+		</footer>
+	</div>
 </Layout>
 
 <style>
-  .doc-page {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 5rem 1.5rem 6rem;
-  }
+	.container {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
 
-  .back-link {
-    display: inline-block;
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.06em;
-    color: var(--color-brand-accent);
-    margin-bottom: 3rem;
-    text-decoration: none;
-    opacity: 0.7;
-    transition: opacity 0.15s;
-  }
+	/* Nav */
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem 0;
+	}
 
-  .back-link:hover {
-    opacity: 1;
-  }
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
 
-  .doc-inner :global(h1) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: clamp(1.4rem, 3vw, 1.9rem);
-    font-weight: 700;
-    color: var(--color-brand-text);
-    margin: 0 0 0.5rem;
-    letter-spacing: -0.01em;
-  }
+	.tagline {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
 
-  .doc-inner :global(h2) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-brand-accent);
-    margin: 3rem 0 1rem;
-  }
+	.logo {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
 
-  .doc-inner :global(h3) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    color: var(--color-brand-text);
-    margin: 2rem 0 0.75rem;
-  }
+	.logo-icon {
+		width: 24px;
+		height: 24px;
+	}
 
-  .doc-inner :global(p) {
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    line-height: 1.8;
-    margin: 0 0 1rem;
-  }
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
 
-  .doc-inner :global(ul),
-  .doc-inner :global(ol) {
-    padding-left: 1.5rem;
-    margin: 0 0 1rem;
-  }
+	.nav-links {
+		display: flex;
+		gap: 1rem;
+	}
 
-  .doc-inner :global(li) {
-    font-size: 1rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    line-height: 1.8;
-    margin-bottom: 0.35rem;
-  }
+	.nav-links a {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+		transition: color 0.2s;
+	}
 
-  .doc-inner :global(strong) {
-    font-weight: 500;
-    color: var(--color-brand-text);
-  }
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
 
-  .doc-inner :global(hr) {
-    border: none;
-    border-top: 1px solid rgba(232, 232, 240, 0.07);
-    margin: 2.5rem 0;
-  }
+	/* Page Header */
+	.page-header {
+		padding: 4.5rem 0 3rem;
+	}
 
-  .doc-inner :global(a) {
-    color: var(--color-brand-accent);
-    text-decoration: underline;
-    text-decoration-color: rgba(129, 191, 187, 0.35);
-    text-underline-offset: 3px;
-  }
+	.page-label {
+		display: block;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		color: var(--muted-color);
+		margin-bottom: 1rem;
+	}
 
-  .doc-inner :global(a:hover) {
-    text-decoration-color: var(--color-brand-accent);
-  }
+	.page-header h1 {
+		font-size: clamp(2.25rem, 6vw, 3rem);
+		font-weight: 800;
+		letter-spacing: -0.04em;
+		line-height: 1.1;
+		margin-bottom: 0.75rem;
+	}
 
-  .doc-inner :global(table) {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-    margin: 1.5rem 0;
-  }
+	.last-updated {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+	}
 
-  .doc-inner :global(th) {
-    font-family: "IBM Plex Mono", monospace;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-brand-accent);
-    text-align: left;
-    padding: 0.6rem 1rem 0.6rem 0;
-    border-bottom: 1px solid rgba(232, 232, 240, 0.1);
-  }
+	/* Document */
+	.doc {
+		max-width: 680px;
+		padding-bottom: 6rem;
+	}
 
-  .doc-inner :global(td) {
-    font-size: 0.9rem;
-    font-weight: 300;
-    color: var(--color-text-secondary);
-    padding: 0.6rem 1rem 0.6rem 0;
-    border-bottom: 1px solid rgba(232, 232, 240, 0.05);
-    vertical-align: top;
-    line-height: 1.65;
-  }
+	.doc-section {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section:first-child {
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section h2 {
+		font-size: 1.375rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 1.25rem;
+	}
+
+	.doc-section p {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.7;
+		margin-bottom: 1rem;
+	}
+
+	.doc-section p:last-child {
+		margin-bottom: 0;
+	}
+
+	.doc-section a {
+		color: var(--fg-color);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.doc-section a:hover {
+		opacity: 0.7;
+	}
+
+	.doc-section strong {
+		color: var(--fg-color);
+		font-weight: 600;
+	}
+
+	/* Lists */
+	.value-list,
+	.plain-list {
+		margin: 1rem 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.625rem;
+	}
+
+	.value-list li,
+	.plain-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.6;
+		padding-left: 1.25rem;
+		position: relative;
+	}
+
+	.value-list li::before,
+	.plain-list li::before {
+		content: '—';
+		position: absolute;
+		left: 0;
+		color: var(--border-color);
+	}
+
+	/* Callout */
+	.callout {
+		margin: 1.25rem 0;
+		padding: 1.125rem 1.375rem;
+		background-color: var(--secondary-bg);
+		border-radius: 0.75rem;
+		border-left: 3px solid var(--fg-color);
+	}
+
+	.callout p {
+		margin-bottom: 0 !important;
+		font-size: 1rem !important;
+	}
+
+	.company-name {
+		font-weight: 700;
+		color: var(--fg-color) !important;
+		font-size: 1rem !important;
+		margin-top: 1.5rem !important;
+	}
+
+	/* Buttons */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		transition: all 0.2s;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.btn-primary {
+		background-color: var(--primary-color);
+		color: var(--primary-fg);
+	}
+
+	.btn-primary:hover {
+		opacity: 0.85;
+		transform: translateY(-1px);
+	}
+
+	/* Footer */
+	.footer {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+		margin-top: auto;
+	}
+
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--muted-color);
+	}
+
+	.footer-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.footer-logo-text {
+		font-weight: 700;
+		color: var(--fg-color);
+		font-size: 1.0625rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--fg-color);
+		text-decoration: underline;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 0 1.25rem;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1rem 0;
+		}
+
+		.page-header {
+			padding: 3rem 0 2rem;
+		}
+
+		.doc-section {
+			padding: 2.25rem 0;
+		}
+
+		.footer-content {
+			flex-direction: column;
+			gap: 2rem;
+			text-align: center;
+		}
+
+		.footer-brand {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.footer-links {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1rem 1.5rem;
+		}
+	}
 </style>
