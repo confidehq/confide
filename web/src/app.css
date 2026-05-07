@@ -216,6 +216,123 @@
   --color-brand-accent-hover: #9dd0cc;
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Light theme — override every semantic token.
+   Primitive scale (--black-*, --green-*, etc.) stays unchanged;
+   only the --color-* tokens are redefined here.
+───────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  /* ── Surfaces ─────────────────────────────────────────────── */
+  --color-canvas:               #f0f2f5;
+  --color-surface:              #ffffff;
+  --color-surface-mid:          #edf0f5;
+  --color-surface-4:            #edf0f5;
+  --color-surface-hover:        #e8ecf2;
+  --color-surface-3:            #e8ecf2;
+  --color-surface-card:         #ffffff;
+  --color-surface-active:       #e4ebf5;
+  --color-surface-item-hover:   #edf0f5;
+  --color-surface-popover-hover: #edf0f5;
+  --color-surface-deep:         #e8ecf2;
+  --color-surface-read:         #f5f7fa;
+  --color-surface-input:        #ffffff;
+  --color-surface-subtle:       #f5f7fa;
+  --color-surface-selected:     rgba(37, 99, 235, 0.09);
+  --color-surface-toolbar:      #e2e8f0;
+
+  /* ── Borders ──────────────────────────────────────────────── */
+  --color-border:              #c8d0db;
+  --color-border-subtle:       #dde3ec;
+  --color-border-mid:          #c8d0db;
+  --color-border-field:        #c8d0db;
+  --color-border-focus:        #2563eb;
+  --color-border-deep:         #dde3ec;
+  --color-border-card:         #dde3ec;
+  --color-border-danger-dark:  #dc2626;
+  --color-border-danger-deep:  #ef4444;
+  --color-border-danger-muted: #fca5a5;
+  --color-border-success-dark: #22c55e;
+
+  /* ── Text ─────────────────────────────────────────────────── */
+  --color-text:        #0f172a;
+  --color-text-bright: #0f172a;
+  --color-text-body:   #1e293b;
+  --color-text-dim:    #334155;
+  --color-text-note:   #475569;
+  --color-text-blue:   #2563eb;
+  --color-text-subtle: #94a3b8;
+
+  /* ── Muted ────────────────────────────────────────────────── */
+  --color-muted:      #64748b;
+  --color-muted-dark: #475569;
+  --color-muted-mid:  #94a3b8;
+  --color-muted-dim:  #64748b;
+  --color-muted-blue: #4a6fa5;
+
+  /* ── Status — error ───────────────────────────────────────── */
+  --color-error:       #dc2626;
+  --color-error-light: #dc2626;
+  --color-error-muted: #ef4444;
+
+  /* ── Status — success ─────────────────────────────────────── */
+  --color-success-bg-subtle: rgba(5, 46, 22, 0.08);
+  --color-success-bg-deep:   #dcfce7;
+  --color-success-text-dark: #16a34a;
+
+  /* ── Status — warning ─────────────────────────────────────── */
+  --color-warning-bg-subtle: rgba(69, 26, 3, 0.08);
+  --color-warning-bg-dark:   #fef3c7;
+  --color-warning-text-dark: #b45309;
+
+  /* ── Status — info ────────────────────────────────────────── */
+  --color-info-bg-dark:   #dbeafe;
+  --color-info-bg-subtle: rgba(37, 99, 235, 0.08);
+
+  /* ── Status — danger ──────────────────────────────────────── */
+  --color-danger-bg-dark:   #fee2e2;
+  --color-danger-bg-deep:   #fecaca;
+  --color-danger-bg-subtle: rgba(220, 38, 38, 0.08);
+  --color-danger-text-dark: #dc2626;
+  --color-danger-hover:     #fee2e2;
+  --color-danger-dark:      #fee2e2;
+
+  /* ── Status badges ────────────────────────────────────────── */
+  --color-open-bg:       #f0fdf4;
+  --color-open-text:     #16a34a;
+  --color-open-border:   #22c55e;
+  --color-closed-bg:     #f9fafb;
+  --color-closed-text:   #6b7280;
+  --color-closed-border: #d1d5db;
+
+  /* ── Info-action surfaces ─────────────────────────────────── */
+  --color-info-action-bg:         #dbeafe;
+  --color-info-action-bg-mid:     #bfdbfe;
+  --color-info-action-bg-light:   #eff6ff;
+  --color-info-action-bg-hover:   #dbeafe;
+  --color-info-action-border:     #93c5fd;
+  --color-info-code-bg:           #f0f9ff;
+  --color-info-code-text:         #0369a1;
+  --color-info-code-text-hover:   #0284c7;
+
+  /* ── Success-action surfaces ──────────────────────────────── */
+  --color-success-action-bg:        #dcfce7;
+  --color-success-action-bg-mid:    #f0fdf4;
+  --color-success-action-bg-hover:  #dcfce7;
+  --color-success-action-border:    #86efac;
+  --color-success-action-text:      #16a34a;
+
+  /* ── Status indicators ────────────────────────────────────── */
+  --color-warning-indicator:    #d97706;
+  --color-status-waiting-blue:  #3b82f6;
+  --color-status-waiting-green: #22c55e;
+
+  /* ── Role badges ──────────────────────────────────────────── */
+  --color-role-owner:        #7c3aed;
+  --color-role-owner-border: #c4b5fd;
+  --color-role-admin:        #2563eb;
+  --color-role-admin-border: #93c5fd;
+}
+
 html,
 body {
   margin: 0;

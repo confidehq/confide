@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
-	import { ChevronLeft, ChevronRight, MessageSquare, LogOut, LayoutGrid, FileText, Users, UserRound, Settings } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, MessageSquare, LogOut, LayoutGrid, FileText, Users, UserRound, Settings, Sun, Moon } from '@lucide/svelte';
 	import { logout } from '$lib/auth';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { theme } from '$lib/stores/theme.svelte';
 	import WorkspaceSwitcher from '$lib/components/WorkspaceSwitcher.svelte';
 
 	let version = $state('dev');
@@ -168,6 +169,29 @@
 
 		<!-- Bottom links + account -->
 		<div class="pb-1">
+			<!-- Theme toggle -->
+			<button
+				onclick={() => theme.toggle()}
+				title="{theme.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}"
+				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
+				class="flex items-center gap-2.5 h-10 w-full bg-transparent border-none border-l-2 border-transparent
+					cursor-pointer font-mono text-muted-dark whitespace-nowrap overflow-hidden
+					hover:text-muted transition-colors duration-100"
+			>
+				<span class="shrink-0 flex items-center text-muted-dark">
+					{#if theme.value === 'dark'}
+						<Sun size={18} strokeWidth={1.75} />
+					{:else}
+						<Moon size={18} strokeWidth={1.75} />
+					{/if}
+				</span>
+				{#if !sidebar.collapsed}
+					<span class="overflow-hidden text-ellipsis text-sm">
+						{theme.value === 'dark' ? 'Light mode' : 'Dark mode'}
+					</span>
+				{/if}
+			</button>
+
 			<a
 				href="https://feedback.useconfide.app/"
 				title="Request Feature"
