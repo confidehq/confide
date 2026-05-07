@@ -58,9 +58,7 @@ func createWorkspace(svc *Service) http.HandlerFunc {
 		accountID := mw.AccountID(r.Context())
 
 		var req struct {
-			Name                string `json:"name"`
-			WrappedWorkspaceKey string `json:"wrappedWorkspaceKey"`
-			EphemeralPublicKey  string `json:"ephemeralPublicKey"`
+			Name string `json:"name"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
@@ -71,18 +69,7 @@ func createWorkspace(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		wrappedKey, err := base64.StdEncoding.DecodeString(req.WrappedWorkspaceKey)
-		if err != nil || len(wrappedKey) == 0 {
-			writeError(w, http.StatusBadRequest, "invalid_field", "wrappedWorkspaceKey must be non-empty base64")
-			return
-		}
-		ephemeralPub, err := base64.StdEncoding.DecodeString(req.EphemeralPublicKey)
-		if err != nil || len(ephemeralPub) == 0 {
-			writeError(w, http.StatusBadRequest, "invalid_field", "ephemeralPublicKey must be non-empty base64")
-			return
-		}
-
-		ws, err := svc.Create(r.Context(), accountID, req.Name, wrappedKey, ephemeralPub)
+		ws, err := svc.Create(r.Context(), accountID, req.Name)
 		if err != nil {
 			if errors.Is(err, ErrPlanLimit) {
 				writeError(w, http.StatusPaymentRequired, "plan_limit", "free plan allows only one workspace")
@@ -319,8 +306,7 @@ func grantMemberKey(svc *Service) http.HandlerFunc {
 			return
 		}
 		if req.AccountID == "" {
-			writeError(w, http.StatusBadRequest, "invalid_field", "accountId is required")
-			return
+			req.AccountID = callerID
 		}
 		wrappedKey, err := base64.StdEncoding.DecodeString(req.WrappedWorkspaceKey)
 		if err != nil || len(wrappedKey) == 0 {

@@ -237,7 +237,7 @@ func (s *Service) GetPersonalWorkspaceID(ctx context.Context, accountID string) 
 
 // Create creates a new workspace for the account, enforcing the free-plan 1-workspace limit.
 // wrappedWorkspaceKey and ephemeralPublicKey are stored in workspace_member_keys for the owner.
-func (s *Service) Create(ctx context.Context, accountID, name string, wrappedWorkspaceKey, ephemeralPublicKey []byte) (Workspace, error) {
+func (s *Service) Create(ctx context.Context, accountID, name string) (Workspace, error) {
 	count, err := s.db.CountOwnerWorkspaces(ctx, accountID)
 	if err != nil {
 		return Workspace{}, err
@@ -262,15 +262,6 @@ func (s *Service) Create(ctx context.Context, accountID, name string, wrappedWor
 		WorkspaceID: ws.ID,
 		AccountID:   accountID,
 		Role:        "owner",
-	}); err != nil {
-		return Workspace{}, err
-	}
-	if err := s.db.UpsertWorkspaceMemberKey(ctx, queries.UpsertWorkspaceMemberKeyParams{
-		WorkspaceID:         ws.ID,
-		AccountID:           accountID,
-		WrappedWorkspaceKey: wrappedWorkspaceKey,
-		EphemeralPublicKey:  ephemeralPublicKey,
-		GrantedByAccountID:  pgtype.Text{String: accountID, Valid: true},
 	}); err != nil {
 		return Workspace{}, err
 	}
