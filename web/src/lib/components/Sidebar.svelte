@@ -76,10 +76,10 @@
 <!-- Account popover + click-outside (rendered outside nav to escape overflow-hidden) -->
 {#if accountMenuOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div class="fixed inset-0 z-40" onclick={() => (accountMenuOpen = false)}></div>
+	<div class="fixed inset-0 z-[45]" onclick={() => (accountMenuOpen = false)}></div>
 	<div
 		style={popoverStyle}
-		class="fixed z-50 bg-surface-input border border-border-mid rounded-md shadow-[0_4px_24px_var(--color-overlay-light)] overflow-hidden"
+		class="fixed z-50 bg-surface-input border border-border-mid rounded-md shadow-[0_2px_12px_var(--color-overlay-light)] overflow-hidden"
 	>
 		<a
 			href="/me"
