@@ -54,7 +54,7 @@
 {#if showReauth}
 	<!-- Re-auth overlay: shown when masterKey is gone (tab refresh) but credential exists -->
 	<div class="fixed inset-0 bg-black/85 flex items-center justify-center z-[1000]">
-		<div class="font-mono max-w-[400px] w-full p-8 bg-[#111] border border-border rounded-lg mx-6">
+		<div class="font-mono max-w-[400px] w-full p-8 bg-canvas border border-border rounded-lg mx-6">
 			<h2 class="text-base text-text m-0 mb-2">Unlock your session</h2>
 			<p class="text-muted text-sm mb-6">
 				Your session key is no longer in memory. Re-authenticate to continue.
@@ -68,7 +68,7 @@
 				onclick={handleReauth}
 				disabled={reauthLoading}
 				class="w-full py-3.5 text-white border-none rounded-md font-mono text-base
-					{reauthLoading ? 'bg-[#555] cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
+					{reauthLoading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}"
 			>
 				{reauthLoading ? 'Authenticating…' : 'Authenticate with passkey'}
 			</button>

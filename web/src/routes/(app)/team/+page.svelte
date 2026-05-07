@@ -325,8 +325,8 @@
 								onclick={() => (inviteRole = role)}
 								class="px-3 py-2.5 text-sm font-mono capitalize border-r border-border-deep last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
-										? 'bg-[#0f2d4a] text-text-blue border-b-2 border-b-[#3b82f6]'
-										: 'bg-transparent text-muted-dim hover:text-muted-blue hover:bg-[#0a1929]'}"
+										? 'bg-info-action-bg-mid text-text-blue border-b-2 border-b-info-border'
+										: 'bg-transparent text-muted-dim hover:text-muted-blue hover:bg-info-action-bg'}"
 							>{role}</button>
 						{/each}
 					</div>
@@ -444,7 +444,7 @@
 						</div>
 						<div class="flex items-center gap-2 shrink-0">
 							<span class="inline-flex items-center gap-1 text-xs">
-								<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-[#a16207]'}"></span>
+								<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-warning-indicator'}"></span>
 								<span class="{member.status === 'active' ? 'text-muted-dim' : 'text-warning-text-dark'} capitalize">
 									{member.status === 'pending' && !identityKeys.has(member.accountId) ? 'awaiting setup' : member.status}
 								</span>
@@ -464,7 +464,7 @@
 								<button
 									onclick={() => handleGrant(member)}
 									disabled={grantingId === member.accountId}
-									class="px-3 py-1.5 bg-[#0a1f10] text-success-text-dark border border-success-text rounded cursor-pointer font-mono text-xs hover:bg-success-bg-deep transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+									class="px-3 py-1.5 bg-success-action-bg text-success-text-dark border border-success-text rounded cursor-pointer font-mono text-xs hover:bg-success-bg-deep transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
 								>
 									<KeyRound size={11} strokeWidth={1.75} />
 									{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
@@ -536,20 +536,20 @@
 											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-colors duration-100 cursor-pointer
 												{grantingId === member.accountId
 													? 'bg-transparent text-muted-dim border-border-deep cursor-not-allowed'
-													: 'bg-[#0a1f10] text-success-text-dark border-success-text hover:bg-success-bg-deep'}"
+													: 'bg-success-action-bg text-success-text-dark border-success-text hover:bg-success-bg-deep'}"
 										>
 											<KeyRound size={11} strokeWidth={1.75} />
 											{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
 										</button>
 									{:else}
 										<span class="inline-flex items-center gap-1.5 text-xs text-warning-text-dark">
-											<span class="w-1.5 h-1.5 rounded-full bg-[#a16207]"></span>
+											<span class="w-1.5 h-1.5 rounded-full bg-warning-indicator"></span>
 											Awaiting setup
 										</span>
 									{/if}
 								{:else}
 									<span class="inline-flex items-center gap-1.5 text-xs">
-										<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-[#a16207]'}"></span>
+										<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-warning-indicator'}"></span>
 										<span class="{member.status === 'active' ? 'text-muted-dim' : 'text-warning-text-dark'} capitalize">{member.status}</span>
 									</span>
 								{/if}

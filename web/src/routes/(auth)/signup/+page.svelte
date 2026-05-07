@@ -413,7 +413,7 @@
 					</p>
 
 					<div
-						class="p-4 bg-[#111] border border-border rounded-lg text-sm text-text break-all tracking-[0.05em] mb-2 leading-relaxed"
+						class="p-4 bg-canvas border border-border rounded-lg text-sm text-text break-all tracking-[0.05em] mb-2 leading-relaxed"
 					>
 						{recoveryCode}
 					</div>

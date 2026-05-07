@@ -357,10 +357,10 @@
 	}
 
 	const roleBadge: Record<string, { label: string; color: string; border: string }> = {
-		owner:  { label: 'owner',  color: '#a78bfa', border: '#4c1d95' },
-		admin:  { label: 'admin',  color: '#60a5fa', border: '#1e3a5f' },
-		member: { label: 'member', color: 'var(--color-muted-dim)', border: '#243447' },
-		viewer: { label: 'viewer', color: 'var(--color-muted-dim)', border: '#243447' }
+		owner:  { label: 'owner',  color: 'var(--color-role-owner)',  border: 'var(--color-role-owner-border)' },
+		admin:  { label: 'admin',  color: 'var(--color-role-admin)',  border: 'var(--color-role-admin-border)' },
+		member: { label: 'member', color: 'var(--color-muted-dim)',   border: 'var(--color-border-mid)' },
+		viewer: { label: 'viewer', color: 'var(--color-muted-dim)',   border: 'var(--color-border-mid)' }
 	};
 
 	const planBadge: Record<string, { label: string; color: string }> = {
@@ -669,7 +669,7 @@
 									{pairShortCode.slice(0, 4)}-{pairShortCode.slice(4)}
 								</span>
 								<div class="flex items-center gap-2 mt-1">
-									<span class="inline-block w-2 h-2 bg-[#3a5a7a] rounded-full animate-pulse"></span>
+									<span class="inline-block w-2 h-2 bg-status-waiting-blue rounded-full animate-pulse"></span>
 									<span class="text-muted-dim text-sm">Waiting for new device…</span>
 								</div>
 							</div>
@@ -685,7 +685,7 @@
 						</div>
 						<div class="flex gap-2 flex-wrap">
 							{#each pairFingerprint.split('-') as word}
-								<span class="px-2.5 py-1 bg-[#0d2233] border border-border-deep rounded text-sm text-[#7aadcf] font-mono tracking-wide">
+								<span class="px-2.5 py-1 bg-info-code-bg border border-border-deep rounded text-sm text-info-code-text font-mono tracking-wide">
 									{word}
 								</span>
 							{/each}
@@ -694,7 +694,7 @@
 							<button
 								onclick={confirmPairing}
 								disabled={pairConfirming}
-								class="px-4 py-2 bg-[#0d2a1a] border border-border-success-dark rounded text-base text-[#4a9060] hover:bg-[#112e1e] transition-colors cursor-pointer font-mono disabled:opacity-50"
+								class="px-4 py-2 bg-success-action-bg-mid border border-border-success-dark rounded text-base text-success-action-text hover:bg-success-action-bg-hover transition-colors cursor-pointer font-mono disabled:opacity-50"
 							>
 								{pairConfirming ? 'Approving…' : 'Yes, these match'}
 							</button>
@@ -707,8 +707,8 @@
 						</div>
 					</div>
 				{:else if pairStep === 'done'}
-					<div class="mb-3 p-3 border border-border-success-dark rounded-lg bg-[#0d2a1a]">
-						<p class="text-[#4a9060] text-base m-0">New device successfully added.</p>
+					<div class="mb-3 p-3 border border-border-success-dark rounded-lg bg-success-action-bg-mid">
+						<p class="text-success-action-text text-base m-0">New device successfully added.</p>
 					</div>
 				{:else if pairStep === 'error'}
 					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-2">
@@ -787,7 +787,7 @@
 											<button
 												onclick={() => saveEdit(cred.id)}
 												disabled={saving}
-												class="text-sm text-[#7aadcf] hover:text-[#a8d4ef] cursor-pointer bg-transparent border-none font-mono p-0"
+												class="text-sm text-info-code-text hover:text-info-code-text-hover cursor-pointer bg-transparent border-none font-mono p-0"
 											>
 												{saving ? 'Saving…' : 'Save'}
 											</button>
@@ -802,12 +802,12 @@
 										<div class="flex items-center gap-2 flex-wrap">
 											<span class="text-base text-text-body">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
-												<span class="text-[10px] px-1.5 py-0.5 bg-[#0d2a1a] border border-border-success-dark rounded text-[#4a9060] leading-none shrink-0">
+												<span class="text-[10px] px-1.5 py-0.5 bg-success-action-bg-mid border border-border-success-dark rounded text-success-action-text leading-none shrink-0">
 													This session
 												</span>
 											{/if}
 											{#if cred.backupEligible}
-												<span title="Backup eligible" class="text-[#3a7a5a] shrink-0">
+												<span title="Backup eligible" class="text-status-waiting-green shrink-0">
 													<ShieldCheck size={12} strokeWidth={2} />
 												</span>
 											{/if}

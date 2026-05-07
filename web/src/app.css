@@ -135,6 +135,51 @@
   --color-danger-hover:     #2d1515;  /* destructive hover bg / error banner bg */
   --color-danger-dark:      #2d1515;  /* error container bg (≡ danger-hover) */
 
+  /* ── Info-action surfaces ─────────────────────────────────
+     Dark-blue backgrounds for blue-accented interactive
+     elements: action buttons, role tabs, code displays.
+     In a light theme these become light-blue surfaces.
+  ────────────────────────────────────────────────────────── */
+  --color-info-action-bg:         #0e1a30;  /* deep hover / tab hover bg */
+  --color-info-action-bg-mid:     #0f2d4a;  /* selected tab / button bg */
+  --color-info-action-bg-light:   #1a2f4a;  /* default button bg */
+  --color-info-action-bg-hover:   #1e3555;  /* lighter hover state */
+  --color-info-action-border:     #1e3a5c;  /* action button border */
+  --color-info-code-bg:           #0d2233;  /* code / fingerprint display bg */
+  --color-info-code-text:         #7aadcf;  /* code display / info link text */
+  --color-info-code-text-hover:   #a8d4ef;  /* info link hover text */
+
+  /* ── Success-action surfaces ───────────────────────────────
+     Dark-green backgrounds for green-accented interactive
+     elements: grant-access buttons, re-open form actions.
+  ────────────────────────────────────────────────────────── */
+  --color-success-action-bg:       #0a1f10;  /* deep success button bg */
+  --color-success-action-bg-mid:   #0d2a1a;  /* medium / notification bg */
+  --color-success-action-bg-hover: #112e1e;  /* hover state */
+  --color-success-action-border:   #1e3a20;  /* button border */
+  --color-success-action-text:     #4a9060;  /* medium green text */
+
+  /* ── Status indicators ─────────────────────────────────────
+     Small dot indicators for member / pairing status.
+  ────────────────────────────────────────────────────────── */
+  --color-warning-indicator:    #a16207;  /* amber pending-state dot */
+  --color-status-waiting-blue:  #3a5a7a;  /* blue pulsing dot (pairing in progress) */
+  --color-status-waiting-green: #3a7a5a;  /* green pulsing dot (pairing step complete) */
+
+  /* ── Role badges ───────────────────────────────────────────
+     Color accents for workspace role labels.
+  ────────────────────────────────────────────────────────── */
+  --color-role-owner:        #a78bfa;  /* purple text */
+  --color-role-owner-border: #4c1d95;  /* purple border */
+  --color-role-admin:        #60a5fa;  /* blue text */
+  --color-role-admin-border: #1e3a5f;  /* blue border */
+
+  /* ── Toolbar button active ─────────────────────────────────
+     Active bg for toolbar buttons in the form builder
+     (slightly warm-gray, distinct from the navy palette).
+  ────────────────────────────────────────────────────────── */
+  --color-surface-toolbar: #1f2937;
+
   /* ── Status badges ──────────────────────────── */
   --color-open-bg:     #0e2318;
   --color-open-text:   #4ade80;

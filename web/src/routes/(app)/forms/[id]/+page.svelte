@@ -550,7 +550,7 @@
 
 			{#if responsesLoading}
 				<div class="flex-1 flex items-center justify-center text-muted-dim text-base gap-2.5">
-					<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
+					<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-info-border rounded-full"></div>
 					Loading…
 				</div>
 			{:else if responsesError}
@@ -566,7 +566,7 @@
 						<button
 							onclick={() => selectResponse(resp.id)}
 							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-deep cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface-3
-								{selectedId === resp.id ? 'bg-[#172030] border-l-2 border-l-[#3b82f6] pl-[14px]' : ''}"
+								{selectedId === resp.id ? 'bg-surface border-l-2 border-l-info-border pl-[14px]' : ''}"
 						>
 							<div class="flex items-center justify-between gap-2">
 								<span class="text-base overflow-hidden text-ellipsis whitespace-nowrap flex-1
@@ -615,7 +615,7 @@
 							onclick={() => { activeTab = 'responses'; }}
 							class="sm:hidden h-full px-3 text-base font-mono bg-transparent border-0 border-b-2 -mb-px cursor-pointer transition-colors duration-100 whitespace-nowrap
 								{activeTab === 'responses'
-									? 'text-text-body border-b-[#3b82f6]'
+									? 'text-text-body border-b-info-border'
 									: 'text-muted-dim border-b-transparent hover:text-muted-blue'}"
 						>Responses{record ? ` (${record.responseCount})` : ''}</button>
 						{#each [['details', 'Details'], ['share', 'Share'], ['settings', 'Settings']] as [id, label]}
@@ -623,7 +623,7 @@
 								onclick={() => { activeTab = id as typeof activeTab; }}
 								class="h-full px-3 text-base font-mono bg-transparent border-0 border-b-2 -mb-px cursor-pointer transition-colors duration-100 whitespace-nowrap
 									{activeTab === id
-										? 'text-text-body border-b-[#3b82f6]'
+										? 'text-text-body border-b-info-border'
 										: 'text-muted-dim border-b-transparent hover:text-muted-blue'}"
 							>{label}</button>
 						{/each}
@@ -633,7 +633,7 @@
 					<div class="flex-1 overflow-y-auto">
 						{#if loading}
 							<div class="flex items-center justify-center gap-2.5 text-muted-dim text-lg py-16">
-								<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
+								<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-info-border rounded-full"></div>
 								Loading…
 							</div>
 						{:else if loadError}
@@ -646,7 +646,7 @@
 									<div class="sm:hidden flex flex-col min-h-0 -mx-4 -mt-4">
 										{#if responsesLoading}
 											<div class="flex items-center justify-center text-muted-dim text-base gap-2.5 py-12">
-												<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
+												<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-info-border rounded-full"></div>
 												Loading…
 											</div>
 										{:else if responsesError}
@@ -707,7 +707,7 @@
 														<a
 															href="/forms/{formId}/edit"
 															class="ml-auto px-2.5 sm:px-3 py-1 sm:py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100 no-underline
-																bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border"
+																bg-transparent text-text-blue border-info-action-border hover:bg-info-action-bg hover:border-info-border"
 														>Publish</a>
 													{:else}
 														<button
@@ -718,7 +718,7 @@
 																	? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
 																	: record.status === 'open'
 																		? 'bg-transparent text-error-light border-border-danger-muted hover:bg-danger-hover hover:border-border-danger-dark'
-																		: 'bg-transparent text-success-text-dark border-[#1e3a20] hover:bg-[#0e1a0e] hover:border-success-text'}"
+																		: 'bg-transparent text-success-text-dark border-success-action-border hover:bg-success-action-bg hover:border-success-text'}"
 														>
 															{statusSaving ? '…' : record.status === 'open' ? 'Close' : 'Open'}
 														</button>
@@ -1029,7 +1029,7 @@
 											class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
 												{settingsSaving || pgpKeyError
 													? 'bg-transparent text-muted-mid border-border-deep cursor-not-allowed'
-													: 'bg-transparent text-text-blue border-[#1e3a5c] hover:bg-[#0e1a30] hover:border-info-border'}"
+													: 'bg-transparent text-text-blue border-info-action-border hover:bg-info-action-bg hover:border-info-border'}"
 										>
 											{settingsSaving ? 'Saving…' : 'Save settings'}
 										</button>
@@ -1107,7 +1107,7 @@
 					<div class="flex-1 overflow-y-auto p-4 sm:p-6">
 						{#if isDecryptingSelected}
 							<div class="flex items-center gap-2.5 text-muted-dim text-lg py-8">
-								<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-[#3b82f6] rounded-full"></div>
+								<div class="spinner w-3.5 h-3.5 border-2 border-surface-card border-t-info-border rounded-full"></div>
 								Decrypting…
 							</div>
 						{:else if selectedDecryptError}
@@ -1123,7 +1123,7 @@
 												{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
 											</p>
 											<p class="text-lg text-text-body m-0 leading-relaxed whitespace-pre-wrap break-words
-												{answer === '—' ? 'text-[#3a4f63] italic' : ''}">
+												{answer === '—' ? 'text-muted-mid italic' : ''}">
 												{answer}
 											</p>
 										</div>

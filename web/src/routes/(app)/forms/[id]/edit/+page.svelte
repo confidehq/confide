@@ -137,7 +137,7 @@
 					{/if}
 					<button
 						onclick={() => layoutOpen = !layoutOpen}
-						style="background: {layoutOpen ? '#1f2937' : 'transparent'}; border-color: {layoutOpen ? 'var(--color-border)' : 'var(--color-border-field)'};"
+						style="background: {layoutOpen ? 'var(--color-surface-toolbar)' : 'transparent'}; border-color: {layoutOpen ? 'var(--color-border)' : 'var(--color-border-field)'};"
 						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-sm transition-[background,border-color] duration-100"
 					>
 						{#each layoutModes as mode}
@@ -156,7 +156,7 @@
 								<button
 									onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
 									class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
-										{active ? 'bg-[#1f2d42] text-text' : 'bg-transparent text-muted hover:bg-[#1e2b3c] hover:text-text-dim'}"
+										{active ? 'bg-surface-hover text-text' : 'bg-transparent text-muted hover:bg-surface-hover hover:text-text-dim'}"
 								>
 									<span class="mt-0.5 shrink-0 {active ? 'text-text-blue' : 'text-muted-dim'}">
 										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
@@ -211,7 +211,7 @@
 			<button
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
-				style="background: {store.showFormSettings ? '#1f2937' : 'transparent'}; color: {store.showFormSettings ? '#e5e7eb' : '#4b5563'}; border-color: {store.showFormSettings ? 'var(--color-border)' : 'transparent'};"
+				style="background: {store.showFormSettings ? 'var(--color-surface-toolbar)' : 'transparent'}; color: {store.showFormSettings ? 'var(--color-text)' : 'var(--color-text-subtle)'}; border-color: {store.showFormSettings ? 'var(--color-border)' : 'transparent'};"
 				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
@@ -220,7 +220,7 @@
 			<!-- Preview toggle -->
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
-				style="background: {store.mode === 'preview' ? '#1f2937' : 'transparent'}; color: {store.mode === 'preview' ? '#e5e7eb' : '#6b7280'}; border-color: {store.mode === 'preview' ? 'var(--color-border)' : 'var(--color-border-field)'};"
+				style="background: {store.mode === 'preview' ? 'var(--color-surface-toolbar)' : 'transparent'}; color: {store.mode === 'preview' ? 'var(--color-text)' : 'var(--color-muted-dark)'}; border-color: {store.mode === 'preview' ? 'var(--color-border)' : 'var(--color-border-field)'};"
 				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-sm"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 

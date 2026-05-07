@@ -161,7 +161,7 @@
 				{/if}
 				<button
 					onclick={handleCodeSubmit}
-					class="px-4 py-2 bg-[#1a2f4a] border border-surface-3 rounded text-sm text-text-body hover:bg-[#1e3555] transition-colors cursor-pointer font-mono"
+					class="px-4 py-2 bg-info-action-bg-light border border-surface-3 rounded text-sm text-text-body hover:bg-info-action-bg-hover transition-colors cursor-pointer font-mono"
 				>
 					Continue
 				</button>
@@ -178,7 +178,7 @@
 					</p>
 					<div class="flex gap-2 flex-wrap">
 						{#each fingerprint.split('-') as word}
-							<span class="px-2.5 py-1 bg-[#0d2233] border border-border-deep rounded text-sm text-[#7aadcf] font-mono tracking-wide">
+							<span class="px-2.5 py-1 bg-info-code-bg border border-border-deep rounded text-sm text-info-code-text font-mono tracking-wide">
 								{word}
 							</span>
 						{/each}
@@ -188,7 +188,7 @@
 					Waiting for approval on your other device…
 				</p>
 				<div class="flex items-center gap-2">
-					<span class="inline-block w-2 h-2 bg-[#3a7a5a] rounded-full animate-pulse"></span>
+					<span class="inline-block w-2 h-2 bg-status-waiting-green rounded-full animate-pulse"></span>
 					<span class="text-muted-blue text-xs">Connected</span>
 				</div>
 				<button
@@ -212,7 +212,7 @@
 
 		{:else if stage === 'done'}
 			<div class="flex flex-col gap-3">
-				<p class="text-[#4a9060] text-sm m-0">Device added. Redirecting…</p>
+				<p class="text-success-action-text text-sm m-0">Device added. Redirecting…</p>
 			</div>
 
 		{:else if stage === 'error'}

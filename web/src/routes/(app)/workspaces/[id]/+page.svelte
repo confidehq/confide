@@ -210,7 +210,7 @@ async function load() {
 							>Edit</button>
 							<button
 								onclick={() => goto(`/forms/${form.formId}/responses`)}
-								class="px-3 py-1.5 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-open-text border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>Responses</button>
 							<button
 								onclick={() => toggleStatus(form)}
@@ -260,7 +260,7 @@ async function load() {
 									>Edit</button>
 									<button
 										onclick={() => goto(`/forms/${form.formId}/responses`)}
-										class="px-3 py-1.5 bg-transparent text-[#a3e635] border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-open-text border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 									>Responses ({form.responseCount})</button>
 									<button
 										onclick={() => toggleStatus(form)}
