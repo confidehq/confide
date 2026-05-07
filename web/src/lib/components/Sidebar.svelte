@@ -11,6 +11,8 @@
 	let version = $state('dev');
 	let commit = $state('');
 	let accountMenuOpen = $state(false);
+	let accountButtonEl = $state<HTMLButtonElement | null>(null);
+	let popoverStyle = $state('');
 
 	async function handleLogout() {
 		accountMenuOpen = false;
@@ -47,6 +49,17 @@
 
 	import { onMount } from 'svelte';
 
+	$effect(() => {
+		if (accountMenuOpen && accountButtonEl) {
+			const rect = accountButtonEl.getBoundingClientRect();
+			popoverStyle = [
+				`bottom: ${window.innerHeight - rect.top + 6}px`,
+				`left: ${rect.left + 8}px`,
+				`width: ${Math.max(rect.width - 16, 160)}px`,
+			].join('; ');
+		}
+	});
+
 	onMount(async () => {
 		try {
 			const res = await fetch('/api/health');
@@ -59,10 +72,31 @@
 	});
 </script>
 
-<!-- Click-outside overlay -->
+<!-- Account popover + click-outside (rendered outside nav to escape overflow-hidden) -->
 {#if accountMenuOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-	<div class="fixed inset-0 z-30" onclick={() => (accountMenuOpen = false)}></div>
+	<div class="fixed inset-0 z-40" onclick={() => (accountMenuOpen = false)}></div>
+	<div
+		style={popoverStyle}
+		class="fixed z-50 bg-surface-input border border-border-mid rounded-md shadow-[0_4px_24px_var(--color-overlay-light)] overflow-hidden"
+	>
+		<a
+			href="/me"
+			onclick={() => { accountMenuOpen = false; sidebar.closeMobile(); }}
+			class="flex items-center gap-2.5 px-3 py-2.5 text-text-body hover:bg-surface-mid no-underline transition-colors duration-100 w-full"
+		>
+			<UserRound size={15} strokeWidth={1.75} class="text-muted-dim shrink-0" />
+			Profile
+		</a>
+		<div class="border-t border-border-mid"></div>
+		<button
+			onclick={handleLogout}
+			class="flex items-center gap-2.5 px-3 py-2.5 text-error-light hover:bg-danger-hover w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
+		>
+			<LogOut size={15} strokeWidth={1.75} class="shrink-0" />
+			Sign out
+		</button>
+	</div>
 {/if}
 
 <nav
@@ -211,32 +245,10 @@
 				{/if}
 			</a>
 
-			<!-- Account button + popover -->
-			<div class="relative">
-				{#if accountMenuOpen}
-					<div
-						class="absolute bottom-full left-2 right-2 mb-1.5 bg-surface-input border border-border-mid rounded-md shadow-lg overflow-hidden z-50"
-					>
-						<a
-							href="/me"
-							onclick={() => { accountMenuOpen = false; sidebar.closeMobile(); }}
-							class="flex items-center gap-2.5 px-3 py-2.5 text-text-body hover:bg-surface-mid no-underline transition-colors duration-100 w-full"
-						>
-							<UserRound size={15} strokeWidth={1.75} class="text-muted-dim shrink-0" />
-							Profile
-						</a>
-						<div class="border-t border-border-mid"></div>
-						<button
-							onclick={handleLogout}
-							class="flex items-center gap-2.5 px-3 py-2.5 text-error-light hover:bg-danger-hover w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
-						>
-							<LogOut size={15} strokeWidth={1.75} class="shrink-0" />
-							Sign out
-						</button>
-					</div>
-				{/if}
-
+			<!-- Account button -->
+			<div>
 				<button
+					bind:this={accountButtonEl}
 					onclick={() => (accountMenuOpen = !accountMenuOpen)}
 					title="My Account"
 					style="justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
