@@ -48,6 +48,7 @@
 	}
 
 	import { onMount } from 'svelte';
+	import { tooltip } from '$lib/actions/tooltip';
 
 	$effect(() => {
 		if (accountMenuOpen && accountButtonEl) {
@@ -138,7 +139,7 @@
 			<!-- Dashboard -->
 			<a
 				href="/dashboard"
-				title="Dashboard"
+				use:tooltip={sidebar.collapsed ? 'Dashboard' : null}
 				onclick={() => sidebar.closeMobile()}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/dashboard'))}
@@ -154,7 +155,7 @@
 			<!-- Forms -->
 			<a
 				href="/forms"
-				title="Forms"
+				use:tooltip={sidebar.collapsed ? 'Forms' : null}
 				onclick={() => sidebar.closeMobile()}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/forms'))}
@@ -170,7 +171,7 @@
 			<!-- Team -->
 			<a
 				href="/team"
-				title="Team"
+				use:tooltip={sidebar.collapsed ? 'Team' : null}
 				onclick={() => sidebar.closeMobile()}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/team'))}
@@ -186,7 +187,7 @@
 			<!-- Settings -->
 			<a
 				href="/settings"
-				title="Settings"
+				use:tooltip={sidebar.collapsed ? 'Settings' : null}
 				onclick={() => sidebar.closeMobile()}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class={linkClass(isActive('/settings'))}
@@ -206,7 +207,7 @@
 			<!-- Theme toggle -->
 			<button
 				onclick={() => theme.toggle()}
-				title="{theme.value === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}"
+				use:tooltip={sidebar.collapsed ? (theme.value === 'dark' ? 'Light mode' : 'Dark mode') : null}
 				style="padding: 0 {sidebar.collapsed ? 0 : 14}px; justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 				class="flex items-center gap-2.5 h-10 w-full bg-transparent border-none border-l-2 border-transparent
 					cursor-pointer font-mono text-muted-dark whitespace-nowrap overflow-hidden
@@ -228,7 +229,7 @@
 
 			<a
 				href="https://feedback.useconfide.app/"
-				title="Request Feature"
+				use:tooltip={sidebar.collapsed ? 'Request Feature' : null}
 				target="_blank"
 				rel="noopener noreferrer"
 				onclick={() => sidebar.closeMobile()}
@@ -250,7 +251,7 @@
 				<button
 					bind:this={accountButtonEl}
 					onclick={() => (accountMenuOpen = !accountMenuOpen)}
-					title="My Account"
+					use:tooltip={sidebar.collapsed ? 'My Account' : null}
 					style="justify-content: {sidebar.collapsed ? 'center' : 'flex-start'};"
 					class="flex items-center gap-3 w-full bg-transparent border-none cursor-pointer font-mono
 						transition-colors duration-100 border-t border-surface
