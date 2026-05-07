@@ -75,24 +75,27 @@ const { title } = Astro.props;
 
 		/* Light theme */
 		--bg-color: #f8fafc;
-		--fg-color: #111827;
-		--muted-color: #5a6b7e;
-		--border-color: #dde3ec;
+		--fg-color: #0f172a;
+		--muted-color: #475569;
+		--border-color: #e2e8f0;
 		--primary-color: #de8f08;
-		--primary-fg: #1a0e00;
-		--secondary-bg: #edf1f7;
+		--primary-fg: #ffffff;
+		--secondary-bg: #f1f5f9;
 		--secondary-hover: #e2e8f0;
+		
+		--container-width: 1100px;
+		--transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	[data-theme="dark"] {
-		--bg-color: #111827;
-		--fg-color: #e2e8f0;
-		--muted-color: #7a8fa6;
-		--border-color: #1f2d3d;
+		--bg-color: #0f172a;
+		--fg-color: #f1f5f9;
+		--muted-color: #94a3b8;
+		--border-color: #1e293b;
 		--primary-color: #de8f08;
-		--primary-fg: #1a0e00;
-		--secondary-bg: #1a2332;
-		--secondary-hover: #1e2a3d;
+		--primary-fg: #ffffff;
+		--secondary-bg: #1e293b;
+		--secondary-hover: #334155;
 	}
 
 	.theme-toggle {

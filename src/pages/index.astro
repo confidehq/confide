@@ -10,35 +10,75 @@ import Layout from '../layouts/Layout.astro';
 					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
 					<span>Confide</span>
 				</a>
-				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+				<span class="tagline">The <strong>secure</strong> way to listen.</span>
 			</div>
 			<div class="nav-actions">
 				<ul class="nav-links">
 					<li><a href="#pricing">Pricing</a></li>
 					<li><a href="https://admin.useconfide.app/login">Log in</a></li>
 				</ul>
-				<a href="https://admin.useconfide.app/signup" class="btn btn-primary">Sign Up Free</a>
+				<a href="https://admin.useconfide.app/signup" class="btn btn-primary">Start Protecting Data</a>
 			</div>
 		</nav>
 
 		<main>
 			<section class="hero">
-				<div class="hero-badge">End-to-end encrypted</div>
-				<h1>Sensitive forms that keep your respondents safe</h1>
-				<p>Built for nonprofits, legal aid, and grassroots organizations. Protect the people who trust you with their most vulnerable data.</p>
+				<div class="hero-badge">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+					</svg>
+					End-to-end encrypted
+				</div>
+				<h1>Protect the people who <em>trust</em> you with their data.</h1>
+				<p>End-to-end encrypted forms built for nonprofits, legal aid, journalists and those on the front lines handling sensitive information.</p>
 				<div class="hero-actions">
-					<a href="https://admin.useconfide.app/signup" class="btn btn-primary btn-lg">Sign Up Free</a>
+					<a href="https://admin.useconfide.app/signup" class="btn btn-primary btn-lg">Create a Secure Form</a>
+					<a href="/trust" class="btn btn-secondary btn-lg">How it works</a>
+				</div>
+				<div class="hero-image">
+					<img src="/forms.webp" alt="Confide secure form builder interface" />
 				</div>
 			</section>
 
 			<section class="privacy-section">
 				<div class="privacy-grid">
 					<div class="privacy-title">
-						<span class="muted-label">NO ADS, NO TRACKING</span>
-						<h2>Break free from Big Tech</h2>
+						<span class="muted-label">MISSION CRITICAL</span>
+						<h2>When data is sensitive, trust is everything.</h2>
 					</div>
 					<div class="privacy-content">
-						<p>Most companies make money by tracking your activity, profiling you, and serving you ads. We believe this is an invasion of your privacy. We don't do this, period.</p>
+						<p>Standard form builders aren't built for the risks you face. Whether you're collecting:</p>
+						<ul class="feature-list">
+							<li>Incident or abuse reports</li>
+							<li>Immigration or legal case details</li>
+							<li>Whistleblower submissions</li>
+						</ul>
+						<p>A single breach can put real lives at risk. Confide is built to drastically minimize that risk.</p>
+					</div>
+				</div>
+			</section>
+
+			<section class="risk-section">
+				<div class="risk-grid">
+					<div class="risk-column">
+						<span class="muted-label">SECURITY DESIGN</span>
+						<h3>Designed to reduce the risk of:</h3>
+						<ul class="risk-list risk-mitigated">
+							<li>Data breaches</li>
+							<li>Third-party tracking</li>
+							<li>Unauthorized internal access</li>
+							<li>Long-term retention of sensitive data</li>
+							<li>Exposure of vulnerable respondents</li>
+						</ul>
+					</div>
+					<div class="risk-column">
+						<span class="muted-label">REALITY CHECK</span>
+						<h3>No tool can prevent:</h3>
+						<ul class="risk-list risk-preventable">
+							<li>Compromised devices</li>
+							<li>Someone intentionally sharing exported data</li>
+							<li>Misuse by authorized users</li>
+						</ul>
 					</div>
 				</div>
 			</section>
@@ -47,10 +87,10 @@ import Layout from '../layouts/Layout.astro';
 				<div class="privacy-grid">
 					<div class="privacy-title">
 						<span class="muted-label">ENCRYPTED DATA</span>
-						<h2>Your data stays yours — we can't read it even if we tried</h2>
+						<h2>We can't read it, so we can't lose it.</h2>
 					</div>
 					<div class="privacy-content">
-						<p>Forms are encrypted on your device before reaching our servers. Respondents use secure form links to decrypt your form and encrypt their responses. We cannot access this data even if we wanted to.</p>
+						<p>Forms are encrypted on your device before they ever reach our servers. Respondents use secure links to decrypt your form and encrypt their responses. Even if we were compelled to, we couldn't access your data.</p>
 					</div>
 				</div>
 			</section>
@@ -58,11 +98,11 @@ import Layout from '../layouts/Layout.astro';
 			<section class="privacy-section">
 				<div class="privacy-grid">
 					<div class="privacy-title">
-						<span class="muted-label">SECURE WORKSPACE</span>
-						<h2>Collaborate with your team</h2>
+						<span class="muted-label">PRIVACY BY DESIGN</span>
+						<h2>Break free from the surveillance economy.</h2>
 					</div>
 					<div class="privacy-content">
-						<p>Shared workspaces enable your team to work together while maintaining full data encryption with respondents. You have full control over who can see what — with clear audit logs of what was accessed and when.</p>
+						<p>Most platforms profit by tracking activity, profiling users, and serving ads. We believe privacy isn't a setting—it's a fundamental right. We don't track, we don't profile, and we never serve ads. Period.</p>
 					</div>
 				</div>
 			</section>
@@ -70,17 +110,11 @@ import Layout from '../layouts/Layout.astro';
 			<section class="privacy-section">
 				<div class="privacy-grid">
 					<div class="privacy-title">
-						<span class="muted-label">WHEN DATA IS SENSITIVE</span>
-						<h2>Privacy isn't optional</h2>
+						<span class="muted-label">SECURE WORKFLOWS</span>
+						<h2>Collaborate without compromise.</h2>
 					</div>
 					<div class="privacy-content">
-						<p>Whether you're collecting:</p>
-						<ul class="feature-list">
-							<li>incident or abuse reports</li>
-							<li>immigration or legal case details</li>
-							<li>whistleblower submissions</li>
-						</ul>
-						<p>A breach — or even internal misuse — can put real people at risk.</p>
+						<p>Manage sensitive cases as a team. Workspaces allow for seamless collaboration while maintaining full end-to-end encryption. Granular access controls and immutable audit logs ensure you always know who saw what.</p>
 					</div>
 				</div>
 			</section>
@@ -89,36 +123,35 @@ import Layout from '../layouts/Layout.astro';
 				<div class="highlights-grid">
 					<div class="highlight-card">
 						<span class="highlight-icon">
-							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
 								<path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
 							</svg>
 						</span>
-						<h3>Only you can read submissions</h3>
-						<p>Forms and responses are encrypted before they ever reach us. We cannot access them.</p>
+						<h3>True End-to-End Encryption</h3>
+						<p>Keys are generated on your device and never shared with us. Only you hold the power to decrypt.</p>
 					</div>
 					<div class="highlight-card">
 						<span class="highlight-icon">
-							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 								<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"></path>
 								<path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
 								<line x1="1" y1="1" x2="23" y2="23"></line>
 							</svg>
 						</span>
-						<h3>Anonymous by default</h3>
-						<p>No trackers. No IP logging. No hidden analytics.</p>
+						<h3>Respond Anonymously</h3>
+						<p>No IP logging, no hidden tracking, and no account required for respondents. Pure privacy.</p>
 					</div>
 					<div class="highlight-card">
 						<span class="highlight-icon">
-							<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-								<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-								<circle cx="9" cy="7" r="4"></circle>
-								<path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-								<path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+							<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+								<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+								<polyline points="7 10 12 15 17 10"></polyline>
+								<line x1="12" y1="15" x2="12" y2="3"></line>
 							</svg>
 						</span>
-						<h3>Safe team collaboration</h3>
-						<p>Workspaces, access controls, and audit logs — without exposing raw data unnecessarily.</p>
+						<h3>Open Source & Auditable</h3>
+						<p>Licensed under AGPL. Verify our security claims yourself or host it on your own infrastructure.</p>
 					</div>
 				</div>
 			</section>
@@ -131,12 +164,11 @@ import Layout from '../layouts/Layout.astro';
 					<div class="privacy-content">
 						<p>Everything your organization needs to collect sensitive information responsibly.</p>
 						<ul class="feature-list">
-							<li>Auto-delete old responses to reduce risk</li>
-							<li>Close forms automatically when needed</li>
-							<li>Share via secure links or QR codes</li>
-							<li>Encrypted forwarding when needed</li>
-							<li>Multi-language support</li>
-							<li>Passkey-only authentication</li>
+							<li><strong>Auto-Delete:</strong> Automatically purge old data to minimize exposure.</li>
+							<li><strong>Passkey-Only:</strong> Modern, phishing-resistant authentication.</li>
+							<li><strong>Audit Logs:</strong> Immutable records of all administrative actions.</li>
+							<li><strong>Multi-Language:</strong> Reach your community in their native tongue.</li>
+							<li><strong>Secure Export:</strong> Download data only when you need it locally.</li>
 						</ul>
 					</div>
 				</div>
@@ -144,7 +176,7 @@ import Layout from '../layouts/Layout.astro';
 
 			<section class="faq-section">
 				<div class="faq-header">
-					<h2>I have questions about security and our data…</h2>
+					<h2>Common Questions</h2>
 				</div>
 				<div class="faq-list">
 					<details class="faq-item">
@@ -153,7 +185,7 @@ import Layout from '../layouts/Layout.astro';
 							<span class="faq-icon" aria-hidden="true"></span>
 						</summary>
 						<div class="faq-answer">
-							<p>No. Forms and responses are encrypted on your device using keys only you control. By the time data reaches our servers it's already encrypted — we have no way to decrypt or read it.</p>
+							<p>Absolutely not. Forms and responses are encrypted on your device using keys that never leave your browser. By the time data reaches our servers, it is already unreadable ciphertext.</p>
 						</div>
 					</details>
 					<details class="faq-item">
@@ -162,7 +194,7 @@ import Layout from '../layouts/Layout.astro';
 							<span class="faq-icon" aria-hidden="true"></span>
 						</summary>
 						<div class="faq-answer">
-							<p>An attacker would only obtain ciphertext. Without your private keys — which never leave your device — the data is unreadable. End-to-end encryption means a server breach exposes nothing meaningful.</p>
+							<p>An attacker would only find encrypted data. Without your private keys, the information is useless. This "end-to-end encrypted" approach is the ultimate defense against data breaches.</p>
 						</div>
 					</details>
 					<details class="faq-item">
@@ -172,15 +204,6 @@ import Layout from '../layouts/Layout.astro';
 						</summary>
 						<div class="faq-answer">
 							<p>No. Respondents receive a secure link that contains everything needed to decrypt your form and encrypt their response. No sign-up, no email, no tracking.</p>
-						</div>
-					</details>
-					<details class="faq-item">
-						<summary class="faq-question">
-							<span>Is Confide open source?</span>
-							<span class="faq-icon" aria-hidden="true"></span>
-						</summary>
-						<div class="faq-answer">
-							<p>Yes. Confide is licensed under AGPL, so anyone can inspect, audit, or self-host the code. Security claims you can verify are more trustworthy than ones you can't.</p>
 						</div>
 					</details>
 					<details class="faq-item">
@@ -201,13 +224,25 @@ import Layout from '../layouts/Layout.astro';
 							<p>Yes. You can configure forms to auto-delete responses after a set period, or close a form entirely once a submission limit is reached. Reducing the data you hold reduces your risk.</p>
 						</div>
 					</details>
+					<details class="faq-item">
+						<summary class="faq-question">
+							<span>Is there a free version for small groups?</span>
+							<span class="faq-icon" aria-hidden="true"></span>
+						</summary>
+						<div class="faq-answer">
+							<p>Yes. We offer a generous free tier for grassroots organizations and individuals. We believe everyone should have access to secure communication tools, regardless of their budget.</p>
+						</div>
+					</details>
 				</div>
 			</section>
 
 			<section class="final-cta">
 				<div class="cta-content">
-					<h2>Your data belongs to you — not tech companies, governments, or hackers.</h2>
-					<a href="https://admin.useconfide.app/signup" class="btn btn-primary btn-lg">Create a secure form</a>
+					<h2>Your data belongs to you. Not us, not Big Tech, not anyone else.</h2>
+					<div class="hero-actions">
+						<a href="https://admin.useconfide.app/signup" class="btn btn-primary btn-lg">Start for Free</a>
+						<a href="/trust" class="btn btn-secondary btn-lg">Learn about our security</a>
+					</div>
 				</div>
 			</section>
 		</main>
@@ -220,10 +255,10 @@ import Layout from '../layouts/Layout.astro';
 				</div>
 				<ul class="footer-links">
 					<li><a href="https://admin.useconfide.app/login">Sign in</a></li>
-					<li><a href="https://status.confide.com">Status</a></li>
 					<li><a href="/trust">Trust & Safety</a></li>
 					<li><a href="/privacy">Privacy Policy</a></li>
 					<li><a href="/terms">Terms of Service</a></li>
+					<li><a href="https://github.com/confidehq/confide" target="_blank" rel="noopener">Open Source</a></li>
 				</ul>
 			</div>
 		</footer>
@@ -232,9 +267,9 @@ import Layout from '../layouts/Layout.astro';
 
 <style>
 	.container {
-		max-width: 1000px;
+		max-width: var(--container-width);
 		margin: 0 auto;
-		padding: 0 1.5rem;
+		padding: 0 2rem;
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
@@ -245,51 +280,51 @@ import Layout from '../layouts/Layout.astro';
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding: 1.5rem 0;
+		padding: 2rem 0;
 	}
 
 	.logo-group {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
+		gap: 1rem;
 	}
 
 	.tagline {
-		font-size: 1rem;
+		font-size: 0.9375rem;
 		color: var(--muted-color);
 		font-weight: 500;
 	}
 
 	.logo {
-		font-size: 1.25rem;
+		font-size: 1.5rem;
 		font-weight: 700;
-		letter-spacing: -0.02em;
+		letter-spacing: -0.03em;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.625rem;
 	}
 
 	.logo-icon {
-		width: 24px;
-		height: 24px;
+		width: 28px;
+		height: 28px;
 	}
 
 	.nav-actions {
 		display: flex;
 		align-items: center;
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
 	.nav-links {
 		display: flex;
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
 	.nav-links a {
-		font-size: 1rem;
+		font-size: 0.9375rem;
 		color: var(--muted-color);
-		font-weight: 500;
-		transition: color 0.2s;
+		font-weight: 600;
+		transition: var(--transition-base);
 	}
 
 	.nav-links a:hover {
@@ -302,50 +337,41 @@ import Layout from '../layouts/Layout.astro';
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		padding: 5rem 0 7rem;
+		padding: 8rem 0 10rem;
 	}
 
 	.hero-badge {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.375rem;
-		font-size: 0.8125rem;
-		font-weight: 600;
-		letter-spacing: 0.06em;
+		gap: 0.5rem;
+		font-size: 0.75rem;
+		font-weight: 700;
+		letter-spacing: 0.05em;
 		text-transform: uppercase;
-		color: var(--muted-color);
-		border: 1px solid var(--border-color);
-		padding: 0.3rem 0.875rem;
+		color: var(--accent-amber);
+		background-color: color-mix(in srgb, var(--accent-amber), transparent 90%);
+		padding: 0.5rem 1rem;
 		border-radius: 9999px;
-		margin-bottom: 2rem;
-	}
-
-	.hero-badge::before {
-		content: '';
-		display: inline-block;
-		width: 6px;
-		height: 6px;
-		border-radius: 50%;
-		background-color: currentColor;
-		opacity: 0.6;
+		margin-bottom: 2.5rem;
+		border: 1px solid color-mix(in srgb, var(--accent-amber), transparent 80%);
 	}
 
 	.hero h1 {
-		font-size: clamp(2.25rem, 7vw, 3.75rem);
+		font-size: clamp(2.5rem, 8vw, 4.25rem);
 		font-weight: 800;
-		line-height: 1.1;
-		margin-bottom: 1.5rem;
+		line-height: 1.05;
+		margin-bottom: 2rem;
 		letter-spacing: -0.04em;
 		color: var(--fg-color);
-		max-width: 760px;
+		max-width: 840px;
 	}
 
 	.hero p {
-		font-size: clamp(1.0625rem, 2.5vw, 1.1875rem);
+		font-size: clamp(1.125rem, 2.5vw, 1.375rem);
 		color: var(--muted-color);
-		max-width: 540px;
-		margin-bottom: 2.5rem;
-		line-height: 1.65;
+		max-width: 640px;
+		margin-bottom: 3rem;
+		line-height: 1.5;
 	}
 
 	.hero-actions {
@@ -354,40 +380,59 @@ import Layout from '../layouts/Layout.astro';
 		justify-content: center;
 	}
 
+	.hero-image {
+		margin-top: 5rem;
+		width: 100%;
+		max-width: 1000px;
+		border-radius: 1.5rem;
+		overflow: hidden;
+		box-shadow: 
+			0 20px 25px -5px rgb(0 0 0 / 0.1), 
+			0 8px 10px -6px rgb(0 0 0 / 0.1),
+			0 0 0 1px var(--border-color);
+		background-color: var(--secondary-bg);
+	}
+
+	.hero-image img {
+		width: 100%;
+		height: auto;
+		display: block;
+	}
+
 	/* Privacy Sections */
 	.privacy-section {
-		padding: 4rem 0;
+		padding: 6rem 0;
 		border-top: 1px solid var(--border-color);
 	}
 
 	.privacy-grid {
 		display: grid;
-		grid-template-columns: 1fr 1.2fr;
-		gap: 4rem;
+		grid-template-columns: 1fr 1fr;
+		gap: 6rem;
 		align-items: start;
 	}
 
 	.muted-label {
 		display: block;
-		font-size: 0.8125rem;
+		font-size: 0.75rem;
 		color: var(--muted-color);
-		margin-bottom: 0.875rem;
-		letter-spacing: 0.1em;
-		font-weight: 600;
+		margin-bottom: 1rem;
+		letter-spacing: 0.15em;
+		font-weight: 700;
 	}
 
 	.privacy-title h2 {
-		font-size: 2.125rem;
+		font-size: 2.5rem;
 		font-weight: 700;
-		line-height: 1.15;
-		letter-spacing: -0.025em;
+		line-height: 1.1;
+		letter-spacing: -0.03em;
 	}
 
 	.privacy-content p {
-		font-size: 1.125rem;
+		font-size: 1.25rem;
 		color: var(--muted-color);
-		line-height: 1.65;
-		margin-bottom: 1rem;
+		line-height: 1.6;
+		margin-bottom: 1.5rem;
 	}
 
 	.privacy-content p:last-child {
@@ -395,100 +440,167 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	.feature-list {
-		margin: 0.75rem 0;
+		margin: 1.5rem 0;
 		padding-left: 0;
 	}
 
 	.feature-list li {
-		font-size: 1.0625rem;
+		font-size: 1.125rem;
 		color: var(--muted-color);
-		padding: 0.3rem 0 0.3rem 1.25rem;
+		padding: 0.5rem 0 0.5rem 1.5rem;
 		position: relative;
 	}
 
 	.feature-list li::before {
-		content: '—';
+		content: '•';
 		position: absolute;
 		left: 0;
-		color: var(--border-color);
-		font-weight: 400;
+		color: var(--accent-amber);
+		font-weight: 900;
+	}
+
+	.feature-list strong {
+		color: var(--fg-color);
+	}
+
+	/* Risk Section */
+	.risk-section {
+		padding: 6rem 0;
+		border-top: 1px solid var(--border-color);
+		background-color: color-mix(in srgb, var(--secondary-bg), transparent 50%);
+	}
+
+	.risk-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 4rem;
+	}
+
+	.risk-column h3 {
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin-bottom: 2rem;
+		letter-spacing: -0.02em;
+	}
+
+	.risk-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.risk-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		padding-left: 1.75rem;
+		position: relative;
+		line-height: 1.4;
+	}
+
+	.risk-list li::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0.35rem;
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.risk-mitigated li::before {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364b352' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+	}
+
+	.risk-preventable li::before {
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e46f6d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='6' x2='6' y2='18'%3E%3C/line%3E%3Cline x1='6' y1='6' x2='18' y2='18'%3E%3C/line%3E%3C/svg%3E");
 	}
 
 	/* Highlights Section */
 	.highlights-section {
-		padding: 4rem 0;
+		padding: 6rem 0;
 		border-top: 1px solid var(--border-color);
 	}
 
 	.highlights-grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
-		gap: 3rem;
+		gap: 4rem;
 	}
 
 	.highlight-card {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 1.25rem;
 	}
 
 	.highlight-icon {
 		display: flex;
 		align-items: center;
-		color: var(--fg-color);
-		opacity: 0.8;
+		justify-content: center;
+		width: 3rem;
+		height: 3rem;
+		border-radius: 12px;
+		background-color: var(--secondary-bg);
+		color: var(--accent-amber);
 	}
 
 	.highlight-card h3 {
-		font-size: 1.25rem;
+		font-size: 1.375rem;
 		font-weight: 700;
-		line-height: 1.25;
-		letter-spacing: -0.01em;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
 	}
 
 	.highlight-card p {
-		font-size: 1rem;
+		font-size: 1.0625rem;
 		color: var(--muted-color);
-		line-height: 1.6;
+		line-height: 1.5;
 	}
 
 	/* FAQ Section */
 	.faq-section {
-		padding: 4rem 0;
+		padding: 6rem 0;
 		border-top: 1px solid var(--border-color);
 	}
 
 	.faq-header {
-		margin-bottom: 2.5rem;
+		margin-bottom: 3.5rem;
+		text-align: center;
 	}
 
 	.faq-header h2 {
-		font-size: clamp(1.5rem, 4vw, 2.125rem);
+		font-size: clamp(2rem, 5vw, 2.75rem);
 		font-weight: 700;
-		letter-spacing: -0.025em;
-		line-height: 1.2;
+		letter-spacing: -0.03em;
 	}
 
 	.faq-list {
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 1rem;
+		max-width: 800px;
+		margin: 0 auto;
 	}
 
 	.faq-item {
-		border-radius: 0.875rem;
-		background-color: var(--secondary-bg);
-		overflow: hidden;
+		border-radius: 1rem;
+		border: 1px solid var(--border-color);
+		background-color: transparent;
+		transition: var(--transition-base);
+	}
+
+	.faq-item:hover {
+		border-color: var(--accent-amber);
+		background-color: color-mix(in srgb, var(--accent-amber), transparent 98%);
 	}
 
 	.faq-question {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 1rem;
-		padding: 1.125rem 1.375rem;
-		font-size: 1.0625rem;
-		font-weight: 600;
+		gap: 1.5rem;
+		padding: 1.5rem;
+		font-size: 1.125rem;
+		font-weight: 700;
 		cursor: pointer;
 		list-style: none;
 		user-select: none;
@@ -500,10 +612,11 @@ import Layout from '../layouts/Layout.astro';
 
 	.faq-icon {
 		flex-shrink: 0;
-		width: 1.25rem;
-		height: 1.25rem;
+		width: 1.5rem;
+		height: 1.5rem;
 		position: relative;
 		color: var(--muted-color);
+		transition: transform 0.3s ease;
 	}
 
 	.faq-icon::before,
@@ -512,61 +625,66 @@ import Layout from '../layouts/Layout.astro';
 		position: absolute;
 		background-color: currentColor;
 		border-radius: 2px;
-		transition: transform 0.2s, opacity 0.2s;
 	}
 
 	.faq-icon::before {
 		width: 100%;
-		height: 1.5px;
+		height: 2px;
 		top: 50%;
 		left: 0;
 		transform: translateY(-50%);
 	}
 
 	.faq-icon::after {
-		width: 1.5px;
+		width: 2px;
 		height: 100%;
 		left: 50%;
 		top: 0;
 		transform: translateX(-50%);
+		transition: opacity 0.2s, transform 0.2s;
+	}
+
+	details[open] .faq-icon {
+		transform: rotate(180deg);
+		color: var(--accent-amber);
 	}
 
 	details[open] .faq-icon::after {
-		transform: translateX(-50%) rotate(90deg);
 		opacity: 0;
+		transform: translateX(-50%) rotate(90deg);
 	}
 
 	.faq-answer {
-		padding: 0 1.375rem 1.25rem;
+		padding: 0 1.5rem 1.5rem;
 	}
 
 	.faq-answer p {
-		font-size: 1rem;
+		font-size: 1.0625rem;
 		color: var(--muted-color);
-		line-height: 1.65;
+		line-height: 1.6;
 	}
 
 	/* Final CTA */
 	.final-cta {
-		padding: 7rem 0;
+		padding: 10rem 0;
 		text-align: center;
 		border-top: 1px solid var(--border-color);
 	}
 
 	.cta-content {
-		max-width: 700px;
+		max-width: 800px;
 		margin: 0 auto;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 2.5rem;
+		gap: 3rem;
 	}
 
 	.final-cta h2 {
-		font-size: clamp(1.625rem, 4.5vw, 2.375rem);
-		font-weight: 700;
-		line-height: 1.2;
-		letter-spacing: -0.025em;
+		font-size: clamp(2rem, 6vw, 3rem);
+		font-weight: 800;
+		line-height: 1.1;
+		letter-spacing: -0.04em;
 	}
 
 	/* Buttons */
@@ -574,43 +692,47 @@ import Layout from '../layouts/Layout.astro';
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		padding: 0.5rem 1.125rem;
+		padding: 0.625rem 1.5rem;
 		border-radius: 9999px;
-		font-weight: 600;
+		font-weight: 700;
 		font-size: 0.9375rem;
-		transition: all 0.2s;
+		transition: var(--transition-base);
 		border: 1px solid transparent;
 		white-space: nowrap;
 	}
 
 	.btn-lg {
-		padding: 0.75rem 1.75rem;
-		font-size: 1rem;
+		padding: 1rem 2rem;
+		font-size: 1.0625rem;
 	}
 
 	.btn-primary {
 		background-color: var(--primary-color);
 		color: var(--primary-fg);
+		box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color), transparent 80%);
 	}
 
 	.btn-primary:hover {
-		opacity: 0.85;
-		transform: translateY(-1px);
+		transform: translateY(-2px);
+		box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color), transparent 70%);
+		opacity: 0.95;
 	}
 
 	.btn-secondary {
 		background-color: var(--secondary-bg);
 		color: var(--fg-color);
+		border-color: var(--border-color);
 	}
 
 	.btn-secondary:hover {
 		background-color: var(--secondary-hover);
-		transform: translateY(-1px);
+		transform: translateY(-2px);
+		border-color: var(--accent-amber);
 	}
 
 	/* Footer */
 	.footer {
-		padding: 3rem 0;
+		padding: 4rem 0;
 		border-top: 1px solid var(--border-color);
 		margin-top: auto;
 	}
@@ -619,7 +741,7 @@ import Layout from '../layouts/Layout.astro';
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		font-size: 0.875rem;
+		font-size: 0.9375rem;
 		color: var(--muted-color);
 	}
 
@@ -632,22 +754,33 @@ import Layout from '../layouts/Layout.astro';
 	.footer-logo-text {
 		font-weight: 700;
 		color: var(--fg-color);
-		font-size: 1.0625rem;
+		font-size: 1.25rem;
+		letter-spacing: -0.03em;
 	}
 
 	.footer-links {
 		display: flex;
-		gap: 1.5rem;
+		gap: 2rem;
+	}
+
+	.footer-links a {
+		font-weight: 600;
+		transition: var(--transition-base);
 	}
 
 	.footer-links a:hover {
 		color: var(--fg-color);
-		text-decoration: underline;
+	}
+
+	@media (max-width: 1024px) {
+		.privacy-grid {
+			gap: 4rem;
+		}
 	}
 
 	@media (max-width: 768px) {
 		.container {
-			padding: 0 1.25rem;
+			padding: 0 1.5rem;
 		}
 
 		.nav-links {
@@ -659,24 +792,17 @@ import Layout from '../layouts/Layout.astro';
 		}
 
 		.nav {
-			padding: 1rem 0;
-		}
-
-		.nav-actions {
-			gap: 0.5rem;
+			padding: 1.5rem 0;
 		}
 
 		.hero {
-			padding: 3.5rem 0 5rem;
-		}
-
-		.hero h1 {
-			letter-spacing: -0.03em;
+			padding: 6rem 0 8rem;
 		}
 
 		.hero-actions {
+			flex-direction: column;
 			width: 100%;
-			max-width: 220px;
+			max-width: 280px;
 			margin: 0 auto;
 		}
 
@@ -685,50 +811,54 @@ import Layout from '../layouts/Layout.astro';
 		}
 
 		.privacy-section {
-			padding: 3rem 0;
+			padding: 4rem 0;
 		}
 
 		.privacy-grid {
 			grid-template-columns: 1fr;
-			gap: 1.75rem;
+			gap: 2.5rem;
 		}
 
 		.privacy-title h2 {
-			font-size: 1.875rem;
+			font-size: 2rem;
+		}
+
+		.risk-section {
+			padding: 4rem 0;
+		}
+
+		.risk-grid {
+			grid-template-columns: 1fr;
+			gap: 3rem;
 		}
 
 		.highlights-section {
-			padding: 3rem 0;
+			padding: 4rem 0;
 		}
 
 		.highlights-grid {
 			grid-template-columns: 1fr;
-			gap: 2.5rem;
+			gap: 3rem;
 		}
 
 		.final-cta {
-			padding: 5rem 0;
-		}
-
-		.cta-content {
-			gap: 2rem;
+			padding: 8rem 0;
 		}
 
 		.footer-content {
 			flex-direction: column;
-			gap: 2rem;
+			gap: 3rem;
 			text-align: center;
 		}
 
 		.footer-brand {
 			flex-direction: column;
-			gap: 0.5rem;
+			gap: 0.75rem;
 		}
 
 		.footer-links {
-			flex-wrap: wrap;
-			justify-content: center;
-			gap: 1rem 1.5rem;
+			flex-direction: column;
+			gap: 1.5rem;
 		}
 	}
 </style>
