@@ -15,6 +15,7 @@ import (
 	"github.com/stripe/stripe-go/v84/webhook"
 
 	"github.com/phantompunk/confide/internal/db/queries"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 var (
@@ -28,7 +29,6 @@ var (
 // DB is the subset of queries used by billing.Service.
 type DB interface {
 	GetWorkspaceForBilling(ctx context.Context, id string) (queries.GetWorkspaceForBillingRow, error)
-	GetWorkspaceMember(ctx context.Context, arg queries.GetWorkspaceMemberParams) (queries.WorkspaceMember, error)
 	CountWorkspaceMembers(ctx context.Context, workspaceID string) (int64, error)
 	CountFormsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	CountMonthlyResponses(ctx context.Context, workspaceID string) (int64, error)
@@ -71,9 +71,9 @@ type BillingInfo struct {
 }
 
 // GetInfo returns the billing summary for a workspace. Owner only.
-func (s *Service) GetInfo(ctx context.Context, workspaceID, accountID string) (BillingInfo, error) {
-	if err := s.requireOwner(ctx, workspaceID, accountID); err != nil {
-		return BillingInfo{}, err
+func (s *Service) GetInfo(ctx context.Context, workspaceID, callerRole string) (BillingInfo, error) {
+	if !permission.Can(callerRole, permission.ActionManageBilling) {
+		return BillingInfo{}, ErrForbidden
 	}
 	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
 	if err != nil {
@@ -114,7 +114,7 @@ func (s *Service) GetInfo(ctx context.Context, workspaceID, accountID string) (B
 // Subscribe creates or upgrades a workspace subscription via Stripe Checkout.
 // plan must be "pro" or "org". Lazily creates a Stripe Customer on first upgrade
 // (workspace_id metadata only, no PII). Returns the Stripe Checkout Session URL. Owner only.
-func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, successURL, cancelURL string) (string, error) {
+func (s *Service) Subscribe(ctx context.Context, workspaceID, callerRole, plan, successURL, cancelURL string) (string, error) {
 	if s.stripeSecretKey == "" {
 		return "", ErrStripeDisabled
 	}
@@ -122,8 +122,8 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 	if err != nil {
 		return "", err
 	}
-	if err := s.requireOwner(ctx, workspaceID, accountID); err != nil {
-		return "", err
+	if !permission.Can(callerRole, permission.ActionManageBilling) {
+		return "", ErrForbidden
 	}
 	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
 	if err != nil {
@@ -177,12 +177,12 @@ func (s *Service) Subscribe(ctx context.Context, workspaceID, accountID, plan, s
 
 // Portal creates a Stripe Billing Portal session for self-service plan management.
 // Requires a Stripe customer to already exist. Owner only.
-func (s *Service) Portal(ctx context.Context, workspaceID, accountID, returnURL string) (string, error) {
+func (s *Service) Portal(ctx context.Context, workspaceID, callerRole, returnURL string) (string, error) {
 	if s.stripeSecretKey == "" {
 		return "", ErrStripeDisabled
 	}
-	if err := s.requireOwner(ctx, workspaceID, accountID); err != nil {
-		return "", err
+	if !permission.Can(callerRole, permission.ActionManageBilling) {
+		return "", ErrForbidden
 	}
 	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
 	if err != nil {
@@ -425,25 +425,6 @@ func (s *Service) handlePaymentIntentFailed(ctx context.Context, event stripe.Ev
 		ev = ev.Str("decline_code", string(pi.LastPaymentError.DeclineCode)).Str("error_code", string(pi.LastPaymentError.Code))
 	}
 	ev.Msg("payment intent failed")
-	return nil
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-func (s *Service) requireOwner(ctx context.Context, workspaceID, accountID string) error {
-	member, err := s.db.GetWorkspaceMember(ctx, queries.GetWorkspaceMemberParams{
-		WorkspaceID: workspaceID,
-		AccountID:   accountID,
-	})
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return ErrForbidden
-		}
-		return err
-	}
-	if member.Role != "owner" {
-		return ErrForbidden
-	}
 	return nil
 }
 

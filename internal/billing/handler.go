@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 
-	mw "github.com/phantompunk/confide/internal/middleware"
+	"github.com/phantompunk/confide/internal/permission"
 )
 
 // Handler returns the billing sub-router mounted at /api/workspaces/{workspaceId}/billing.
@@ -32,10 +32,10 @@ func WebhookHandler(svc *Service) http.HandlerFunc {
 
 func getBillingInfo(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
+		callerRole := permission.WorkspaceRole(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 
-		info, err := svc.GetInfo(r.Context(), workspaceID, accountID)
+		info, err := svc.GetInfo(r.Context(), workspaceID, callerRole)
 		if err != nil {
 			if errors.Is(err, ErrForbidden) {
 				writeError(w, http.StatusForbidden, "forbidden", "owner role required")
@@ -66,7 +66,7 @@ func getBillingInfo(svc *Service) http.HandlerFunc {
 
 func subscribe(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
+		callerRole := permission.WorkspaceRole(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 
 		var req struct {
@@ -83,7 +83,7 @@ func subscribe(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		url, err := svc.Subscribe(r.Context(), workspaceID, accountID, req.Plan, req.SuccessURL, req.CancelURL)
+		url, err := svc.Subscribe(r.Context(), workspaceID, callerRole, req.Plan, req.SuccessURL, req.CancelURL)
 		if err != nil {
 			if errors.Is(err, ErrForbidden) {
 				writeError(w, http.StatusForbidden, "forbidden", "owner role required")
@@ -111,7 +111,7 @@ func subscribe(svc *Service) http.HandlerFunc {
 
 func portal(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		accountID := mw.AccountID(r.Context())
+		callerRole := permission.WorkspaceRole(r.Context())
 		workspaceID := chi.URLParam(r, "workspaceId")
 
 		var req struct {
@@ -126,7 +126,7 @@ func portal(svc *Service) http.HandlerFunc {
 			return
 		}
 
-		url, err := svc.Portal(r.Context(), workspaceID, accountID, req.ReturnURL)
+		url, err := svc.Portal(r.Context(), workspaceID, callerRole, req.ReturnURL)
 		if err != nil {
 			if errors.Is(err, ErrForbidden) {
 				writeError(w, http.StatusForbidden, "forbidden", "owner role required")
