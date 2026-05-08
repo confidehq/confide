@@ -14,7 +14,7 @@ import Layout from '../layouts/Layout.astro';
 			</div>
 			<div class="nav-actions">
 				<ul class="nav-links">
-					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="/pricing">Pricing</a></li>
 					<li><a href="#login">Log in</a></li>
 				</ul>
 				<a href="#" class="btn btn-primary">Sign Up Free</a>
@@ -25,7 +25,7 @@ import Layout from '../layouts/Layout.astro';
 			<header class="page-header">
 				<span class="page-label">LEGAL</span>
 				<h1>Privacy Policy</h1>
-				<p class="last-updated">Last Updated: May 4, 2026</p>
+				<p class="last-updated">Last Updated: May 8, 2026</p>
 			</header>
 
 			<div class="doc">
@@ -43,58 +43,211 @@ import Layout from '../layouts/Layout.astro';
 				</section>
 
 				<section class="doc-section">
-					<h2>Creating an Account</h2>
-					<p>When signing up for an account, we ask for a unique username or alias that will be used to identify you across workspaces.</p>
-					<p><strong>Passkeys:</strong> We use industry-standard Passkeys (TouchID, FaceID, Windows Hello, or hardware keys). We do not store your biometric data. We only store a secure, cryptographic code authenticated by your device. We do not use or store traditional passwords.</p>
-					<p><strong>Recovery Keys:</strong> Upon registration, you are provided a recovery key.</p>
+					<h2>What we collect and why</h2>
+					<p>Our philosophy is simple: <strong>We cannot leak what we do not have.</strong> We minimize data collection as much as possible.</p>
+					
+					<h3>Anonymous Authentication</h3>
+					<p>We do not require an email address or password to use this platform.</p>
+					<ul class="plain-list">
+						<li><strong>Identity:</strong> Your account is bound to a physical authenticator (Passkey) such as a hardware key (YubiKey), TouchID, FaceID, or a secure password manager.</li>
+						<li><strong>Usernames:</strong> You must choose a unique username. This is public and serves as your identifier for team invites and workspace collaboration. We encourage the use of pseudonyms.</li>
+					</ul>
+
+					<h3>Billing & Subscriptions</h3>
+					<p>Payment processing is handled entirely by <strong>Stripe</strong>.</p>
+					<ul class="plain-list">
+						<li><strong>Zero Financial Data:</strong> We never see or store your credit card or billing details.</li>
+						<li><strong>Subscription Linkage:</strong> We only store a reference ID for your Stripe customer profile and subscription status to manage your account limits and features.</li>
+					</ul>
+
+					<h3>Form Data & Response Privacy</h3>
+					<p>We provide the tools for secure data collection, but privacy is a shared responsibility between the platform and the creator.</p>
+					<ul class="plain-list">
+						<li><strong>Encryption:</strong> All form responses are encrypted. Neither the platform nor our hosting providers can read them.</li>
+						<li><strong>Access Control:</strong> Only the form creator and their authorized team members have the keys to decrypt and view responses.</li>
+						<li><strong>Creator Responsibility:</strong> While responses are anonymous by default, a form creator may choose to request personally identifiable information. We urge creators to practice data minimization.</li>
+					</ul>
+
+					<h3>Operational Analytics</h3>
+					<p>To improve the platform, we collect limited, high-level usage data.</p>
+					<ul class="plain-list">
+						<li><strong>What we track:</strong> We monitor aggregate actions (e.g., page visits, clicks, and language preferences).</li>
+						<li><strong>Privacy First:</strong> We strip identifiable markers to focus on general trends. We do not track individual users across the web.</li>
+					</ul>
+
+					<h3>Cookies and Local Storage</h3>
+					<p>We do not use any third-party tracking cookies, advertising beacons, or "pixels" from platforms like Meta or Google. Our platform is built to respect your privacy by default.</p>
+					<ul class="plain-list">
+						<li><strong>Essential Storage Only:</strong> We use local storage and session-based cookies strictly for <strong>authentication and security</strong> purposes. These allow you to remain logged in and ensure that your Passkey-bound session is secure.</li>
+						<li><strong>No Cross-Site Tracking:</strong> We do not track your behavior across other websites or sell your browsing data to third parties.</li>
+					</ul>
+
+					<h3>Direct Communications</h3>
+					<p>If you contact us for support or feedback via email or our contact forms, we will store that specific communication and your contact details solely to resolve your request and follow up. </p>
+				</section>
+
+				<section class="doc-section">
+					<h2>How we secure your data</h2>
+					<p>Our security model is built on the principle of <strong>Zero-Knowledge</strong>. This means your most sensitive data is encrypted before it ever touches our servers, ensuring that only you and your authorized team members hold the keys.</p>
+
+					<h3>End-to-End Encryption (E2EE)</h3>
+					<ul class="plain-list">
+						<li><strong>Client-Side Protection:</strong> Form schemas and configurations are encrypted directly on your device before they are uploaded.</li>
+						<li><strong>The Secure Link:</strong> When a respondent visits your unique form link, their browser decrypts the form locally. When they submit a response, it is encrypted on <em>their</em> device before being sent to our infrastructure.</li>
+						<li><strong>Decryption:</strong> Only you and your designated team members possess the cryptographic keys required to decrypt and view these responses.</li>
+					</ul>
+
+					<h3>Transport & Infrastructure Security</h3>
+					<ul class="plain-list">
+						<li><strong>Data in Transit:</strong> All communication between your browser and our servers is protected using industry-standard <strong>SSL/TLS</strong> encryption.</li>
+						<li><strong>Data at Rest:</strong> Our PostgreSQL database and all system backups are stored as encrypted blobs on our private, self-hosted infrastructure.</li>
+					</ul>
+
+					<h3>Metadata Transparency</h3>
+					<p>To manage your forms and ensure reliable delivery, we store a limited amount of unencrypted metadata. This data is strictly used for platform functionality and does not contain the contents of your forms or responses.</p>
+					<p><strong>Examples of metadata we store include:</strong></p>
+					<ul class="plain-list">
+						<li><strong>Timestamps:</strong> When a form or response was created or last updated.</li>
+						<li><strong>Form Status:</strong> Whether a form is currently "Open" or "Closed."</li>
+						<li><strong>Logic Flags:</strong> Technical settings, such as response retention periods (TTL) or whether PGP forwarding is enabled.</li>
+					</ul>
+
+					<h3>Security and Bug Reporting</h3>
+					<p>We take the security of our platform seriously and welcome the assistance of the security research community. If you believe you have discovered a vulnerability or a bug:</p>
+					<ul class="plain-list">
+						<li><strong>Contact Us:</strong> Please reach out to us at <strong>security@useconfide.app</strong>.</li>
+						<li><strong>Responsible Disclosure:</strong> We ask that you give us a reasonable amount of time to resolve the issue before making any information public. We value your help in keeping our community safe.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>When we access or disclose your info</h2>
+					<p>Our business model and technical architecture are designed to limit our access to your information. We cannot disclose what we cannot see.</p>
+
+					<h3>1. Employee Access</h3>
+					<ul class="plain-list">
+						<li><strong>Encrypted Data:</strong> No employee or administrator of this platform can access your form schemas, responses, or uploaded files. This data is encrypted client-side; we do not hold the keys.</li>
+						<li><strong>Metadata:</strong> Access to unencrypted metadata (such as account status or billing IDs) is strictly restricted to essential personnel for the purposes of troubleshooting and platform maintenance.</li>
+					</ul>
+
+					<h3>2. Legal Requests & Subpoenas</h3>
+					<p>We value the privacy of our users and will only comply with legal requests to the extent required by law.</p>
+					<ul class="plain-list">
+						<li><strong>Notification:</strong> Unless legally prohibited by a "gag order," we will notify you of any legal request for your data before disclosure to give you the opportunity to challenge the request.</li>
+						<li><strong>Zero-Knowledge Limitation:</strong> If we are served a valid legal warrant or subpoena, we can only provide the data we have (e.g., your username, subscription status, and account metadata). Because your core content is encrypted with keys held only by you, we cannot provide decrypted form data or responses to any third party, including law enforcement.</li>
+					</ul>
+
+					<h3>3. Safety & Protection</h3>
+					<p>We may disclose limited account information only if we have a good-faith belief that disclosure is necessary to:</p>
+					<ul class="plain-list">
+						<li>Comply with a legal obligation.</li>
+						<li>Protect the personal safety of users or the public.</li>
+						<li>Protect against legal liability.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>What happens when you delete your account</h2>
+					<p>We believe you should have total control over your data. You may delete your information or your entire account at any time through your account settings.</p>
+
+					<h3>1. Account & Workspace Deletion</h3>
+					<ul class="plain-list">
+						<li><strong>Ownership:</strong> When you delete your account, any workspaces you own are permanently removed.</li>
+						<li><strong>Transfer of Ownership:</strong> If a workspace has multiple members, you will be prompted to transfer ownership to another member before your account is closed. If no transfer is made, the workspace and its associated data will be purged.</li>
+						<li><strong>Subscriptions:</strong> Upon account deletion, any active paid subscriptions are canceled immediately.</li>
+					</ul>
+
+					<h3>2. The Deletion Timeline</h3>
+					<p>We maintain a strict "Clear-to-Empty" policy to balance user error protection with data privacy:</p>
+					<ul class="plain-list">
+						<li><strong>Instant Removal:</strong> Once you confirm deletion, your data is immediately removed from our active production database.</li>
+						<li><strong>Backup Retention:</strong> To protect against accidental loss, encrypted snapshots of your data remain in our secure, self-hosted backups for <strong>seven (7) days</strong>.</li>
+						<li><strong>Permanent Purge:</strong> After the 7-day window, the encrypted data is permanently purged from our backup infrastructure and cannot be recovered by you or our team.</li>
+					</ul>
+
+					<h3>3. Data Portability and Export</h3>
+					<p>You own your data. We believe in total data portability and provide the tools for you to take your information with you at any time.</p>
+					<ul class="plain-list">
+						<li><strong>Manual Export:</strong> You can export your form schemas and collected responses into standard, machine-readable formats such as <strong>JSON</strong> and <strong>CSV</strong>.</li>
+						<li><strong>No Lock-in:</strong> You are never locked into our platform. Your exported data can be used for your own analysis or migrated to other services that support these standard formats.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>Third-Party Vendor Services Used</h2>
+					<p>We use the following third-party providers for infrastructure and administrative tasks. Even when third-party infrastructure is used, your core data remains encrypted and inaccessible to us and our vendors:</p>
+					<ul class="plain-list">
+						<li><strong>Payments:</strong> We use <a href="https://stripe.com">Stripe</a> to process subscriptions. We do not store any billing or personal details on our servers.</li>
+						<li><strong>Communications:</strong> Transactional emails are delivered via <a href="https://resend.com">Resend</a>.</li>
+						<li><strong>Response Forwards:</strong> For PGP-enabled forwarding, responses are encrypted client-side using your public key before being handed to Resend for delivery.</li>
+						<li><strong>Hosting:</strong> Our application servers are hosted by <a href="https://hostinger.com">Hostinger</a>.</li>
+						<li><strong>Network Security:</strong> We use <a href="https://cloudflare.com">Cloudflare</a> as a CDN and for DDoS protection.</li>
+						<li><strong>Primary Database:</strong> We self-host a PostgreSQL instance on our private infrastructure.</li>
+						<li><strong>File Storage & Backups:</strong> All user-uploaded files and database backups are stored as <strong>encrypted blobs</strong> using RustFS on our private hardware.</li>
+					</ul>
 					<div class="callout">
-						<p><strong>Important:</strong> We do not have access to your account and we do not store your recovery keys. If you lose your device and your recovery key, you lose access to your account. We recommend storing your recovery code in a physical vault or adding a second device/Passkey to your account.</p>
+						<p><strong>The Zero-Knowledge Guarantee:</strong> Because encryption happens at the application level, your form schemas, responses, and file uploads are unreadable to Hostinger, Cloudflare, and even us. We hold the infrastructure, but you hold the keys.</p>
 					</div>
 				</section>
 
 				<section class="doc-section">
-					<h2>Paying for an Account</h2>
-					<p>Confide offers a paid subscription service managed through Stripe. Stripe handles all credit card information and billing addresses on their secure servers.</p>
-					<p>We do not store payment or billing information on our servers. We maintain only a "thin connection" (a Stripe Customer ID and Subscription ID) to validate your Pro account status. For any questions regarding payments, contact us at <a href="mailto:support@useconfide.app">support@useconfide.app</a>.</p>
-				</section>
-
-				<section class="doc-section">
-					<h2>Using Confide Service</h2>
-					<p>Our platform is built on a Zero Knowledge Architecture.</p>
-					<p><strong>Encryption:</strong> Your form schema and responses are encrypted on your device before they are uploaded to our servers. Each form is shared via a URL containing a fragment (the encryption key). This key is never sent to our servers, ensuring that only those with the link can decrypt the content.</p>
-					<p><strong>Shared Access:</strong> In shared workspaces, data remains encrypted between team members. You maintain full control over who has access and their level of permission.</p>
-					<p><strong>Metadata:</strong> To operate the service, some non-sensitive metadata is unencrypted (e.g., form status, schema version, etc.).</p>
-					<p><strong>Email Forwarding:</strong> We support forwarding responses to secure email platforms, which requires your PGP public key or continued encryption.</p>
-				</section>
-
-				<section class="doc-section">
-					<h2>No Tracking or Advertising</h2>
-					<p>Confide is an ad-free service.</p>
+					<h2>Location of site and data / residency</h2>
+					<p>We are based in the <strong>United States</strong> and must comply with U.S. laws.</p>
 					<ul class="plain-list">
-						<li><strong>No Third-Party Tracking:</strong> We do not share data with third-party advertisers.</li>
-						<li><strong>No Fingerprinting:</strong> We do not log respondent IP addresses, device fingerprints, or browser User Agents.</li>
-						<li><strong>Privacy First:</strong> We use minimal, privacy-respecting analytics to monitor service health without identifying individual users.</li>
+						<li><strong>Legal Compliance:</strong> We are subject to U.S. legal processes.</li>
+						<li><strong>Infrastructure:</strong> Our application servers, self-hosted database, and encrypted backups are located within the <strong>United States</strong>.</li>
+					</ul>
+					<p><strong>The Zero-Knowledge Protection:</strong> While we are subject to U.S. jurisdiction, our technology limits what we can provide. If law enforcement requests your form data or responses, we can only provide the <strong>encrypted blobs</strong>. We have no technical way to turn that data into readable text.</p>
+
+					<h3>Global Privacy Rights</h3>
+					<p>Regardless of your location, we provide the following protections to all users:</p>
+					<ul class="plain-list">
+						<li><strong>Right to Access and Portability:</strong> View and export your data at any time.</li>
+						<li><strong>Right to Erasure:</strong> Delete your account and all associated data instantly.</li>
+						<li><strong>Right to Object:</strong> We do not sell your data or use it for profiling.</li>
 					</ul>
 				</section>
 
 				<section class="doc-section">
-					<h2>Deleting Your Data</h2>
-					<p>You own your data, and you control its lifecycle.</p>
-					<ul class="plain-list">
-						<li><strong>Immediate Deletion:</strong> When you delete a form or response, it is removed from our active database immediately.</li>
-						<li><strong>Backups:</strong> Our database backups are fully encrypted and retained for a maximum of seven days (to align with our recovery policies).</li>
-						<li><strong>Account Termination:</strong> When an account is terminated, all associated data — including forms and responses — is permanently purged from our systems.</li>
-					</ul>
-				</section>
-
-				<section class="doc-section">
-					<h2>Disclosure to Law Enforcement</h2>
-					<p>We only disclose data if required by a valid legal subpoena. However, due to our encryption architecture, we cannot provide the unencrypted contents of your forms or responses to any third party, including law enforcement, as we do not possess the keys.</p>
+					<h2>Technical Transparency</h2>
+					<div class="table-wrapper">
+						<table class="transparency-table">
+							<thead>
+								<tr>
+									<th>Data Type</th>
+									<th>Encryption State</th>
+									<th>Who has the keys?</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td>Form Content</td>
+									<td><strong>Client-Side Encrypted</strong></td>
+									<td>You (The User)</td>
+								</tr>
+								<tr>
+									<td>Responses</td>
+									<td><strong>Client-Side Encrypted</strong></td>
+									<td>You (The User)</td>
+								</tr>
+								<tr>
+									<td>Account Metadata</td>
+									<td><strong>Server-Side Encrypted (at rest)</strong></td>
+									<td>The Platform (We do)</td>
+								</tr>
+								<tr>
+									<td>Payment Info</td>
+									<td><strong>External</strong></td>
+									<td>Stripe</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
 				</section>
 
 				<section class="doc-section">
 					<h2>Questions?</h2>
-					<p>If you have questions about this policy or how your data is handled, please reach out to us at <a href="mailto:security@useconfide.app">security@useconfide.app</a>.</p>
+					<p>If you have questions about this policy or how your data is handled, please reach out to us at <a href="mailto:privacy@useconfide.app">privacy@useconfide.app</a>.</p>
 					<p class="company-name">Confide LLC</p>
 				</section>
 			</div>
@@ -233,6 +386,13 @@ import Layout from '../layouts/Layout.astro';
 		margin-bottom: 1.25rem;
 	}
 
+	.doc-section h3 {
+		font-size: 1.125rem;
+		font-weight: 700;
+		color: var(--fg-color);
+		margin: 2rem 0 1rem;
+	}
+
 	.doc-section p {
 		font-size: 1.0625rem;
 		color: var(--muted-color);
@@ -305,6 +465,37 @@ import Layout from '../layouts/Layout.astro';
 		color: var(--fg-color) !important;
 		font-size: 1rem !important;
 		margin-top: 1.5rem !important;
+	}
+
+	/* Table */
+	.table-wrapper {
+		overflow-x: auto;
+		margin: 1.5rem 0;
+	}
+
+	.transparency-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.9375rem;
+		text-align: left;
+	}
+
+	.transparency-table th {
+		padding: 0.75rem 1rem;
+		background-color: var(--secondary-bg);
+		border-bottom: 2px solid var(--border-color);
+		font-weight: 700;
+		color: var(--fg-color);
+	}
+
+	.transparency-table td {
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid var(--border-color);
+		color: var(--muted-color);
+	}
+
+	.transparency-table tr:last-child td {
+		border-bottom: none;
 	}
 
 	/* Buttons */
