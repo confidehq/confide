@@ -1,0 +1,534 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Security Architecture — Confide">
+	<div class="container">
+		<nav class="nav">
+			<div class="logo-group">
+				<a href="/" class="logo">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span>Confide</span>
+				</a>
+				<span class="tagline">the simple <strong>secure</strong> form builder</span>
+			</div>
+			<div class="nav-actions">
+				<ul class="nav-links">
+					<li><a href="/pricing">Pricing</a></li>
+					<li><a href="#login">Log in</a></li>
+				</ul>
+				<a href="#" class="btn btn-primary">Sign Up Free</a>
+			</div>
+		</nav>
+
+		<main>
+			<header class="page-header">
+				<span class="page-label">TECHNICAL ARCHITECTURE</span>
+				<h1>Security Architecture</h1>
+				<p class="description">Confide is built on a "Zero-Knowledge" architecture. The platform operator is technically incapable of reading form content or identifying respondents.</p>
+			</header>
+
+			<div class="doc">
+				<section class="doc-section">
+					<h2>1. Core Identity & Authentication</h2>
+					<p>Confide uses <strong>WebAuthn Passkeys</strong> with the <strong>PRF (Pseudo-Random Function) Extension</strong> as the primary authentication and key derivation mechanism.</p>
+
+					<h3>1.1 Account Identity</h3>
+					<ul class="plain-list">
+						<li><strong>Opaque IDs:</strong> Accounts are identified by a random 128-bit value (<code>accountId</code>). No email, phone number, or personally identifying information (PII) is required or stored.</li>
+						<li><strong>Passkey-Bound:</strong> Identity is tied to a physical authenticator (Security Key, Touch ID, Face ID).</li>
+					</ul>
+
+					<h3>1.2 The Master Key</h3>
+					<p>At the root of every account is a 256-bit random <strong>Master Key</strong>. This key never leaves the user's device in plaintext.</p>
+					<ul class="plain-list">
+						<li><strong>Wrapping:</strong> During signup/login, the WebAuthn PRF extension produces a deterministic HMAC output (using a server-provided salt). This output is used as a Key-Encryption Key (KEK) to wrap the Master Key.</li>
+						<li><strong>Storage:</strong> The server stores the <code>wrappedMasterKey</code>. It can only be unwrapped by the client during an active WebAuthn session.</li>
+						<li><strong>In-Memory Only:</strong> The plaintext Master Key is held in JavaScript memory only. It is cleared on tab close, logout, or session expiry. It is never written to <code>localStorage</code> or <code>IndexedDB</code>.</li>
+					</ul>
+
+					<h3>1.3 Recovery Codes</h3>
+					<p>Since there is no "Forgot Password" (no email), Confide generates 12 single-use recovery codes during onboarding.</p>
+					<ul class="plain-list">
+						<li><strong>Derivation:</strong> A <code>recoveryKey</code> is derived from these codes via HKDF-SHA256.</li>
+						<li><strong>Backup:</strong> The Master Key is also stored wrapped with this <code>recoveryKey</code>.</li>
+						<li><strong>Zero-Knowledge Recovery:</strong> The server stores only a hash of the recovery codes to verify them; it never sees the plaintext codes or the <code>recoveryKey</code>.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>2. Workspace & Collaborative Security</h2>
+					<p>Forms in Confide belong to <strong>Workspaces</strong>. Access to a workspace is managed through a hierarchy of keys that allows for secure collaboration without a central authority.</p>
+
+					<h3>2.1 Identity Keypairs</h3>
+					<p>Every account has an <strong>X25519 Identity Keypair</strong>.</p>
+					<ul class="plain-list">
+						<li>The <strong>Private Identity Key</strong> is wrapped with the user's Master Key and stored on the server.</li>
+						<li>The <strong>Public Identity Key</strong> is stored in plaintext and is visible to other workspace members.</li>
+					</ul>
+
+					<h3>2.2 Workspace Keys</h3>
+					<p>Each workspace has a unique <strong>Workspace Key</strong> (AES-256).</p>
+					<ul class="plain-list">
+						<li><strong>Distribution:</strong> To grant access, an existing admin wraps the Workspace Key using <strong>ECIES</strong> (X25519 ECDH + AES-KW) for the new member's Public Identity Key.</li>
+						<li><strong>Access:</strong> A member unwraps their copy of the Workspace Key using their Identity Private Key (which they first unwrap with their Master Key).</li>
+					</ul>
+
+					<h3>2.3 Form Keys</h3>
+					<p>Each form has a <strong>Form Key</strong> derived deterministically from the Workspace Key: <code>formKey = HKDF(workspaceKey, "confide-form-v1" || formId)</code></p>
+				</section>
+
+				<section class="doc-section">
+					<h2>3. Multiple Devices & Pairing</h2>
+					<p>Users can add multiple passkeys or devices to a single account.</p>
+
+					<h3>3.1 Multi-Passkey Support</h3>
+					<p>An account can have multiple registered credentials. Each credential has its own unique <code>prf_salt</code> and its own <code>wrappedMasterKey</code> (wrapping the same underlying Master Key). This allows any of the registered devices to unlock the account independently.</p>
+
+					<h3>3.2 Device Pairing (QR Transfer)</h3>
+					<p>To add a new device without using recovery codes:</p>
+					<ol class="numbered-list">
+						<li><strong>Initiation:</strong> The existing device generates a short-lived pairing token and displays it as a QR code.</li>
+						<li><strong>Key Exchange:</strong> The new device scans the QR and sends its ephemeral X25519 Public Key to the server.</li>
+						<li><strong>Fingerprint Verification:</strong> Both devices display a 4-word fingerprint (e.g., <code>river-token-lamp-frost</code>) derived from the exchange. The user must manually confirm they match.</li>
+						<li><strong>Transfer:</strong> The existing device wraps the Master Key for the new device's public key (ECIES) and sends it to the server.</li>
+						<li><strong>Finalization:</strong> The new device retrieves the wrapped key, decrypts it, and registers its own local passkey.</li>
+					</ol>
+				</section>
+
+				<section class="doc-section">
+					<h2>4. Respondent Privacy & Form Submission</h2>
+					<p>The security model for respondents is designed to ensure absolute anonymity and end-to-end encryption.</p>
+
+					<h3>4.1 Form Rendering (The Render Key)</h3>
+					<p>The server cannot read the form schema (the questions).</p>
+					<ul class="plain-list">
+						<li><strong>Two-Key Model:</strong> The schema is encrypted with a <strong>Render Key</strong> (separate from the Form Key).</li>
+						<li><strong>Fragment Storage:</strong> The Render Key is included in the share URL's fragment (e.g., <code>.../f/id#rk=...</code>).</li>
+						<li><strong>Client-Side Decryption:</strong> Browser fragments are never sent to the server. The respondent's browser fetches the encrypted schema and decrypts it locally using the key from the URL.</li>
+					</ul>
+
+					<h3>4.2 Response Encryption</h3>
+					<p>When a respondent submits a form:</p>
+					<ol class="numbered-list">
+						<li><strong>Key Exchange:</strong> The client fetches the creator's <strong>Public Form Key</strong> (X25519).</li>
+						<li><strong>Encryption:</strong> It generates an ephemeral keypair and performs an ECDH exchange to derive a shared secret. The response is encrypted using AES-256-GCM.</li>
+						<li><strong>Forward Secrecy:</strong> The ephemeral private key is discarded immediately after encryption.</li>
+					</ol>
+
+					<h3>4.3 Anonymous Transport (The Relay)</h3>
+					<p>To prevent network-level correlation (linking an IP to a submission time):</p>
+					<ul class="plain-list">
+						<li><strong>No Logs:</strong> Access logs and IP logging are disabled on the submission endpoint.</li>
+						<li><strong>Relay Queue:</strong> Submissions are sent to a stateless <strong>Relay Service</strong> (separate from the main API).</li>
+						<li><strong>Batching:</strong> The Relay holds submissions in an in-memory queue and "flushes" them to the database in batches every 60 seconds.</li>
+						<li><strong>Coarsened Metadata:</strong> All timestamps stored in the database are date-only (no time) to further prevent correlation attacks.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2>5. Security Standards Summary</h2>
+					<div class="table-wrapper">
+						<table class="transparency-table">
+							<thead>
+								<tr>
+									<th>Layer</th>
+									<th>Primitive</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td><strong>Symmetric Encryption</strong></td>
+									<td>AES-256-GCM</td>
+								</tr>
+								<tr>
+									<td><strong>Key Wrapping</strong></td>
+									<td>AES-KW (RFC 3394)</td>
+								</tr>
+								<tr>
+									<td><strong>Asymmetric / ECDH</strong></td>
+									<td>X25519</td>
+								</tr>
+								<tr>
+									<td><strong>Key Derivation</strong></td>
+									<td>HKDF-SHA256</td>
+								</tr>
+								<tr>
+									<td><strong>Hashing</strong></td>
+									<td>SHA-256</td>
+								</tr>
+								<tr>
+									<td><strong>Identity</strong></td>
+									<td>WebAuthn (FIDO2 / Passkeys)</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+
+				<section class="doc-section">
+					<h2>Questions?</h2>
+					<p>If you have questions about this policy or how your data is handled, please reach out to us at <a href="mailto:security@useconfide.app">security@useconfide.app</a>.</p>
+					<p class="company-name">Confide LLC</p>
+				</section>
+			</div>
+		</main>
+
+		<footer class="footer">
+			<div class="footer-content">
+				<div class="footer-brand">
+					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+					<span class="footer-logo-text">Confide</span>
+				</div>
+				<ul class="footer-links">
+					<li><a href="#login">Sign in</a></li>
+					<li><a href="https://status.confide.com">Status</a></li>
+					<li><a href="/trust">Trust & Safety</a></li>
+					<li><a href="/security">Security Architecture</a></li>
+					<li><a href="/privacy">Privacy Policy</a></li>
+					<li><a href="/terms">Terms of Service</a></li>
+				</ul>
+			</div>
+		</footer>
+	</div>
+</Layout>
+
+<style>
+	.container {
+		max-width: 1000px;
+		margin: 0 auto;
+		padding: 0 1.5rem;
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* Nav */
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1.5rem 0;
+	}
+
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.tagline {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
+
+	.logo {
+		font-size: 1.25rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.logo-icon {
+		width: 24px;
+		height: 24px;
+	}
+
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 1rem;
+	}
+
+	.nav-links a {
+		font-size: 1rem;
+		color: var(--muted-color);
+		font-weight: 500;
+		transition: color 0.2s;
+	}
+
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
+
+	/* Page Header */
+	.page-header {
+		padding: 4.5rem 0 3rem;
+	}
+
+	.page-label {
+		display: block;
+		font-size: 0.8125rem;
+		font-weight: 600;
+		letter-spacing: 0.1em;
+		color: var(--muted-color);
+		margin-bottom: 1rem;
+	}
+
+	.page-header h1 {
+		font-size: clamp(2.25rem, 6vw, 3rem);
+		font-weight: 800;
+		letter-spacing: -0.04em;
+		line-height: 1.1;
+		margin-bottom: 0.75rem;
+	}
+
+	.description {
+		font-size: 1.125rem;
+		color: var(--muted-color);
+		max-width: 680px;
+		line-height: 1.6;
+	}
+
+	/* Document */
+	.doc {
+		max-width: 680px;
+		padding-bottom: 6rem;
+	}
+
+	.doc-section {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section:first-child {
+		border-top: 1px solid var(--border-color);
+	}
+
+	.doc-section h2 {
+		font-size: 1.375rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 1.5rem;
+	}
+
+	.doc-section h3 {
+		font-size: 1.125rem;
+		font-weight: 700;
+		color: var(--fg-color);
+		margin: 2rem 0 1rem;
+	}
+
+	.doc-section p {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.7;
+		margin-bottom: 1rem;
+	}
+
+	.doc-section p:last-child {
+		margin-bottom: 0;
+	}
+
+	.doc-section a {
+		color: var(--fg-color);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.doc-section a:hover {
+		opacity: 0.7;
+	}
+
+	.doc-section strong {
+		color: var(--fg-color);
+		font-weight: 600;
+	}
+
+	.doc-section code {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+		background-color: var(--secondary-bg);
+		padding: 0.2rem 0.4rem;
+		border-radius: 4px;
+		font-size: 0.9em;
+	}
+
+	/* Lists */
+	.plain-list,
+	.numbered-list {
+		margin: 1rem 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.plain-list li,
+	.numbered-list li {
+		font-size: 1.0625rem;
+		color: var(--muted-color);
+		line-height: 1.6;
+		padding-left: 1.5rem;
+		position: relative;
+	}
+
+	.plain-list li::before {
+		content: '—';
+		position: absolute;
+		left: 0;
+		color: var(--border-color);
+	}
+
+	.numbered-list {
+		counter-reset: item;
+	}
+
+	.numbered-list li::before {
+		counter-increment: item;
+		content: counter(item) ".";
+		position: absolute;
+		left: 0;
+		color: var(--muted-color);
+		font-weight: 600;
+	}
+
+	.company-name {
+		font-weight: 700;
+		color: var(--fg-color) !important;
+		font-size: 1rem !important;
+		margin-top: 1.5rem !important;
+	}
+
+	/* Table */
+	.table-wrapper {
+		overflow-x: auto;
+		margin: 1.5rem 0;
+	}
+
+	.transparency-table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 0.9375rem;
+		text-align: left;
+	}
+
+	.transparency-table th {
+		padding: 0.75rem 1rem;
+		background-color: var(--secondary-bg);
+		border-bottom: 2px solid var(--border-color);
+		font-weight: 700;
+		color: var(--fg-color);
+	}
+
+	.transparency-table td {
+		padding: 0.75rem 1rem;
+		border-bottom: 1px solid var(--border-color);
+		color: var(--muted-color);
+	}
+
+	.transparency-table tr:last-child td {
+		border-bottom: none;
+	}
+
+	/* Buttons */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.5rem 1.125rem;
+		border-radius: 9999px;
+		font-weight: 600;
+		font-size: 0.9375rem;
+		transition: all 0.2s;
+		border: 1px solid transparent;
+		white-space: nowrap;
+	}
+
+	.btn-primary {
+		background-color: var(--primary-color);
+		color: var(--primary-fg);
+	}
+
+	.btn-primary:hover {
+		opacity: 0.85;
+		transform: translateY(-1px);
+	}
+
+	/* Footer */
+	.footer {
+		padding: 3rem 0;
+		border-top: 1px solid var(--border-color);
+		margin-top: auto;
+	}
+
+	.footer-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.875rem;
+		color: var(--muted-color);
+	}
+
+	.footer-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
+	.footer-logo-text {
+		font-weight: 700;
+		color: var(--fg-color);
+		font-size: 1.0625rem;
+	}
+
+	.footer-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.footer-links a:hover {
+		color: var(--fg-color);
+		text-decoration: underline;
+	}
+
+	@media (max-width: 768px) {
+		.container {
+			padding: 0 1.25rem;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1rem 0;
+		}
+
+		.page-header {
+			padding: 3rem 0 2rem;
+		}
+
+		.doc-section {
+			padding: 2.25rem 0;
+		}
+
+		.footer-content {
+			flex-direction: column;
+			gap: 2rem;
+			text-align: center;
+		}
+
+		.footer-brand {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.footer-links {
+			flex-wrap: wrap;
+			justify-content: center;
+			gap: 1rem 1.5rem;
+		}
+	}
+</style>
