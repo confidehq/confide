@@ -14,7 +14,7 @@ import Layout from '../layouts/Layout.astro';
 			</div>
 			<div class="nav-actions">
 				<ul class="nav-links">
-					<li><a href="#pricing">Pricing</a></li>
+					<li><a href="/pricing">Pricing</a></li>
 					<li><a href="#login">Log in</a></li>
 				</ul>
 				<a href="#" class="btn btn-primary">Sign Up Free</a>
@@ -25,83 +25,116 @@ import Layout from '../layouts/Layout.astro';
 			<header class="page-header">
 				<span class="page-label">LEGAL</span>
 				<h1>Terms of Service</h1>
-				<p class="last-updated">Last Updated: May 4, 2026</p>
+				<p class="last-updated">Last Updated: May 8, 2026</p>
 			</header>
 
 			<div class="doc">
-				<p class="doc-intro">Welcome to Confide. By using our service, you agree to these terms. Please read them carefully.</p>
+				<p class="doc-intro">Welcome to <strong>Confide</strong>. These Terms of Service ("Terms") govern your use of the Confide hosted service at useconfide.app. By creating an account or using the service, you agree to these Terms.</p>
+
+				<div class="callout">
+					<p><strong>The Privacy Bottom Line:</strong> Confide is a Zero-Knowledge, end-to-end encrypted (E2EE) platform. We cannot see your data, reset your password, or recover your files. If you lose your keys and your recovery code, your data is gone forever.</p>
+				</div>
 
 				<section class="doc-section">
-					<h2><span class="section-num">1.</span> Using Confide</h2>
-					<p><strong>Eligibility:</strong> You must be at least 18 years old to use Confide. If you're using it for a company, you must have the authority to agree to these terms for that organization.</p>
-					<p><strong>The Service:</strong> Confide provides an end-to-end encrypted form builder. These terms apply to our hosted service at useconfide.app. (Our open-source software has its own license, the AGPL).</p>
-				</section>
-
-				<section class="doc-section">
-					<h2><span class="section-num">2.</span> Your Account & Security</h2>
-					<p><strong>Passkeys:</strong> We don't use passwords. You log in using passkeys (like FaceID, TouchID, or hardware keys).</p>
-					<p><strong>Recovery Codes:</strong> When you sign up, we give you a one-time recovery code. Store it safely. If you lose your passkey and your recovery code, we cannot help you get back into your account. Your data will be lost forever.</p>
-					<p><strong>Your Responsibility:</strong> You are responsible for keeping your devices, passkeys, and recovery codes secure.</p>
-				</section>
-
-				<section class="doc-section">
-					<h2><span class="section-num">3.</span> How Encryption Works (and its limits)</h2>
-					<p><strong>Privacy by Design:</strong> Everything you create is encrypted on your device before it reaches us. We cannot read your forms or your responses.</p>
-					<p><strong>Security Disclaimer:</strong> While we use end-to-end encryption, no system is 100% secure. You acknowledge that the security of your data also depends on the safety of your own devices and that zero-day exploits or localized breaches are possible.</p>
-					<p><strong>Shared Access:</strong> In Team Workspaces, data is shared securely between members you authorize. Creators have full control over who is invited and what level of access each team member is granted.</p>
-					<div class="callout">
-						<p><strong>The Golden Rule:</strong> Because we can't see your data, we can't reset your keys or recover your files if you lose access. If you lose your keys and your recovery code, your data is gone.</p>
-					</div>
-				</section>
-
-				<section class="doc-section">
-					<h2><span class="section-num">4.</span> Rules of the Road</h2>
-					<p>You agree not to use Confide for:</p>
+					<h2><span class="section-num">1.</span> Eligibility and Service</h2>
 					<ul class="plain-list">
-						<li>Anything illegal.</li>
-						<li>Phishing, fraud, or spreading malware.</li>
-						<li>Spamming or abusive behavior.</li>
-						<li>Infringing on others' intellectual property.</li>
+						<li><strong>Eligibility:</strong> You must be at least 18 years old to use Confide. If you are using the service on behalf of an organization, you represent that you have the authority to bind that entity to these Terms.</li>
+						<li><strong>The Service:</strong> Confide provides an E2EE form builder. These terms apply to our hosted service. Our open-source software is governed separately by the <strong>AGPL license</strong>.</li>
 					</ul>
-					<p><strong>Moderation:</strong> Because your data is encrypted, we can't moderate content. However, we may suspend accounts based on metadata (like usage patterns) or external reports if we suspect abuse.</p>
 				</section>
 
 				<section class="doc-section">
-					<h2><span class="section-num">5.</span> Fees and Billing</h2>
-					<p><strong>Payments:</strong> Some features require a paid subscription. When you upgrade from a free account to a Pro account, you are billed that day and your billing cycle starts immediately.</p>
-					<p><strong>Renewals:</strong> Subscriptions renew automatically. You can cancel anytime.</p>
-					<p><strong>Non-Payment:</strong> If a payment fails or is not made, your account will be reverted to a free account. All free account limits will be applied to your data and forms until a successful payment is made.</p>
-					<p><strong>Refunds:</strong> Generally, payments are non-refundable unless required by law.</p>
-					<p><strong>Changes:</strong> We'll give you at least 30 days' notice before changing our prices.</p>
+					<h2><span class="section-num">2.</span> Account Security & "Zero-Knowledge"</h2>
+					<p>Confide uses a decentralized security model. You are the sole custodian of your access.</p>
+					<ul class="plain-list">
+						<li><strong>Anonymous Authentication:</strong> We do not store passwords. You authenticate using <strong>passkeys</strong> (e.g., FaceID, TouchID, or hardware keys) tied to your physical device.</li>
+						<li><strong>Recovery Codes:</strong> Upon registration, you are provided a one-time recovery code. <strong>Store this in a secure, physical location.</strong></li>
+						<li><strong>Our Limitation:</strong> Because we do not have your encryption keys, we cannot "grant" you access if you are locked out. We recommend adding a secondary backup device to your account settings.</li>
+						<li><strong>Responsibility:</strong> You are responsible for all activity under your account. Confide is not liable for data loss resulting from lost devices, compromised passkeys, or lost recovery codes.</li>
+					</ul>
 				</section>
 
 				<section class="doc-section">
-					<h2><span class="section-num">6.</span> Data & Deletion</h2>
-					<p><strong>Export:</strong> You can export your data at any time.</p>
-					<p><strong>Deletion:</strong> When you delete your account, your data is removed from our active systems immediately. It stays in our encrypted backups for up to 7 days before being permanently erased.</p>
+					<h2><span class="section-num">3.</span> Privacy and Encryption</h2>
+					<ul class="plain-list">
+						<li><strong>Encryption by Design:</strong> All form schemas and responses are encrypted on your device before they reach our servers. We host the infrastructure; you hold the keys.</li>
+						<li><strong>Security Disclaimer:</strong> While we use industry-standard E2EE, no system is 100% secure. Security also depends on your local device integrity. We are not responsible for localized breaches or zero-day exploits on your hardware.</li>
+						<li><strong>Shared Workspaces:</strong> Data in Team Workspaces is shared securely between authorized members. Owners/Admins are responsible for managing invitations and access levels.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">4.</span> Payments, Plans, and Refunds</h2>
+					<ul class="plain-list">
+						<li><strong>Billing:</strong> Paid subscriptions are processed via <strong>Stripe</strong>. Upgrading to a paid plan triggers an immediate charge, and your billing cycle begins that day.</li>
+						<li><strong>Usage Limits:</strong> Plans have specific limits on workspaces, forms, and monthly responses.
+							<ul class="sub-list">
+								<li><strong>Soft Limits:</strong> We may allow temporary overages.</li>
+								<li><strong>Hard Limits:</strong> Repeated overages will require an upgrade or result in a service restriction.</li>
+							</ul>
+						</li>
+						<li><strong>Downgrades/Cancellations:</strong> If you downgrade, limits are applied immediately, and non-owner members may lose access to workspaces.</li>
+						<li><strong>Refunds:</strong> Payments are generally non-refundable unless required by law.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">5.</span> Cancellation and Termination</h2>
+					<ul class="plain-list">
+						<li><strong>How to Cancel:</strong> You must cancel via your <strong>Workspace Settings</strong>. Deleting a workspace automatically cancels associated subscriptions.</li>
+						<li><strong>Account Deletion:</strong> Deleting your account removes all subscriptions and data where you are the sole owner. You will be prompted to transfer ownership of active team workspaces before deletion.</li>
+						<li><strong>Data Retention:</strong> Upon deletion, data is removed from active systems immediately. It may persist in encrypted backups for up to <strong>7 days</strong> before permanent purging.</li>
+					</ul>
+				</section>
+
+				<section class="doc-section">
+					<h2><span class="section-num">6.</span> Rules of the Road (Acceptable Use)</h2>
+					<p>You agree not to use Confide for:</p>
+					<ol class="numbered-list">
+						<li>Illegal activities or violating local/international laws.</li>
+						<li>Phishing, fraud, or the distribution of malware.</li>
+						<li>Spamming or abusive behavior.</li>
+						<li>Infringing on the intellectual property of others.</li>
+					</ol>
+					<p><strong>Moderation Note:</strong> Because your data is encrypted, we cannot monitor content. However, we reserve the right to suspend accounts based on metadata (usage patterns) or external reports of abuse.</p>
 				</section>
 
 				<section class="doc-section">
 					<h2><span class="section-num">7.</span> Intellectual Property</h2>
-					<p><strong>Your Content:</strong> You own the content you create.</p>
-					<p><strong>DMCA:</strong> If you believe someone is using Confide to infringe on your copyright, email us at <a href="mailto:legal@useconfide.app">legal@useconfide.app</a>. Because we can't see encrypted content, we can only take action on public forms or account metadata.</p>
+					<ul class="plain-list">
+						<li><strong>Your Content:</strong> You retain full ownership of your data. You grant us a limited license only to store and transmit your encrypted "blobs" as required to provide the service.</li>
+						<li><strong>Our Property:</strong> The Confide interface, brand, and trademarks are protected by law. You may not exploit any portion of the service without express permission.</li>
+						<li><strong>Feedback:</strong> If you provide suggestions, we may use them without restriction or compensation to you.</li>
+					</ul>
 				</section>
 
 				<section class="doc-section">
-					<h2><span class="section-num">8.</span> The Fine Print</h2>
-					<p><strong>"As Is":</strong> We provide Confide "as is." We can't guarantee it will always be available or error-free.</p>
-					<p><strong>Liability:</strong> To the extent permitted by law, we are not liable for any amount or damages of any kind that result from the use of the service. This includes, but is not limited to, damages arising from localized device breaches, zero-day exploits, or any unauthorized access beyond our control. We aren't responsible for data loss caused by lost encryption keys.</p>
-					<p><strong>Governing Law:</strong> These terms are governed by the laws of the Commonwealth of Virginia. Any disputes will be handled in Virginia courts.</p>
+					<h2><span class="section-num">8.</span> Limitation of Liability and "As-Is" Service</h2>
+					<ul class="plain-list">
+						<li><strong>Warranty:</strong> Confide is provided <strong>"as-is"</strong> and <strong>"as-available."</strong> We do not guarantee uninterrupted or error-free operation.</li>
+						<li><strong>Liability:</strong> To the maximum extent permitted by law, Confide LLC and its vendors are not liable for any damages (direct, indirect, or consequential) resulting from:
+							<ul class="sub-list">
+								<li>Your use or inability to use the service.</li>
+								<li>Unauthorized access to your data due to local device compromise.</li>
+								<li><strong>Data loss caused by lost encryption keys or recovery codes.</strong></li>
+							</ul>
+						</li>
+					</ul>
 				</section>
 
 				<section class="doc-section">
-					<h2><span class="section-num">9.</span> Changes</h2>
-					<p>If we make major changes to these terms, we'll notify you by email or by posting a notice on our site. Continuing to use Confide means you agree to the new terms.</p>
+					<h2><span class="section-num">9.</span> Governing Law</h2>
+					<p>These terms are governed by the laws of the <strong>United States</strong> and the <strong>Commonwealth of Virginia</strong>. Any disputes shall be resolved exclusively in the courts of Virginia.</p>
 				</section>
 
 				<section class="doc-section">
-					<h2><span class="section-num">10.</span> Contact</h2>
-					<p>Questions? Reach out at <a href="mailto:legal@useconfide.app">legal@useconfide.app</a>.</p>
+					<h2><span class="section-num">10.</span> Modifications</h2>
+					<p>We reserve the right to modify these terms or our pricing. We will provide <strong>30 days' notice</strong> for price changes via the dashboard. Continued use of the service after changes constitutes acceptance of the new terms.</p>
+				</section>
+
+				<section class="doc-section">
+					<h2>Questions?</h2>
+					<p>Contact us at <a href="mailto:legal@useconfide.app">legal@useconfide.app</a>.</p>
 					<p class="company-name">Confide LLC</p>
 				</section>
 			</div>
