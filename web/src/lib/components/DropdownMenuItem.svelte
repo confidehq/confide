@@ -4,16 +4,19 @@
 	interface Props {
 		onclick?: () => void;
 		variant?: 'default' | 'destructive';
+		disabled?: boolean;
 		children: Snippet;
 	}
 
-	let { onclick, variant = 'default', children }: Props = $props();
+	let { onclick, variant = 'default', disabled = false, children }: Props = $props();
 </script>
 
 <button
 	class="item"
 	class:destructive={variant === 'destructive'}
+	class:disabled
 	{onclick}
+	{disabled}
 	role="menuitem"
 	type="button"
 >
@@ -54,5 +57,14 @@
 	.item.destructive:focus-visible {
 		background: var(--color-danger-bg-dark);
 		color: var(--color-danger-text-dark);
+	}
+
+	.item.disabled,
+	.item.disabled:hover,
+	.item.disabled:focus-visible {
+		opacity: 0.5;
+		cursor: default;
+		background: transparent;
+		color: var(--color-text-body);
 	}
 </style>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
+	import { getForm, createForm, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
+	import { loadWorkspaceKey } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
@@ -47,6 +48,7 @@
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
 	let copiedId = $state<string | null>(null);
+	let duplicatingId = $state<string | null>(null);
 
 	async function copyLink(e: MouseEvent, formId: string) {
 		e.stopPropagation();
@@ -64,6 +66,24 @@
 			formsStore.updateStatus(form.formId, next);
 		} catch {
 			alert('Failed to update status');
+		}
+	}
+
+	async function handleDuplicate(form: FormSummary) {
+		const masterKey = auth.masterKey;
+		const ws = workspacesStore.active;
+		if (!masterKey || !ws) return;
+		duplicatingId = form.formId;
+		try {
+			const wsKey = await loadWorkspaceKey(ws.id, masterKey);
+			const { schema } = await getForm(masterKey, form.formId, wsKey);
+			await createForm(masterKey, schema, ws.id, wsKey);
+			formsStore.invalidate();
+			await formsStore.load(masterKey, ws.id);
+		} catch {
+			alert('Failed to duplicate form. Please try again.');
+		} finally {
+			duplicatingId = null;
 		}
 	}
 
@@ -246,6 +266,7 @@
 							{/snippet}
 							{#snippet children({ close })}
 								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
+								<DropdownMenuItem onclick={() => { close(); handleDuplicate(form); }} disabled={duplicatingId === form.formId}>{duplicatingId === form.formId ? 'Duplicating…' : 'Duplicate'}</DropdownMenuItem>
 								{#if form.status === 'draft'}
 									<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Publish</DropdownMenuItem>
 								{:else}
