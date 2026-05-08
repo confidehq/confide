@@ -370,7 +370,7 @@
 </script>
 
 <svelte:head>
-	<title>Confide — Me</title>
+	<title>Confide — Profile</title>
 </svelte:head>
 
 <ConfirmDialog
@@ -483,15 +483,21 @@
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
 	<!-- ─── Header ──────────────────────────────────────────────────────────── -->
-	<div class="flex items-center gap-4 mb-8">
-		<div class="w-12 h-12 rounded-lg bg-surface-deep border border-border-deep flex items-center justify-center text-base font-semibold text-muted-dim shrink-0 select-none">
-			{avatarInitials()}
-		</div>
-		<div>
-			<h1 class="text-2xl m-0 mb-0.5 text-text-bright font-semibold">{auth.username ?? 'Account'}</h1>
-			{#if auth.accountId}
-				<p class="m-0 text-sm text-muted-dim">{auth.accountId}</p>
-			{/if}
+	<div class="flex items-start justify-between mb-8 gap-4">
+		<div class="flex items-center gap-3 min-w-0">
+			<div class="w-10 h-10 rounded-lg bg-surface-deep border border-border-deep flex items-center justify-center text-sm font-semibold text-muted-dim shrink-0 select-none">
+				{avatarInitials()}
+			</div>
+			<div class="min-w-0">
+				<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Profile</h1>
+				<p class="m-0 text-sm text-muted-dim truncate">
+					{#if auth.username && auth.accountId}
+						{auth.username} · {auth.accountId}
+					{:else}
+						{auth.username ?? auth.accountId ?? ''}
+					{/if}
+				</p>
+			</div>
 		</div>
 	</div>
 
@@ -501,7 +507,7 @@
 		<!-- ── Left column ─────────────────────────────────────────────────── -->
 		<div>
 			<!-- Workspaces -->
-			<div class="flex items-center justify-between mb-3">
+			<div class="flex items-center justify-between mb-4">
 				<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 					<span class="inline-flex items-center gap-2">
 						<LayoutGrid size={14} strokeWidth={1.75} />
@@ -547,7 +553,7 @@
 
 			<!-- Sessions -->
 			<div>
-				<div class="flex items-center justify-between mb-3">
+				<div class="flex items-center justify-between mb-4">
 					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 						<span class="inline-flex items-center gap-2">
 							<Monitor size={14} strokeWidth={1.75} />
@@ -615,7 +621,7 @@
 
 			<!-- Passkeys -->
 			<div>
-				<div class="flex items-center justify-between mb-3">
+				<div class="flex items-center justify-between mb-4">
 					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 						<span class="inline-flex items-center gap-2">
 							<KeyRound size={14} strokeWidth={1.75} />
@@ -866,7 +872,7 @@
 
 			<!-- Recovery -->
 			<div>
-				<div class="flex items-center justify-between mb-3">
+				<div class="flex items-center justify-between mb-4">
 					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
 						<span class="inline-flex items-center gap-2">
 							<ShieldAlert size={14} strokeWidth={1.75} />
@@ -896,7 +902,7 @@
 
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
 	<div class="mt-10 pt-8 border-t border-border-deep">
-		<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
+		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
 		<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
 			<div>
 				<p class="m-0 text-base text-text-body">Delete account</p>
