@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { listForms, getForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, createWorkspace, deleteWorkspace, type Workspace, WorkspaceError } from '$lib/workspaces';
-	import { ArrowRight, Building2, MoreHorizontal, Trash2, X } from '@lucide/svelte';
+	import { listWorkspaces, createWorkspace, deleteWorkspace, leaveWorkspace, type Workspace, WorkspaceError } from '$lib/workspaces';
+	import { ArrowRight, Building2, MoreHorizontal, Trash2, LogOut, X } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	let workspaces = $state<Workspace[]>([]);
@@ -28,6 +28,11 @@
 	let deleteTarget = $state<Workspace | null>(null);
 	let deleting = $state(false);
 	let deleteError = $state('');
+
+	// Leave confirm
+	let leaveTarget = $state<Workspace | null>(null);
+	let leaving = $state(false);
+	let leaveError = $state('');
 
 	function formsFor(wsId: string): FormSummary[] {
 		return workspaceForms.get(wsId) ?? [];
@@ -95,6 +100,21 @@
 		}
 	}
 
+	async function handleLeave() {
+		if (!leaveTarget || !auth.accountId) return;
+		leaving = true;
+		leaveError = '';
+		try {
+			await leaveWorkspace(leaveTarget.id, auth.accountId);
+			workspaces = workspaces.filter(w => w.id !== leaveTarget!.id);
+			leaveTarget = null;
+		} catch (e) {
+			leaveError = e instanceof Error ? e.message : 'Failed to leave workspace.';
+		} finally {
+			leaving = false;
+		}
+	}
+
 	async function loadWorkspaceForms(ws: Workspace) {
 		const forms = await listForms(ws.id);
 		workspaceForms = new Map(workspaceForms).set(ws.id, forms);
@@ -139,6 +159,18 @@
 	error={deleteError}
 	onconfirm={handleDelete}
 	oncancel={() => { deleteTarget = null; deleteError = ''; }}
+/>
+
+<ConfirmDialog
+	open={!!leaveTarget}
+	title="Leave workspace?"
+	description={leaveTarget ? `You will lose access to "${leaveTarget.name}" and all its forms.` : ''}
+	loading={leaving}
+	error={leaveError}
+	confirmLabel="Leave"
+	loadingLabel="Leaving…"
+	onconfirm={handleLeave}
+	oncancel={() => { leaveTarget = null; leaveError = ''; }}
 />
 
 <div class="flex justify-center w-full">
@@ -259,13 +291,23 @@
 
 								{#if openMenuId === ws.id}
 									<div class="absolute right-0 top-[calc(100%+5px)] z-20 min-w-[180px] bg-canvas border border-surface-card rounded-lg shadow-[0_8px_24px_var(--color-overlay-light)] overflow-hidden py-1">
-										<button
-											onclick={() => { openMenuId = null; deleteTarget = ws; deleteError = ''; }}
-											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
-										>
-											<Trash2 size={13} strokeWidth={1.75} />
-											Delete workspace…
-										</button>
+										{#if ws.role === 'owner'}
+											<button
+												onclick={() => { openMenuId = null; deleteTarget = ws; deleteError = ''; }}
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+											>
+												<Trash2 size={13} strokeWidth={1.75} />
+												Delete workspace…
+											</button>
+										{:else}
+											<button
+												onclick={() => { openMenuId = null; leaveTarget = ws; leaveError = ''; }}
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+											>
+												<LogOut size={13} strokeWidth={1.75} />
+												Leave workspace…
+											</button>
+										{/if}
 									</div>
 								{/if}
 							</div>

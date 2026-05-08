@@ -6,6 +6,7 @@
 		title: string;
 		description?: string;
 		confirmLabel?: string;
+		loadingLabel?: string;
 		loading?: boolean;
 		error?: string;
 		onconfirm: () => void;
@@ -17,6 +18,7 @@
 		title,
 		description,
 		confirmLabel = 'Delete',
+		loadingLabel,
 		loading = false,
 		error = '',
 		onconfirm,
@@ -98,7 +100,7 @@
 						{loading
 							? 'bg-muted-mid text-muted-dim cursor-not-allowed'
 							: 'bg-danger-text text-danger-text-dark hover:bg-danger-border'}"
-				>{loading ? 'Deleting…' : confirmLabel}</button>
+				>{loading ? (loadingLabel ?? 'Deleting…') : confirmLabel}</button>
 			</div>
 		</div>
 	</div>

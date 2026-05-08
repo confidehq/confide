@@ -293,6 +293,10 @@ export async function removeMember(workspaceId: string, accountId: string): Prom
 	}
 }
 
+export async function leaveWorkspace(workspaceId: string, accountId: string): Promise<void> {
+	return removeMember(workspaceId, accountId);
+}
+
 // ─── Invitations ──────────────────────────────────────────────────────────────
 
 export interface WorkspaceInvitation {
