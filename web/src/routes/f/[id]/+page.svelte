@@ -87,6 +87,11 @@
 <svelte:head>
 	<title>{schema?.translations?.[locale]?.formTitle ?? schema?.translations?.[schema.defaultLocale]?.formTitle ?? 'Confide'}</title>
 	<link rel="icon" href="/favicon.svg" />
+	<link rel="icon" href="/favicon.ico" sizes="any" />
+	<link rel="apple-touch-icon" href="/icon.png" />
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<meta property="og:image" content="/icon.png" />
+	<meta name="twitter:image" content="/icon.png" />
 	<meta name="referrer" content="no-referrer" />
 </svelte:head>
 
