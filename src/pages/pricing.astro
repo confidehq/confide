@@ -3,26 +3,8 @@ import Layout from '../layouts/Layout.astro';
 ---
 
 <Layout title="Pricing | Confide">
-	<div class="container">
-		<nav class="nav">
-			<div class="logo-group">
-				<a href="/" class="logo">
-					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
-					<span>Confide</span>
-				</a>
-				<span class="tagline">The <strong>secure</strong> way to listen.</span>
-			</div>
-			<div class="nav-actions">
-				<ul class="nav-links">
-					<li><a href="/pricing">Pricing</a></li>
-					<li><a href="https://admin.useconfide.app/login">Log in</a></li>
-				</ul>
-				<a href="https://admin.useconfide.app/signup" class="btn btn-primary">Start Protecting Data</a>
-			</div>
-		</nav>
-
-		<main>
-			<section class="pricing-hero">
+	<main>
+		<section class="pricing-hero">
 				<span class="muted-label">PRICING</span>
 				<h1>Simple, transparent pricing for <em>secure</em> data collection.</h1>
 				<p>Choose the plan that fits your organization's needs. All plans include our core end-to-end encryption technology.</p>
@@ -314,91 +296,9 @@ import Layout from '../layouts/Layout.astro';
 				</div>
 			</section>
 		</main>
-
-		<footer class="footer">
-			<div class="footer-content">
-				<div class="footer-brand">
-					<img src="/favicon.svg" alt="Confide" class="logo-icon" />
-					<span class="footer-logo-text">Confide</span>
-				</div>
-				<ul class="footer-links">
-					<li><a href="https://admin.useconfide.app/login">Sign in</a></li>
-					<li><a href="/trust">Trust & Safety</a></li>
-					<li><a href="/security">Security Architecture</a></li>
-					<li><a href="/privacy">Privacy Policy</a></li>
-					<li><a href="/terms">Terms of Service</a></li>
-					<li><a href="https://github.com/confidehq/confide" target="_blank" rel="noopener">Open Source</a></li>
-				</ul>
-			</div>
-		</footer>
-	</div>
 </Layout>
 
 <style>
-	.container {
-		max-width: var(--container-width);
-		margin: 0 auto;
-		padding: 0 2rem;
-		min-height: 100vh;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.nav {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 2rem 0;
-	}
-
-	.logo-group {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.tagline {
-		font-size: 0.9375rem;
-		color: var(--muted-color);
-		font-weight: 500;
-	}
-
-	.logo {
-		font-size: 1.5rem;
-		font-weight: 700;
-		letter-spacing: -0.03em;
-		display: flex;
-		align-items: center;
-		gap: 0.625rem;
-	}
-
-	.logo-icon {
-		width: 28px;
-		height: 28px;
-	}
-
-	.nav-actions {
-		display: flex;
-		align-items: center;
-		gap: 1.5rem;
-	}
-
-	.nav-links {
-		display: flex;
-		gap: 1.5rem;
-	}
-
-	.nav-links a {
-		font-size: 0.9375rem;
-		color: var(--muted-color);
-		font-weight: 600;
-		transition: var(--transition-base);
-	}
-
-	.nav-links a:hover {
-		color: var(--fg-color);
-	}
-
 	.pricing-hero {
 		text-align: center;
 		padding: 6rem 0 4rem;
@@ -737,86 +637,6 @@ import Layout from '../layouts/Layout.astro';
 		line-height: 1.6;
 	}
 
-	/* Buttons */
-	.btn {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0.625rem 1.5rem;
-		border-radius: 9999px;
-		font-weight: 700;
-		font-size: 0.9375rem;
-		transition: var(--transition-base);
-		border: 1px solid transparent;
-		white-space: nowrap;
-	}
-
-	.btn-primary {
-		background-color: var(--primary-color);
-		color: var(--primary-fg);
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--primary-color), transparent 80%);
-	}
-
-	.btn-primary:hover {
-		transform: translateY(-2px);
-		box-shadow: 0 6px 20px color-mix(in srgb, var(--primary-color), transparent 70%);
-		opacity: 0.95;
-	}
-
-	.btn-secondary {
-		background-color: var(--secondary-bg);
-		color: var(--fg-color);
-		border-color: var(--border-color);
-	}
-
-	.btn-secondary:hover {
-		background-color: var(--secondary-hover);
-		transform: translateY(-2px);
-		border-color: var(--accent-amber);
-	}
-
-	/* Footer */
-	.footer {
-		padding: 4rem 0;
-		border-top: 1px solid var(--border-color);
-		margin-top: auto;
-	}
-
-	.footer-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 0.9375rem;
-		color: var(--muted-color);
-	}
-
-	.footer-brand {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.footer-logo-text {
-		font-weight: 700;
-		color: var(--fg-color);
-		font-size: 1.25rem;
-		letter-spacing: -0.03em;
-	}
-
-	.footer-links {
-		display: flex;
-		gap: 2rem;
-	}
-
-	.footer-links a {
-		font-weight: 600;
-		transition: var(--transition-base);
-	}
-
-	.footer-links a:hover {
-		color: var(--fg-color);
-	}
-
 	@media (max-width: 1024px) {
 		.pricing-grid {
 			grid-template-columns: repeat(2, 1fr);
@@ -824,36 +644,8 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	@media (max-width: 768px) {
-		.container {
-			padding: 0 1.5rem;
-		}
-
-		.nav-links {
-			display: none;
-		}
-
-		.tagline {
-			display: none;
-		}
-
 		.pricing-grid {
 			grid-template-columns: 1fr;
-		}
-
-		.footer-content {
-			flex-direction: column;
-			gap: 3rem;
-			text-align: center;
-		}
-
-		.footer-brand {
-			flex-direction: column;
-			gap: 0.75rem;
-		}
-
-		.footer-links {
-			flex-direction: column;
-			gap: 1.5rem;
 		}
 	}
 </style>

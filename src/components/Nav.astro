@@ -1,0 +1,89 @@
+---
+---
+<nav class="nav">
+	<div class="logo-group">
+		<a href="/" class="logo">
+			<img src="/favicon.svg" alt="Confide" class="logo-icon" />
+			<span>Confide</span>
+		</a>
+		<span class="tagline">The <strong>secure</strong> way to listen.</span>
+	</div>
+	<div class="nav-actions">
+		<ul class="nav-links">
+			<li><a href="/pricing">Pricing</a></li>
+			<li><a href="https://admin.useconfide.app/login">Log in</a></li>
+		</ul>
+		<a href="https://admin.useconfide.app/signup" class="btn btn-primary">Start Protecting Data</a>
+	</div>
+</nav>
+
+<style>
+	.nav {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 2rem 0;
+	}
+
+	.logo-group {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.tagline {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 500;
+	}
+
+	.logo {
+		font-size: 1.5rem;
+		font-weight: 700;
+		letter-spacing: -0.03em;
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+	}
+
+	.logo-icon {
+		width: 28px;
+		height: 28px;
+	}
+
+	.nav-actions {
+		display: flex;
+		align-items: center;
+		gap: 1.5rem;
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 1.5rem;
+	}
+
+	.nav-links a {
+		font-size: 0.9375rem;
+		color: var(--muted-color);
+		font-weight: 600;
+		transition: var(--transition-base);
+	}
+
+	.nav-links a:hover {
+		color: var(--fg-color);
+	}
+
+	@media (max-width: 768px) {
+		.nav-links {
+			display: none;
+		}
+
+		.tagline {
+			display: none;
+		}
+
+		.nav {
+			padding: 1.5rem 0;
+		}
+	}
+</style>
