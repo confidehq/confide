@@ -1,5 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { Image } from 'astro:assets';
+import heroImage from '../assets/forms.webp';
 ---
 
 <Layout title="Confide">
@@ -18,7 +20,14 @@ import Layout from '../layouts/Layout.astro';
 					<a href="/trust" class="btn btn-secondary btn-lg">How it works</a>
 				</div>
 				<div class="hero-image">
-					<img src="/forms.webp" alt="Confide secure form builder interface" />
+					<Image 
+						src={heroImage} 
+						alt="Confide secure form builder interface" 
+						width={1000} 
+						height={600}
+						loading="eager"
+						fetchpriority="high"
+					/>
 				</div>
 			</section>
 
@@ -291,6 +300,7 @@ import Layout from '../layouts/Layout.astro';
 			0 8px 10px -6px rgb(0 0 0 / 0.1),
 			0 0 0 1px var(--border-color);
 		background-color: var(--secondary-bg);
+		aspect-ratio: 1000 / 600;
 	}
 
 	.hero-image img {
