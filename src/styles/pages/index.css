@@ -7,21 +7,6 @@
 	padding: 8rem 0 10rem;
 }
 
-.hero-badge {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.5rem;
-	font-size: 0.75rem;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	text-transform: uppercase;
-	color: var(--accent-amber);
-	background-color: color-mix(in srgb, var(--accent-amber), transparent 90%);
-	padding: 0.5rem 1rem;
-	border-radius: 9999px;
-	margin-bottom: 2.5rem;
-	border: 1px solid color-mix(in srgb, var(--accent-amber), transparent 80%);
-}
 
 .hero h1 {
 	font-size: clamp(2.5rem, 8vw, 4.25rem);
@@ -136,12 +121,23 @@
 	padding: 6rem 0;
 	border-top: 1px solid var(--border-color);
 	background-color: color-mix(in srgb, var(--secondary-bg), transparent 50%);
+	
+	/* Full width breakout */
+	width: 100vw;
+	position: relative;
+	left: 50%;
+	right: 50%;
+	margin-left: -50vw;
+	margin-right: -50vw;
 }
 
 .risk-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 4rem;
+	max-width: var(--container-width);
+	margin: 0 auto;
+	padding: 0 2rem;
 }
 
 .risk-column h3 {
@@ -392,11 +388,20 @@ details[open] .faq-icon::after {
 
 	.risk-section {
 		padding: 4rem 0;
+		width: 100vw;
+		position: relative;
+		left: 50%;
+		right: 50%;
+		margin-left: -50vw;
+		margin-right: -50vw;
 	}
 
 	.risk-grid {
 		grid-template-columns: 1fr;
 		gap: 3rem;
+		max-width: var(--container-width);
+		margin: 0 auto;
+		padding: 0 1.5rem;
 	}
 
 	.highlights-section {

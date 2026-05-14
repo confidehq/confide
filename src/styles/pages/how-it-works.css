@@ -1,0 +1,175 @@
+/* Page Header */
+.page-header {
+	padding: 6rem 0 4rem;
+	text-align: center;
+}
+
+.page-label {
+	display: block;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	color: var(--muted-color);
+	margin-bottom: 1.5rem;
+	text-transform: uppercase;
+}
+
+.page-header h1 {
+	font-size: clamp(2.5rem, 8vw, 4rem);
+	font-weight: 800;
+	letter-spacing: -0.04em;
+	line-height: 1.1;
+	margin-bottom: 1.5rem;
+}
+
+.page-header p {
+	font-size: 1.25rem;
+	color: var(--muted-color);
+	max-width: 700px;
+	margin: 0 auto;
+	line-height: 1.6;
+}
+
+/* Steps Section */
+.steps-section {
+	padding: 4rem 0 8rem;
+}
+
+.steps-container {
+	display: flex;
+	flex-direction: column;
+	gap: 4rem;
+	max-width: 900px;
+	margin: 0 auto;
+	position: relative;
+}
+
+/* The vertical line connecting steps */
+.steps-container::before {
+	content: '';
+	position: absolute;
+	left: 2rem;
+	top: 2rem;
+	bottom: 2rem;
+	width: 2px;
+	background-color: var(--border-color);
+	z-index: 0;
+}
+
+.step-item {
+	display: grid;
+	grid-template-columns: 4rem 1fr;
+	gap: 2.5rem;
+	position: relative;
+	z-index: 1;
+}
+
+.step-number {
+	width: 4rem;
+	height: 4rem;
+	background-color: var(--bg-color);
+	border: 2px solid var(--border-color);
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 1.25rem;
+	font-weight: 800;
+	color: var(--accent-amber);
+	flex-shrink: 0;
+	transition: var(--transition-base);
+}
+
+.step-item:hover .step-number {
+	border-color: var(--accent-amber);
+	box-shadow: 0 0 20px color-mix(in srgb, var(--accent-amber), transparent 80%);
+}
+
+.step-content h2 {
+	font-size: 1.75rem;
+	font-weight: 700;
+	margin-bottom: 1rem;
+	letter-spacing: -0.02em;
+}
+
+.step-content p {
+	font-size: 1.125rem;
+	color: var(--muted-color);
+	line-height: 1.7;
+	margin-bottom: 2rem;
+}
+
+/* Step Visuals (simulated UI elements) */
+.step-visual {
+	background-color: var(--secondary-bg);
+	border: 1px solid var(--border-color);
+	border-radius: 1rem;
+	padding: 2rem;
+	margin-top: 1.5rem;
+}
+
+.visual-ui {
+	background-color: var(--bg-color);
+	border-radius: 0.5rem;
+	border: 1px solid var(--border-color);
+	padding: 1rem;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 0.875rem;
+	color: var(--muted-color);
+}
+
+.visual-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.25rem 0.75rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	background-color: color-mix(in srgb, var(--accent-green), transparent 90%);
+	color: var(--accent-green);
+	border: 1px solid color-mix(in srgb, var(--accent-green), transparent 80%);
+}
+
+/* Security Callout */
+.security-callout {
+	margin-top: 6rem;
+	padding: 4rem;
+	background-color: var(--fg-color);
+	color: var(--bg-color);
+	border-radius: 2rem;
+	text-align: center;
+}
+
+.security-callout h3 {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.security-callout p {
+	opacity: 0.8;
+	font-size: 1.125rem;
+	max-width: 600px;
+	margin: 0 auto 2.5rem;
+}
+
+@media (max-width: 768px) {
+	.steps-container::before {
+		left: 1.5rem;
+	}
+
+	.step-item {
+		grid-template-columns: 3rem 1fr;
+		gap: 1.5rem;
+	}
+
+	.step-number {
+		width: 3rem;
+		height: 3rem;
+		font-size: 1rem;
+	}
+
+	.security-callout {
+		padding: 3rem 1.5rem;
+	}
+}

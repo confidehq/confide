@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import '../styles/pages/how-it-works.css';
+---
+
+<Layout title="How it works — Confide">
+	<main>
+		<header class="page-header">
+			<span class="page-label">The Process</span>
+			<h1>Privacy by design, not by promise.</h1>
+			<p>Understand the journey of your data from the first click to the final action. No backdoors, no master keys, just pure mathematics.</p>
+		</header>
+
+		<section class="steps-section">
+			<div class="steps-container">
+				
+				<!-- Step 1: Passkey Account -->
+				<div class="step-item">
+					<div class="step-number">1</div>
+					<div class="step-content">
+						<h2>Secure Access with Passkeys</h2>
+						<p>Ditch vulnerable passwords. Create your account using industry-standard passkeys (WebAuthn). This ensures that your identity is verified by your device's biometrics or hardware security key, providing a phishing-resistant foundation for your workspace.</p>
+						<div class="step-visual">
+							<div class="visual-ui">
+								<div class="visual-badge">
+									<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+									Identity Verified via Passkey
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Step 2: Encrypted Form Creation -->
+				<div class="step-item">
+					<div class="step-number">2</div>
+					<div class="step-content">
+						<h2>Build Your Encrypted Form</h2>
+						<p>When you create a form, all configurations, questions, and logic are encrypted directly in your browser. A unique <strong>Form Key</strong> is generated on your device. This key never leaves your browser, meaning we host your form but can never read its contents.</p>
+					</div>
+				</div>
+
+				<!-- Step 3: Secure Sharing -->
+				<div class="step-item">
+					<div class="step-number">3</div>
+					<div class="step-content">
+						<h2>Share Securely</h2>
+						<p>Distribute your form using a secure, unique link that contains the decryption fragment, or generate a high-resolution <strong>QR code</strong> for physical distribution. Because the decryption key is part of the URL fragment (after the #), it is never sent to our servers.</p>
+					</div>
+				</div>
+
+				<!-- Step 4: Respondent Decrypts & Encrypts -->
+				<div class="step-item">
+					<div class="step-number">4</div>
+					<div class="step-content">
+						<h2>Client-Side Interaction</h2>
+						<p>When a respondent opens your link, their browser fetches the encrypted form and uses the fragment key to <strong>decrypt</strong> it locally. Once they fill it out, their submission is <strong>encrypted</strong> on their device using your public key before it is transmitted to our infrastructure.</p>
+					</div>
+				</div>
+
+				<!-- Step 5: Authorized Decryption -->
+				<div class="step-item">
+					<div class="step-number">5</div>
+					<div class="step-content">
+						<h2>Final Authorized Action</h2>
+						<p>Only authorized members of your workspace, holding the corresponding private keys, can <strong>decrypt and view</strong> the responses. Once decrypted, you can take the necessary actions—whether it's legal aid, investigative journalism, or humanitarian support—knowing the data was never exposed in transit or at rest.</p>
+					</div>
+				</div>
+
+			</div>
+
+			<div class="security-callout">
+				<h3>Zero-Knowledge Architecture</h3>
+				<p>We provide the infrastructure, but you provide the security. Our "Zero-Knowledge" model ensures that even if our servers were completely compromised, your data remains a useless pile of encrypted bits.</p>
+				<a href="https://admin.useconfide.app/signup" class="btn btn-primary btn-lg" style="background-color: white; color: black;">Get Started Now</a>
+			</div>
+		</section>
+	</main>
+</Layout>

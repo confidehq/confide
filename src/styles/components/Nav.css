@@ -17,11 +17,11 @@
 	display: none;
 }
 
-:global([data-theme="dark"]) .theme-toggle .sun {
+[data-theme="dark"] .theme-toggle .sun {
 	display: block;
 }
 
-:global([data-theme="light"]) .theme-toggle .moon {
+[data-theme="light"] .theme-toggle .moon {
 	display: block;
 }
 
