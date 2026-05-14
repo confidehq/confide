@@ -1,0 +1,160 @@
+/* Page Header */
+.page-header {
+	padding: 4.5rem 0 3rem;
+}
+
+.page-label {
+	display: block;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	color: var(--muted-color);
+	margin-bottom: 1rem;
+}
+
+.page-header h1 {
+	font-size: clamp(2.25rem, 6vw, 3rem);
+	font-weight: 800;
+	letter-spacing: -0.04em;
+	line-height: 1.1;
+	margin-bottom: 0.75rem;
+}
+
+.last-updated {
+	font-size: 0.9375rem;
+	color: var(--muted-color);
+}
+
+/* Document */
+.doc {
+	max-width: 680px;
+	padding-bottom: 6rem;
+}
+
+.doc-section {
+	padding: 3rem 0;
+	border-top: 1px solid var(--border-color);
+}
+
+.doc-section:first-child {
+	border-top: 1px solid var(--border-color);
+}
+
+.doc-section h2 {
+	font-size: 1.375rem;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	margin-bottom: 1.25rem;
+}
+
+.doc-section h3 {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: var(--fg-color);
+	margin: 2rem 0 1rem;
+}
+
+.doc-section p {
+	font-size: 1.0625rem;
+	color: var(--muted-color);
+	line-height: 1.7;
+	margin-bottom: 1rem;
+}
+
+.doc-section p:last-child {
+	margin-bottom: 0;
+}
+
+.doc-section a {
+	color: var(--fg-color);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.doc-section a:hover {
+	opacity: 0.7;
+}
+
+.doc-section strong {
+	color: var(--fg-color);
+	font-weight: 600;
+}
+
+/* Lists */
+.value-list,
+.plain-list {
+	margin: 1rem 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+}
+
+.value-list li,
+.plain-list li {
+	font-size: 1.0625rem;
+	color: var(--muted-color);
+	line-height: 1.6;
+	padding-left: 1.25rem;
+	position: relative;
+}
+
+.value-list li::before,
+.plain-list li::before {
+	content: '—';
+	position: absolute;
+	left: 0;
+	color: var(--border-color);
+}
+
+/* Callout */
+.callout {
+	margin: 1.25rem 0;
+	padding: 1.125rem 1.375rem;
+	background-color: var(--secondary-bg);
+	border-radius: 0.75rem;
+	border-left: 3px solid var(--fg-color);
+}
+
+.callout p {
+	margin-bottom: 0 !important;
+	font-size: 1rem !important;
+}
+
+.company-name {
+	font-weight: 700;
+	color: var(--fg-color) !important;
+	font-size: 1rem !important;
+	margin-top: 1.5rem !important;
+}
+
+/* Table */
+.table-wrapper {
+	overflow-x: auto;
+	margin: 1.5rem 0;
+}
+
+.transparency-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9375rem;
+	text-align: left;
+}
+
+.transparency-table th {
+	padding: 0.75rem 1rem;
+	background-color: var(--secondary-bg);
+	border-bottom: 2px solid var(--border-color);
+	font-weight: 700;
+	color: var(--fg-color);
+}
+
+.transparency-table td {
+	padding: 0.75rem 1rem;
+	border-bottom: 1px solid var(--border-color);
+	color: var(--muted-color);
+}
+
+.transparency-table tr:last-child td {
+	border-bottom: none;
+}

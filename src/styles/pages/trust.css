@@ -1,0 +1,109 @@
+/* Page Header */
+.page-header {
+	padding: 4.5rem 0 3.5rem;
+	max-width: 680px;
+}
+
+.page-label {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	color: var(--muted-color);
+	margin-bottom: 1.25rem;
+}
+
+.page-header h1 {
+	font-size: clamp(2rem, 6vw, 3rem);
+	font-weight: 800;
+	letter-spacing: -0.04em;
+	line-height: 1.1;
+	margin-bottom: 1.25rem;
+}
+
+.page-header p {
+	font-size: 1.125rem;
+	color: var(--muted-color);
+	line-height: 1.65;
+}
+
+/* Q&A Groups */
+.qa-group {
+	border-top: 1px solid var(--border-color);
+	padding: 3.5rem 0;
+}
+
+.group-heading {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted-color);
+	margin-bottom: 2.5rem;
+}
+
+.qa-item {
+	display: grid;
+	grid-template-columns: 1fr 1.3fr;
+	gap: 3rem;
+	padding: 2rem 0;
+	border-top: 1px solid var(--border-color);
+}
+
+.qa-item:first-of-type {
+	border-top: none;
+	padding-top: 0;
+}
+
+.qa-item h3 {
+	font-size: 1.1875rem;
+	font-weight: 700;
+	line-height: 1.3;
+	letter-spacing: -0.02em;
+}
+
+.qa-answer p {
+	font-size: 1.0625rem;
+	color: var(--muted-color);
+	line-height: 1.65;
+	margin-bottom: 1rem;
+}
+
+.qa-answer p:last-child {
+	margin-bottom: 0;
+}
+
+/* Check / Cross lists */
+.check-list,
+.cross-list {
+	margin: 0.75rem 0 1rem;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.check-list li,
+.cross-list li {
+	font-size: 1.0625rem;
+	color: var(--muted-color);
+	padding-left: 1.5rem;
+	position: relative;
+	line-height: 1.5;
+}
+
+.check-list li::before {
+	content: '✓';
+	position: absolute;
+	left: 0;
+	font-weight: 700;
+	color: var(--fg-color);
+}
+
+.cross-list li::before {
+	content: '✕';
+	position: absolute;
+	left: 0;
+	font-weight: 600;
+	color: var(--muted-color);
+	opacity: 0.5;
+}

@@ -1,4 +1,5 @@
 ---
+import '../styles/components/Footer.css';
 ---
 <footer class="footer" transition:persist>
 	<div class="footer-content">
@@ -18,73 +19,7 @@
 			<li><a href="/privacy">Privacy Policy</a></li>
 			<li><a href="/terms">Terms of Service</a></li>
 			<li><a href="https://github.com/confidehq/confide" target="_blank" rel="noopener">Open Source</a></li>
-		</ul>
-	</div>
-</footer>
+		</div>
+		</div>
+		</footer>
 
-<style>
-	.footer {
-		padding: 4rem 0;
-		border-top: 1px solid var(--border-color);
-		margin-top: auto;
-		width: 100%;
-	}
-
-	.footer-content {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		font-size: 0.9375rem;
-		color: var(--muted-color);
-	}
-
-	.footer-brand {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.logo-icon {
-		width: 24px;
-		height: 24px;
-	}
-
-	.footer-logo-text {
-		font-weight: 700;
-		color: var(--fg-color);
-		font-size: 1.25rem;
-		letter-spacing: -0.03em;
-	}
-
-	.footer-links {
-		display: flex;
-		gap: 2rem;
-	}
-
-	.footer-links a {
-		font-weight: 600;
-		transition: var(--transition-base);
-	}
-
-	.footer-links a:hover {
-		color: var(--fg-color);
-	}
-
-	@media (max-width: 768px) {
-		.footer-content {
-			flex-direction: column;
-			gap: 3rem;
-			text-align: center;
-		}
-
-		.footer-brand {
-			flex-direction: column;
-			gap: 0.75rem;
-		}
-
-		.footer-links {
-			flex-direction: column;
-			gap: 1.5rem;
-		}
-	}
-</style>
