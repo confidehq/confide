@@ -178,15 +178,58 @@
 	border: 1px solid color-mix(in srgb, var(--accent-green), transparent 80%);
 }
 
+.all-plans-include {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 1.25rem;
+	flex-wrap: wrap;
+	padding: 1rem 0 2rem;
+}
+
+.all-plans-label {
+	font-size: 0.75rem;
+	font-weight: 800;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--muted-color);
+}
+
+.all-plans-items {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.all-plans-item {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: var(--fg-color);
+}
+
+.all-plans-item svg {
+	color: var(--accent-amber);
+	flex-shrink: 0;
+}
+
+.all-plans-dot {
+	color: var(--border-color);
+	font-weight: 700;
+	font-size: 1.125rem;
+	line-height: 1;
+}
+
 .pricing-grid {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 2rem;
-	padding: 4rem 0 6rem;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.5rem;
+	padding: 0 0 6rem;
 	align-items: start;
-	max-width: 800px;
-	margin-left: auto;
-	margin-right: auto;
 }
 
 .pricing-card {
@@ -262,6 +305,12 @@
 	font-size: 1.125rem;
 	color: var(--muted-color);
 	font-weight: 600;
+}
+
+.billing-note {
+	font-size: 0.8125rem;
+	color: var(--muted-color);
+	min-height: 1.2em;
 }
 
 .plan-desc {
@@ -345,6 +394,7 @@
 	font-size: 1rem;
 }
 
+
 .comparison-table th:not(:first-child) {
 	text-align: center;
 }
@@ -366,11 +416,41 @@
 	color: var(--muted-color);
 	padding-top: 2rem;
 	padding-bottom: 1rem;
+	user-select: none;
+}
+
+.section-label {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.section-chevron {
+	transition: transform 0.2s ease;
+	flex-shrink: 0;
+}
+
+.table-category.collapsed .section-chevron {
+	transform: rotate(-90deg);
+}
+
+.table-category:hover td {
+	color: var(--fg-color);
+}
+
+.section-hidden {
+	display: none;
 }
 
 .check {
 	color: var(--accent-green);
 	font-weight: 900;
+	font-size: 1.125rem;
+}
+
+.dash {
+	color: var(--border-color);
+	font-weight: 700;
 	font-size: 1.125rem;
 }
 
@@ -504,5 +584,10 @@ details[open] .faq-icon::after {
 
 	.pricing-grid {
 		grid-template-columns: 1fr;
+	}
+
+	.all-plans-label {
+		width: 100%;
+		text-align: center;
 	}
 }
