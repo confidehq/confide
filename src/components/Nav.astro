@@ -23,7 +23,49 @@ import '../styles/components/Nav.css';
 			<li><a href="/pricing">Pricing</a></li>
 			<li><a href="https://admin.useconfide.app/login">Log in</a></li>
 		</ul>
-		<a href="https://admin.useconfide.app/signup" class="btn btn-primary">Sign up free</a>
+		<a href="https://admin.useconfide.app/signup" class="btn btn-primary nav-cta">Sign up free</a>
+		<button id="menu-toggle" class="menu-toggle" aria-label="Open menu" aria-expanded="false">
+			<svg class="hamburger-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="3" y1="6" x2="21" y2="6"/>
+				<line x1="3" y1="12" x2="21" y2="12"/>
+				<line x1="3" y1="18" x2="21" y2="18"/>
+			</svg>
+			<svg class="close-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<line x1="18" y1="6" x2="6" y2="18"/>
+				<line x1="6" y1="6" x2="18" y2="18"/>
+			</svg>
+		</button>
 	</div>
 </nav>
 
+<div id="mobile-menu" class="mobile-menu" aria-hidden="true">
+	<ul class="mobile-nav-links">
+		<li><a href="/pricing">Pricing</a></li>
+		<li><a href="https://admin.useconfide.app/login">Log in</a></li>
+	</ul>
+	<a href="https://admin.useconfide.app/signup" class="btn btn-primary mobile-cta">Sign up free</a>
+</div>
+
+<script>
+	function initMenu() {
+		const toggle = document.getElementById('menu-toggle');
+		const menu = document.getElementById('mobile-menu');
+		if (!toggle || !menu) return;
+
+		toggle.onclick = () => {
+			const isOpen = menu.classList.toggle('open');
+			toggle.setAttribute('aria-expanded', String(isOpen));
+			menu.setAttribute('aria-hidden', String(!isOpen));
+		};
+
+		menu.querySelectorAll('a').forEach(link => {
+			link.onclick = () => {
+				menu.classList.remove('open');
+				toggle.setAttribute('aria-expanded', 'false');
+				menu.setAttribute('aria-hidden', 'true');
+			};
+		});
+	}
+
+	document.addEventListener('astro:page-load', initMenu);
+</script>
