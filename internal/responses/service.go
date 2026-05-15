@@ -25,6 +25,7 @@ var ErrNotFound = errors.New("response not found")
 type DB interface {
 	GetFormByWorkspace(ctx context.Context, arg queries.GetFormByWorkspaceParams) (queries.Form, error)
 	GetFormNotificationInfo(ctx context.Context, id string) (queries.GetFormNotificationInfoRow, error)
+	GetFormWorkspaceID(ctx context.Context, id string) (string, error)
 	ListResponsesFirst(ctx context.Context, arg queries.ListResponsesFirstParams) ([]queries.Response, error)
 	ListResponsesAfter(ctx context.Context, arg queries.ListResponsesAfterParams) ([]queries.Response, error)
 	GetResponse(ctx context.Context, arg queries.GetResponseParams) (queries.Response, error)
@@ -311,6 +312,11 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 // or have been read on a burn-after-reading form. Called by the reaper goroutine.
 func (s *Service) DeleteExpiredResponses(ctx context.Context) error {
 	return s.db.DeleteExpiredResponses(ctx)
+}
+
+// GetFormWorkspace returns the workspace ID that owns formID.
+func (s *Service) GetFormWorkspace(ctx context.Context, formID string) (string, error) {
+	return s.db.GetFormWorkspaceID(ctx, formID)
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

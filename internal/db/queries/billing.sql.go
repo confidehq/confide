@@ -37,6 +37,20 @@ func (q *Queries) CountMonthlyResponses(ctx context.Context, workspaceID string)
 	return count, err
 }
 
+const countTotalResponses = `-- name: CountTotalResponses :one
+SELECT COUNT(*)
+FROM responses r
+JOIN forms f ON f.id = r.form_id
+WHERE f.workspace_id = $1
+`
+
+func (q *Queries) CountTotalResponses(ctx context.Context, workspaceID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countTotalResponses, workspaceID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getWorkspaceByStripeCustomerID = `-- name: GetWorkspaceByStripeCustomerID :one
 SELECT id, plan, plan_status, stripe_subscription_id
 FROM workspaces WHERE stripe_customer_id = $1

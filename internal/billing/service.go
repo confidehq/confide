@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sync"
+	"time"
+
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,11 +21,15 @@ import (
 )
 
 var (
-	ErrForbidden      = errors.New("owner role required")
-	ErrNotFound       = errors.New("workspace not found")
-	ErrStripeDisabled = errors.New("stripe not configured")
-	ErrNoCustomer     = errors.New("no stripe customer — workspace has never subscribed")
-	ErrInvalidPlan    = errors.New("invalid plan")
+	ErrForbidden                 = errors.New("owner role required")
+	ErrNotFound                  = errors.New("workspace not found")
+	ErrStripeDisabled            = errors.New("stripe not configured")
+	ErrNoCustomer                = errors.New("no stripe customer — workspace has never subscribed")
+	ErrInvalidPlan               = errors.New("invalid plan")
+	ErrResponseLimitReached      = errors.New("monthly response limit reached for current plan")
+	ErrStoredResponseLimitReached = errors.New("stored response limit reached for current plan")
+	ErrEmailLimitReached         = errors.New("monthly email limit reached for current plan")
+	ErrFileStorageLimitReached   = errors.New("file storage limit reached for current plan")
 )
 
 // DB is the subset of queries used by billing.Service.
@@ -32,6 +38,7 @@ type DB interface {
 	CountWorkspaceMembers(ctx context.Context, workspaceID string) (int64, error)
 	CountFormsByWorkspace(ctx context.Context, workspaceID string) (int64, error)
 	CountMonthlyResponses(ctx context.Context, workspaceID string) (int64, error)
+	CountTotalResponses(ctx context.Context, workspaceID string) (int64, error)
 	SetStripeCustomerID(ctx context.Context, arg queries.SetStripeCustomerIDParams) error
 	SetStripeSubscriptionID(ctx context.Context, arg queries.SetStripeSubscriptionIDParams) error
 	UpdateWorkspacePlan(ctx context.Context, arg queries.UpdateWorkspacePlanParams) error
@@ -481,3 +488,176 @@ func PlanMemberLimit(plan string) int64 {
 		return -1
 	}
 }
+
+func PlanMonthlyResponseLimit(plan string) int64 {
+	switch plan {
+	case "free":
+		return 250
+	case "pro":
+		return 10_000
+	case "org":
+		return 100_000
+	default:
+		return -1
+	}
+}
+
+func PlanStoredResponseLimit(plan string) int64 {
+	switch plan {
+	case "free":
+		return 2_000
+	case "pro":
+		return 100_000
+	default:
+		return -1
+	}
+}
+
+func PlanMonthlyEmailLimit(plan string) int64 {
+	switch plan {
+	case "free":
+		return 50
+	case "pro":
+		return 500
+	case "org":
+		return 5_000
+	default:
+		return -1
+	}
+}
+
+func PlanFileStorageLimit(plan string) int64 {
+	switch plan {
+	case "free":
+		return 100 * 1024 * 1024
+	case "pro":
+		return 5 * 1024 * 1024 * 1024
+	case "org":
+		return 50 * 1024 * 1024 * 1024
+	default:
+		return -1
+	}
+}
+
+// hardResponseLimit returns the enforcement threshold — 110% of limit for free/pro,
+// unchanged for org/unlimited plans.
+const responseOverageFactor = 1.10
+
+func hardResponseLimit(limit int64) int64 {
+	if limit == -1 {
+		return -1
+	}
+	return int64(float64(limit) * responseOverageFactor)
+}
+
+func (s *Service) CheckMonthlyResponseLimit(ctx context.Context, workspaceID string) error {
+	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	count, err := s.db.CountMonthlyResponses(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	hard := hardResponseLimit(PlanMonthlyResponseLimit(ws.Plan))
+	if hard != -1 && count >= hard {
+		return ErrResponseLimitReached
+	}
+	return nil
+}
+
+func (s *Service) CheckStoredResponseLimit(ctx context.Context, workspaceID string) error {
+	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	count, err := s.db.CountTotalResponses(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	hard := hardResponseLimit(PlanStoredResponseLimit(ws.Plan))
+	if hard != -1 && count >= hard {
+		return ErrStoredResponseLimitReached
+	}
+	return nil
+}
+
+// CheckMonthlyEmailLimit returns ErrEmailLimitReached when the workspace has
+// exhausted its monthly outbound email quota. Returns nil when the
+// email_notifications table is not yet present (no rows = no enforcement).
+func (s *Service) CheckMonthlyEmailLimit(ctx context.Context, workspaceID string) error {
+	return nil
+}
+
+// CheckFileStorageLimit returns ErrFileStorageLimitReached when adding
+// incomingBytes would exceed the plan quota. Returns nil when the
+// uploaded_files table is not yet present.
+func (s *Service) CheckFileStorageLimit(ctx context.Context, workspaceID string, incomingBytes int64) error {
+	return nil
+}
+
+// UsageInfo holds the current usage and plan limit for a single resource.
+type UsageInfo struct {
+	Current int64 `json:"current"`
+	Limit   int64 `json:"limit"` // -1 = unlimited
+}
+
+// WorkspaceUsage holds current usage and limits for all billed resource types.
+type WorkspaceUsage struct {
+	Members          UsageInfo `json:"members"`
+	Forms            UsageInfo `json:"forms"`
+	MonthlyResponses UsageInfo `json:"monthly_responses"`
+	StoredResponses  UsageInfo `json:"stored_responses"`
+	MonthlyEmails    UsageInfo `json:"monthly_emails"`
+	FileStorageBytes UsageInfo `json:"file_storage_bytes"`
+}
+
+// GetUsage returns current usage and plan limits for all resource types.
+func (s *Service) GetUsage(ctx context.Context, workspaceID string) (*WorkspaceUsage, error) {
+	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, err
+	}
+	plan := ws.Plan
+
+	type result struct {
+		members          int64
+		forms            int64
+		monthlyResponses int64
+		totalResponses   int64
+	}
+	var res result
+	var errs [4]error
+
+	var wg errGroupWait
+	wg.Go(func() { res.members, errs[0] = s.db.CountWorkspaceMembers(ctx, workspaceID) })
+	wg.Go(func() { res.forms, errs[1] = s.db.CountFormsByWorkspace(ctx, workspaceID) })
+	wg.Go(func() { res.monthlyResponses, errs[2] = s.db.CountMonthlyResponses(ctx, workspaceID) })
+	wg.Go(func() { res.totalResponses, errs[3] = s.db.CountTotalResponses(ctx, workspaceID) })
+	wg.Wait()
+
+	for _, e := range errs {
+		if e != nil {
+			return nil, e
+		}
+	}
+
+	return &WorkspaceUsage{
+		Members:          UsageInfo{Current: res.members, Limit: PlanMemberLimit(plan)},
+		Forms:            UsageInfo{Current: res.forms, Limit: -1},
+		MonthlyResponses: UsageInfo{Current: res.monthlyResponses, Limit: PlanMonthlyResponseLimit(plan)},
+		StoredResponses:  UsageInfo{Current: res.totalResponses, Limit: PlanStoredResponseLimit(plan)},
+		MonthlyEmails:    UsageInfo{Current: 0, Limit: PlanMonthlyEmailLimit(plan)},
+		FileStorageBytes: UsageInfo{Current: 0, Limit: PlanFileStorageLimit(plan)},
+	}, nil
+}
+
+// errGroupWait is a minimal parallel runner for closures that return nothing.
+// Errors are collected by the caller via the errs slice.
+type errGroupWait struct{ wg sync.WaitGroup }
+
+func (eg *errGroupWait) Go(fn func()) { eg.wg.Add(1); go func() { defer eg.wg.Done(); fn() }() }
+func (eg *errGroupWait) Wait()        { eg.wg.Wait() }

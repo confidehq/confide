@@ -9,7 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 
+	mw "github.com/phantompunk/confide/internal/middleware"
 	"github.com/phantompunk/confide/internal/permission"
+	"github.com/phantompunk/confide/internal/workspace"
 )
 
 // Handler returns the billing sub-router mounted at /api/workspaces/{workspaceId}/billing.
@@ -19,6 +21,14 @@ func Handler(svc *Service) http.Handler {
 	r.Get("/", getBillingInfo(svc))
 	r.Post("/subscribe", subscribe(svc))
 	r.Post("/portal", portal(svc))
+	return r
+}
+
+// UsageHandler returns the usage sub-router mounted at /api/workspaces/{workspaceId}/usage.
+// Viewer+ access — any workspace member may retrieve usage.
+func UsageHandler(svc *Service, wsSvc *workspace.Service) http.Handler {
+	r := chi.NewRouter()
+	r.Get("/", getUsage(svc, wsSvc))
 	return r
 }
 
@@ -149,6 +159,32 @@ func portal(svc *Service) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]string{"url": url})
+	}
+}
+
+// ─── Usage handler ───────────────────────────────────────────────────────────
+
+func getUsage(svc *Service, wsSvc *workspace.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "workspaceId")
+		accountID := mw.AccountID(r.Context())
+
+		if err := wsSvc.ValidateMember(r.Context(), workspaceID, accountID); err != nil {
+			writeError(w, http.StatusForbidden, "forbidden", "workspace member required")
+			return
+		}
+
+		usage, err := svc.GetUsage(r.Context(), workspaceID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "workspace not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get usage")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, usage)
 	}
 }
 

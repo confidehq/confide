@@ -158,6 +158,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				r.Use(permission.RequireAction(permission.ActionManageBilling))
 				r.Mount("/", billing.Handler(svc.Billing))
 			})
+			r.Mount("/workspaces/{workspaceId}/usage", billing.UsageHandler(svc.Billing, svc.Workspace))
 		})
 
 		// Public invitation resolve — no auth required.
@@ -181,7 +182,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 			MaxAge:           300,
 		}),
 		mw.RelayRateLimit(cfg.HMACKey),
-	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ, svc.Responses, guard))
+	).Post("/relay/submit", relay.SubmitHandler(svc.RelayQ, svc.Responses, svc.Billing, guard))
 
 	// SPA catch-all: serve the embedded frontend for any path not matched above.
 	if uiFS != nil {

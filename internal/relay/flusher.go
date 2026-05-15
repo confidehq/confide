@@ -11,6 +11,7 @@ import (
 // The interface is defined here to avoid an import cycle.
 type BatchStorer interface {
 	CreateBatch(ctx context.Context, items []SubmissionItem) error
+	GetFormWorkspace(ctx context.Context, formID string) (string, error)
 }
 
 // StartFlusher drains the queue on each tick and writes to the database via storer.

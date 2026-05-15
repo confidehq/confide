@@ -12,6 +12,12 @@ JOIN forms f ON f.id = r.form_id
 WHERE f.workspace_id = $1
   AND r.received_at >= date_trunc('month', NOW());
 
+-- name: CountTotalResponses :one
+SELECT COUNT(*)
+FROM responses r
+JOIN forms f ON f.id = r.form_id
+WHERE f.workspace_id = $1;
+
 -- name: SetStripeCustomerID :exec
 UPDATE workspaces SET stripe_customer_id = $2, updated_at = NOW() WHERE id = $1;
 

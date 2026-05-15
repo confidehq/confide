@@ -297,20 +297,23 @@
 	}
 
 	const proFeatures: { label: string; enabled: boolean }[] = [
-		{ label: 'Unlimited workspaces',  enabled: true  },
-		{ label: 'Up to 10 members',      enabled: true  },
-		{ label: 'Custom domain',         enabled: true  },
-		{ label: 'Remove branding',       enabled: false },
-		{ label: 'File uploads (10 MB)',  enabled: false },
-		{ label: 'Form customization',    enabled: false },
-		{ label: 'CSV export',            enabled: false },
+		{ label: 'Unlimited workspaces',       enabled: true  },
+		{ label: 'Up to 10 members',           enabled: true  },
+		{ label: '10,000 responses / month',   enabled: true  },
+		{ label: '100,000 stored responses',   enabled: true  },
+		{ label: 'Custom domain',              enabled: true  },
+		{ label: '5 GB file storage',          enabled: false },
+		{ label: 'Remove branding',            enabled: false },
+		{ label: 'Form customization',         enabled: false },
+		{ label: 'CSV export',                 enabled: false },
 	];
 
 	const freeFeatures: { label: string; enabled: boolean }[] = [
-		{ label: '1 workspace',           enabled: true },
-		{ label: '1 member',              enabled: true },
-		{ label: 'Unlimited forms',       enabled: true },
-		{ label: 'Unlimited responses',   enabled: true },
+		{ label: 'Up to 2 members',          enabled: true },
+		{ label: 'Unlimited forms',          enabled: true },
+		{ label: '250 responses / month',    enabled: true },
+		{ label: '2,000 stored responses',   enabled: true },
+		{ label: '100 MB file storage',      enabled: true },
 	];
 </script>
 
@@ -632,6 +635,7 @@
 			<!-- Usage meters (only shown once loaded) -->
 			{#if billingInfo}
 				{@const memberLimit = billingInfo.plan === 'free' ? 2 : billingInfo.plan === 'pro' ? 10 : -1}
+				{@const responseLimit = billingInfo.plan === 'free' ? 250 : billingInfo.plan === 'pro' ? 10_000 : billingInfo.plan === 'org' ? 100_000 : -1}
 				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Usage</h2>
 				<div class="border border-border-deep rounded-lg divide-y divide-border-deep mb-8">
 					<!-- Members row -->
@@ -665,14 +669,23 @@
 						</p>
 					</div>
 
-					<!-- Responses row -->
+					<!-- Responses/month row -->
 					<div class="px-4 py-3 flex items-center gap-4">
 						<p class="m-0 text-sm text-muted-mid w-28 shrink-0">Responses/mo</p>
 						<div class="flex-1 h-1.5 bg-surface-deep rounded-full overflow-hidden">
-							<div class="h-full rounded-full bg-text-blue" style="width: 30%"></div>
+							{#if responseLimit > 0}
+								{@const pct = Math.min(100, (billingInfo.monthlyResponseCount / responseLimit) * 100)}
+								<div
+									class="h-full rounded-full transition-all duration-300
+										{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"
+								></div>
+							{:else}
+								<div class="h-full rounded-full bg-text-blue" style="width: 30%"></div>
+							{/if}
 						</div>
 						<p class="m-0 text-sm text-muted-dim tabular-nums shrink-0 text-right w-20">
-							{billingInfo.monthlyResponseCount} <span class="text-muted-mid">∞</span>
+							{billingInfo.monthlyResponseCount}{responseLimit > 0 ? ` / ${responseLimit.toLocaleString()}` : ' ∞'}
 						</p>
 					</div>
 				</div>

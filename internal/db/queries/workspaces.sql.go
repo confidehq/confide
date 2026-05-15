@@ -148,6 +148,15 @@ func (q *Queries) DeleteWorkspaceMemberKey(ctx context.Context, arg DeleteWorksp
 	return err
 }
 
+const disableCustomDomain = `-- name: DisableCustomDomain :exec
+UPDATE custom_domains SET enabled = FALSE, cname_ok = FALSE, txt_ok = FALSE WHERE id = $1
+`
+
+func (q *Queries) DisableCustomDomain(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, disableCustomDomain, id)
+	return err
+}
+
 const enableCustomDomain = `-- name: EnableCustomDomain :exec
 UPDATE custom_domains SET enabled = TRUE, verified_at = NOW() WHERE id = $1
 `
@@ -405,15 +414,6 @@ func (q *Queries) InsertCustomDomain(ctx context.Context, arg InsertCustomDomain
 		&i.VerifiedAt,
 	)
 	return i, err
-}
-
-const disableCustomDomain = `-- name: DisableCustomDomain :exec
-UPDATE custom_domains SET enabled = FALSE, cname_ok = FALSE, txt_ok = FALSE WHERE id = $1
-`
-
-func (q *Queries) DisableCustomDomain(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, disableCustomDomain, id)
-	return err
 }
 
 const listAllEnabledCustomDomains = `-- name: ListAllEnabledCustomDomains :many
