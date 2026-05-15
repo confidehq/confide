@@ -102,8 +102,7 @@
 
 <nav
 	style="width: {sidebar.width}px;"
-	class="fixed top-0 left-0 h-screen bg-canvas flex flex-col z-40 overflow-hidden transition-[width,transform] duration-200 ease-linear font-mono
-		{sidebar.mobileOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0"
+	class="hidden sm:flex sm:flex-col fixed top-0 left-0 h-screen bg-canvas z-40 overflow-hidden transition-[width] duration-200 ease-linear font-mono"
 >
 	<!-- Logo / wordmark + collapse toggle -->
 	<div class="h-[52px] relative flex items-center justify-center shrink-0 border-b border-surface overflow-hidden whitespace-nowrap">

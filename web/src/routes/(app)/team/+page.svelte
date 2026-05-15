@@ -318,12 +318,12 @@
 				<!-- Role selector -->
 				<div class="shrink-0">
 					<label class="block text-xs text-muted-mid mb-1.5 uppercase tracking-wider">Role</label>
-					<div class="flex rounded-md overflow-hidden border border-border-deep">
+					<div class="flex rounded-md overflow-hidden border border-border-deep w-full sm:w-auto">
 						{#each inviteRoleOptions as role}
 							<button
 								type="button"
 								onclick={() => (inviteRole = role)}
-								class="px-3 py-2.5 text-sm font-mono capitalize border-r border-border-deep last:border-r-0 transition-colors duration-100 cursor-pointer
+								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border-deep last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
 										? 'bg-info-action-bg-mid text-text-blue border-b-2 border-b-info-border'
 										: 'bg-transparent text-muted-dim hover:text-muted-blue hover:bg-info-action-bg'}"
@@ -435,52 +435,86 @@
 		<div class="flex flex-col gap-2 sm:hidden">
 			{#each members as member (member.accountId)}
 				<div class="p-4 border border-border-deep rounded-lg">
-					<div class="flex items-start justify-between gap-2 mb-2">
-						<div class="min-w-0">
-							<p class="m-0 text-text-body text-base truncate">{member.username || '—'}</p>
-							<p class="m-0 text-muted-mid text-xs mt-0.5 truncate" title={member.accountId}>
-								{member.accountId.slice(0, 16)}…
-							</p>
+					<!-- Top row: avatar + name/id + role badge + menu -->
+					<div class="flex items-start gap-3">
+						<span class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-surface-deep border border-border-mid text-muted-dim text-xs font-semibold select-none">
+							{(member.username || '?').slice(0, 2).toUpperCase()}
+						</span>
+						<div class="flex-1 min-w-0">
+							<div class="flex items-center gap-2">
+								<p class="m-0 text-text-body text-sm truncate">
+									{member.username || 'No username'}
+									{#if member.accountId === auth.accountId}<span class="text-muted-mid font-normal"> (you)</span>{/if}
+								</p>
+								<span class="px-2 py-0.5 rounded-full text-xs text-muted-dim border border-border-deep capitalize shrink-0">{member.role}</span>
+							</div>
 						</div>
-						<div class="flex items-center gap-2 shrink-0">
-							<span class="inline-flex items-center gap-1 text-xs">
-								<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-warning-indicator'}"></span>
-								<span class="{member.status === 'active' ? 'text-muted-dim' : 'text-warning-text-dark'} capitalize">
-									{member.status === 'pending' && !identityKeys.has(member.accountId) ? 'awaiting setup' : member.status}
-								</span>
-							</span>
-							<span class="px-2 py-0.5 rounded-full text-xs text-muted-dim border border-border-deep capitalize">
-								{member.role}
-							</span>
-						</div>
-					</div>
-					<p class="m-0 text-muted-mid text-xs">
-						Joined {formatDate(member.joinedAt)}
-						{#if member.lastSeen}· Last login {formatDate(member.lastSeen)}{/if}
-					</p>
-					{#if canManage && member.accountId !== auth.accountId}
-						<div class="mt-3 flex gap-2 flex-wrap">
-							{#if member.status === 'pending' && identityKeys.has(member.accountId)}
+						{#if canManage && member.accountId !== auth.accountId}
+							<div class="relative shrink-0">
+								{#if openMenuId === member.accountId}
+									<div class="fixed inset-0 z-10" onclick={() => (openMenuId = null)} role="presentation"></div>
+								{/if}
 								<button
-									onclick={() => handleGrant(member)}
-									disabled={grantingId === member.accountId}
-									class="px-3 py-1.5 bg-success-action-bg text-success-text-dark border border-success-text rounded cursor-pointer font-mono text-xs hover:bg-success-bg-deep transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+									onclick={() => (openMenuId = openMenuId === member.accountId ? null : member.accountId)}
+									class="flex items-center justify-center w-7 h-7 bg-transparent border rounded cursor-pointer text-muted-mid transition-colors duration-100
+										{openMenuId === member.accountId
+											? 'text-text-body border-border-subtle bg-surface-3'
+											: 'border-transparent hover:border-border-deep hover:text-muted-blue'}"
+									aria-label="Member options"
 								>
-									<KeyRound size={11} strokeWidth={1.75} />
-									{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
+									<MoreHorizontal size={15} strokeWidth={1.75} />
 								</button>
-							{/if}
-							{#each availableRoles(member) as role}
-								<button
-									onclick={() => handleRoleChange(member, role)}
-									disabled={roleLoading}
-									class="px-3 py-1.5 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-xs hover:border-border hover:text-text-body transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed capitalize"
-								>Make {role}</button>
-							{/each}
+								{#if openMenuId === member.accountId}
+									<div class="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[180px] bg-canvas border border-border-mid rounded-lg shadow-[0_8px_24px_var(--color-overlay)] overflow-hidden py-1">
+										{#each availableRoles(member) as role}
+											<button
+												onclick={() => handleRoleChange(member, role)}
+												disabled={roleLoading}
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-muted-blue text-left transition-colors duration-100 hover:bg-surface-hover hover:text-text-body disabled:opacity-40 disabled:cursor-not-allowed capitalize"
+											>
+												<ShieldCheck size={13} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
+												Make {role}
+											</button>
+										{/each}
+										{#if availableRoles(member).length > 0}
+											<div class="border-t border-border-mid my-1"></div>
+										{/if}
+										<button
+											onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
+											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+										>
+											<UserMinus size={13} strokeWidth={1.75} class="shrink-0" />
+											Remove member
+										</button>
+									</div>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					<!-- Status + joined date -->
+					<div class="mt-2.5 flex items-center gap-2 text-xs text-muted-mid">
+						<span class="inline-flex items-center gap-1">
+							<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success-text-dark' : 'bg-warning-indicator'}"></span>
+							<span class="{member.status === 'active' ? 'text-muted-dim' : 'text-warning-text-dark'} capitalize">
+								{member.status === 'pending' && !identityKeys.has(member.accountId) ? 'Awaiting setup' : member.status === 'active' ? 'Active' : member.status}
+							</span>
+						</span>
+						<span class="text-border">·</span>
+						<span>Joined {formatDate(member.joinedAt)}</span>
+					</div>
+
+					<!-- Grant access (primary action shown inline) -->
+					{#if canManage && member.accountId !== auth.accountId && member.status === 'pending' && identityKeys.has(member.accountId)}
+						<div class="mt-3">
 							<button
-								onclick={() => { removeTarget = member; removeError = ''; }}
-								class="px-3 py-1.5 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-xs hover:border-border-danger-dark transition-colors duration-100"
-							>Remove</button>
+								onclick={() => handleGrant(member)}
+								disabled={grantingId === member.accountId}
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-action-bg text-success-text-dark border border-success-text rounded cursor-pointer font-mono text-xs hover:bg-success-bg-deep transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							>
+								<KeyRound size={11} strokeWidth={1.75} />
+								{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
+							</button>
 						</div>
 					{/if}
 				</div>
