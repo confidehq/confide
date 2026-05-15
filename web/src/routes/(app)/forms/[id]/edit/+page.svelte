@@ -172,9 +172,9 @@
 				</div>
 			</div>
 
-			<!-- Locale switcher — centered absolutely -->
+			<!-- Locale switcher — centered absolutely, desktop only (mobile: in FormSettingsPanel) -->
 			{#if store.schema.locales.length > 1}
-				<div class="absolute left-1/2 -translate-x-1/2 flex items-center pointer-events-none">
+				<div class="hidden sm:flex absolute left-1/2 -translate-x-1/2 items-center pointer-events-none">
 					<div class="relative flex items-center pointer-events-auto">
 						<Languages size={13} strokeWidth={1.75} class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-dark" />
 						<select

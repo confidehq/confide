@@ -4,7 +4,7 @@
 	import type { CustomDomainInfo } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
-	import { Link, Check, X, QrCode, Download } from '@lucide/svelte';
+	import { Link, Check, X, QrCode, Download, Languages, ChevronDown } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import QRCode from 'qrcode';
 
@@ -309,6 +309,30 @@
 	<div class="h-px bg-border-deep"></div>
 
 	<div class="p-5 flex flex-col gap-3.5">
+		<!-- Locale switcher — mobile only (desktop: in toolbar) -->
+		{#if store.schema.locales.length > 1}
+			<div class="sm:hidden">
+				<label class="block text-xs text-muted-mid mb-1.5 uppercase tracking-wider">Language</label>
+				<div class="relative">
+					<Languages size={13} strokeWidth={1.75} class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-dark" />
+					<select
+						value={store.activeLocale}
+						onchange={(e) => store.setActiveLocale((e.target as HTMLSelectElement).value)}
+						class="input-base w-full pl-8 pr-7 appearance-none cursor-pointer"
+					>
+						{#each store.schema.locales as locale}
+							<option value={locale}>
+								{new Intl.DisplayNames([locale, 'en'], { type: 'language' }).of(locale) ?? locale}
+							</option>
+						{/each}
+					</select>
+					<span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
+						<ChevronDown size={12} strokeWidth={1.75} />
+					</span>
+				</div>
+			</div>
+		{/if}
+
 		{#if isConvo}
 			<div>
 				<label class="block text-sm text-muted mb-1">Completion message</label>

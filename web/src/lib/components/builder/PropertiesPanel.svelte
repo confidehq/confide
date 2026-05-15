@@ -323,3 +323,27 @@
 		</div>
 	{/if}
 </aside>
+
+<style>
+	.properties-panel {
+		transform: translateY(100%);
+		transition: transform 0.2s ease;
+	}
+	.properties-panel.is-open {
+		transform: translateY(0);
+	}
+	@media (max-width: 639px) {
+		/* Neutralise the inline top:{panelTop}px on mobile so bottom-0 anchors the panel */
+		.properties-panel {
+			top: auto !important;
+		}
+	}
+	@media (min-width: 640px) {
+		.properties-panel {
+			transform: translateX(calc(100% + 8px));
+		}
+		.properties-panel.is-open {
+			transform: translateX(0);
+		}
+	}
+</style>

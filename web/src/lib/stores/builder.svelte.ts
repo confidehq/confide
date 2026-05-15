@@ -224,7 +224,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			translations: updatedTranslations,
 			...(schema.fieldOrders ? { fieldOrders: updatedFieldOrders } : {})
 		};
-		selectedFieldId = id;
 		markDirty();
 	}
 
@@ -269,7 +268,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			translations: updatedTranslations,
 			fieldOrders: updatedFieldOrders
 		};
-		selectedFieldId = id;
 		markDirty();
 	}
 
@@ -337,7 +335,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			translations: updatedTranslations,
 			fieldOrders: updatedFieldOrders
 		};
-		selectedFieldId = newId;
 		markDirty();
 	}
 

@@ -134,11 +134,7 @@
 		return { update() { autoGrow(el); } };
 	}
 
-	function focusField(fieldId: string) {
-		store.setSelectedField(fieldId);
-	}
-
-	function getOptionLabels(fieldId: string): string[] {
+function getOptionLabels(fieldId: string): string[] {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return [];
 		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
@@ -282,21 +278,23 @@
 				{#if isSectionBreak}
 					<!-- Section break: horizontal rule with inline-editable label -->
 					<div
-						role="button"
-						tabindex="0"
-						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
+						role="none"
+						onclick={(e) => e.stopPropagation()}
 						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'transparent'};"
-						class="flex items-center gap-3 px-3 py-2 border rounded-md cursor-pointer"
+						class="flex items-center gap-3 px-3 py-2 border rounded-md"
 					>
-						<span class="text-muted-dark cursor-grab flex"><GripVertical size={15} strokeWidth={1.75} /></span>
+						<button
+							onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+							class="bg-transparent border-none text-muted-dark cursor-grab flex p-0"
+							aria-label="Field settings"
+						><GripVertical size={15} strokeWidth={1.75} /></button>
 						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
 							<textarea
 								rows={1}
 								value={label}
 								placeholder={defaultLabel || 'Section label…'}
-								onclick={(e) => { e.stopPropagation(); focusField(field.id); }}
-								onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+								onclick={(e) => e.stopPropagation()}
+								onfocus={(e) => e.stopPropagation()}
 								oninput={(e) => {
 									const el = e.target as HTMLTextAreaElement;
 									autoGrow(el);
@@ -322,16 +320,22 @@
 					{@const headingWeights = ['400', '700', '700', '600']}
 					<!-- Heading block -->
 					<div
-						role="button"
-						tabindex="0"
-						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
+						role="none"
+						onclick={(e) => e.stopPropagation()}
 						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border-field)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'};"
-						class="px-3 py-2 border rounded-md cursor-pointer"
+						class="px-3 py-2 border rounded-md"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
-							<span class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0">{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</span>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								aria-label="Field settings"
+							><GripVertical size={15} strokeWidth={1.75} /></button>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface-hover transition-colors duration-100"
+								aria-label="Open field settings"
+							>{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</button>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
@@ -349,7 +353,7 @@
 							value={label}
 							placeholder={defaultLabel || 'Heading text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
 							style="color: {label ? 'var(--color-text-bright)' : 'var(--color-border)'}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
@@ -359,7 +363,7 @@
 							value={helpText}
 							placeholder={defaultHelpText || 'Help text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-border)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-[inherit] px-1 py-0.5 leading-relaxed"
@@ -376,10 +380,8 @@
 					}[accentVariant]}
 					<!-- Accent block -->
 					<div
-						role="button"
-						tabindex="0"
-						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
+						role="none"
+						onclick={(e) => e.stopPropagation()}
 						style="
 							border-left: 3px solid {accentColors.border};
 							border-top: 1px solid {isSelected ? 'var(--color-primary)' : 'var(--color-info-border-subtle)'};
@@ -387,14 +389,20 @@
 							border-bottom: 1px solid {isSelected ? 'var(--color-primary)' : 'var(--color-info-border-subtle)'};
 							background: {accentColors.bg};
 						"
-						class="px-3 py-2.5 rounded-r-md cursor-pointer"
+						class="px-3 py-2.5 rounded-r-md"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
-							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
-							<span
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								aria-label="Field settings"
+							><GripVertical size={15} strokeWidth={1.75} /></button>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
 								style="background: {accentColors.badgeBg}; color: {accentColors.badge}; border-color: {accentColors.border}44;"
-								class="px-1.5 py-px border rounded-full text-xs shrink-0"
-							>{accentVariant}</span>
+								class="px-1.5 py-px border rounded-full text-xs shrink-0 font-mono cursor-pointer hover:opacity-80 transition-opacity duration-100"
+								aria-label="Open field settings"
+							>{accentVariant}</button>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
@@ -412,7 +420,7 @@
 							value={label}
 							placeholder={defaultLabel || 'Title…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
 							style="color: {label ? accentColors.badge : 'var(--color-text-subtle)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-semibold font-[inherit] px-1 py-0.5 mb-0.5"
@@ -422,7 +430,7 @@
 							value={helpText}
 							placeholder={defaultHelpText || 'Body text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-text-note)' : 'var(--color-text-subtle)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
@@ -432,20 +440,26 @@
 				{:else}
 					<!-- Regular field card: vertical layout with inline editable label + help text -->
 					<div
-						role="button"
-						tabindex="0"
-						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') store.setSelectedField(field.id); }}
+						role="none"
+						onclick={(e) => e.stopPropagation()}
 						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'};"
-						class="px-4 py-3.5 border rounded-md cursor-pointer"
+						class="px-4 py-3.5 border rounded-md"
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
 						<div class="flex items-center gap-2 mb-3">
-							<span class="text-muted-dark cursor-grab shrink-0 flex"><GripVertical size={15} strokeWidth={1.75} /></span>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								aria-label="Field settings"
+							><GripVertical size={15} strokeWidth={1.75} /></button>
 
-							<span class="px-2 py-0.5 bg-border text-muted rounded-full text-xs shrink-0">
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="px-2 py-0.5 bg-border text-muted rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface-hover transition-colors duration-100"
+								aria-label="Open field settings"
+							>
 								{FIELD_TYPE_LABELS[field.type] ?? field.type}
-							</span>
+							</button>
 
 							<span class="flex-1"></span>
 
@@ -480,7 +494,7 @@
 							value={label}
 							placeholder={defaultLabel || 'Label…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => {
 								const el = e.target as HTMLTextAreaElement;
 								autoGrow(el);
@@ -497,7 +511,7 @@
 							value={helpText}
 							placeholder={defaultHelpText || 'Add help text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+							onfocus={(e) => e.stopPropagation()}
 							oninput={(e) => {
 								const el = e.target as HTMLTextAreaElement;
 								autoGrow(el);
@@ -516,7 +530,7 @@
 										value={placeholder}
 										placeholder={defaultPlaceholder || 'e.g. Enter your answer…'}
 										onclick={(e) => e.stopPropagation()}
-										onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+										onfocus={(e) => e.stopPropagation()}
 										oninput={(e) => {
 											const el = e.target as HTMLTextAreaElement;
 											autoGrow(el);
@@ -556,7 +570,7 @@
 											type="text"
 											value={optLabel}
 											placeholder="Option {i + 1}"
-											onfocus={(e) => { e.stopPropagation(); focusField(field.id); }}
+											onfocus={(e) => e.stopPropagation()}
 											oninput={(e) => setOptionLabel(field.id, i, (e.target as HTMLInputElement).value)}
 											style="color: {optLabel ? 'var(--color-text-dim)' : 'var(--color-text-subtle)'};"
 											class="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-[inherit] py-px"
@@ -575,7 +589,7 @@
 									</div>
 								{/if}
 								<button
-									onclick={(e) => { e.stopPropagation(); focusField(field.id); addOption(field.id); }}
+									onclick={(e) => { e.stopPropagation(); addOption(field.id); }}
 									class="self-start bg-transparent border-none text-muted-dark text-sm cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-muted"
 								>+ Add option</button>
 							</div>
@@ -660,7 +674,10 @@
 
 	<!-- Add field button -->
 	{#if store.mode !== 'preview'}
-	<div class="sticky bottom-0 max-w-4xl mx-auto w-full pt-3 pb-4" style="background: linear-gradient(to bottom, transparent, var(--color-surface) 40%);">
+	<div
+		class="fixed sm:sticky bottom-[76px] sm:bottom-0 left-3 right-3 sm:left-auto sm:right-auto sm:w-full max-w-4xl sm:mx-auto pt-3 pb-3 z-10"
+		style="background: linear-gradient(to bottom, transparent, var(--color-surface) 40%);"
+	>
 		<button
 			onclick={(e) => openSlot(e, fields.length > 0 ? fields.length - 1 : -1, 'above')}
 			class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
