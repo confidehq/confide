@@ -274,8 +274,6 @@ func loginFinish(svc *Service, dev bool) http.HandlerFunc {
 			return
 		}
 
-		syncBackupEligible(svc, r, envelope.Credential)
-
 		// Reconstruct request containing only the credential payload.
 		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
 			io.NopCloser(bytes.NewReader(envelope.Credential)))
@@ -582,8 +580,6 @@ func reauthFinish(svc *Service) http.HandlerFunc {
 			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
 			return
 		}
-
-		syncBackupEligible(svc, r, envelope.Credential)
 
 		newReq, err := http.NewRequestWithContext(r.Context(), http.MethodPost, r.URL.String(),
 			io.NopCloser(bytes.NewReader(envelope.Credential)))
@@ -1054,16 +1050,6 @@ func pairingComplete(svc *Service, dev bool) http.HandlerFunc {
 	}
 }
 
-// syncBackupEligible pre-syncs the BackupEligible flag from an assertion JSON
-// so FinishDiscoverableLogin's consistency check passes.
-func syncBackupEligible(svc *Service, r *http.Request, credJSON []byte) {
-	if credID, err := extractCredentialID(credJSON); err == nil {
-		if be, err := extractBackupEligible(credJSON); err == nil {
-			svc.SyncBackupEligible(r.Context(), credID, be)
-		}
-	}
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
@@ -1095,40 +1081,6 @@ func setSessionCookie(w http.ResponseWriter, token string, dev bool) {
 		Secure:   !dev, // Secure requires HTTPS; disable for local HTTP dev
 		SameSite: http.SameSiteStrictMode,
 	})
-}
-
-// extractBackupEligible reads the BackupEligible flag (bit 3 of the authenticator
-// flags byte) from a raw WebAuthn assertion JSON without consuming an http.Request.
-// extractCredentialID parses the rawId field from a WebAuthn assertion JSON.
-func extractCredentialID(credJSON []byte) ([]byte, error) {
-	var parsed struct {
-		RawID string `json:"rawId"`
-	}
-	if err := json.Unmarshal(credJSON, &parsed); err != nil {
-		return nil, err
-	}
-	return base64.RawURLEncoding.DecodeString(parsed.RawID)
-}
-
-func extractBackupEligible(credJSON []byte) (bool, error) {
-	var parsed struct {
-		Response struct {
-			AuthenticatorData string `json:"authenticatorData"`
-		} `json:"response"`
-	}
-	if err := json.Unmarshal(credJSON, &parsed); err != nil {
-		return false, err
-	}
-	// authenticatorData is base64url-encoded; flags byte is at offset 32.
-	authData, err := base64.RawURLEncoding.DecodeString(parsed.Response.AuthenticatorData)
-	if err != nil {
-		return false, err
-	}
-	if len(authData) < 33 {
-		return false, nil
-	}
-	// Bit 3 (0x08) is the BE (BackupEligible) flag per the WebAuthn spec.
-	return authData[32]&0x08 != 0, nil
 }
 
 func clearSessionCookie(w http.ResponseWriter) {

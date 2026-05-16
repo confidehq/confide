@@ -1,12 +1,15 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -490,6 +493,16 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
+	// Peek at the assertion body to read the BackupEligible flag before the
+	// library validates it. go-webauthn rejects assertions where BE differs from
+	// the stored credential, but BE can legitimately change (e.g. a credential
+	// migrates to a synced keychain). By setting the flag on the credential struct
+	// before handing it to the library, we avoid a pre-write to the DB on every
+	// login; the post-update below persists any real change after verification.
+	body, _ := io.ReadAll(r.Body)
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	assertionBE, hasBE := parseAssertionBackupEligible(body)
+
 	var usedCredID []byte
 	var accountID string
 
@@ -498,6 +511,9 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, sd.AllowedCredentialIDs[0])
 		if err != nil {
 			return nil, ErrNotFound
+		}
+		if hasBE {
+			credRow.BackupEligible = assertionBE
 		}
 		user := credRowToWAUser(credRow)
 		cred, err := s.wa.FinishLogin(user, *sd, r)
@@ -520,6 +536,9 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 			credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 			if err != nil {
 				return nil, ErrNotFound
+			}
+			if hasBE {
+				credRow.BackupEligible = assertionBE
 			}
 			accountID = credRow.AccountID
 			return credRowToWAUser(credRow), nil
@@ -640,11 +659,18 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
+	body, _ := io.ReadAll(r.Body)
+	r.Body = io.NopCloser(bytes.NewReader(body))
+	assertionBE, hasBE := parseAssertionBackupEligible(body)
+
 	var usedCredID []byte
 	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
 		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 		if err != nil {
 			return nil, ErrNotFound
+		}
+		if hasBE {
+			credRow.BackupEligible = assertionBE
 		}
 		accountID = credRow.AccountID
 		return credRowToWAUser(credRow), nil
@@ -1018,20 +1044,6 @@ func (s *Service) Recover(ctx context.Context, username string, codeHash []byte)
 	}, nil
 }
 
-// SyncBackupEligible updates the stored BackupEligible flag when it differs
-// from the value observed in the authenticator. Called before FinishDiscoverableLogin
-// so the consistency check inside go-webauthn sees a matching value.
-func (s *Service) SyncBackupEligible(ctx context.Context, credentialID []byte, be bool) {
-	credRow, err := s.db.GetCredentialByWebAuthnID(ctx, credentialID)
-	if err != nil || credRow.BackupEligible == be {
-		return
-	}
-	_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-		CredentialID:   credentialID,
-		BackupEligible: be,
-	})
-}
-
 // ─── Session management ───────────────────────────────────────────────────────
 
 // ValidateSession looks up the session by cookie token, touches last_seen, and
@@ -1182,6 +1194,25 @@ func (u *waUser) WebAuthnID() []byte                         { return u.id }
 func (u *waUser) WebAuthnName() string                       { return u.name }
 func (u *waUser) WebAuthnDisplayName() string                { return u.displayName }
 func (u *waUser) WebAuthnCredentials() []webauthn.Credential { return u.credentials }
+
+// parseAssertionBackupEligible extracts the BackupEligible flag (bit 3 of the
+// authenticator flags byte) from a raw WebAuthn assertion JSON. Returns the flag
+// value and true if parsing succeeded; false if the body is malformed or short.
+func parseAssertionBackupEligible(body []byte) (be bool, ok bool) {
+	var parsed struct {
+		Response struct {
+			AuthenticatorData string `json:"authenticatorData"`
+		} `json:"response"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil || parsed.Response.AuthenticatorData == "" {
+		return false, false
+	}
+	authData, err := base64.RawURLEncoding.DecodeString(parsed.Response.AuthenticatorData)
+	if err != nil || len(authData) < 33 {
+		return false, false
+	}
+	return authData[32]&0x08 != 0, true
+}
 
 // credRowToWAUser builds a waUser from a GetCredentialByWebAuthnID row.
 func credRowToWAUser(row queries.GetCredentialByWebAuthnIDRow) *waUser {
