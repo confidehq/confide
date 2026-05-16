@@ -924,11 +924,6 @@ func (s *Service) PairingComplete(ctx context.Context, token string, prfSalt, wr
 		return nil, fmt.Errorf("FinishRegistration: %w", err)
 	}
 
-	credRow, err := s.insertCredential(ctx, sess.accountID, cred, prfSalt, wrappedMasterKey, name)
-	if err != nil {
-		return nil, err
-	}
-
 	sessionToken, tokenHash, err := newSessionToken()
 	if err != nil {
 		return nil, err
@@ -937,14 +932,47 @@ func (s *Service) PairingComplete(ctx context.Context, token string, prfSalt, wr
 	if err != nil {
 		return nil, err
 	}
-	if _, err := s.db.CreateSession(ctx, queries.CreateSessionParams{
-		ID:           sessionID,
-		AccountID:    sess.accountID,
-		TokenHash:    tokenHash,
-		CredentialID: cred.ID,
-		UserAgent:    userAgent,
-	}); err != nil {
-		return nil, fmt.Errorf("CreateSession: %w", err)
+	credRowID, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+
+	var credRow queries.Credential
+	err = s.withTx(ctx, func(tx pgx.Tx) error {
+		q := queries.New(tx)
+
+		var txErr error
+		credRow, txErr = q.CreateCredential(ctx, queries.CreateCredentialParams{
+			ID:               credRowID,
+			AccountID:        sess.accountID,
+			CredentialID:     cred.ID,
+			PublicKey:        cred.PublicKey,
+			PrfSalt:          prfSalt,
+			WrappedMasterKey: wrappedMasterKey,
+			BackupEligible:   cred.Flags.BackupEligible,
+			Name:             name,
+		})
+		if txErr != nil {
+			if isDuplicateKey(txErr) {
+				return ErrDuplicateAccount
+			}
+			return fmt.Errorf("CreateCredential: %w", txErr)
+		}
+
+		if _, txErr = q.CreateSession(ctx, queries.CreateSessionParams{
+			ID:           sessionID,
+			AccountID:    sess.accountID,
+			TokenHash:    tokenHash,
+			CredentialID: cred.ID,
+			UserAgent:    userAgent,
+		}); txErr != nil {
+			return fmt.Errorf("CreateSession: %w", txErr)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &PairingCompleteResult{
