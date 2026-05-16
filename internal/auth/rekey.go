@@ -109,16 +109,15 @@ func (s *Service) RekeyBegin(ctx context.Context, rekeyToken string) (*RekeyBegi
 		return nil, fmt.Errorf("invalid or expired rekey token")
 	}
 
-	account, err := s.db.GetAccountByID(ctx, accountID)
-	if err != nil {
-		return nil, ErrNotFound
-	}
-
-	user := accountToWAUser(account)
 	// Generate a fresh PRF salt for the new credential.
 	prfSalt, err := randomBytes(32)
 	if err != nil {
 		return nil, fmt.Errorf("randomBytes: %w", err)
+	}
+
+	user, err := s.getWAUser(ctx, accountID)
+	if err != nil {
+		return nil, ErrNotFound
 	}
 
 	creation, sd, err := s.wa.BeginRegistration(user,
@@ -158,17 +157,15 @@ func (s *Service) RekeyFinish(ctx context.Context, req *RekeyFinishRequest, user
 		return nil, fmt.Errorf("invalid or expired rekey token")
 	}
 
-	account, err := s.db.GetAccountByID(ctx, accountID)
-	if err != nil {
-		return nil, ErrNotFound
-	}
-
 	sd, ok := s.challenges.take("rekey:" + accountID)
 	if !ok {
 		return nil, fmt.Errorf("challenge not found or expired")
 	}
 
-	user := accountToWAUser(account)
+	user, err := s.getWAUser(ctx, accountID)
+	if err != nil {
+		return nil, ErrNotFound
+	}
 	cred, err := s.wa.FinishRegistration(user, *sd, r)
 	if err != nil {
 		return nil, fmt.Errorf("FinishRegistration: %w", err)

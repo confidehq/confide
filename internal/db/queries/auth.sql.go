@@ -374,6 +374,37 @@ func (q *Queries) GetCredentialForLogin(ctx context.Context, credentialID []byte
 	return i, err
 }
 
+const getPrfSaltsByAccount = `-- name: GetPrfSaltsByAccount :many
+SELECT credential_id, prf_salt FROM credentials
+WHERE account_id = $1
+ORDER BY created_at ASC
+`
+
+type GetPrfSaltsByAccountRow struct {
+	CredentialID []byte
+	PrfSalt      []byte
+}
+
+func (q *Queries) GetPrfSaltsByAccount(ctx context.Context, accountID string) ([]GetPrfSaltsByAccountRow, error) {
+	rows, err := q.db.Query(ctx, getPrfSaltsByAccount, accountID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPrfSaltsByAccountRow
+	for rows.Next() {
+		var i GetPrfSaltsByAccountRow
+		if err := rows.Scan(&i.CredentialID, &i.PrfSalt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPrimaryCredentialByAccount = `-- name: GetPrimaryCredentialByAccount :one
 SELECT prf_salt FROM credentials
 WHERE account_id = $1

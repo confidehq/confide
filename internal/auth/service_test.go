@@ -258,6 +258,16 @@ func (m *mockDB) GetAllPrfSalts(_ context.Context) ([]queries.GetAllPrfSaltsRow,
 	return rows, nil
 }
 
+func (m *mockDB) GetPrfSaltsByAccount(_ context.Context, accountID string) ([]queries.GetPrfSaltsByAccountRow, error) {
+	var rows []queries.GetPrfSaltsByAccountRow
+	for _, c := range m.credentials {
+		if c.AccountID == accountID {
+			rows = append(rows, queries.GetPrfSaltsByAccountRow{CredentialID: c.CredentialID, PrfSalt: c.PrfSalt})
+		}
+	}
+	return rows, nil
+}
+
 func (m *mockDB) ListCredentialsByAccount(_ context.Context, accountID string) ([]queries.ListCredentialsByAccountRow, error) {
 	var out []queries.ListCredentialsByAccountRow
 	for _, c := range m.credentials {

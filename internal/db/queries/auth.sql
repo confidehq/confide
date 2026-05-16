@@ -97,6 +97,11 @@ LIMIT 1;
 -- name: GetAllPrfSalts :many
 SELECT credential_id, prf_salt FROM credentials;
 
+-- name: GetPrfSaltsByAccount :many
+SELECT credential_id, prf_salt FROM credentials
+WHERE account_id = $1
+ORDER BY created_at ASC;
+
 -- name: ListCredentialsByAccount :many
 SELECT id, account_id, credential_id, backup_eligible, name, created_at
 FROM credentials

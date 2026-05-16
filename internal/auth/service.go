@@ -57,6 +57,7 @@ type DB interface {
 	GetPrimaryCredentialByAccount(ctx context.Context, accountID string) ([]byte, error)
 	GetPrimaryCredentialIDByAccount(ctx context.Context, accountID string) ([]byte, error)
 	GetAllPrfSalts(ctx context.Context) ([]queries.GetAllPrfSaltsRow, error)
+	GetPrfSaltsByAccount(ctx context.Context, accountID string) ([]queries.GetPrfSaltsByAccountRow, error)
 	ListCredentialsByAccount(ctx context.Context, accountID string) ([]queries.ListCredentialsByAccountRow, error)
 	UpdateCredentialName(ctx context.Context, arg queries.UpdateCredentialNameParams) error
 	UpdateCredentialBackupEligible(ctx context.Context, arg queries.UpdateCredentialBackupEligibleParams) error
@@ -581,24 +582,40 @@ type ReauthBeginResult struct {
 }
 
 // ReauthBegin issues a WebAuthn challenge for an already-authenticated user.
-// Uses the account's primary (oldest) credential salt in prf.eval.first.
+// Populates allowCredentials with all of the account's registered credentials and
+// uses evalByCredential so the browser only offers valid keys for this account and
+// applies the correct per-credential PRF salt regardless of which key is used.
 func (s *Service) ReauthBegin(ctx context.Context, accountID string) (*ReauthBeginResult, error) {
-	prfSalt, err := s.db.GetPrimaryCredentialByAccount(ctx, accountID)
-	if err != nil {
+	salts, err := s.db.GetPrfSaltsByAccount(ctx, accountID)
+	if err != nil || len(salts) == 0 {
 		return nil, ErrNotFound
 	}
-	assertion, sd, err := s.wa.BeginDiscoverableLogin(
-		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
-			"prf": map[string]any{
-				"eval": map[string]any{
-					"first": protocol.URLEncodedBase64(prfSalt),
-				},
-			},
-		}),
-	)
+
+	assertion, sd, err := s.wa.BeginDiscoverableLogin()
 	if err != nil {
 		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
 	}
+
+	allowedCreds := make([]protocol.CredentialDescriptor, len(salts))
+	evalByCredential := make(map[string]any, len(salts))
+	for i, salt := range salts {
+		allowedCreds[i] = protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: salt.CredentialID,
+		}
+		credKey := base64.RawURLEncoding.EncodeToString(salt.CredentialID)
+		evalByCredential[credKey] = map[string]any{
+			"first": protocol.URLEncodedBase64(salt.PrfSalt),
+		}
+	}
+	assertion.Response.AllowedCredentials = allowedCreds
+	if assertion.Response.Extensions == nil {
+		assertion.Response.Extensions = protocol.AuthenticationExtensions{}
+	}
+	assertion.Response.Extensions["prf"] = map[string]any{
+		"evalByCredential": evalByCredential,
+	}
+
 	challengeKey, err := randomBase64URL(16)
 	if err != nil {
 		return nil, err
@@ -689,11 +706,10 @@ func (s *Service) AddCredentialBegin(ctx context.Context, accountID, addCredToke
 		return nil, fmt.Errorf("randomBytes: %w", err)
 	}
 
-	account, err := s.db.GetAccountByID(ctx, accountID)
+	user, err := s.getWAUser(ctx, accountID)
 	if err != nil {
-		return nil, fmt.Errorf("GetAccountByID: %w", err)
+		return nil, fmt.Errorf("getWAUser: %w", err)
 	}
-	user := accountToWAUser(account)
 	creation, sd, err := s.wa.BeginRegistration(user,
 		webauthn.WithExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
@@ -823,11 +839,10 @@ func (s *Service) PairingRequest(ctx context.Context, token string, newDevicePub
 		return nil, fmt.Errorf("randomBytes: %w", err)
 	}
 
-	account, err := s.db.GetAccountByID(ctx, accountID)
+	user, err := s.getWAUser(ctx, accountID)
 	if err != nil {
-		return nil, fmt.Errorf("GetAccountByID: %w", err)
+		return nil, fmt.Errorf("getWAUser: %w", err)
 	}
-	user := accountToWAUser(account)
 	creation, sd, err := s.wa.BeginRegistration(user,
 		webauthn.WithExtensions(protocol.AuthenticationExtensions{
 			"prf": map[string]any{
@@ -1190,17 +1205,31 @@ func credRowToWAUser(row queries.GetCredentialByWebAuthnIDRow) *waUser {
 	}
 }
 
-// accountToWAUser builds a waUser from an Account row (no credential data).
-// Used for registration ceremonies (rekey, add-credential) where excludeCredentials
-// is not critical.
-func accountToWAUser(a queries.Account) *waUser {
+// getWAUser fetches the account and all its registered credential IDs, then
+// returns a fully-populated waUser. Use this for registration ceremonies
+// (BeginRegistration) so go-webauthn can build a correct excludeCredentials list.
+// Only credential IDs are needed; public keys are not required at registration time.
+func (s *Service) getWAUser(ctx context.Context, accountID string) (*waUser, error) {
+	a, err := s.db.GetAccountByID(ctx, accountID)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := s.db.ListCredentialsByAccount(ctx, a.ID)
+	if err != nil {
+		return nil, err
+	}
 	name := a.ID
 	if a.Username.Valid && a.Username.String != "" {
 		name = a.Username.String
+	}
+	creds := make([]webauthn.Credential, len(rows))
+	for i, row := range rows {
+		creds[i] = webauthn.Credential{ID: row.CredentialID}
 	}
 	return &waUser{
 		id:          []byte(a.ID),
 		name:        name,
 		displayName: name,
-	}
+		credentials: creds,
+	}, nil
 }
