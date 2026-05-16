@@ -30,6 +30,9 @@
 		"vite": "^7.3.1",
 		"vitest": "^4.1.0"
 	},
+	"pnpm": {
+		"onlyBuiltDependencies": ["esbuild"]
+	},
 	"dependencies": {
 		"@lucide/svelte": "^1.7.0",
 		"openpgp": "^6.3.0",
