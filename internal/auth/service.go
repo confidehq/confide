@@ -443,7 +443,7 @@ func (s *Service) loginBeginDiscoverable(ctx context.Context) (*LoginBeginResult
 		return nil, fmt.Errorf("GetAllPrfSalts: %w", err)
 	}
 	if len(salts) == 0 {
-		return nil, fmt.Errorf("no registered accounts: please sign up first")
+		return nil, ErrNotFound
 	}
 
 	assertion, sd, err := s.wa.BeginDiscoverableLogin()
@@ -721,8 +721,9 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 // ─── Add Credential ───────────────────────────────────────────────────────────
 
 type AddCredentialBeginResult struct {
-	PRFSalt  []byte
-	Creation *protocol.CredentialCreation
+	PRFSalt      []byte
+	Creation     *protocol.CredentialCreation
+	ChallengeKey string
 }
 
 // AddCredentialBegin starts a registration ceremony to add a new passkey to an
@@ -754,12 +755,17 @@ func (s *Service) AddCredentialBegin(ctx context.Context, accountID, addCredToke
 		return nil, fmt.Errorf("BeginRegistration: %w", err)
 	}
 
-	s.challenges.set("add-cred:"+accountID, sd)
-	return &AddCredentialBeginResult{PRFSalt: prfSalt, Creation: creation}, nil
+	challengeKey, err := randomBase64URL(16)
+	if err != nil {
+		return nil, err
+	}
+	s.challenges.set(challengeKey, sd)
+	return &AddCredentialBeginResult{PRFSalt: prfSalt, Creation: creation, ChallengeKey: challengeKey}, nil
 }
 
 type AddCredentialFinishRequest struct {
 	AddCredToken     string
+	ChallengeKey     string
 	WrappedMasterKey []byte
 	PRFSalt          []byte
 	Name             string
@@ -777,7 +783,7 @@ func (s *Service) AddCredentialFinish(ctx context.Context, accountID string, req
 		return nil, fmt.Errorf("invalid or expired add-credential token")
 	}
 
-	sd, ok := s.challenges.take("add-cred:" + accountID)
+	sd, ok := s.challenges.take(req.ChallengeKey)
 	if !ok {
 		return nil, fmt.Errorf("challenge not found or expired")
 	}

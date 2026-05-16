@@ -632,8 +632,9 @@ func addCredentialBegin(svc *Service) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
-			"options": res.Creation,
-			"prfSalt": base64.StdEncoding.EncodeToString(res.PRFSalt),
+			"options":      res.Creation,
+			"prfSalt":      base64.StdEncoding.EncodeToString(res.PRFSalt),
+			"challengeKey": res.ChallengeKey,
 		})
 	}
 }
@@ -650,6 +651,7 @@ func addCredentialFinish(svc *Service) http.HandlerFunc {
 
 		var req struct {
 			AddCredentialToken string          `json:"addCredentialToken"`
+			ChallengeKey       string          `json:"challengeKey"`
 			PRFSalt            string          `json:"prfSalt"`
 			WrappedMasterKey   string          `json:"wrappedMasterKey"`
 			Name               string          `json:"name"`
@@ -681,6 +683,7 @@ func addCredentialFinish(svc *Service) http.HandlerFunc {
 
 		svcReq := &AddCredentialFinishRequest{
 			AddCredToken:     req.AddCredentialToken,
+			ChallengeKey:     req.ChallengeKey,
 			WrappedMasterKey: wmk,
 			PRFSalt:          prfSalt,
 			Name:             req.Name,
