@@ -1,15 +1,12 @@
 package auth
 
 import (
-	"bytes"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
@@ -428,12 +425,13 @@ func (s *Service) loginBeginTargeted(ctx context.Context, credentialID []byte) (
 	return &LoginBeginResult{Assertion: assertion, ChallengeKey: challengeKey}, nil
 }
 
-// loginBeginDiscoverable populates allowCredentials with every registered credential
-// and uses evalByCredential to map each to its own PRF salt. The browser still shows
-// its passkey picker, but applies the correct per-credential PRF salt to whichever
-// passkey the user selects. Using eval.first with empty allowCredentials (true
-// discoverable mode) would apply one salt to all credentials, producing a wrong KEK
-// for any account other than the one whose salt was chosen.
+// loginBeginDiscoverable starts a discoverable login ceremony but patches the
+// assertion options to include all registered credentials in allowCredentials and
+// evalByCredential. The browser only honours evalByCredential when allowCredentials
+// is non-empty, so sending both lets the passkey picker appear while ensuring the
+// correct per-credential PRF salt is applied to whichever passkey the user selects.
+// The session remains discoverable (BeginDiscoverableLogin sets Discoverable: true)
+// so FinishDiscoverableLogin works on the server side.
 func (s *Service) loginBeginDiscoverable(ctx context.Context) (*LoginBeginResult, error) {
 	salts, err := s.db.GetAllPrfSalts(ctx)
 	if err != nil {
@@ -443,34 +441,32 @@ func (s *Service) loginBeginDiscoverable(ctx context.Context) (*LoginBeginResult
 		return nil, fmt.Errorf("no registered accounts: please sign up first")
 	}
 
-	waCredentials := make([]webauthn.Credential, len(salts))
+	assertion, sd, err := s.wa.BeginDiscoverableLogin()
+	if err != nil {
+		return nil, fmt.Errorf("BeginDiscoverableLogin: %w", err)
+	}
+
+	// Patch allowCredentials so the browser activates evalByCredential.
+	allowedCreds := make([]protocol.CredentialDescriptor, len(salts))
 	evalByCredential := make(map[string]any, len(salts))
 	for i, salt := range salts {
-		waCredentials[i] = webauthn.Credential{ID: salt.CredentialID}
-		// Key must be the base64url (no-padding) encoding of the credential ID,
-		// matching how go-webauthn serialises allowCredentials[i].id in JSON.
+		allowedCreds[i] = protocol.CredentialDescriptor{
+			Type:         protocol.PublicKeyCredentialType,
+			CredentialID: salt.CredentialID,
+		}
+		// Key must match the base64url (no-padding) encoding go-webauthn uses for
+		// allowCredentials[i].id in JSON so the browser can correlate them.
 		credKey := base64.RawURLEncoding.EncodeToString(salt.CredentialID)
 		evalByCredential[credKey] = map[string]any{
 			"first": protocol.URLEncodedBase64(salt.PrfSalt),
 		}
 	}
-
-	pseudoUser := &waUser{
-		id:          []byte("multi"),
-		name:        "multi",
-		displayName: "multi",
-		credentials: waCredentials,
+	assertion.Response.AllowedCredentials = allowedCreds
+	if assertion.Response.Extensions == nil {
+		assertion.Response.Extensions = protocol.AuthenticationExtensions{}
 	}
-
-	assertion, sd, err := s.wa.BeginLogin(pseudoUser,
-		webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
-			"prf": map[string]any{
-				"evalByCredential": evalByCredential,
-			},
-		}),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("BeginLogin (multi-cred): %w", err)
+	assertion.Response.Extensions["prf"] = map[string]any{
+		"evalByCredential": evalByCredential,
 	}
 
 	challengeKey, err := randomBase64URL(16)
@@ -517,44 +513,29 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 			})
 		}
 	} else {
-		// Multi-credential login (loginBeginDiscoverable path): BeginLogin was called
-		// with all credentials. FinishDiscoverableLogin is rejected because the session
-		// was not created by BeginDiscoverableLogin. Instead, peek at the assertion rawID
-		// to identify which credential signed, load just that one, and use FinishLogin.
-		body, err := io.ReadAll(r.Body)
+		// Discoverable login (loginBeginDiscoverable path): look up the credential by
+		// rawID — that is the one that actually signed.
+		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+			credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+			if err != nil {
+				return nil, ErrNotFound
+			}
+			accountID = credRow.AccountID
+			return credRowToWAUser(credRow), nil
+		}
+		cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
 		if err != nil {
-			return nil, fmt.Errorf("read assertion body: %w", err)
-		}
-		r.Body = io.NopCloser(bytes.NewReader(body))
-
-		var assertion struct {
-			ID string `json:"id"` // base64url credential ID
-		}
-		if err := json.Unmarshal(body, &assertion); err != nil || assertion.ID == "" {
-			return nil, fmt.Errorf("parse assertion id: %w", err)
-		}
-		rawID, err := base64.RawURLEncoding.DecodeString(assertion.ID)
-		if err != nil {
-			return nil, fmt.Errorf("decode assertion id: %w", err)
-		}
-
-		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
-		if err != nil {
-			return nil, ErrNotFound
-		}
-		user := credRowToWAUser(credRow)
-		cred, err := s.wa.FinishLogin(user, *sd, r)
-		if err != nil {
-			return nil, fmt.Errorf("FinishLogin (multi-cred): %w", err)
+			return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
 		}
 		usedCredID = cred.ID
-		accountID = credRow.AccountID
 
-		if credRow.BackupEligible != cred.Flags.BackupEligible {
-			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-				CredentialID:   cred.ID,
-				BackupEligible: cred.Flags.BackupEligible,
-			})
+		if credRow, cerr := s.db.GetCredentialByWebAuthnID(ctx, cred.ID); cerr == nil {
+			if credRow.BackupEligible != cred.Flags.BackupEligible {
+				_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+					CredentialID:   cred.ID,
+					BackupEligible: cred.Flags.BackupEligible,
+				})
+			}
 		}
 	}
 
