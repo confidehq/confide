@@ -690,7 +690,7 @@ func addCredentialFinish(svc *Service) http.HandlerFunc {
 		if err != nil {
 			status := http.StatusInternalServerError
 			code := "add_cred_finish_failed"
-			if err == ErrDuplicateAccount {
+			if err == ErrDuplicateCredential {
 				status = http.StatusConflict
 				code = "credential_exists"
 			}
@@ -1030,7 +1030,7 @@ func pairingComplete(svc *Service, dev bool) http.HandlerFunc {
 				writeError(w, http.StatusConflict, "pairing_conflict", "pairing is not in the expected state")
 			case ErrTooManyAttempts:
 				writeError(w, http.StatusTooManyRequests, "too_many_attempts", "too many attempts")
-			case ErrDuplicateAccount:
+			case ErrDuplicateCredential:
 				writeError(w, http.StatusConflict, "credential_exists", safeErr(err))
 			default:
 				log.Error().Err(err).Msg("pairing_complete_failed")
@@ -1065,7 +1065,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 func safeErr(err error) string {
 	// In production, never leak internal error details.
 	// Return a generic message for 5xx; for known errors return their text.
-	if err == ErrNotFound || err == ErrDuplicateAccount || err == ErrInvalidCode {
+	if err == ErrNotFound || err == ErrDuplicateAccount || err == ErrDuplicateCredential || err == ErrInvalidCode {
 		return err.Error()
 	}
 	return "internal server error"

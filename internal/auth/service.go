@@ -13,13 +13,13 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -29,10 +29,11 @@ import (
 
 // Sentinel errors returned from service methods.
 var (
-	ErrNotFound         = errors.New("not found")
-	ErrDuplicateAccount = errors.New("credential already registered")
-	ErrInvalidCode      = errors.New("invalid or expired recovery code")
-	ErrLastCredential   = errors.New("cannot delete the last passkey")
+	ErrNotFound              = errors.New("not found")
+	ErrDuplicateAccount      = errors.New("account already exists")
+	ErrDuplicateCredential   = errors.New("credential already registered")
+	ErrInvalidCode           = errors.New("invalid or expired recovery code")
+	ErrLastCredential        = errors.New("cannot delete the last passkey")
 )
 
 // DB is the subset of queries.Queries used by the service.
@@ -532,16 +533,18 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 	} else {
 		// Discoverable login (loginBeginDiscoverable path): look up the credential by
 		// rawID — that is the one that actually signed.
+		var resolvedCredRow queries.GetCredentialByWebAuthnIDRow
 		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-			credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+			row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 			if err != nil {
 				return nil, ErrNotFound
 			}
 			if hasBE {
-				credRow.BackupEligible = assertionBE
+				row.BackupEligible = assertionBE
 			}
-			accountID = credRow.AccountID
-			return credRowToWAUser(credRow), nil
+			resolvedCredRow = row
+			accountID = row.AccountID
+			return credRowToWAUser(row), nil
 		}
 		cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
 		if err != nil {
@@ -549,13 +552,11 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 		}
 		usedCredID = cred.ID
 
-		if credRow, cerr := s.db.GetCredentialByWebAuthnID(ctx, cred.ID); cerr == nil {
-			if credRow.BackupEligible != cred.Flags.BackupEligible {
-				_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-					CredentialID:   cred.ID,
-					BackupEligible: cred.Flags.BackupEligible,
-				})
-			}
+		if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
+			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+				CredentialID:   cred.ID,
+				BackupEligible: cred.Flags.BackupEligible,
+			})
 		}
 	}
 
@@ -664,31 +665,35 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 	assertionBE, hasBE := parseAssertionBackupEligible(body)
 
 	var usedCredID []byte
+	var resolvedCredRow queries.GetCredentialByWebAuthnIDRow
+	expectedAccountID := accountID
 	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+		row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
 		if err != nil {
 			return nil, ErrNotFound
 		}
 		if hasBE {
-			credRow.BackupEligible = assertionBE
+			row.BackupEligible = assertionBE
 		}
-		accountID = credRow.AccountID
-		return credRowToWAUser(credRow), nil
+		resolvedCredRow = row
+		accountID = row.AccountID
+		return credRowToWAUser(row), nil
 	}
 
 	cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
 	if err != nil {
 		return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
 	}
+	if resolvedCredRow.AccountID != expectedAccountID {
+		return nil, fmt.Errorf("credential does not belong to the expected account")
+	}
 	usedCredID = cred.ID
 
-	if credRow, cerr := s.db.GetCredentialByWebAuthnID(ctx, cred.ID); cerr == nil {
-		if credRow.BackupEligible != cred.Flags.BackupEligible {
-			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-				CredentialID:   cred.ID,
-				BackupEligible: cred.Flags.BackupEligible,
-			})
-		}
+	if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
+		_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+			CredentialID:   cred.ID,
+			BackupEligible: cred.Flags.BackupEligible,
+		})
 	}
 
 	credLogin, err := s.db.GetCredentialForLogin(ctx, usedCredID)
@@ -813,7 +818,7 @@ func (s *Service) insertCredential(ctx context.Context, accountID string, cred *
 	})
 	if err != nil {
 		if isDuplicateKey(err) {
-			return queries.Credential{}, ErrDuplicateAccount
+			return queries.Credential{}, ErrDuplicateCredential
 		}
 		return queries.Credential{}, fmt.Errorf("CreateCredential: %w", err)
 	}
@@ -1206,7 +1211,8 @@ func newSessionToken() (raw string, hash []byte, err error) {
 }
 
 func isDuplicateKey(err error) bool {
-	return err != nil && strings.Contains(err.Error(), "duplicate key")
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
 
 // ─── WebAuthn user adapter ────────────────────────────────────────────────────
