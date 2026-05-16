@@ -31,7 +31,8 @@
 		"vitest": "^4.1.0"
 	},
 	"pnpm": {
-		"onlyBuiltDependencies": ["esbuild"]
+		"onlyBuiltDependencies": ["esbuild"],
+		"approvedBuilds": ["esbuild"]
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.7.0",
