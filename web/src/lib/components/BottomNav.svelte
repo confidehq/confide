@@ -90,7 +90,7 @@
 {#if moreOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+		class="fixed inset-0 z-40 bg-black/40"
 		onclick={closeMore}
 	></div>
 {/if}
@@ -99,7 +99,7 @@
 {#if moreOpen}
 	<div
 		style="padding-bottom: env(safe-area-inset-bottom, 0px);"
-		class="sm:hidden fixed bottom-16 left-0 right-0 z-50 bg-canvas border-t border-border rounded-t-2xl shadow-[0_-8px_40px_var(--color-overlay)] font-mono
+		class="sm:hidden fixed bottom-16 left-0 right-0 z-50 bg-canvas border-t border-border border-b border-border rounded-t-2xl font-mono
 			animate-[slideUp_200ms_ease-out_both]"
 	>
 		<!-- Drag handle -->
