@@ -62,6 +62,7 @@
 	const limitResponsesOpen = $derived(!!store.responseLimit || limitResponsesPending);
 
 	let shareUrl = $state('');
+	let shareUrlLoading = $state(false);
 	let publishing = $state(false);
 	let publishError = $state('');
 	let copied = $state(false);
@@ -82,9 +83,10 @@
 		const { formStatus, renderKeySalt, formKey } = store;
 		if (formStatus === 'draft' || !renderKeySalt || !formKey) return;
 		const saltBase64 = btoa(String.fromCharCode(...renderKeySalt));
+		shareUrlLoading = true;
 		deriveShareUrl(formId, saltBase64, formKey, base).then(url => {
-			untrack(() => { shareUrl = url; });
-		}).catch(() => {});
+			untrack(() => { shareUrl = url; shareUrlLoading = false; });
+		}).catch(() => { untrack(() => { shareUrlLoading = false; }); });
 	});
 
 	const isFirstPublish = $derived(store.formStatus === 'draft');
@@ -225,7 +227,16 @@
 	<!-- Publish section -->
 	<div class="p-5">
 		<div class="flex flex-col gap-3">
-				{#if shareUrl}
+				{#if store.formStatus === 'draft'}
+					<div class="py-4 flex flex-col items-center gap-2 text-center">
+						<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
+						<p class="m-0 text-xs text-muted-dark">Publish to make it accessible and get a share link.</p>
+					</div>
+				{:else if shareUrlLoading || !shareUrl}
+					<div class="py-4 flex flex-col items-center gap-2 text-center">
+						<p class="m-0 text-xs text-muted-dark">Loading link…</p>
+					</div>
+				{:else}
 					<div class="flex gap-1.5">
 						<input
 							type="text"
@@ -297,11 +308,6 @@
 						class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm
 							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text-dim hover:border-border transition-colors duration-100'}"
 					>Generate new link</button>
-				{:else}
-					<div class="py-4 flex flex-col items-center gap-2 text-center">
-						<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
-						<p class="m-0 text-xs text-muted-dark">Publish to make it accessible and get a share link.</p>
-					</div>
 				{/if}
 			</div>
 	</div>

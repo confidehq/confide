@@ -89,6 +89,7 @@
 	const autoDeleteOpen = $derived(settingsLifetimePolicy !== 'none' || autoDeletePending);
 
 	let shareUrl = $state('');
+	let shareUrlLoading = $state(false);
 	let publishing = $state(false);
 	let publishError = $state('');
 	let copied = $state(false);
@@ -139,17 +140,22 @@
 			resolvedFormKey = formKey;
 			const title = schema.translations[schema.defaultLocale]?.formTitle;
 			if (title) formsStore.updateName(formId, title);
-			if (r.workspaceId) {
-				getCustomDomain(r.workspaceId).then(async d => {
-					customDomainInfo = d;
-					if (r.renderKeySalt && r.status !== 'draft') {
-						const base = d?.enabled && d.domain ? `https://${d.domain}` : undefined;
-						shareUrl = await deriveShareUrl(formId, r.renderKeySalt, formKey, base);
+			if (r.renderKeySalt && r.status !== 'draft') {
+				const cached = formsStore.shareUrls.get(formId);
+				if (cached) {
+					shareUrl = cached;
+				} else {
+					shareUrlLoading = true;
+					if (r.workspaceId) {
+						getCustomDomain(r.workspaceId).then(async d => {
+							customDomainInfo = d;
+							const base = d?.enabled && d.domain ? `https://${d.domain}` : undefined;
+							shareUrl = await deriveShareUrl(formId, r.renderKeySalt!, formKey, base);
+						}).catch(() => {}).finally(() => { shareUrlLoading = false; });
+					} else {
+						deriveShareUrl(formId, r.renderKeySalt, formKey).then(u => { shareUrl = u; }).catch(() => {}).finally(() => { shareUrlLoading = false; });
 					}
-				}).catch(() => {});
-			}
-			if (r.renderKeySalt && r.status !== 'draft' && !r.workspaceId) {
-				deriveShareUrl(formId, r.renderKeySalt, formKey).then(u => { shareUrl = u; }).catch(() => {});
+				}
 			}
 			expiresAt = r.expiresAt ?? '';
 			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
@@ -751,7 +757,33 @@
 								{:else if activeTab === 'share'}
 									<!-- Share link -->
 									<section class="flex flex-col gap-3">
-										{#if shareUrl}
+										{#if record.status === 'draft'}
+											<div class="py-4 flex flex-col items-center gap-3 text-center">
+												<div>
+													<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
+													<p class="m-0 text-xs text-muted-dark mt-1">Publish to make it accessible and get a share link.</p>
+												</div>
+												{#if publishError}
+													<p class="m-0 text-sm text-error-light">{publishError}</p>
+												{/if}
+												<button
+													onclick={handlePublish}
+													disabled={publishing}
+													class="flex items-center gap-2 px-4 py-2 bg-primary text-white border-none rounded-md font-mono text-sm cursor-pointer transition-[background] duration-100 hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed"
+												>
+													{#if publishing}
+														<div class="spinner w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"></div>
+														Publishing…
+													{:else}
+														Publish form
+													{/if}
+												</button>
+											</div>
+										{:else if shareUrlLoading || !shareUrl}
+											<div class="py-4 flex flex-col items-center gap-2 text-center">
+												<p class="m-0 text-xs text-muted-dark">Loading link…</p>
+											</div>
+										{:else}
 											<div class="flex flex-col sm:flex-row gap-1.5">
 												<input
 													type="text"
@@ -822,28 +854,6 @@
 												class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm
 													{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text-dim hover:border-border transition-colors duration-100'}"
 											>Generate new link</button>
-										{:else}
-											<div class="py-4 flex flex-col items-center gap-3 text-center">
-												<div>
-													<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
-													<p class="m-0 text-xs text-muted-dark mt-1">Publish to make it accessible and get a share link.</p>
-												</div>
-												{#if publishError}
-													<p class="m-0 text-sm text-error-light">{publishError}</p>
-												{/if}
-												<button
-													onclick={handlePublish}
-													disabled={publishing}
-													class="flex items-center gap-2 px-4 py-2 bg-primary text-white border-none rounded-md font-mono text-sm cursor-pointer transition-[background] duration-100 hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed"
-												>
-													{#if publishing}
-														<div class="spinner w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full"></div>
-														Publishing…
-													{:else}
-														Publish form
-													{/if}
-												</button>
-											</div>
 										{/if}
 									</section>
 
