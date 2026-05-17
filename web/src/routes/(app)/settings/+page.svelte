@@ -7,6 +7,7 @@
 	import {
 		renameWorkspace,
 		deleteWorkspace,
+		leaveWorkspace,
 		WorkspaceError,
 		getBillingInfo,
 		subscribe,
@@ -191,6 +192,28 @@
 	let deleting = $state(false);
 	let deleteError = $state('');
 
+	// ─── Leave workspace state ────────────────────────────────────────────────────
+
+	let showLeaveConfirm = $state(false);
+	let leaving = $state(false);
+	let leaveError = $state('');
+
+	async function handleLeave() {
+		const ws = workspacesStore.active;
+		if (!ws || !auth.accountId) return;
+		leaving = true;
+		leaveError = '';
+		try {
+			await leaveWorkspace(ws.id, auth.accountId);
+			workspacesStore.remove(ws.id);
+			await goto('/workspaces');
+		} catch (e) {
+			leaveError = e instanceof WorkspaceError ? e.message : 'Failed to leave workspace.';
+		} finally {
+			leaving = false;
+		}
+	}
+
 	async function handleDelete() {
 		const ws = workspacesStore.active;
 		if (!ws) return;
@@ -330,6 +353,15 @@
 	error={deleteError}
 	onconfirm={handleDelete}
 	oncancel={() => { showDeleteConfirm = false; deleteError = ''; }}
+/>
+<ConfirmDialog
+	open={showLeaveConfirm}
+	title="Leave workspace?"
+	description={`You will lose access to "${workspacesStore.active.name}" and all its forms. You can only rejoin if invited again.`}
+	loading={leaving}
+	error={leaveError}
+	onconfirm={handleLeave}
+	oncancel={() => { showLeaveConfirm = false; leaveError = ''; }}
 />
 {/if}
 
@@ -892,6 +924,23 @@
 							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
 					>
 						Delete
+					</button>
+				</div>
+			</div>
+			{:else}
+			<div class="mt-4">
+				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
+				<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+					<div>
+						<p class="m-0 text-base text-text-body">Leave workspace</p>
+						<p class="m-0 mt-0.5 text-sm text-muted-dim">Remove yourself from this workspace. You'll need an invitation to rejoin.</p>
+					</div>
+					<button
+						onclick={() => { showLeaveConfirm = true; leaveError = ''; }}
+						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
+							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
+					>
+						Leave
 					</button>
 				</div>
 			</div>
