@@ -6,7 +6,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
-	import { createWorkspace, WorkspaceError } from '$lib/workspaces';
+	import { createWorkspace, createProWorkspace } from '$lib/workspaces';
 
 	let moreOpen = $state(false);
 	let showWorkspacePicker = $state(false);
@@ -14,7 +14,11 @@
 	let newWorkspaceName = $state('');
 	let creating = $state(false);
 	let createError = $state('');
-	let showUpgradePrompt = $state(false);
+
+	// True when the user already owns a free workspace and must upgrade to create another.
+	const atFreeLimit = $derived(
+		workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
+	);
 
 	function isActive(href: string): boolean {
 		const path = $page.url.pathname;
@@ -35,7 +39,6 @@
 		showCreateWorkspace = false;
 		newWorkspaceName = '';
 		createError = '';
-		showUpgradePrompt = false;
 	}
 
 	function initials(name: string): string {
@@ -55,18 +58,28 @@
 		creating = true;
 		createError = '';
 		try {
-			const ws = await createWorkspace(name, auth.masterKey);
-			workspacesStore.add(ws);
-			showCreateWorkspace = false;
-			showWorkspacePicker = false;
-			newWorkspaceName = '';
-		} catch (e) {
-			if (e instanceof WorkspaceError && e.code === 'plan_limit') {
-				showUpgradePrompt = true;
-				showCreateWorkspace = false;
+			if (atFreeLimit) {
+				const { workspace, checkoutUrl } = await createProWorkspace(
+					name,
+					auth.masterKey,
+					`${window.location.origin}/settings?tab=billing&upgraded=true`,
+					`${window.location.origin}/forms`
+				);
+				workspacesStore.add(workspace);
+				if (checkoutUrl) {
+					window.location.href = checkoutUrl;
+				} else {
+					closeMore();
+				}
 			} else {
-				createError = e instanceof Error ? e.message : 'Failed to create workspace.';
+				const ws = await createWorkspace(name, auth.masterKey);
+				workspacesStore.add(ws);
+				showCreateWorkspace = false;
+				showWorkspacePicker = false;
+				newWorkspaceName = '';
 			}
+		} catch (e) {
+			createError = e instanceof Error ? e.message : 'Failed to create workspace.';
 		} finally {
 			creating = false;
 		}
@@ -121,25 +134,14 @@
 					<span class="text-xs uppercase tracking-widest text-muted-mid font-medium">Workspaces</span>
 				</div>
 
-				{#if showUpgradePrompt}
-					<div class="mb-3">
-						<p class="m-0 mb-1 text-text-body font-medium text-sm">Upgrade required</p>
-						<p class="m-0 mb-3 text-muted-dim text-sm leading-relaxed">Free plan is limited to one workspace.</p>
-						<div class="flex gap-2">
-							<a
-								href="/settings?tab=billing"
-								onclick={closeMore}
-								class="flex-1 py-2 text-center text-sm text-white bg-primary hover:bg-primary-hover rounded no-underline transition-colors duration-100"
-							>Upgrade to Pro</a>
-							<button
-								onclick={() => { showUpgradePrompt = false; }}
-								class="px-3 py-2 text-sm text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body transition-colors duration-100"
-							>Cancel</button>
-						</div>
-					</div>
-				{:else if showCreateWorkspace}
+				{#if showCreateWorkspace}
 					<div class="mb-3">
 						<p class="m-0 mb-2 text-xs uppercase tracking-widest text-muted-mid font-medium">New workspace</p>
+						{#if atFreeLimit}
+							<p class="m-0 mb-2 text-sm text-muted-dim leading-relaxed">
+								Additional workspaces require a Pro plan. You'll be taken to checkout after creation.
+							</p>
+						{/if}
 						<input
 							type="text"
 							placeholder="Workspace name"
@@ -158,7 +160,7 @@
 								disabled={creating || !newWorkspaceName.trim()}
 								class="flex-1 py-2 text-sm text-white border-none rounded cursor-pointer font-mono transition-colors duration-100
 									{creating || !newWorkspaceName.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
-							>{creating ? 'Creating…' : 'Create'}</button>
+							>{creating ? 'Creating…' : atFreeLimit ? 'Create & subscribe' : 'Create'}</button>
 							<button
 								onclick={() => { showCreateWorkspace = false; createError = ''; newWorkspaceName = ''; }}
 								class="px-3 py-2 text-sm text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body transition-colors duration-100"

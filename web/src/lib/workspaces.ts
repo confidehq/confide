@@ -576,6 +576,62 @@ export async function createWorkspace(name: string, masterKey: CryptoKey): Promi
 }
 
 /**
+ * Create a new workspace intended for immediate Pro upgrade.
+ * Bypasses the free-workspace limit and starts a Stripe checkout session.
+ * The cancel URL has the workspace ID appended so it can be cleaned up if
+ * the user cancels payment.
+ */
+export async function createProWorkspace(
+	name: string,
+	masterKey: CryptoKey,
+	successUrl: string,
+	cancelUrl: string
+): Promise<{ workspace: Workspace; checkoutUrl?: string }> {
+	// Step 1: create the workspace (bypasses free limit).
+	const createRes = await apiFetch('/api/workspaces/pro', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ name })
+	});
+	const createBody = await createRes.json().catch(() => ({}));
+	if (!createRes.ok) {
+		const code = (createBody as { code?: string }).code ?? 'create_failed';
+		const message = (createBody as { message?: string }).message ?? `Failed to create workspace (${createRes.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	const workspace = createBody as Workspace;
+
+	// Step 2: upload workspace key so the owner can use the workspace.
+	const identityPublicKey = await getOrCreateIdentityKey(masterKey);
+	const enc = new TextEncoder();
+	const { wrappedWorkspaceKey, ephemeralPublicKey } =
+		await generateAndWrapWorkspaceKey(identityPublicKey, enc.encode(workspace.id));
+
+	const keyRes = await apiFetch(`/api/workspaces/${workspace.id}/member-key`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			wrappedWorkspaceKey: bytesToBase64(new Uint8Array(wrappedWorkspaceKey)),
+			ephemeralPublicKey: bytesToBase64(new Uint8Array(ephemeralPublicKey))
+		})
+	});
+	if (!keyRes.ok && keyRes.status !== 204) {
+		throw new WorkspaceError('workspace_key_failed', `Workspace created but key upload failed (${keyRes.status})`);
+	}
+
+	// Step 3: start Stripe checkout. Embed workspace ID in cancel URL so it
+	// can be deleted if the user cancels without paying.
+	const cancelWithId = `${cancelUrl}${cancelUrl.includes('?') ? '&' : '?'}cancel_ws=${workspace.id}`;
+	try {
+		const checkoutUrl = await subscribe(workspace.id, 'pro', successUrl, cancelWithId);
+		return { workspace, checkoutUrl };
+	} catch {
+		// Stripe not configured — workspace created, no checkout needed.
+		return { workspace };
+	}
+}
+
+/**
  * Generate and upload a workspace key for the caller's personal workspace.
  * No-op if the key already exists, so safe to call on every login.
  */

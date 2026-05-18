@@ -16,6 +16,7 @@ import (
 func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http.Handler {
 	r := chi.NewRouter()
 	r.Post("/", createWorkspace(svc))
+	r.Post("/pro", createProWorkspace(svc))
 	r.Get("/", listWorkspaces(svc))
 
 	r.Route("/{id}", func(r chi.Router) {
@@ -74,6 +75,32 @@ func createWorkspace(svc *Service) http.HandlerFunc {
 				writeError(w, http.StatusPaymentRequired, "plan_limit", "free plan allows only one workspace")
 				return
 			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to create workspace")
+			return
+		}
+
+		writeJSON(w, http.StatusCreated, workspaceJSON(ws))
+	}
+}
+
+func createProWorkspace(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+		if req.Name == "" {
+			writeError(w, http.StatusBadRequest, "invalid_field", "name is required")
+			return
+		}
+
+		ws, err := svc.CreateForUpgrade(r.Context(), accountID, req.Name)
+		if err != nil {
 			writeError(w, http.StatusInternalServerError, "internal", "failed to create workspace")
 			return
 		}

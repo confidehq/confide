@@ -277,6 +277,38 @@ func (s *Service) Create(ctx context.Context, accountID, name string) (Workspace
 	}, nil
 }
 
+// CreateForUpgrade creates a workspace without enforcing the free-plan limit.
+// Used when the caller intends to immediately upgrade to a paid plan.
+func (s *Service) CreateForUpgrade(ctx context.Context, accountID, name string) (Workspace, error) {
+	id, err := randomID()
+	if err != nil {
+		return Workspace{}, err
+	}
+	ws, err := s.db.CreateWorkspace(ctx, queries.CreateWorkspaceParams{
+		ID:   id,
+		Name: name,
+		Slug: id,
+	})
+	if err != nil {
+		return Workspace{}, err
+	}
+	if err := s.db.CreateWorkspaceMember(ctx, queries.CreateWorkspaceMemberParams{
+		WorkspaceID: ws.ID,
+		AccountID:   accountID,
+		Role:        "owner",
+	}); err != nil {
+		return Workspace{}, err
+	}
+	return Workspace{
+		ID:         ws.ID,
+		Name:       ws.Name,
+		Slug:       ws.Slug,
+		Plan:       ws.Plan,
+		PlanStatus: ws.PlanStatus,
+		Role:       "owner",
+	}, nil
+}
+
 // List returns all workspaces the account belongs to, with their role in each.
 func (s *Service) List(ctx context.Context, accountID string) ([]Workspace, error) {
 	rows, err := s.db.ListWorkspacesByAccount(ctx, accountID)

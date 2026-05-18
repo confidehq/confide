@@ -1,10 +1,24 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
+	import { onMount } from 'svelte';
 	import { getForm, createForm, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
-	import { loadWorkspaceKey } from '$lib/workspaces';
+	import { loadWorkspaceKey, deleteWorkspace } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+
+	// Clean up a workspace that was created for Pro checkout but then cancelled.
+	onMount(async () => {
+		const cancelWsId = $page.url.searchParams.get('cancel_ws');
+		if (!cancelWsId) return;
+		// Remove the param from the URL immediately so a refresh doesn't re-trigger.
+		goto('/forms', { replaceState: true });
+		try {
+			await deleteWorkspace(cancelWsId);
+			workspacesStore.remove(cancelWsId);
+		} catch { /* already gone or inaccessible */ }
+	});
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 	import DropdownMenu from '$lib/components/DropdownMenu.svelte';
 	import DropdownMenuItem from '$lib/components/DropdownMenuItem.svelte';
