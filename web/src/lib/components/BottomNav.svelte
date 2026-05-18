@@ -46,7 +46,7 @@
 
 	function selectWorkspace(id: string) {
 		workspacesStore.switchTo(id);
-		showWorkspacePicker = false;
+		closeMore();
 	}
 
 	async function handleCreate() {

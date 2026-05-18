@@ -5,6 +5,7 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createBuilderStore } from '$lib/stores/builder.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
 	import { getAppConfig } from '$lib/config';
 	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
@@ -26,6 +27,13 @@
 	let layoutOpen = $state(false);
 
 	const formId = $page.params.id ?? '';
+
+	// Navigate to /forms if the workspace changes while editing this form
+	const mountedWorkspaceId = workspacesStore.active?.id;
+	$effect(() => {
+		const id = workspacesStore.active?.id;
+		if (id !== undefined && id !== mountedWorkspaceId) goto('/forms');
+	});
 
 	// Must be created synchronously at component init time so $effect/$derived
 	// in the store have the correct Svelte component owner context.

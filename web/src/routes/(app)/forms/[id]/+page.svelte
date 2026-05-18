@@ -4,6 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { formsStore } from '$lib/stores/forms.svelte';
+	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import {
 		getForm,
 		updateFormStatus,
@@ -39,6 +40,13 @@
 	}
 
 	const formId = $page.params.id ?? '';
+
+	// Navigate to /forms if the workspace changes while viewing this form
+	const mountedWorkspaceId = workspacesStore.active?.id;
+	$effect(() => {
+		const id = workspacesStore.active?.id;
+		if (id !== undefined && id !== mountedWorkspaceId) goto('/forms');
+	});
 
 	// ── Form ──────────────────────────────────────────────────────────────────
 	let record = $state<FormRecord | null>(null);
