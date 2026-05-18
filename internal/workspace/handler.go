@@ -32,8 +32,7 @@ func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http
 			Patch("/", renameWorkspace(svc))
 		r.With(permission.RequireAction(permission.ActionChangeRoles)).
 			Patch("/members/{accountId}", updateMemberRole(svc))
-		r.With(permission.RequireAction(permission.ActionInviteMembers)).
-			Delete("/members/{accountId}", removeMember(svc))
+		r.Delete("/members/{accountId}", removeMember(svc))
 		r.With(permission.RequireAction(permission.ActionDistributeKeys)).
 			Post("/member-key", grantMemberKey(svc))
 		r.With(permission.RequireAction(permission.ActionDistributeKeys)).
@@ -228,6 +227,13 @@ func removeMember(svc *Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workspaceID := chi.URLParam(r, "id")
 		targetID := chi.URLParam(r, "accountId")
+		callerID := mw.AccountID(r.Context())
+
+		// Self-removal (leave) is always permitted; removing others requires admin+.
+		if callerID != targetID && !permission.Can(permission.WorkspaceRole(r.Context()), permission.ActionInviteMembers) {
+			writeError(w, http.StatusForbidden, "forbidden", "insufficient role")
+			return
+		}
 
 		if err := svc.RemoveMember(r.Context(), workspaceID, targetID); err != nil {
 			if errors.Is(err, ErrNotFound) {
