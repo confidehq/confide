@@ -27,6 +27,11 @@ FROM workspace_members WHERE workspace_id = $1 AND account_id = $2;
 SELECT COUNT(*) FROM workspace_members
 WHERE account_id = $1 AND role = 'owner';
 
+-- name: CountFreeOwnerWorkspaces :one
+SELECT COUNT(*) FROM workspace_members wm
+JOIN workspaces w ON w.id = wm.workspace_id
+WHERE wm.account_id = $1 AND wm.role = 'owner' AND w.plan = 'free';
+
 -- name: UpsertWorkspaceMemberKey :exec
 INSERT INTO workspace_member_keys (workspace_id, account_id, wrapped_workspace_key, ephemeral_public_key, granted_by_account_id, created_at)
 VALUES ($1, $2, $3, $4, $5, NOW())

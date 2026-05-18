@@ -43,6 +43,7 @@ type DB interface {
 	GetWorkspaceByID(ctx context.Context, id string) (queries.GetWorkspaceByIDRow, error)
 	GetWorkspaceMember(ctx context.Context, arg queries.GetWorkspaceMemberParams) (queries.WorkspaceMember, error)
 	CountOwnerWorkspaces(ctx context.Context, accountID string) (int64, error)
+	CountFreeOwnerWorkspaces(ctx context.Context, accountID string) (int64, error)
 	UpsertWorkspaceMemberKey(ctx context.Context, arg queries.UpsertWorkspaceMemberKeyParams) error
 	GetWorkspaceMemberKey(ctx context.Context, arg queries.GetWorkspaceMemberKeyParams) (queries.GetWorkspaceMemberKeyRow, error)
 	ListMemberIdentityKeys(ctx context.Context, workspaceID string) ([]queries.ListMemberIdentityKeysRow, error)
@@ -235,14 +236,15 @@ func (s *Service) GetPersonalWorkspaceID(ctx context.Context, accountID string) 
 	return row.ID, nil
 }
 
-// Create creates a new workspace for the account, enforcing the free-plan 1-workspace limit.
+// Create creates a new workspace for the account, enforcing the free-plan 1-owned-workspace limit.
+// Users may join unlimited other workspaces as non-owners regardless of plan.
 // wrappedWorkspaceKey and ephemeralPublicKey are stored in workspace_member_keys for the owner.
 func (s *Service) Create(ctx context.Context, accountID, name string) (Workspace, error) {
-	count, err := s.db.CountOwnerWorkspaces(ctx, accountID)
+	count, err := s.db.CountFreeOwnerWorkspaces(ctx, accountID)
 	if err != nil {
 		return Workspace{}, err
 	}
-	if count >= 5 {
+	if count >= 1 {
 		return Workspace{}, ErrPlanLimit
 	}
 
