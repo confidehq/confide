@@ -16,7 +16,14 @@
 
 	$effect(() => {
 		if (auth.masterKey === null && auth.credentialId !== null) {
-			showReauth = true;
+			// Verify the server session is still alive before showing the reauth overlay.
+			// If it's expired, clear stored credentials and send to /login.
+			getMe()
+				.then(() => { showReauth = true; })
+				.catch(() => {
+					auth.clearAll();
+					goto('/login');
+				});
 		} else if (auth.masterKey === null && auth.credentialId === null) {
 			goto('/login');
 		}
