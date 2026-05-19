@@ -1,69 +1,31 @@
 <script lang="ts">
 	import { auth } from '$lib/stores/auth.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { listForms, getForm, type FormSummary } from '$lib/forms';
+	import { formsStore } from '$lib/stores/forms.svelte';
 	import { goto } from '$app/navigation';
 	import { ArrowRight } from '@lucide/svelte';
-
-	let loading = $state(false);
-	let currentWorkspaceId = $state<string | null>(null);
-	let allForms = $state<FormSummary[]>([]);
-	let formNames = $state<Map<string, string>>(new Map());
 
 	$effect(() => {
 		const workspace = workspacesStore.active;
 		const masterKey = auth.masterKey;
-		if (masterKey && workspace && workspace.status === 'active' && workspace.id !== currentWorkspaceId) {
-			loadWorkspace(masterKey, workspace.id);
+		if (masterKey && workspace && workspace.status === 'active') {
+			formsStore.load(masterKey, workspace.id);
 		}
 	});
 
-	async function loadWorkspace(masterKey: CryptoKey, workspaceId: string) {
-		loading = true;
-		currentWorkspaceId = workspaceId;
-		allForms = [];
-		formNames = new Map();
-		try {
-			const forms = await listForms(workspaceId);
-			if (currentWorkspaceId !== workspaceId) return;
+	const sortedForms = $derived(
+		[...formsStore.forms].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+	);
 
-			forms.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-			allForms = forms;
-
-			if (forms.length > 0) {
-				const top = forms.slice(0, 10);
-				const nameResults = await Promise.allSettled(top.map(f => getForm(masterKey, f.formId)));
-				if (currentWorkspaceId !== workspaceId) return;
-				const names = new Map<string, string>();
-				nameResults.forEach((r, i) => {
-					if (r.status === 'fulfilled') {
-						const { schema } = r.value;
-						const name = schema.translations[schema.defaultLocale]?.formTitle;
-						if (name) names.set(top[i].formId, name);
-					}
-				});
-				formNames = names;
-			}
-		} catch {
-			// non-fatal
-		} finally {
-			if (currentWorkspaceId === workspaceId) loading = false;
-		}
-	}
-
-	const totalForms = $derived(allForms.length);
-	const openForms = $derived(allForms.filter(f => f.status === 'open').length);
-	const totalResponses = $derived(allForms.reduce((sum, f) => sum + f.responseCount, 0));
-	const recentForms = $derived(allForms.slice(0, 5));
-
-	function formName(formId: string): string {
-		return formNames.get(formId) ?? '—';
-	}
+	const totalForms = $derived(sortedForms.length);
+	const openForms = $derived(sortedForms.filter(f => f.status === 'open').length);
+	const totalResponses = $derived(sortedForms.reduce((sum, f) => sum + f.responseCount, 0));
+	const recentForms = $derived(sortedForms.slice(0, 5));
 
 	const stats = $derived([
-		{ label: 'Forms', value: loading ? '…' : String(totalForms) },
-		{ label: 'Open', value: loading ? '…' : String(openForms) },
-		{ label: 'Responses', value: loading ? '…' : String(totalResponses) },
+		{ label: 'Forms', value: formsStore.loading ? '…' : String(totalForms) },
+		{ label: 'Open', value: formsStore.loading ? '…' : String(openForms) },
+		{ label: 'Responses', value: formsStore.loading ? '…' : String(totalResponses) },
 	]);
 
 	function newFormHref(): string {
@@ -136,9 +98,9 @@
 				{/if}
 			</div>
 
-			{#if loading && recentForms.length === 0}
+			{#if formsStore.loading && recentForms.length === 0}
 				<div class="py-6 text-center text-muted-mid text-base">Loading…</div>
-			{:else if recentForms.length === 0 && !loading}
+			{:else if recentForms.length === 0 && !formsStore.loading}
 				<div class="py-10 border border-dashed border-border rounded-lg text-center">
 					<p class="m-0 mb-1 text-muted-dim text-base">No forms yet</p>
 					<p class="m-0 text-muted-mid text-base">Create your first form to start collecting responses</p>
@@ -163,7 +125,7 @@
 							</span>
 
 							<span class="flex-1 min-w-0 overflow-hidden">
-								<span class="text-base text-text-body truncate block">{formName(form.formId)}</span>
+								<span class="text-base text-text-body truncate block">{formsStore.formNames.get(form.formId) ?? '—'}</span>
 							</span>
 
 							<span class="shrink-0 text-base text-muted-dim tabular-nums hidden sm:block">
