@@ -309,6 +309,16 @@
 		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true             },
 	];
 
+	function planLabel(plan: string, planStatus: string): string {
+		if (plan === 'pro') {
+			if (planStatus === 'past_due') return 'Pro · past due';
+			if (planStatus === 'canceled') return 'Pro · canceled';
+			if (planStatus === 'canceling') return 'Pro · cancels at period end';
+			return 'Pro';
+		}
+		return 'Free';
+	}
+
 	const planBadge: Record<string, { label: string; color: string }> = {
 		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
 		org:  { label: 'Org',  color: 'var(--color-text-blue)'      },
@@ -437,21 +447,27 @@
 	<!-- Header -->
 	<div class="mb-8">
 		<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Settings</h1>
-		{#if workspacesStore.active}
-			<p class="m-0 text-sm text-muted-dim flex items-center gap-1.5">
-				<span>{workspacesStore.active.name}</span>
-				<span class="text-border-mid">·</span>
-				<span class="capitalize
-					{workspacesStore.active.plan === 'pro' && workspacesStore.active.planStatus === 'active'
-						? 'text-success-text-dark'
-						: 'text-muted-dim'}">
-					{workspacesStore.active.plan}
-				</span>
-			</p>
-		{:else if workspacesStore.loading}
-			<p class="m-0 text-sm text-muted-mid">Loading…</p>
-		{/if}
+		<p class="m-0 text-sm text-muted-dim">Manage your workspace settings and billing</p>
 	</div>
+
+	{#if workspacesStore.active}
+		{@const ws = workspacesStore.active}
+		<div class="flex items-center gap-3 mb-4">
+			<Building2 size={18} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
+			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
+				{ws.plan === 'pro'
+					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
+						? 'bg-open-bg text-open-text border-open-border'
+						: 'bg-closed-bg text-closed-text border-closed-border'
+					: 'text-muted-dim border-border-deep bg-transparent'}">
+				{planLabel(ws.plan, ws.planStatus)}
+			</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
+				{ws.role}
+			</span>
+		</div>
+	{/if}
 
 	<!-- Tab bar -->
 	<div class="flex border-b border-border-mid mb-8 gap-1">

@@ -9,7 +9,17 @@
 		WorkspaceError,
 		type WorkspaceMember, type WorkspaceInvitation
 	} from '$lib/workspaces';
-	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link } from '@lucide/svelte';
+	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link, Building2 } from '@lucide/svelte';
+
+	function planLabel(plan: string, planStatus: string): string {
+		if (plan === 'pro') {
+			if (planStatus === 'past_due') return 'Pro · past due';
+			if (planStatus === 'canceled') return 'Pro · canceled';
+			if (planStatus === 'canceling') return 'Pro · cancels at period end';
+			return 'Pro';
+		}
+		return 'Free';
+	}
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	// ─── Invite form state ───────────────────────────────────────────────────────
@@ -255,12 +265,10 @@
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
 	<!-- Header -->
-	<div class="flex items-start justify-between mb-6 gap-4">
-		<div class="min-w-0">
+	<div class="flex items-start justify-between mb-8 gap-4">
+		<div>
 			<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Members</h1>
-			{#if workspacesStore.active}
-				<p class="m-0 text-sm text-muted-dim">{workspacesStore.active.name}</p>
-			{/if}
+			<p class="m-0 text-sm text-muted-dim">Manage members and invitations</p>
 		</div>
 		<div class="flex items-center gap-2 shrink-0">
 			<button
@@ -282,6 +290,25 @@
 			{/if}
 		</div>
 	</div>
+
+	{#if workspacesStore.active}
+		{@const ws = workspacesStore.active}
+		<div class="flex items-center gap-3 mb-4">
+			<Building2 size={18} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
+			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
+				{ws.plan === 'pro'
+					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
+						? 'bg-open-bg text-open-text border-open-border'
+						: 'bg-closed-bg text-closed-text border-closed-border'
+					: 'text-muted-dim border-border-deep bg-transparent'}">
+				{planLabel(ws.plan, ws.planStatus)}
+			</span>
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
+				{ws.role}
+			</span>
+		</div>
+	{/if}
 
 	<!-- Inline invite form -->
 	{#if showInviteForm}
