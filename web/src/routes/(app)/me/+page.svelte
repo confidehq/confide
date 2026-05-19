@@ -501,10 +501,9 @@
 		</div>
 	</div>
 
-	<!-- ─── Two-column grid on large screens ────────────────────────────────── -->
-	<div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-8 lg:gap-10 items-start">
+	<div class="flex flex-col gap-8">
 
-		<!-- ── Left column ─────────────────────────────────────────────────── -->
+		<!-- Workspaces -->
 		<div>
 			<!-- Workspaces -->
 			<div class="flex items-center justify-between mb-4">
@@ -548,10 +547,7 @@
 			{/if}
 		</div>
 
-		<!-- ── Right column ────────────────────────────────────────────────── -->
-		<div class="flex flex-col gap-8">
-
-			<!-- Sessions -->
+		<!-- Sessions -->
 			<div>
 				<div class="flex items-center justify-between mb-4">
 					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
@@ -897,7 +893,6 @@
 				</div>
 			</div>
 
-		</div>
 	</div>
 
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
