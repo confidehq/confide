@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { login } from '$lib/auth';
+	import { login, isPasskeyCancelled } from '$lib/auth';
 	import { ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
 	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
@@ -25,7 +25,9 @@
 				.catch(() => {});
 			goto(next);
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Login failed.';
+			if (!isPasskeyCancelled(err)) {
+				error = err instanceof Error ? err.message : 'Login failed.';
+			}
 		} finally {
 			loading = false;
 		}

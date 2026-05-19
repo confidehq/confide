@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
-	import { reauthenticate, getMe } from '$lib/auth';
+	import { reauthenticate, getMe, isPasskeyCancelled } from '$lib/auth';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
 	import Sidebar from '$lib/components/Sidebar.svelte';
@@ -51,7 +51,9 @@
 			auth.setSession(result.masterKey, result.accountId, result.credentialId);
 			showReauth = false;
 		} catch (err) {
-			reauthError = err instanceof Error ? err.message : 'Authentication failed.';
+			reauthError = isPasskeyCancelled(err)
+				? 'Authentication was cancelled or timed out. Unlock your passkey manager and try again.'
+				: err instanceof Error ? err.message : 'Authentication failed.';
 		} finally {
 			reauthLoading = false;
 		}

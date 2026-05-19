@@ -32,6 +32,22 @@ import {
 	unwrapMasterKeyFromPairing
 } from '$lib/crypto';
 import { clearWorkspaceKeyCache } from '$lib/workspaces';
+
+/**
+ * Returns true for any error that means the user cancelled or the browser
+ * rejected the passkey prompt — not an application or server error.
+ * Browsers are inconsistent: Chrome throws NotAllowedError, some throw
+ * AbortError, and some throw a TypeError about CredentialsContainer when
+ * the ceremony is interrupted.
+ */
+export function isPasskeyCancelled(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	return (
+		err.name === 'NotAllowedError' ||
+		err.name === 'AbortError' ||
+		(err.name === 'TypeError' && err.message.includes('CredentialsContainer'))
+	);
+}
 import { bytesToBase64, base64ToBytes, base64urlToBytes, bufToBase64 } from '$lib/encoding';
 
 import type {

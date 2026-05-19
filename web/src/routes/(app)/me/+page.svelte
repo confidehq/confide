@@ -30,7 +30,8 @@
 		reauthenticate,
 		createPairingSession,
 		pollPairing,
-		fulfillPairing
+		fulfillPairing,
+		isPasskeyCancelled
 	} from '$lib/auth';
 	import type { CredentialSummary, SessionInfo } from '$lib/types/auth';
 	import { pairingFingerprint } from '$lib/crypto';
@@ -237,8 +238,12 @@
 			addStep = 'idle';
 			newName = '';
 		} catch (err) {
-			addError = err instanceof Error ? err.message : 'Failed to add passkey.';
-			addStep = 'naming';
+			if (isPasskeyCancelled(err)) {
+				addStep = 'idle';
+			} else {
+				addError = err instanceof Error ? err.message : 'Failed to add passkey.';
+				addStep = 'naming';
+			}
 		}
 	}
 
@@ -319,7 +324,9 @@
 			}
 			recoveryCode = await rotateRecoveryCode(mk);
 		} catch (err) {
-			codeGenError = err instanceof Error ? err.message : 'Failed to generate recovery code.';
+			if (!isPasskeyCancelled(err)) {
+				codeGenError = err instanceof Error ? err.message : 'Failed to generate recovery code.';
+			}
 		} finally {
 			generatingCode = false;
 		}
