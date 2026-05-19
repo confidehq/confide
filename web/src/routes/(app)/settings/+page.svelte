@@ -10,6 +10,8 @@
 		leaveWorkspace,
 		WorkspaceError,
 		getBillingInfo,
+		getWorkspaceUsage,
+		type WorkspaceUsage,
 		subscribe,
 		openBillingPortal,
 		getCustomDomain,
@@ -27,7 +29,7 @@
 	type Tab = 'usage' | 'billing' | 'workspace' | 'smtp';
 	const _urlTab = get(page).url.searchParams.get('tab') as Tab | null;
 	const _validTabs: Tab[] = ['usage', 'billing', 'workspace', 'smtp'];
-	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'usage');
+	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'workspace');
 
 	// Show success banner when returning from Stripe checkout
 	const _upgraded = get(page).url.searchParams.get('upgraded') === 'true';
@@ -59,7 +61,7 @@
 		}
 	}
 
-	// Reset billing cache when workspace changes
+	// Reset billing + usage cache when workspace changes
 	let _lastWsId = $state<string | null>(null);
 	$effect(() => {
 		const wsId = workspacesStore.active?.id ?? null;
@@ -68,6 +70,8 @@
 			billingLoaded = false;
 			billingInfo = null;
 			billingError = '';
+			usageLoaded = false;
+			usageInfo = null;
 			customDomain = null;
 			domainInput = '';
 			domainError = '';
@@ -78,7 +82,28 @@
 		if (activeTab === 'usage' || activeTab === 'billing') {
 			loadBillingInfo();
 		}
+		if (activeTab === 'usage') {
+			loadUsageInfo();
+		}
 	});
+
+	// ─── Usage state ─────────────────────────────────────────────────────────────
+
+	let usageInfo = $state<WorkspaceUsage | null>(null);
+	let usageLoading = $state(false);
+	let usageLoaded = $state(false);
+
+	async function loadUsageInfo() {
+		const ws = workspacesStore.active;
+		if (!ws || usageLoaded || usageLoading) return;
+		usageLoading = true;
+		try {
+			usageInfo = await getWorkspaceUsage(ws.id);
+			usageLoaded = true;
+		} catch { /* non-fatal */ } finally {
+			usageLoading = false;
+		}
+	}
 
 	// ─── Custom domain state ──────────────────────────────────────────────────────
 
@@ -303,9 +328,9 @@
 	// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean; ownerOnly?: boolean }[] = [
+		{ id: 'workspace', label: 'General',   icon: Settings                               },
 		{ id: 'usage',     label: 'Usage',     icon: BarChart2                              },
 		{ id: 'billing',   label: 'Billing',   icon: CreditCard, ownerOnly: true            },
-		{ id: 'workspace', label: 'Workspace',  icon: Building2                              },
 		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true             },
 	];
 
@@ -496,18 +521,155 @@
 	<!-- ─── Usage tab ─────────────────────────────────────────────────────────── -->
 	{#if activeTab === 'usage'}
 		<div>
-			<div class="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-10">
-				{#each [
-					{ label: 'Forms',     value: billingLoading ? '…' : billingInfo ? String(billingInfo.formCount) : '—' },
-					{ label: 'Responses', value: billingLoading ? '…' : billingInfo ? String(billingInfo.monthlyResponseCount) : '—' },
-					{ label: 'Members',   value: billingLoading ? '…' : billingInfo ? String(billingInfo.memberCount) : '—' },
-				] as stat}
-					<div class="px-4 py-4 sm:px-5 sm:py-5 border border-border-deep rounded-lg flex flex-col gap-2">
-						<p class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">{stat.label}</p>
-						<p class="m-0 text-4xl sm:text-5xl text-text-body leading-none tabular-nums">{stat.value}</p>
+			{#if billingLoading && !billingInfo}
+				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+					{#each [0, 1, 2] as _}
+						<div class="border border-border-deep rounded-lg p-5 h-32 animate-pulse bg-surface-deep"></div>
+					{/each}
+				</div>
+			{:else}
+				{@const memberLimit = billingInfo?.plan === 'free' ? 2 : billingInfo?.plan === 'pro' ? 10 : -1}
+				{@const responseLimit = billingInfo?.plan === 'free' ? 250 : billingInfo?.plan === 'pro' ? 10_000 : billingInfo?.plan === 'org' ? 100_000 : -1}
+				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
+
+					<!-- Forms -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Forms</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">Forms per workspace</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{billingInfo ? billingInfo.formCount : '—'}
+						</p>
+						<p class="m-0 text-xs text-muted-mid">Unlimited</p>
 					</div>
-				{/each}
-			</div>
+
+					<!-- Responses -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Responses</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">Records collected this month</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{#if billingInfo}
+								{billingInfo.monthlyResponseCount.toLocaleString()}{#if responseLimit > 0}<span class="text-muted-mid font-normal text-base"> / {responseLimit.toLocaleString()}</span>{/if}
+							{:else}—{/if}
+						</p>
+						{#if billingInfo && responseLimit > 0}
+							{@const pct = Math.min(100, (billingInfo.monthlyResponseCount / responseLimit) * 100)}
+							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+								<div class="h-full rounded-full transition-all duration-300
+									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"></div>
+							</div>
+						{/if}
+					</div>
+
+					<!-- Members -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Members</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">Members per workspace</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{#if billingInfo}
+								{billingInfo.memberCount}{#if memberLimit > 0}<span class="text-muted-mid font-normal text-base"> / {memberLimit}</span>{/if}
+							{:else}—{/if}
+						</p>
+						{#if billingInfo && memberLimit > 0}
+							{@const pct = Math.min(100, (billingInfo.memberCount / memberLimit) * 100)}
+							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+								<div class="h-full rounded-full transition-all duration-300
+									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"></div>
+							</div>
+						{/if}
+					</div>
+
+					<!-- Stored Responses -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Stored Responses</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">Total responses stored</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{#if usageInfo}
+								{usageInfo.stored_responses.current.toLocaleString()}{#if usageInfo.stored_responses.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.stored_responses.limit.toLocaleString()}</span>{/if}
+							{:else if usageLoading}
+								<span class="text-muted-mid">…</span>
+							{:else}—{/if}
+						</p>
+						{#if usageInfo && usageInfo.stored_responses.limit > 0}
+							{@const pct = Math.min(100, (usageInfo.stored_responses.current / usageInfo.stored_responses.limit) * 100)}
+							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+								<div class="h-full rounded-full transition-all duration-300
+									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"></div>
+							</div>
+						{:else if usageInfo}
+							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
+						{/if}
+					</div>
+
+					<!-- Emails Sent -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Emails Sent</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">Notification emails this month</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{#if usageInfo}
+								{usageInfo.monthly_emails.current.toLocaleString()}{#if usageInfo.monthly_emails.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.monthly_emails.limit.toLocaleString()}</span>{/if}
+							{:else if usageLoading}
+								<span class="text-muted-mid">…</span>
+							{:else}—{/if}
+						</p>
+						{#if usageInfo && usageInfo.monthly_emails.limit > 0}
+							{@const pct = Math.min(100, (usageInfo.monthly_emails.current / usageInfo.monthly_emails.limit) * 100)}
+							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+								<div class="h-full rounded-full transition-all duration-300
+									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"></div>
+							</div>
+						{:else if usageInfo}
+							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
+						{/if}
+					</div>
+
+					<!-- Storage Used -->
+					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+						<div>
+							<p class="m-0 text-sm font-semibold text-text-body">Storage Used</p>
+							<p class="m-0 text-xs text-muted-mid mt-0.5">File storage across all forms</p>
+						</div>
+						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+							{#if usageInfo}
+								{#if usageInfo.file_storage_bytes.limit > 0}
+									{@const limitMB = usageInfo.file_storage_bytes.limit / 1_048_576}
+									{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
+									{Math.round(usedMB)} MB<span class="text-muted-mid font-normal text-base"> / {limitMB >= 1024 ? (limitMB / 1024).toFixed(0) + ' GB' : limitMB.toFixed(0) + ' MB'}</span>
+								{:else}
+									{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
+									{Math.round(usedMB)} MB
+								{/if}
+							{:else if usageLoading}
+								<span class="text-muted-mid">…</span>
+							{:else}—{/if}
+						</p>
+						{#if usageInfo && usageInfo.file_storage_bytes.limit > 0}
+							{@const pct = Math.min(100, (usageInfo.file_storage_bytes.current / usageInfo.file_storage_bytes.limit) * 100)}
+							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+								<div class="h-full rounded-full transition-all duration-300
+									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
+									style="width: {pct}%"></div>
+							</div>
+						{:else if usageInfo}
+							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
+						{/if}
+					</div>
+
+				</div>
+			{/if}
 
 			<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Plan</h2>
 			<div class="border border-border-deep rounded-lg overflow-hidden">
@@ -776,7 +938,7 @@
 
 			<div class="flex flex-col gap-1.5">
 				<label for="ws-name" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-					Name
+					Workspace Name
 				</label>
 				<input
 					id="ws-name"
@@ -786,6 +948,7 @@
 					class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
 						placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
 				/>
+				<p class="m-0 text-xs text-muted-mid">The public name for this workspace shown in metadata.</p>
 			</div>
 
 			{#if workspacesStore.active}

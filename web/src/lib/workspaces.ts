@@ -198,6 +198,31 @@ export interface BillingInfo {
 	hasStripeCustomer: boolean;
 }
 
+export interface UsageMetric {
+	current: number;
+	limit: number; // -1 = unlimited
+}
+
+export interface WorkspaceUsage {
+	members:           UsageMetric;
+	forms:             UsageMetric;
+	monthly_responses: UsageMetric;
+	stored_responses:  UsageMetric;
+	monthly_emails:    UsageMetric;
+	file_storage_bytes: UsageMetric;
+}
+
+export async function getWorkspaceUsage(workspaceId: string): Promise<WorkspaceUsage> {
+	const res = await apiFetch(`/api/workspaces/${workspaceId}/usage`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'usage_fetch_failed';
+		const message = (body as { message?: string }).message ?? `Failed to load usage (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return res.json() as Promise<WorkspaceUsage>;
+}
+
 export async function getBillingInfo(workspaceId: string): Promise<BillingInfo> {
 	const res = await apiFetch(`/api/workspaces/${workspaceId}/billing`);
 	if (!res.ok) {
