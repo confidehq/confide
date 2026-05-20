@@ -17,7 +17,7 @@
 	</summary>
 	{#if translation.helpText}
 		<div class="px-4 py-3 border-t border-form-border-light text-base text-form-text-dim leading-relaxed">
-			{translation.helpText}
+			{@html translation.helpText}
 		</div>
 	{/if}
 </details>

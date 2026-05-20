@@ -376,6 +376,13 @@ body {
   border-color: var(--color-form-border-focus);
 }
 
+/* Rich text rendered in the form renderer (from {@html}) */
+.text-form-text-dim a,
+.text-form-muted a {
+  color: var(--color-form-primary);
+  text-decoration: underline;
+}
+
 /* On mobile the sidebar overlays content, so remove the left margin */
 @media (max-width: 639px) {
   .app-main-content { margin-left: 0 !important; }

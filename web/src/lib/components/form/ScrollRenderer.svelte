@@ -6,7 +6,7 @@
 	import { validateAll } from '$lib/validation';
 	import type { AnswerValue } from '$lib/validation';
 	import FieldRenderer from './FieldRenderer.svelte';
-	import { Languages, ShieldCheck, Lock } from '@lucide/svelte';
+	import { Languages, Lock } from '@lucide/svelte';
 
 	interface Props {
 		schema: BuilderSchema;
@@ -118,14 +118,9 @@
 	}
 </script>
 
-<div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
-	<div class="flex justify-between items-center mb-4">
-		<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-form-surface border border-form-border text-xs text-form-muted">
-			<ShieldCheck size={12} strokeWidth={2} class="text-form-primary shrink-0" />
-			<span class="sm:hidden">Your response is encrypted</span>
-			<span class="hidden sm:inline">Your response is end-to-end encrypted</span>
-		</div>
-		{#if locales.length > 1}
+<div class="w-full max-w-3xl mt-12 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
+	{#if locales.length > 1}
+		<div class="flex justify-end mb-6">
 			<!-- Mobile: compact with locale codes -->
 			<div class="relative inline-flex items-center sm:hidden">
 				<Languages class="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-form-muted pointer-events-none" />
@@ -160,16 +155,18 @@
 					<path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 				</svg>
 			</div>
+		</div>
+	{/if}
+
+	<div class="mb-10">
+		{#if translation?.formHeadline}
+			<p class="m-0 mb-3 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
+		{/if}
+		<h1 class="text-4xl font-bold m-0 mb-4 leading-tight">{translation?.formTitle ?? ''}</h1>
+		{#if translation?.formDescription}
+			<p class="m-0 text-base leading-relaxed text-form-text-dim">{@html translation.formDescription}</p>
 		{/if}
 	</div>
-
-	{#if translation?.formHeadline}
-		<p class="m-0 mb-1 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
-	{/if}
-	<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
-	{#if translation?.formDescription}
-		<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>
-	{/if}
 
 	<form onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} novalidate>
 		<div aria-hidden="true" class="absolute left-[-9999px] top-[-9999px] w-px h-px overflow-hidden">
@@ -208,9 +205,9 @@
 				{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 		>
 			<span class="inline-flex items-center gap-2">
-			<Lock size={13} strokeWidth={2} class="opacity-70" />
-			{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
-		</span>
+				<Lock size={13} strokeWidth={2} class="opacity-70" />
+				{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
+			</span>
 		</button>
 	</form>
 

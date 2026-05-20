@@ -21,5 +21,5 @@
 	<h3 class="m-0 text-lg font-bold text-form-text-mid">{translation.label}</h3>
 {/if}
 {#if translation.helpText}
-	<p class="mt-1 m-0 text-base text-form-muted leading-relaxed">{translation.helpText}</p>
+	<p class="mt-1 m-0 text-base text-form-muted leading-relaxed">{@html translation.helpText}</p>
 {/if}

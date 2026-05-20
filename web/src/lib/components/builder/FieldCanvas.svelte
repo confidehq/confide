@@ -9,6 +9,7 @@
 		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
 		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical, Copy
 	} from '@lucide/svelte';
+	import RichEditable from './RichEditable.svelte';
 
 	const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> = [
 		{ type: 'short_text', label: 'Short text', icon: Type },
@@ -234,20 +235,15 @@ function getOptionLabels(fieldId: string): string[] {
 				style="color: {store.activeTranslation?.formTitle ? 'var(--color-text-bright)' : 'var(--color-text-subtle)'};"
 				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-3xl font-semibold font-[inherit] px-1 py-0.5 mb-1.5"
 			></textarea>
-			<textarea
-				rows={1}
-				use:growable={store.activeTranslation?.formDescription ?? ''}
+			<RichEditable
 				value={store.activeTranslation?.formDescription ?? ''}
 				placeholder={defaultLocaleDesc || 'Form description…'}
 				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
-				oninput={(e) => {
-					const el = e.target as HTMLTextAreaElement;
-					autoGrow(el);
-					store.updateTranslation(null, 'formDescription', el.value);
-				}}
+				onfocus={() => store.setSelectedField(null)}
 				style="color: {store.activeTranslation?.formDescription ? 'var(--color-muted)' : 'var(--color-border)'};"
-				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-base font-[inherit] px-1 py-0.5"
-			></textarea>
+				class="block w-full box-border text-base font-[inherit] px-1 py-0.5"
+				onchange={(html) => store.updateTranslation(null, 'formDescription', html)}
+			/>
 		</div>
 
 		<!-- Backdrop to close popover -->
@@ -375,16 +371,15 @@ function getOptionLabels(fieldId: string): string[] {
 							style="color: {label ? 'var(--color-text-bright)' : 'var(--color-border)'}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
 						></textarea>
-						<textarea
-							rows={1}
+						<RichEditable
 							value={helpText}
 							placeholder={defaultHelpText || 'Help text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-border)'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-[inherit] px-1 py-0.5 leading-relaxed"
-						></textarea>
+							class="block w-full box-border cursor-text text-base font-[inherit] px-1 py-0.5 leading-relaxed"
+							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
+						/>
 					</div>
 
 				{:else if isAccent}
@@ -444,17 +439,15 @@ function getOptionLabels(fieldId: string): string[] {
 							style="color: {label ? accentColors.badge : 'var(--color-text-subtle)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-semibold font-[inherit] px-1 py-0.5 mb-0.5"
 						></textarea>
-						<textarea
-							rows={1}
-							use:growable={helpText}
+						<RichEditable
 							value={helpText}
 							placeholder={defaultHelpText || 'Body text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-text-note)' : 'var(--color-text-subtle)'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
-						></textarea>
+							class="block w-full box-border cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
+							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
+						/>
 					</div>
 
 				{:else}
@@ -525,21 +518,15 @@ function getOptionLabels(fieldId: string): string[] {
 						></textarea>
 
 						<!-- Help text inline editor -->
-						<textarea
-							rows={1}
-							use:growable={helpText}
+						<RichEditable
 							value={helpText}
 							placeholder={defaultHelpText || 'Add help text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => {
-								const el = e.target as HTMLTextAreaElement;
-								autoGrow(el);
-								store.updateTranslation(field.id, 'helpText', el.value);
-							}}
 							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-text-subtle)'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-[inherit] px-1 py-0.5 cursor-text"
-						></textarea>
+							class="block w-full box-border text-sm font-[inherit] px-1 py-0.5 cursor-text"
+							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
+						/>
 
 						<!-- Placeholder inline editor (text fields only) -->
 						{#if hasPlaceholder}

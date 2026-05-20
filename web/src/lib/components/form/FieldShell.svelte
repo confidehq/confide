@@ -17,7 +17,7 @@
 		{label}{#if required}<span class="text-danger-border ml-0.5" aria-hidden="true">*</span>{/if}
 	</label>
 	{#if helpText}
-		<p class="m-0 text-sm text-form-muted">{helpText}</p>
+		<p class="m-0 text-sm text-form-muted">{@html helpText}</p>
 	{/if}
 	{@render children()}
 	{#if error}

@@ -24,6 +24,6 @@
 >
 	<p class="m-0 font-semibold">{translation.label}</p>
 	{#if translation.helpText}
-		<p class="mt-1 m-0">{translation.helpText}</p>
+		<p class="mt-1 m-0">{@html translation.helpText}</p>
 	{/if}
 </div>
