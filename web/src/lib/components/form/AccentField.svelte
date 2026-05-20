@@ -22,7 +22,7 @@
 	style="border-left-color: {styles.border}; background: {styles.bg}; color: {styles.color};"
 	class="px-4 py-3 border-l-4 rounded text-base leading-relaxed"
 >
-	<p class="m-0 font-semibold">{translation.label}</p>
+	<p class="m-0 font-semibold">{@html translation.label}</p>
 	{#if translation.helpText}
 		<p class="mt-1 m-0">{@html translation.helpText}</p>
 	{/if}

@@ -12,9 +12,9 @@
 
 <div class="my-1 pt-2 border-t border-form-border-light">
 	{#if translation.label}
-		<h2 class="m-0 mb-1 text-lg font-bold text-form-text">{translation.label}</h2>
+		<h2 class="m-0 mb-1 text-lg font-bold text-form-text">{@html translation.label}</h2>
 	{/if}
 	{#if translation.helpText}
-		<p class="m-0 text-base text-form-muted">{translation.helpText}</p>
+		<p class="m-0 text-base text-form-muted">{@html translation.helpText}</p>
 	{/if}
 </div>

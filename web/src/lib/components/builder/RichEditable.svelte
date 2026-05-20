@@ -8,6 +8,7 @@
 		style?: string;
 		onfocus?: (e: FocusEvent) => void;
 		onclick?: (e: MouseEvent) => void;
+		onkeydown?: (e: KeyboardEvent) => void;
 		onchange: (html: string) => void;
 	}
 
@@ -18,6 +19,7 @@
 		style = '',
 		onfocus,
 		onclick,
+		onkeydown,
 		onchange
 	}: Props = $props();
 
@@ -164,6 +166,7 @@
 	oninput={handleInput}
 	onfocus={onfocus}
 	onclick={onclick}
+	onkeydown={onkeydown}
 ></div>
 
 <style>

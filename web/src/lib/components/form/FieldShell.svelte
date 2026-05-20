@@ -14,7 +14,7 @@
 
 <div class="flex flex-col gap-1.5 w-full">
 	<label class="text-base font-semibold text-form-text">
-		{label}{#if required}<span class="text-danger-border ml-0.5" aria-hidden="true">*</span>{/if}
+		{@html label}{#if required}<span class="text-danger-border ml-0.5" aria-hidden="true">*</span>{/if}
 	</label>
 	{#if helpText}
 		<p class="m-0 text-sm text-form-muted">{@html helpText}</p>

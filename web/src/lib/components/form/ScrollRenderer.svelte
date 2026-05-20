@@ -162,7 +162,7 @@
 		{#if translation?.formHeadline}
 			<p class="m-0 mb-3 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
 		{/if}
-		<h1 class="text-4xl font-bold m-0 mb-4 leading-tight">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-4xl font-bold m-0 mb-4 leading-tight whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 text-base leading-relaxed text-form-text-dim">{@html translation.formDescription}</p>
 		{/if}

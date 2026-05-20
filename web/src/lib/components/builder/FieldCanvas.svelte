@@ -302,19 +302,16 @@ function getOptionLabels(fieldId: string): string[] {
 							aria-label="Field settings"
 						><GripVertical size={15} strokeWidth={1.75} /></button>
 						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
-							<textarea
-								rows={1}
+							<RichEditable
 								value={label}
 								placeholder={defaultLabel || 'Section label…'}
 								onclick={(e) => e.stopPropagation()}
 								onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-								oninput={(e) => {
-									const el = e.target as HTMLTextAreaElement;
-									autoGrow(el);
-									store.updateTranslation(field.id, 'label', el.value);
-								}}
-								class="relative z-[1] bg-canvas border-none outline-none text-muted text-sm font-mono text-center px-2 py-0 resize-none overflow-hidden w-auto min-w-20 max-w-48"
-							></textarea>
+								onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+								style="color: {label ? 'var(--color-muted)' : undefined};"
+								class="relative z-[1] text-muted text-sm font-mono text-center px-2 py-0 min-w-20 max-w-48"
+								onchange={(html) => store.updateTranslation(field.id, 'label', html)}
+							/>
 						</div>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
@@ -361,16 +358,16 @@ function getOptionLabels(fieldId: string): string[] {
 								aria-label="Delete field" title="Delete field"
 							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
-						<textarea
-							rows={1}
+						<RichEditable
 							value={label}
 							placeholder={defaultLabel || 'Heading text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
-							style="color: {label ? 'var(--color-text-bright)' : 'var(--color-border)'}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
-						></textarea>
+							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+							style="color: {label ? 'var(--color-text-bright)' : undefined}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
+							class="block w-full box-border cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
+							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
+						/>
 						<RichEditable
 							value={helpText}
 							placeholder={defaultHelpText || 'Help text…'}
@@ -428,17 +425,16 @@ function getOptionLabels(fieldId: string): string[] {
 								aria-label="Delete field" title="Delete field"
 							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
-						<textarea
-							rows={1}
-							use:growable={label}
+						<RichEditable
 							value={label}
 							placeholder={defaultLabel || 'Title…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
-							style="color: {label ? accentColors.badge : 'var(--color-text-subtle)'};"
-							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-semibold font-[inherit] px-1 py-0.5 mb-0.5"
-						></textarea>
+							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+							style="color: {label ? accentColors.badge : undefined};"
+							class="block w-full box-border cursor-text text-base font-semibold font-[inherit] px-1 py-0.5 mb-0.5"
+							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
+						/>
 						<RichEditable
 							value={helpText}
 							placeholder={defaultHelpText || 'Body text…'}
@@ -502,20 +498,16 @@ function getOptionLabels(fieldId: string): string[] {
 						</div>
 
 						<!-- Label inline editor -->
-						<textarea
-							rows={1}
+						<RichEditable
 							value={label}
 							placeholder={defaultLabel || 'Label…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							oninput={(e) => {
-								const el = e.target as HTMLTextAreaElement;
-								autoGrow(el);
-								store.updateTranslation(field.id, 'label', el.value);
-							}}
-							style="color: {label ? 'var(--color-text)' : 'var(--color-muted-dark)'};"
-							class="block w-full box-border bg-transparent border-none border-b border-b-transparent outline-none resize-none overflow-hidden text-base font-[inherit] px-1 py-0.5 mb-2 cursor-text"
-						></textarea>
+							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+							style="color: {label ? 'var(--color-text)' : undefined};"
+							class="block w-full box-border text-base font-[inherit] px-1 py-0.5 mb-2 cursor-text"
+							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
+						/>
 
 						<!-- Help text inline editor -->
 						<RichEditable
