@@ -147,7 +147,7 @@
 	}
 </script>
 
-<div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-8 sm:mt-14 mx-auto pb-20 px-5 sm:px-0 font-[system-ui,sans-serif] text-form-text">
 	<div aria-hidden="true" class="absolute left-[-9999px] top-[-9999px] w-px h-px overflow-hidden">
 		{#each honeypotFields as name (name)}
 			<input
@@ -233,17 +233,15 @@
 		<p class="mt-6 m-0 text-danger-border text-base">{submitError}</p>
 	{/if}
 
-	<div class="flex justify-between items-center mt-8">
+	<div class="flex gap-3 mt-8 {currentStep > 0 ? 'justify-between' : 'justify-end'}">
 		{#if currentStep > 0}
 			<button
 				type="button"
 				onclick={handleBack}
-				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
 			>
 				← Back
 			</button>
-		{:else}
-			<span></span>
 		{/if}
 
 		{#if isLastStep}
@@ -251,10 +249,10 @@
 				type="button"
 				onclick={handleSubmit}
 				disabled={submitting}
-				class="px-6 py-2.5 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
 					{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 			>
-				<span class="inline-flex items-center gap-2">
+				<span class="inline-flex items-center justify-center gap-2">
 					<Lock size={13} strokeWidth={2} class="opacity-70" />
 					{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
 				</span>
@@ -263,7 +261,7 @@
 			<button
 				type="button"
 				onclick={handleNext}
-				class="px-6 py-2.5 bg-form-primary text-white border-none rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-primary text-white border-none rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
 			>
 				Next →
 			</button>

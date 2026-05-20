@@ -118,7 +118,7 @@
 	}
 </script>
 
-<div class="w-full max-w-3xl mt-12 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-8 sm:mt-14 mx-auto pb-20 px-6 sm:px-0 font-[system-ui,sans-serif] text-form-text">
 	{#if locales.length > 1}
 		<div class="flex justify-end mb-6">
 			<!-- Mobile: compact with locale codes -->
@@ -158,11 +158,11 @@
 		</div>
 	{/if}
 
-	<div class="mb-10">
+	<div class="mb-8 sm:mb-10">
 		{#if translation?.formHeadline}
-			<p class="m-0 mb-3 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
+			<p class="m-0 mb-2 sm:mb-3 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
 		{/if}
-		<h1 class="text-4xl font-bold m-0 mb-4 leading-tight whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
+		<h1 class="text-3xl sm:text-4xl font-bold m-0 mb-3 sm:mb-4 leading-tight whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 text-base leading-relaxed text-form-text-dim">{@html translation.formDescription}</p>
 		{/if}
@@ -201,10 +201,10 @@
 		<button
 			type="submit"
 			disabled={submitting}
-			class="mt-8 px-8 py-3 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
+			class="mt-8 w-full sm:w-auto px-8 py-3.5 sm:py-3 text-white border-none rounded-md text-base font-[inherit] transition-colors duration-100
 				{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 		>
-			<span class="inline-flex items-center gap-2">
+			<span class="inline-flex items-center justify-center gap-2">
 				<Lock size={13} strokeWidth={2} class="opacity-70" />
 				{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
 			</span>
