@@ -224,7 +224,7 @@
 						</div>
 						{#if formsStore.formDescriptions.get(form.formId)}
 							<span class="text-sm text-muted-mid truncate">
-								{formsStore.formDescriptions.get(form.formId)}
+								{formsStore.formDescriptions.get(form.formId)?.replace(/<[^>]*>/g, '') ?? ''}
 							</span>
 						{/if}
 					</div>

@@ -71,7 +71,9 @@
 	}
 
 	function handleInput() {
-		onchange(editorEl?.innerHTML ?? '');
+		const el = editorEl;
+		if (!el) return;
+		onchange(el.textContent?.trim() === '' ? '' : el.innerHTML);
 	}
 
 	function stopToolbarBlur(e: MouseEvent) {

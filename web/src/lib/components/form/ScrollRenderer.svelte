@@ -118,9 +118,9 @@
 	}
 </script>
 
-<div class="w-full max-w-3xl mt-8 sm:mt-14 mx-auto pb-20 px-6 sm:px-0 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-8 mx-auto pb-20 px-6 sm:px-0 font-[system-ui,sans-serif] text-form-text">
 	{#if locales.length > 1}
-		<div class="flex justify-end mb-6">
+		<div class="flex justify-end mb-4">
 			<!-- Mobile: compact with locale codes -->
 			<div class="relative inline-flex items-center sm:hidden">
 				<Languages class="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-form-muted pointer-events-none" />
