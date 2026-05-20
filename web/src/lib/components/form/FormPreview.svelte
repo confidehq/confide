@@ -48,7 +48,7 @@
 	}
 </script>
 
-<div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
 	<!-- Preview banner -->
 	<div class="mb-6 px-3.5 py-2 bg-form-preview-bg border border-form-preview-border rounded-md text-sm text-form-preview-text">
 		Preview mode — responses will not be submitted
@@ -59,6 +59,9 @@
 	{/if}
 
 	{#if !isSteps || currentStep === 0}
+		{#if translation?.formHeadline}
+			<p class="m-0 mb-1 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
+		{/if}
 		<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>

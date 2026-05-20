@@ -97,6 +97,7 @@ export interface BuilderField {
 }
 
 export interface TranslationMap {
+	formHeadline?: string;
 	formTitle: string;
 	formDescription: string;
 	convoCompletionMessage?: string;

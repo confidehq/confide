@@ -147,7 +147,7 @@
 	}
 </script>
 
-<div class="max-w-[600px] mt-10 mx-auto px-6 pb-20 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
 	<div aria-hidden="true" class="absolute left-[-9999px] top-[-9999px] w-px h-px overflow-hidden">
 		{#each honeypotFields as name (name)}
 			<input
@@ -208,6 +208,9 @@
 			{/if}
 		</div>
 
+		{#if translation?.formHeadline}
+			<p class="m-0 mb-1 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
+		{/if}
 		<h1 class="text-3xl font-bold m-0 mb-2">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
 			<p class="m-0 mb-8 text-form-text-dim">{translation.formDescription}</p>

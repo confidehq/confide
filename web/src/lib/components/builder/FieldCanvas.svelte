@@ -191,6 +191,9 @@ function getOptionLabels(fieldId: string): string[] {
 	{#if store.mode === 'preview'}
 		<FormPreview schema={store.schema} locale={store.activeLocale} />
 	{:else}
+{@const defaultLocaleHeadline = store.activeLocale !== store.schema.defaultLocale
+	? (store.schema.translations[store.schema.defaultLocale]?.formHeadline ?? '')
+		: ''}
 {@const defaultLocaleTitle = store.activeLocale !== store.schema.defaultLocale
 	? (store.schema.translations[store.schema.defaultLocale]?.formTitle ?? '')
 		: ''}
@@ -198,11 +201,25 @@ function getOptionLabels(fieldId: string): string[] {
 	? (store.schema.translations[store.schema.defaultLocale]?.formDescription ?? '')
 		: ''}
 	<div class="max-w-4xl mx-auto w-full">
-		<!-- Form title and description -->
+		<!-- Form headline, title and description -->
 		<div
 			onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
 			class="mb-5"
 		>
+			<textarea
+				rows={1}
+				use:growable={store.activeTranslation?.formHeadline ?? ''}
+				value={store.activeTranslation?.formHeadline ?? ''}
+				placeholder={defaultLocaleHeadline || 'Headline…'}
+				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
+				oninput={(e) => {
+					const el = e.target as HTMLTextAreaElement;
+					autoGrow(el);
+					store.updateTranslation(null, 'formHeadline', el.value);
+				}}
+				style="color: {store.activeTranslation?.formHeadline ? 'var(--color-muted)' : 'var(--color-border)'};"
+				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-semibold uppercase tracking-widest font-[inherit] px-1 py-0.5 mb-1"
+			></textarea>
 			<textarea
 				rows={1}
 				use:growable={store.activeTranslation?.formTitle ?? ''}
@@ -672,25 +689,6 @@ function getOptionLabels(fieldId: string): string[] {
 		</div>
 	{/if}
 
-	<!-- Submit button inline editor -->
-	{#if fields.length > 0}
-		<div
-			class="max-w-4xl mx-auto w-full mt-4 mb-2"
-			onclick={(e) => e.stopPropagation()}
-			role="none"
-		>
-			<div class="inline-flex items-center gap-2 px-8 py-3 bg-form-primary rounded-md">
-				<input
-					type="text"
-					value={store.activeTranslation?.submitButtonText ?? ''}
-					placeholder="Submit"
-					oninput={(e) => store.updateTranslation(null, 'submitButtonText', (e.target as HTMLInputElement).value)}
-					style="width: {Math.max((store.activeTranslation?.submitButtonText || 'Submit').length, 6)}ch"
-					class="bg-transparent border-none outline-none text-white text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
-				/>
-			</div>
-		</div>
-	{/if}
 	</div>
 	{/if}
 
@@ -708,6 +706,26 @@ function getOptionLabels(fieldId: string): string[] {
 			Add field
 		</button>
 	</div>
+	{/if}
+
+	<!-- Submit button inline editor -->
+	{#if store.mode !== 'preview' && fields.length > 0}
+		<div
+			class="max-w-4xl mx-auto w-full mt-2 mb-6"
+			onclick={(e) => e.stopPropagation()}
+			role="none"
+		>
+			<div class="inline-flex items-center gap-2 px-8 py-3 bg-form-primary rounded-md">
+				<input
+					type="text"
+					value={store.activeTranslation?.submitButtonText ?? ''}
+					placeholder="Submit"
+					oninput={(e) => store.updateTranslation(null, 'submitButtonText', (e.target as HTMLInputElement).value)}
+					style="width: {Math.max((store.activeTranslation?.submitButtonText || 'Submit').length, 6)}ch"
+					class="bg-transparent border-none outline-none text-white text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
+				/>
+			</div>
+		</div>
 	{/if}
 
 	<!-- Field type popover (fixed, dismisses on backdrop click) -->
