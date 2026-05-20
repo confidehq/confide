@@ -279,8 +279,8 @@ function getOptionLabels(fieldId: string): string[] {
 					<!-- Section break: horizontal rule with inline-editable label -->
 					<div
 						role="none"
-						onclick={(e) => e.stopPropagation()}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'transparent'};"
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'transparent'}; cursor: default;"
 						class="flex items-center gap-3 px-3 py-2 border rounded-md"
 					>
 						<button
@@ -294,7 +294,7 @@ function getOptionLabels(fieldId: string): string[] {
 								value={label}
 								placeholder={defaultLabel || 'Section label…'}
 								onclick={(e) => e.stopPropagation()}
-								onfocus={(e) => e.stopPropagation()}
+								onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 								oninput={(e) => {
 									const el = e.target as HTMLTextAreaElement;
 									autoGrow(el);
@@ -321,8 +321,8 @@ function getOptionLabels(fieldId: string): string[] {
 					<!-- Heading block -->
 					<div
 						role="none"
-						onclick={(e) => e.stopPropagation()}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border-field)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'};"
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border-field)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'}; cursor: default;"
 						class="px-3 py-2 border rounded-md"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
@@ -353,7 +353,7 @@ function getOptionLabels(fieldId: string): string[] {
 							value={label}
 							placeholder={defaultLabel || 'Heading text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
 							style="color: {label ? 'var(--color-text-bright)' : 'var(--color-border)'}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
@@ -363,7 +363,7 @@ function getOptionLabels(fieldId: string): string[] {
 							value={helpText}
 							placeholder={defaultHelpText || 'Help text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-border)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-[inherit] px-1 py-0.5 leading-relaxed"
@@ -381,13 +381,14 @@ function getOptionLabels(fieldId: string): string[] {
 					<!-- Accent block -->
 					<div
 						role="none"
-						onclick={(e) => e.stopPropagation()}
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 						style="
 							border-left: 3px solid {accentColors.border};
 							border-top: 1px solid {isSelected ? 'var(--color-primary)' : 'var(--color-info-border-subtle)'};
 							border-right: 1px solid {isSelected ? 'var(--color-primary)' : 'var(--color-info-border-subtle)'};
 							border-bottom: 1px solid {isSelected ? 'var(--color-primary)' : 'var(--color-info-border-subtle)'};
 							background: {accentColors.bg};
+							cursor: default;
 						"
 						class="px-3 py-2.5 rounded-r-md"
 					>
@@ -417,20 +418,22 @@ function getOptionLabels(fieldId: string): string[] {
 						</div>
 						<textarea
 							rows={1}
+							use:growable={label}
 							value={label}
 							placeholder={defaultLabel || 'Title…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'label', el.value); }}
 							style="color: {label ? accentColors.badge : 'var(--color-text-subtle)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-base font-semibold font-[inherit] px-1 py-0.5 mb-0.5"
 						></textarea>
 						<textarea
 							rows={1}
+							use:growable={helpText}
 							value={helpText}
 							placeholder={defaultHelpText || 'Body text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => { const el = e.target as HTMLTextAreaElement; autoGrow(el); store.updateTranslation(field.id, 'helpText', el.value); }}
 							style="color: {helpText ? 'var(--color-text-note)' : 'var(--color-text-subtle)'};"
 							class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
@@ -441,8 +444,8 @@ function getOptionLabels(fieldId: string): string[] {
 					<!-- Regular field card: vertical layout with inline editable label + help text -->
 					<div
 						role="none"
-						onclick={(e) => e.stopPropagation()}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'};"
+						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'}; cursor: default;"
 						class="px-4 py-3.5 border rounded-md"
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
@@ -494,7 +497,7 @@ function getOptionLabels(fieldId: string): string[] {
 							value={label}
 							placeholder={defaultLabel || 'Label…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => {
 								const el = e.target as HTMLTextAreaElement;
 								autoGrow(el);
@@ -511,7 +514,7 @@ function getOptionLabels(fieldId: string): string[] {
 							value={helpText}
 							placeholder={defaultHelpText || 'Add help text…'}
 							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							oninput={(e) => {
 								const el = e.target as HTMLTextAreaElement;
 								autoGrow(el);
@@ -530,7 +533,7 @@ function getOptionLabels(fieldId: string): string[] {
 										value={placeholder}
 										placeholder={defaultPlaceholder || 'e.g. Enter your answer…'}
 										onclick={(e) => e.stopPropagation()}
-										onfocus={(e) => e.stopPropagation()}
+										onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 										oninput={(e) => {
 											const el = e.target as HTMLTextAreaElement;
 											autoGrow(el);
@@ -570,7 +573,7 @@ function getOptionLabels(fieldId: string): string[] {
 											type="text"
 											value={optLabel}
 											placeholder="Option {i + 1}"
-											onfocus={(e) => e.stopPropagation()}
+											onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 											oninput={(e) => setOptionLabel(field.id, i, (e.target as HTMLInputElement).value)}
 											style="color: {optLabel ? 'var(--color-text-dim)' : 'var(--color-text-subtle)'};"
 											class="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-[inherit] py-px"
@@ -669,11 +672,30 @@ function getOptionLabels(fieldId: string): string[] {
 		</div>
 	{/if}
 
+	<!-- Submit button inline editor -->
+	{#if fields.length > 0}
+		<div
+			class="max-w-4xl mx-auto w-full mt-4 mb-2"
+			onclick={(e) => e.stopPropagation()}
+			role="none"
+		>
+			<div class="inline-flex items-center gap-2 px-8 py-3 bg-form-primary rounded-md">
+				<input
+					type="text"
+					value={store.activeTranslation?.submitButtonText ?? ''}
+					placeholder="Submit"
+					oninput={(e) => store.updateTranslation(null, 'submitButtonText', (e.target as HTMLInputElement).value)}
+					style="width: {Math.max((store.activeTranslation?.submitButtonText || 'Submit').length, 6)}ch"
+					class="bg-transparent border-none outline-none text-white text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
+				/>
+			</div>
+		</div>
+	{/if}
 	</div>
 	{/if}
 
 	<!-- Add field button -->
-	{#if store.mode !== 'preview'}
+	{#if store.mode !== 'preview' && fields.length > 0}
 	<div
 		class="fixed sm:sticky bottom-[76px] sm:bottom-0 left-3 right-3 sm:left-auto sm:right-auto sm:w-full max-w-4xl sm:mx-auto pt-3 pb-3 z-10"
 		style="background: linear-gradient(to bottom, transparent, var(--color-surface) 40%);"

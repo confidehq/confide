@@ -206,7 +206,7 @@
 		>
 			<span class="inline-flex items-center gap-2">
 			<Lock size={13} strokeWidth={2} class="opacity-70" />
-			{submitting ? 'Submitting…' : 'Submit'}
+			{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
 		</span>
 		</button>
 	</form>

@@ -100,6 +100,7 @@ export interface TranslationMap {
 	formTitle: string;
 	formDescription: string;
 	convoCompletionMessage?: string;
+	submitButtonText?: string;
 	fields: Record<
 		string,
 		{

@@ -104,7 +104,7 @@
 				disabled
 				class="px-6 py-2.5 bg-form-muted-light text-white border-none rounded-md text-base font-[inherit] cursor-not-allowed"
 			>
-				Submit
+				{translation?.submitButtonText || 'Submit'}
 			</button>
 		{/if}
 	</div>
