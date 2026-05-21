@@ -21,20 +21,20 @@ type Mailer struct {
 	Port         string
 	User         string
 	Pass         string
-	FromEmail    string
+	Sender       string
 	ResendAPIKey string
 }
 
 // New constructs a Mailer. When resendAPIKey is non-empty it is preferred over SMTP.
 // When both are empty, sends are silently skipped.
-func New(host, port, user, pass, fromEmail, resendAPIKey string) *Mailer {
+func New(host, port, user, pass, sender, resendAPIKey string) *Mailer {
 	return &Mailer{
 		log:          log.With().Str("module", "mailer").Logger(),
 		Host:         host,
 		Port:         port,
 		User:         user,
 		Pass:         pass,
-		FromEmail:    fromEmail,
+		Sender:       sender,
 		ResendAPIKey: resendAPIKey,
 	}
 }
@@ -46,9 +46,9 @@ func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link s
 
 	var err error
 	if m.ResendAPIKey != "" {
-		err = m.resendText(m.FromEmail, to, subject, body)
+		err = m.resendText(m.Sender, to, subject, body)
 	} else if m.Host != "" {
-		msg := buildPlainMessage(m.FromEmail, to, subject, body)
+		msg := buildPlainMessage(m.Sender, to, subject, body)
 		err = m.smtp(to, msg)
 	} else {
 		m.log.Info().Str("to", to).Msg("mailer: not configured, skipping invitation email")
@@ -67,7 +67,7 @@ func (m *Mailer) SendInvitation(to, workspaceName, inviterUsername, role, link s
 // Via SMTP: uses RFC 3156 PGP/MIME for broader client compatibility.
 func (m *Mailer) SendPGPResponse(to, formID, armoredData, from, subject string) {
 	if from == "" {
-		from = m.FromEmail
+		from = m.Sender
 	}
 	if subject == "" {
 		subject = "New form response"
@@ -124,7 +124,7 @@ func (m *Mailer) resendText(from, to, subject, text string) error {
 func (m *Mailer) smtp(to, rawMessage string) error {
 	addr := m.Host + ":" + m.Port
 	auth := smtp.PlainAuth("", m.User, m.Pass, m.Host)
-	if err := smtp.SendMail(addr, auth, m.FromEmail, []string{to}, []byte(rawMessage)); err != nil {
+	if err := smtp.SendMail(addr, auth, m.Sender, []string{to}, []byte(rawMessage)); err != nil {
 		return fmt.Errorf("mailer: smtp: %w", err)
 	}
 	return nil

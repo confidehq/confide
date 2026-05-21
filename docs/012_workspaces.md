@@ -338,7 +338,7 @@ CONFIDE_SMTP_HOST
 CONFIDE_SMTP_PORT     (default 587)
 CONFIDE_SMTP_USER
 CONFIDE_SMTP_PASS
-CONFIDE_FROM_EMAIL
+CONFIDE_SMTP_SENDER
 ```
 
 New internal `mailer` package with a single `SendInvitation(to, workspaceName, inviterUsername, role, link string)` function. Invitation link format: `https://{domain}/invite/{rawToken}`.

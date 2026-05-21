@@ -52,7 +52,7 @@ func (s *Services) Start(ctx context.Context) {
 
 // NewServices constructs all application services from the pool and webauthn instance.
 func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) *Services {
-	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.FromEmail, cfg.ResendAPIKey)
+	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.Sender, cfg.ResendAPIKey)
 	wsSvc := workspace.NewService(pool)
 
 	// Build domain registry from DB and wire it into the workspace service.
@@ -76,14 +76,14 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	wsSvc.WithSubscriptionCanceler(billingSvc)
 
 	return &Services{
-		Auth:       auth.NewService(pool, wa),
-		Forms:      forms.NewService(pool),
-		Responses:  responses.NewService(pool, m),
-		Workspace:  wsSvc,
-		Identity:   identity.NewService(pool),
-		Invitation: invitation.NewService(pool, m, cfg.AppDomain),
-		Billing:    billingSvc,
-		RelayQ:     &relay.Queue{},
+		Auth:         auth.NewService(pool, wa),
+		Forms:        forms.NewService(pool),
+		Responses:    responses.NewService(pool, m),
+		Workspace:    wsSvc,
+		Identity:     identity.NewService(pool),
+		Invitation:   invitation.NewService(pool, m, cfg.AppDomain),
+		Billing:      billingSvc,
+		RelayQ:       &relay.Queue{},
 		domainWorker: worker,
 	}
 }
@@ -128,9 +128,11 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-					"formsDomain":      cfg.FormsDomain,
-					"registrationOpen": cfg.RegistrationOpen,
-				})
+				"formsDomain":      cfg.FormsDomain,
+				"registrationOpen": cfg.RegistrationOpen,
+				"emailEnabled":     cfg.EmailEnabled,
+				"smtpSender":       cfg.Sender,
+			})
 		})
 
 		// Auth routes — general rate limit.

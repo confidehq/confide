@@ -1,6 +1,8 @@
 interface AppConfig {
 	formsDomain: string;
 	registrationOpen: boolean;
+	emailEnabled: boolean;
+	smtpSender: string;
 }
 
 let cached: AppConfig | null = null;
@@ -18,5 +20,5 @@ export async function getAppConfig(): Promise<AppConfig> {
 	} catch {
 		// ignore — caller falls back to window.location.origin
 	}
-	return { formsDomain: envFormsDomain, registrationOpen: true };
+	return { formsDomain: envFormsDomain, registrationOpen: true, emailEnabled: false, smtpSender: '' };
 }

@@ -71,6 +71,8 @@
 	let notificationSubject = $state('');
 	let pgpPending = $state(false);
 	const pgpOpen = $derived(!!notificationEmail || pgpPending);
+	let emailEnabled = $state(false);
+	let smtpSender = $state('');
 	let pgpKeyFingerprint = $state('');
 	let pgpKeyError = $state('');
 
@@ -134,6 +136,7 @@
 	// ── Init ─────────────────────────────────────────────────────────────────
 	onMount(async () => {
 		if (!auth.masterKey) { goto('/login'); return; }
+		getAppConfig().then(c => { emailEnabled = c.emailEnabled; smtpSender = c.smtpSender; }).catch(() => {});
 		await Promise.all([loadForm(), loadResponses()]);
 	});
 
@@ -984,15 +987,21 @@
 												<div>
 													<p class="m-0 text-base text-text-dim">Email forwarding</p>
 													<p class="m-0 text-sm text-muted-dark mt-0.5">Forward encrypted responses to an email via PGP.</p>
+													{#if !emailEnabled}
+														<p class="m-0 text-xs text-warning-text mt-1">Email is not configured on this server.</p>
+													{/if}
 												</div>
 												<button
 													role="switch"
 													aria-checked={pgpOpen}
+													disabled={!emailEnabled}
 													onclick={() => {
+														if (!emailEnabled) return;
 														if (pgpOpen) { pgpPending = false; notificationEmail = ''; pgpPublicKey = ''; }
 														else { pgpPending = true; }
 													}}
-													class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+													class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none
+														{emailEnabled ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}
 														{pgpOpen ? 'bg-primary' : 'bg-border-deep'}"
 												>
 													<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
@@ -1016,18 +1025,15 @@
 															</div>
 															<div class="flex items-center border-b border-border-deep">
 																<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted-dim border-r border-border-deep">From</span>
-																<input
-																	type="text"
-																	placeholder='Alerts <alerts@example.com>'
-																	bind:value={notificationFrom}
-																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text-body placeholder:text-muted-mid font-mono"
-																/>
+																<span class="flex-1 min-w-0 px-3 py-2 text-sm text-muted font-mono truncate">
+																	{smtpSender || 'Confide Forms <notifications@example.com>'}
+																</span>
 															</div>
 															<div class="flex items-center">
 																<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted-dim border-r border-border-deep">Subject</span>
 																<input
 																	type="text"
-																	placeholder="New response received"
+																	placeholder="New Confide Form submission"
 																	bind:value={notificationSubject}
 																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text-body placeholder:text-muted-mid font-mono"
 																/>

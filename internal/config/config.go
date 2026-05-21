@@ -12,28 +12,31 @@ import (
 )
 
 type Config struct {
-	DatabaseURL        string
-	BindAddr           string
-	CORSOrigins        []string
-	HMACKey            []byte
-	RPID               string
-	RPOrigin           string
-	RPDisplayName      string
-	Env                string
-	ReaperInterval time.Duration
-	RegistrationOpen   bool
+	DatabaseURL      string
+	BindAddr         string
+	CORSOrigins      []string
+	HMACKey          []byte
+	RPID             string
+	RPOrigin         string
+	RPDisplayName    string
+	Env              string
+	ReaperInterval   time.Duration
+	RegistrationOpen bool
 
 	// SMTP — all optional; if SMTPHost is empty, invitation emails are skipped.
-	SMTPHost    string
-	SMTPPort    string
-	SMTPUser    string
-	SMTPPass    string
-	FromEmail   string
-	AppDomain   string
+	SMTPHost  string
+	SMTPPort  string
+	SMTPUser  string
+	SMTPPass  string
+	Sender    string
+	AppDomain string
 
 	// ResendAPIKey — when set, emails are sent via the Resend REST API instead of SMTP.
 	// This allows sending RFC 3156 PGP/MIME messages which Resend's SMTP relay rejects.
 	ResendAPIKey string
+
+	// EmailEnabled is true when at least one mail transport is configured.
+	EmailEnabled bool
 
 	// Stripe — all optional; if StripeSecretKey is empty, billing endpoints return 503.
 	StripeSecretKey     string
@@ -85,7 +88,7 @@ func Load() (*Config, error) {
 		SMTPPort:            getEnv("CONFIDE_SMTP_PORT", "587"),
 		SMTPUser:            os.Getenv("CONFIDE_SMTP_USER"),
 		SMTPPass:            os.Getenv("CONFIDE_SMTP_PASS"),
-		FromEmail:           os.Getenv("CONFIDE_FROM_EMAIL"),
+		Sender:              os.Getenv("CONFIDE_SMTP_SENDER"),
 		ResendAPIKey:        os.Getenv("CONFIDE_RESEND_API_KEY"),
 		AppDomain:           appDomain,
 		StripeSecretKey:     os.Getenv("CONFIDE_STRIPE_SECRET_KEY"),
@@ -93,6 +96,12 @@ func Load() (*Config, error) {
 		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
 		StripePriceIDOrg:    os.Getenv("CONFIDE_STRIPE_PRICE_ORG"),
 	}
+	if cfg.Sender == "" {
+		if domain := os.Getenv("CONFIDE_SMTP_SENDER_DOMAIN"); domain != "" {
+			cfg.Sender = "Confide Forms <notifications@" + domain + ">"
+		}
+	}
+	cfg.EmailEnabled = cfg.SMTPHost != "" || cfg.ResendAPIKey != ""
 
 	// Strip scheme so FormsDomain is always a bare hostname internally,
 	// while the env var is set with https:// like every other domain var.
