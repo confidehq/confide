@@ -1000,40 +1000,65 @@
 												</button>
 											</div>
 											{#if pgpOpen || notificationEmail}
-												<div class="mt-2.5 flex flex-col gap-2">
-													<input
-														type="email"
-														placeholder="recipient@example.com"
-														bind:value={notificationEmail}
-														class="input-base"
-													/>
-													<input
-														type="text"
-														placeholder='From (optional, e.g. Alerts <alerts@example.com>)'
-														bind:value={notificationFrom}
-														class="input-base"
-													/>
-													<input
-														type="text"
-														placeholder="Subject (optional)"
-														bind:value={notificationSubject}
-														class="input-base"
-													/>
-													<p class="m-0 text-xs text-muted-dark leading-relaxed">To, From, and Subject are stored unencrypted. Only the response body is PGP-encrypted.</p>
-													<textarea
-														placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;…&#10;-----END PGP PUBLIC KEY BLOCK-----"
-														value={pgpPublicKey}
-														oninput={(e) => handlePGPKeyInput((e.target as HTMLTextAreaElement).value)}
-														rows={6}
-														class="input-base font-mono text-xs resize-y {pgpKeyError ? 'border-border-danger-muted' : ''}"
-													></textarea>
-													{#if pgpKeyError}
-														<p class="m-0 text-xs text-error-light leading-relaxed">{pgpKeyError}</p>
-													{:else if pgpKeyFingerprint}
-														<p class="m-0 text-xs text-success-text-dark font-mono tracking-wide">✓ {pgpKeyFingerprint.match(/.{1,4}/g)?.join(' ')}</p>
-													{:else}
-														<p class="m-0 text-xs text-muted-dark leading-relaxed">Paste your PGP public key block. In Proton Mail: Settings → Encryption & keys → Export public key.</p>
-													{/if}
+												<div class="mt-2.5 flex flex-col gap-5">
+
+													<!-- Email headers -->
+													<div>
+														<div class="border border-border-deep rounded-md overflow-hidden">
+															<div class="flex items-center border-b border-border-deep">
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted-dim border-r border-border-deep">To</span>
+																<input
+																	type="email"
+																	placeholder="recipient@example.com"
+																	bind:value={notificationEmail}
+																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text-body placeholder:text-muted-mid font-mono"
+																/>
+															</div>
+															<div class="flex items-center border-b border-border-deep">
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted-dim border-r border-border-deep">From</span>
+																<input
+																	type="text"
+																	placeholder='Alerts <alerts@example.com>'
+																	bind:value={notificationFrom}
+																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text-body placeholder:text-muted-mid font-mono"
+																/>
+															</div>
+															<div class="flex items-center">
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted-dim border-r border-border-deep">Subject</span>
+																<input
+																	type="text"
+																	placeholder="New response received"
+																	bind:value={notificationSubject}
+																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text-body placeholder:text-muted-mid font-mono"
+																/>
+															</div>
+														</div>
+														<p class="m-0 mt-1.5 text-xs text-muted-mid">To, From, and Subject are stored unencrypted on our servers.</p>
+													</div>
+
+													<!-- PGP key -->
+													<div>
+														<p class="m-0 mb-1.5 text-sm text-text-dim">PGP Public Key</p>
+														<div class="border border-border-deep rounded-md overflow-hidden {pgpKeyError ? 'border-border-danger-muted' : ''}">
+															<textarea
+																placeholder="Begins with '-----BEGIN PGP PUBLIC KEY BLOCK----'"
+																value={pgpPublicKey}
+																oninput={(e) => handlePGPKeyInput((e.target as HTMLTextAreaElement).value)}
+																rows={5}
+																class="w-full px-3 py-2.5 bg-transparent border-none outline-none text-xs text-text-body placeholder:text-muted-mid font-mono resize-y block"
+															></textarea>
+														</div>
+														<p class="m-0 mt-1.5 text-xs {pgpKeyError ? 'text-error-light' : pgpKeyFingerprint ? 'text-success-text-dark font-mono tracking-wide' : 'text-muted-mid'}">
+															{#if pgpKeyError}
+																{pgpKeyError}
+															{:else if pgpKeyFingerprint}
+																✓ {pgpKeyFingerprint.match(/.{1,4}/g)?.join(' ')}
+															{:else}
+																Paste your PGP public key block. In Proton Mail: Settings → Encryption & keys → Export public key.
+															{/if}
+														</p>
+													</div>
+
 												</div>
 											{/if}
 										</div>
