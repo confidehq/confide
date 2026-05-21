@@ -64,7 +64,7 @@ export interface SectionBreakConfig {
 }
 
 export interface HeadingConfig {
-	level: 0 | 1 | 2 | 3; // 0 = plain paragraph text
+	level: 0 | 1 | 2 | 3 | 4; // 0 = paragraph, 4 = subtext
 }
 
 export interface AccordionConfig {

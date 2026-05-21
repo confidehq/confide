@@ -277,13 +277,14 @@
 							<label class="block text-sm text-muted mb-1">Level</label>
 							<select
 								value={cfg.level}
-								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 })}
+								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 | 4 })}
 								class="input-base"
 							>
 								<option value={0}>Text — Paragraph</option>
 								<option value={1}>H1 — Title</option>
 								<option value={2}>H2 — Section</option>
 								<option value={3}>H3 — Subsection</option>
+								<option value={4}>Small — Caption</option>
 							</select>
 						</div>
 					{/if}

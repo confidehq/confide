@@ -325,9 +325,11 @@ function getOptionLabels(fieldId: string): string[] {
 						><Trash2 size={15} strokeWidth={1.75} /></button>
 					</div>
 				{:else if isHeading}
-					{@const headingLevel = (field.config as import('$lib/types/builder').HeadingConfig).level ?? 2}
-					{@const headingSizes = ['0.9375rem', '1.6rem', '1.2rem', '1rem']}
-					{@const headingWeights = ['400', '700', '700', '600']}
+					{@const headingCfg = field.config as import('$lib/types/builder').HeadingConfig}
+					{@const headingLevel = headingCfg.level ?? 2}
+					{@const headingSizes = ['0.9375rem', '2rem', '1.35rem', '1rem', '0.9375rem']}
+					{@const headingWeights = ['400', '700', '700', '600', '400']}
+					{@const headingBadge = headingLevel === 0 ? 'paragraph' : headingLevel === 4 ? 'caption' : `h${headingLevel}`}
 					<!-- Heading block -->
 					<div
 						role="none"
@@ -345,7 +347,7 @@ function getOptionLabels(fieldId: string): string[] {
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
 								class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface-hover transition-colors duration-100"
 								aria-label="Open field settings"
-							>{headingLevel === 0 ? 'paragraph' : `h${headingLevel}`}</button>
+							>{headingBadge}</button>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
@@ -364,18 +366,9 @@ function getOptionLabels(fieldId: string): string[] {
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-							style="color: {label ? 'var(--color-text-bright)' : undefined}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
-							class="block w-full box-border cursor-text font-[inherit] px-1 py-0.5 mb-0.5 leading-tight"
+							style="color: {headingLevel === 4 ? (label ? 'var(--color-muted)' : 'var(--color-border)') : (label ? 'var(--color-text-bright)' : undefined)}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
+							class="block w-full box-border cursor-text font-[inherit] px-1 py-0.5 leading-relaxed"
 							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
-						/>
-						<RichEditable
-							value={helpText}
-							placeholder={defaultHelpText || 'Help text…'}
-							onclick={(e) => e.stopPropagation()}
-							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-border)'};"
-							class="block w-full box-border cursor-text text-base font-[inherit] px-1 py-0.5 leading-relaxed"
-							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
 						/>
 					</div>
 
