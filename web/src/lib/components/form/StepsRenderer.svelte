@@ -213,7 +213,7 @@
 		{/if}
 		<h1 class="text-3xl font-bold m-0 mb-2 whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
 		{#if translation?.formDescription}
-			<p class="m-0 mb-8 text-form-text-dim">{@html translation.formDescription}</p>
+			<div class="m-0 mb-8 text-form-text-dim rich-html">{@html translation.formDescription}</div>
 		{/if}
 	{/if}
 

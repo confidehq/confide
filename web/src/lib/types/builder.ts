@@ -71,8 +71,11 @@ export interface AccordionConfig {
 	// no config — title in translation.label, body in translation.helpText
 }
 
+export type AccentIcon = 'shield' | 'lock' | 'check' | 'info' | 'alert' | 'star' | 'bell' | 'zap';
+
 export interface AccentConfig {
 	variant: 'note' | 'warning' | 'danger' | 'success';
+	icon?: AccentIcon;
 }
 
 export type FieldConfig =

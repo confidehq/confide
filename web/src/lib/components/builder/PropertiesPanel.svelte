@@ -10,8 +10,10 @@
 		RatingConfig,
 		HeadingConfig,
 		AccentConfig,
+		AccentIcon,
 		ChoiceOption
 	} from '$lib/types/builder';
+	import { Shield, Lock, CircleCheck, Info, TriangleAlert, Star, Bell, Zap, Ban } from '@lucide/svelte';
 
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
@@ -292,6 +294,17 @@
 					<!-- accent config -->
 					{#if field.type === 'accent'}
 						{@const cfg = field.config as AccentConfig}
+						{@const accentIcons: { key: AccentIcon | null; component: typeof Shield | null; label: string }[] = [
+							{ key: null,      component: null,          label: 'None' },
+							{ key: 'shield',  component: Shield,        label: 'Shield' },
+							{ key: 'lock',    component: Lock,          label: 'Lock' },
+							{ key: 'check',   component: CircleCheck,   label: 'Check' },
+							{ key: 'info',    component: Info,          label: 'Info' },
+							{ key: 'alert',   component: TriangleAlert, label: 'Alert' },
+							{ key: 'star',    component: Star,          label: 'Star' },
+							{ key: 'bell',    component: Bell,          label: 'Bell' },
+							{ key: 'zap',     component: Zap,           label: 'Zap' },
+						]}
 						<div>
 							<label class="block text-sm text-muted mb-1">Variant</label>
 							<select
@@ -304,6 +317,26 @@
 								<option value="danger">Danger</option>
 								<option value="success">Success</option>
 							</select>
+						</div>
+						<div>
+							<label class="block text-sm text-muted mb-1">Icon</label>
+							<div class="flex flex-wrap gap-1">
+								{#each accentIcons as icon}
+									<button
+										type="button"
+										title={icon.label}
+										onclick={() => store.updateFieldConfig(field.id, { icon: icon.key ?? undefined })}
+										class="icon-pick-btn"
+										class:active={cfg.icon === icon.key || (!cfg.icon && icon.key === null)}
+									>
+										{#if icon.component}
+											<svelte:component this={icon.component} size={14} />
+										{:else}
+											<Ban size={14} class="opacity-40" />
+										{/if}
+									</button>
+								{/each}
+							</div>
 						</div>
 					{/if}
 
@@ -346,5 +379,30 @@
 		.properties-panel.is-open {
 			transform: translateX(0);
 		}
+	}
+
+	.icon-pick-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 5px;
+		border: 1px solid var(--color-border-field);
+		background: transparent;
+		color: var(--color-muted);
+		cursor: pointer;
+		transition: background 0.1s, border-color 0.1s, color 0.1s;
+	}
+
+	.icon-pick-btn:hover {
+		background: var(--color-surface-hover);
+		color: var(--color-text-dim);
+	}
+
+	.icon-pick-btn.active {
+		background: var(--color-surface-active);
+		border-color: var(--color-primary);
+		color: var(--color-text-bright);
 	}
 </style>

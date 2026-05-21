@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Bold, Italic, Link2, Check, X } from '@lucide/svelte';
+	import { Bold, Italic, List, Link2, Check, X } from '@lucide/svelte';
 
 	interface Props {
 		value?: string;
@@ -88,6 +88,9 @@
 		</button>
 		<button type="button" onclick={() => exec('italic')} title="Italic (Ctrl+I)" aria-label="Italic">
 			<Italic size={13} strokeWidth={2.5} />
+		</button>
+		<button type="button" onclick={() => exec('insertUnorderedList')} title="Bullet list" aria-label="Bullet list">
+			<List size={13} strokeWidth={2} />
 		</button>
 		<div class="toolbar-sep" role="separator"></div>
 		<button type="button" onclick={openLinkBar} title="Insert link" aria-label="Insert link">
@@ -250,5 +253,17 @@
 	.editor-content :global(a) {
 		color: var(--color-form-primary);
 		text-decoration: underline;
+	}
+
+	.editor-content :global(ul) {
+		list-style-type: '—';
+		padding-left: 1.5rem;
+		margin: 0.25rem 0;
+	}
+
+	.editor-content :global(li) {
+		margin: 0.4rem 0;
+		padding-left: 0.35rem;
+		line-height: 1.7;
 	}
 </style>

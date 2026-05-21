@@ -15,6 +15,6 @@
 		<h2 class="m-0 mb-1 text-lg font-bold text-form-text">{@html translation.label}</h2>
 	{/if}
 	{#if translation.helpText}
-		<p class="m-0 text-base text-form-muted">{@html translation.helpText}</p>
+		<div class="m-0 text-base text-form-muted rich-html">{@html translation.helpText}</div>
 	{/if}
 </div>

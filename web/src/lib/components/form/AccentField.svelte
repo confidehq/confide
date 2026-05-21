@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { BuilderField, AccentConfig } from '$lib/types/builder';
+	import { Shield, Lock, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
 
 	interface Props {
 		field: BuilderField;
@@ -8,7 +9,8 @@
 
 	const { field, translation }: Props = $props();
 
-	const variant = $derived((field.config as AccentConfig).variant ?? 'note');
+	const cfg = $derived(field.config as AccentConfig);
+	const variant = $derived(cfg.variant ?? 'note');
 
 	const styles = $derived({
 		note:    { border: 'var(--color-info-border)',    bg: 'var(--color-info-bg)',    color: 'var(--color-info-text)' },
@@ -16,14 +18,22 @@
 		danger:  { border: 'var(--color-danger-border)',  bg: 'var(--color-danger-bg)',  color: 'var(--color-danger-text)' },
 		success: { border: 'var(--color-success-border)', bg: 'var(--color-success-bg)', color: 'var(--color-success-text)' },
 	}[variant]);
+
+	const iconMap = { shield: Shield, lock: Lock, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
+	const IconComponent = $derived(cfg.icon ? iconMap[cfg.icon] : null);
 </script>
 
 <div
-	style="border-left-color: {styles.border}; background: {styles.bg}; color: {styles.color};"
-	class="px-4 py-3 border-l-4 rounded text-base leading-relaxed"
+	style="border-color: {styles.border}; background: {styles.bg}; color: {styles.color};"
+	class="px-4 py-3 border rounded text-base leading-relaxed"
 >
-	<p class="m-0 font-semibold">{@html translation.label}</p>
+	<div class="flex items-center gap-2">
+		{#if IconComponent}
+			<svelte:component this={IconComponent} size={16} class="shrink-0 opacity-80" />
+		{/if}
+		<div class="m-0 font-semibold rich-html">{@html translation.label}</div>
+	</div>
 	{#if translation.helpText}
-		<p class="mt-1 m-0">{@html translation.helpText}</p>
+		<div class="mt-1 m-0 rich-html">{@html translation.helpText}</div>
 	{/if}
 </div>
