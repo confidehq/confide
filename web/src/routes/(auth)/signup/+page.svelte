@@ -328,7 +328,7 @@
 							bind:value={username}
 							placeholder="Username"
 							onkeydown={(e) => e.key === "Enter" && continueToPasskey()}
-							class="input-base w-full mb-1 text-base py-2.5 pl-4 px-3
+							class="input-base w-full mb-1 text-base py-2.5 pl-8 pr-3
 							{usernameStatus === 'available' ? '!border-success-text' : ''}
 							{usernameStatus === 'taken' ? '!border-danger-text' : ''}"
 						/>
