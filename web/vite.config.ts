@@ -8,10 +8,10 @@ export default defineConfig({
 		'import.meta.env.VITE_FORMS_DOMAIN': JSON.stringify(process.env.CONFIDE_FORMS_DOMAIN ?? '')
 	},
 	server: {
-		port: 3000,
+		port: parseInt(process.env.CONFIDE_WEB_PORT ?? '3000', 10),
 		proxy: {
-			'/api': 'http://localhost:8080',
-			'/relay': 'http://localhost:8080'
+			'/api': `http://localhost:${process.env.CONFIDE_PORT ?? '8080'}`,
+			'/relay': `http://localhost:${process.env.CONFIDE_PORT ?? '8080'}`
 		}
 	},
 	test: {

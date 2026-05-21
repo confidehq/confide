@@ -12,7 +12,7 @@
 A relay crash loses all queued submissions that have not yet been flushed. The client retries up to 3× with exponential backoff (1s, 2s, 4s) before surfacing an error. No write-ahead log in v1. The 60-second flush interval keeps the loss window small. This matches the recommendation in the design doc.
 
 ### Relay co-located in the API binary
-The relay queue and flush goroutine run inside the same process as the API. There is no separate `cmd/relay/` binary, no internal HTTP endpoint, and no inter-process auth secret. The flusher calls `responses.Service.CreateBatch` directly in-process. The `POST /relay/submit` route is mounted on the same `CONFIDE_BIND_ADDR` as all other routes.
+The relay queue and flush goroutine run inside the same process as the API. There is no separate `cmd/relay/` binary, no internal HTTP endpoint, and no inter-process auth secret. The flusher calls `responses.Service.CreateBatch` directly in-process. The `POST /relay/submit` route is mounted on the same `PORT` as all other routes.
 
 ### Schema versioning in Phase 4
 Each `PUT /api/forms/{id}` increments `schema_version` atomically. No immutable snapshots in Phase 4 — that is a Phase 5/6 concern (DQ4). The current schema is always the live one. Responses carry the `schema_version` at time of submission for future use.

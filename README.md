@@ -18,7 +18,7 @@ Confide is an open-source form builder where responses are encrypted in the resp
 git clone https://github.com/phantompunk/confide.git
 cd wisp
 cp .env.example .env
-# Edit .env: set CONFIDE_DOMAIN, CONFIDE_HMAC_KEY, DB_PASSWORD
+# Edit .env: set CONFIDE_DOMAIN, CONFIDE_SECRET_KEY, DB_PASSWORD
 docker compose -f deploy/docker-compose.yml up -d
 ```
 

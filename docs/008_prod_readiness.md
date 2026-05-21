@@ -61,8 +61,8 @@ Updated `Load()` function — full rename map:
 | Old env var | New env var | Default |
 |---|---|---|
 | `CONFIDE_DATABASE_URL` | `CONFIDE_DATABASE_URL` | (required) |
-| `CONFIDE_HMAC_KEY` | `CONFIDE_HMAC_KEY` | (required) |
-| `CONFIDE_BIND_ADDR` | `CONFIDE_BIND_ADDR` | `:8080` |
+| `CONFIDE_SECRET_KEY` | `CONFIDE_SECRET_KEY` | (required) |
+| `PORT` | `PORT` | `:8080` |
 | `CONFIDE_CORS_ORIGIN` | `CONFIDE_CORS_ORIGIN` | `http://localhost:3000` |
 | `CONFIDE_RELAY_FLUSH_INTERVAL` | `CONFIDE_RELAY_FLUSH_INTERVAL` | `60s` |
 | `CONFIDE_RP_ID` | `CONFIDE_RP_ID` | `localhost` |
@@ -86,7 +86,7 @@ Error messages in the required-field validation blocks must also be updated to r
 ```go
 errs = append(errs, errors.New("CONFIDE_DATABASE_URL is required"))
 // ...
-errs = append(errs, fmt.Errorf("CONFIDE_HMAC_KEY must be base64url-encoded 32 bytes"))
+errs = append(errs, fmt.Errorf("CONFIDE_SECRET_KEY must be base64url-encoded 32 bytes"))
 ```
 
 **File:** `.env.example`
@@ -97,10 +97,10 @@ Replace the entire file content. Retain the same structure (required section, op
 # Required
 CONFIDE_DATABASE_URL=postgresql://wisp:changeme@localhost:5432/wisp?sslmode=disable
 # Generate with: openssl rand -base64 32 | tr '+/' '-_'
-CONFIDE_HMAC_KEY=
+CONFIDE_SECRET_KEY=
 
 # Optional (defaults shown)
-CONFIDE_BIND_ADDR=:8080
+PORT=8080
 CONFIDE_RELAY_FLUSH_INTERVAL=60s
 CONFIDE_CORS_ORIGIN=http://localhost:3000
 CONFIDE_RP_ID=localhost
@@ -114,7 +114,7 @@ CONFIDE_DOMAIN=wisp.example.com
 DB_PASSWORD=changeme
 ```
 
-Note: `CONFIDE_HMAC_KEY` in `.env.example` is for local dev where `godotenv.Load()` picks it up directly. In the compose stack, `api` uses `CONFIDE_HMAC_KEY: ${CONFIDE_HMAC_KEY}` — set the same key in `.env` and it flows through.
+Note: `CONFIDE_SECRET_KEY` in `.env.example` is for local dev where `godotenv.Load()` picks it up directly. In the compose stack, `api` uses `CONFIDE_SECRET_KEY: ${CONFIDE_SECRET_KEY}` — set the same key in `.env` and it flows through.
 
 ---
 
@@ -442,8 +442,8 @@ services:
         condition: service_healthy
     environment:
       CONFIDE_DATABASE_URL: postgresql://wisp:${DB_PASSWORD}@db:5432/wisp?sslmode=disable
-      CONFIDE_BIND_ADDR: :8080
-      CONFIDE_HMAC_KEY: ${CONFIDE_HMAC_KEY}
+      PORT: 8080
+      CONFIDE_SECRET_KEY: ${CONFIDE_SECRET_KEY}
       CONFIDE_CORS_ORIGIN: https://${CONFIDE_DOMAIN}
       CONFIDE_RP_ID: ${CONFIDE_DOMAIN}
       CONFIDE_RP_ORIGIN: https://${CONFIDE_DOMAIN}
@@ -542,7 +542,7 @@ WebAuthn (passkeys) require a Secure Context. The browser enforces this — only
 
 1. Clone the repo and copy `.env.example` to `.env`
 2. Generate HMAC key: `openssl rand -base64 32 | tr '+/' '-_'`
-3. Set `CONFIDE_DOMAIN`, `CONFIDE_HMAC_KEY`, `DB_PASSWORD`, `CONFIDE_RP_ID`, `CONFIDE_RP_ORIGIN` in `.env`
+3. Set `CONFIDE_DOMAIN`, `CONFIDE_SECRET_KEY`, `DB_PASSWORD`, `CONFIDE_RP_ID`, `CONFIDE_RP_ORIGIN` in `.env`
 4. `docker compose -f deploy/docker-compose.yml up -d`
 5. Open `https://your-domain.com/register` and create your account
 6. Set `CONFIDE_REGISTRATION_OPEN=false` in `.env`, then `docker compose -f deploy/docker-compose.yml restart api`
@@ -568,9 +568,9 @@ docker compose -f deploy/docker-compose.yml exec db \
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | `CONFIDE_DATABASE_URL` | string | required | PostgreSQL connection string |
-| `CONFIDE_HMAC_KEY` | base64url | required | 32-byte HMAC key for session tokens |
+| `CONFIDE_SECRET_KEY` | base64url | required | 32-byte HMAC key for session tokens |
 | `CONFIDE_DOMAIN` | string | — | Public domain; used by compose to configure Caddy and RP vars |
-| `CONFIDE_BIND_ADDR` | string | `:8080` | API listen address inside container |
+| `PORT` | string | `:8080` | API listen address inside container |
 | `CONFIDE_CORS_ORIGIN` | string | `http://localhost:3000` | Allowed CORS origin for `/api/*` |
 | `CONFIDE_RP_ID` | string | `localhost` | WebAuthn RP ID — must match your domain |
 | `CONFIDE_RP_ORIGIN` | string | `http://localhost:3000` | WebAuthn RP origin — must be `https://` + domain |
@@ -613,7 +613,7 @@ Confide is an open-source form builder where responses are encrypted in the resp
 git clone https://github.com/phantompunk/wisp.git
 cd wisp
 cp .env.example .env
-# Edit .env: set CONFIDE_DOMAIN, CONFIDE_HMAC_KEY, DB_PASSWORD
+# Edit .env: set CONFIDE_DOMAIN, CONFIDE_SECRET_KEY, DB_PASSWORD
 docker compose -f deploy/docker-compose.yml up -d
 ```
 
@@ -692,7 +692,7 @@ Reporters of confirmed vulnerabilities will be credited in the patch release not
 
 ## Testing exit criterion
 
-1. **Env var rename:** Start the API with `CONFIDE_DATABASE_URL` and `CONFIDE_HMAC_KEY` set, `CONFIDE_*` vars absent. Verify startup succeeds. Remove `CONFIDE_DATABASE_URL` — verify fatal error names `CONFIDE_DATABASE_URL`.
+1. **Env var rename:** Start the API with `CONFIDE_DATABASE_URL` and `CONFIDE_SECRET_KEY` set, `CONFIDE_*` vars absent. Verify startup succeeds. Remove `CONFIDE_DATABASE_URL` — verify fatal error names `CONFIDE_DATABASE_URL`.
 
 2. **Registration lock:** Set `CONFIDE_REGISTRATION_OPEN=false`. `POST /api/auth/register/begin` → 403 `{"code":"registration_closed","message":"registration is closed"}`. Set to `true` → begin succeeds.
 

@@ -71,29 +71,44 @@ func Load() (*Config, error) {
 		}
 	}
 
+	appDomain := getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000")
+
 	cfg := &Config{
-		BindAddr:           getEnv("CONFIDE_BIND_ADDR", ":8080"),
-		CORSOrigins:        strings.Split(getEnv("CONFIDE_CORS_ORIGIN", "http://localhost:3000"), ","),
-		RPID:               getEnv("CONFIDE_RP_ID", "localhost"),
-		RPOrigin:           getEnv("CONFIDE_RP_ORIGIN", "http://localhost:3000"),
-		RPDisplayName:      getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
-		Env:                getEnv("CONFIDE_ENV", "development"),
-		ReaperInterval: reaperInterval,
-		RegistrationOpen:   parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
-		SMTPHost:           os.Getenv("CONFIDE_SMTP_HOST"),
-		SMTPPort:           getEnv("CONFIDE_SMTP_PORT", "587"),
-		SMTPUser:           os.Getenv("CONFIDE_SMTP_USER"),
-		SMTPPass:           os.Getenv("CONFIDE_SMTP_PASS"),
-		FromEmail:          os.Getenv("CONFIDE_FROM_EMAIL"),
-		ResendAPIKey:       os.Getenv("CONFIDE_RESEND_API_KEY"),
-		AppDomain:          getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000"),
+		BindAddr:            ":" + getEnv("CONFIDE_PORT", "8080"),
+		RPID:                getEnv("CONFIDE_RP_ID", "localhost"),
+		RPOrigin:            getEnv("CONFIDE_RP_ORIGIN", appDomain),
+		RPDisplayName:       getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
+		Env:                 getEnv("CONFIDE_ENV", "development"),
+		ReaperInterval:      reaperInterval,
+		RegistrationOpen:    parseBool(os.Getenv("CONFIDE_REGISTRATION_OPEN"), true),
+		SMTPHost:            os.Getenv("CONFIDE_SMTP_HOST"),
+		SMTPPort:            getEnv("CONFIDE_SMTP_PORT", "587"),
+		SMTPUser:            os.Getenv("CONFIDE_SMTP_USER"),
+		SMTPPass:            os.Getenv("CONFIDE_SMTP_PASS"),
+		FromEmail:           os.Getenv("CONFIDE_FROM_EMAIL"),
+		ResendAPIKey:        os.Getenv("CONFIDE_RESEND_API_KEY"),
+		AppDomain:           appDomain,
 		StripeSecretKey:     os.Getenv("CONFIDE_STRIPE_SECRET_KEY"),
 		StripeWebhookSecret: os.Getenv("CONFIDE_STRIPE_WEBHOOK_SECRET"),
 		StripePriceIDPro:    os.Getenv("CONFIDE_STRIPE_PRICE_PRO"),
 		StripePriceIDOrg:    os.Getenv("CONFIDE_STRIPE_PRICE_ORG"),
 	}
 
-	cfg.FormsDomain = os.Getenv("CONFIDE_FORMS_DOMAIN")
+	// Strip scheme so FormsDomain is always a bare hostname internally,
+	// while the env var is set with https:// like every other domain var.
+	if fd := os.Getenv("CONFIDE_FORMS_DOMAIN"); fd != "" {
+		cfg.FormsDomain = stripScheme(fd)
+	}
+
+	// Build CORS origins: explicit list > derived from AppDomain + FormsDomain
+	if v := os.Getenv("CONFIDE_CORS_ORIGIN"); v != "" {
+		cfg.CORSOrigins = strings.Split(v, ",")
+	} else {
+		cfg.CORSOrigins = []string{appDomain}
+		if cfg.FormsDomain != "" {
+			cfg.CORSOrigins = append(cfg.CORSOrigins, "https://"+cfg.FormsDomain)
+		}
+	}
 
 	if t := os.Getenv("CONFIDE_CUSTOM_DOMAIN_TARGET"); t != "" {
 		cfg.CustomDomainTarget = t
@@ -120,13 +135,13 @@ func Load() (*Config, error) {
 	}
 	cfg.DatabaseURL = dbURL
 
-	hmacRaw := os.Getenv("CONFIDE_HMAC_KEY")
+	hmacRaw := os.Getenv("CONFIDE_SECRET_KEY")
 	if hmacRaw == "" {
-		errs = append(errs, errors.New("CONFIDE_HMAC_KEY is required"))
+		errs = append(errs, errors.New("CONFIDE_SECRET_KEY is required"))
 	} else {
 		key, err := base64.URLEncoding.DecodeString(hmacRaw)
 		if err != nil || len(key) != 32 {
-			errs = append(errs, fmt.Errorf("CONFIDE_HMAC_KEY must be base64url-encoded 32 bytes"))
+			errs = append(errs, fmt.Errorf("CONFIDE_SECRET_KEY must be base64url-encoded 32 bytes"))
 		} else {
 			cfg.HMACKey = key
 		}
@@ -136,6 +151,13 @@ func Load() (*Config, error) {
 		return nil, errors.Join(errs...)
 	}
 	return cfg, nil
+}
+
+func stripScheme(s string) string {
+	if i := strings.Index(s, "://"); i >= 0 {
+		s = s[i+3:]
+	}
+	return s
 }
 
 func getEnv(key, fallback string) string {

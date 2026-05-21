@@ -195,9 +195,9 @@ All config from environment variables. Missing required vars cause an immediate 
 | Variable | Default | Required |
 |----------|---------|----------|
 | `CONFIDE_DATABASE_URL` | — | ✓ |
-| `CONFIDE_BIND_ADDR` | `:8080` | |
+| `PORT` | `:8080` | |
 | `CONFIDE_CORS_ORIGIN` | `http://localhost:3000` | |
-| `CONFIDE_HMAC_KEY` | — | ✓ (base64url-encoded 32 bytes) |
+| `CONFIDE_SECRET_KEY` | — | ✓ (base64url-encoded 32 bytes) |
 | `CONFIDE_RP_ID` | `localhost` | |
 | `CONFIDE_RP_ORIGIN` | `http://localhost:3000` | |
 | `CONFIDE_RP_DISPLAY_NAME` | `Confide` | |
@@ -326,9 +326,9 @@ services:
         condition: service_healthy
     environment:
       CONFIDE_DATABASE_URL: postgresql://confide:${DB_PASSWORD}@db:5432/confide?sslmode=disable
-      CONFIDE_BIND_ADDR: :8080
+      PORT: 8080
       CONFIDE_CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
-      CONFIDE_HMAC_KEY: ${HMAC_KEY}
+      CONFIDE_SECRET_KEY: ${HMAC_KEY}
       CONFIDE_RP_ID: ${RP_ID:-localhost}
       CONFIDE_RP_ORIGIN: ${RP_ORIGIN:-http://localhost:3000}
       CONFIDE_RP_DISPLAY_NAME: ${RP_DISPLAY_NAME:-Confide}

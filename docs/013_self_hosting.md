@@ -32,7 +32,7 @@ Open `.env` and set the following required values:
 | Variable | What to set |
 |---|---|
 | `CONFIDE_DOMAIN` | Your domain, e.g. `confide.example.com` |
-| `CONFIDE_HMAC_KEY` | A random 32-byte base64url key (see below) |
+| `CONFIDE_SECRET_KEY` | A random 32-byte base64url key (see below) |
 | `DB_PASSWORD` | A strong random password for Postgres |
 
 Generate the HMAC key:
@@ -41,7 +41,7 @@ Generate the HMAC key:
 openssl rand -base64 32 | tr '+/' '-_'
 ```
 
-Copy the output and set it as `CONFIDE_HMAC_KEY=<output>`.
+Copy the output and set it as `CONFIDE_SECRET_KEY=<output>`.
 
 All other settings have correct defaults for a standard single-domain deployment. The `CONFIDE_RP_ID` and `CONFIDE_RP_ORIGIN` values are derived from `CONFIDE_DOMAIN` automatically in the compose file.
 
@@ -118,9 +118,9 @@ Schedule backups with `cron` or your hosting provider's backup service.
 | Variable | Type | Default | Description |
 |---|---|---|---|
 | `CONFIDE_DATABASE_URL` | string | required | PostgreSQL connection string |
-| `CONFIDE_HMAC_KEY` | base64url | required | 32-byte HMAC key for session tokens. Generate with `openssl rand -base64 32 \| tr '+/' '-_'` |
+| `CONFIDE_SECRET_KEY` | base64url | required | 32-byte HMAC key for session tokens. Generate with `openssl rand -base64 32 \| tr '+/' '-_'` |
 | `CONFIDE_DOMAIN` | string | — | Public domain name. Used by `docker-compose.yml` to configure Caddy and set WebAuthn RP vars |
-| `CONFIDE_BIND_ADDR` | string | `:8080` | Address and port the API listens on inside its container |
+| `PORT` | string | `:8080` | Address and port the API listens on inside its container |
 | `CONFIDE_CORS_ORIGIN` | string | `http://localhost:3000` | Allowed origin for CORS on `/api/*` routes. Set automatically to `https://CONFIDE_DOMAIN` in the compose file |
 | `CONFIDE_RP_ID` | string | `localhost` | WebAuthn Relying Party ID. Must match your domain (e.g. `confide.example.com`) |
 | `CONFIDE_RP_ORIGIN` | string | `http://localhost:3000` | WebAuthn Relying Party origin. Must be `https://` + your domain |
