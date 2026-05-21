@@ -70,6 +70,12 @@
 		editorEl?.focus();
 	}
 
+	function handlePaste(e: ClipboardEvent) {
+		e.preventDefault();
+		const text = e.clipboardData?.getData('text/plain') ?? '';
+		document.execCommand('insertText', false, text);
+	}
+
 	function handleInput() {
 		const el = editorEl;
 		if (!el) return;
@@ -166,6 +172,7 @@
 	class="rich-editable {cls}"
 	{style}
 	oninput={handleInput}
+	onpaste={handlePaste}
 	onfocus={onfocus}
 	onclick={onclick}
 	onkeydown={onkeydown}
