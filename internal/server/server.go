@@ -127,7 +127,10 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 
 		r.Get("/config", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]string{"formsDomain": cfg.FormsDomain})
+			_ = json.NewEncoder(w).Encode(map[string]any{
+					"formsDomain":      cfg.FormsDomain,
+					"registrationOpen": cfg.RegistrationOpen,
+				})
 		})
 
 		// Auth routes — general rate limit.

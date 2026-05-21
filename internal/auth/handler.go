@@ -32,9 +32,9 @@ const sessionCookieName = "session"
 func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte, dev bool, registrationOpen bool) http.Handler {
 	r := chi.NewRouter()
 
-	r.With(mw.UsernameCheckRateLimit(recoveryHMACKey)).Get("/check-username", checkUsername(svc))
+	r.With(mw.UsernameCheckRateLimit(recoveryHMACKey)).Get("/check-username", checkUsername(svc, registrationOpen))
 	r.Post("/register/begin", registerBegin(svc, registrationOpen))
-	r.Post("/register/finish", registerFinish(svc, dev))
+	r.Post("/register/finish", registerFinish(svc, dev, registrationOpen))
 	r.Post("/login/begin", loginBegin(svc))
 	r.Post("/login/finish", loginFinish(svc, dev))
 	r.With(mw.RecoveryRateLimit(recoveryHMACKey)).Post("/recover", recover_(svc))
@@ -75,8 +75,12 @@ func Handler(svc *Service, billing SubscriptionCanceller, recoveryHMACKey []byte
 
 // ─── Username availability ────────────────────────────────────────────────────
 
-func checkUsername(svc *Service) http.HandlerFunc {
+func checkUsername(svc *Service, registrationOpen bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !registrationOpen {
+			writeError(w, http.StatusForbidden, "registration_closed", "registration is closed")
+			return
+		}
 		username := r.URL.Query().Get("username")
 		if username == "" {
 			writeError(w, http.StatusBadRequest, "missing_param", "username required")
@@ -122,8 +126,12 @@ func registerBegin(svc *Service, registrationOpen bool) http.HandlerFunc {
 	}
 }
 
-func registerFinish(svc *Service, dev bool) http.HandlerFunc {
+func registerFinish(svc *Service, dev bool, registrationOpen bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !registrationOpen {
+			writeError(w, http.StatusForbidden, "registration_closed", "registration is closed")
+			return
+		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "read_body", "failed to read body")

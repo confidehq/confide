@@ -1,5 +1,6 @@
 interface AppConfig {
 	formsDomain: string;
+	registrationOpen: boolean;
 }
 
 let cached: AppConfig | null = null;
@@ -7,7 +8,6 @@ let cached: AppConfig | null = null;
 const envFormsDomain = import.meta.env.VITE_FORMS_DOMAIN ?? '';
 
 export async function getAppConfig(): Promise<AppConfig> {
-	if (envFormsDomain) return { formsDomain: envFormsDomain };
 	if (cached) return cached;
 	try {
 		const res = await fetch('/api/config');
@@ -18,5 +18,5 @@ export async function getAppConfig(): Promise<AppConfig> {
 	} catch {
 		// ignore — caller falls back to window.location.origin
 	}
-	return { formsDomain: '' };
+	return { formsDomain: envFormsDomain, registrationOpen: true };
 }

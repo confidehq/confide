@@ -5,6 +5,7 @@
 	import { detectPRFSupport } from "$lib/prf-detection";
 	import { register } from "$lib/auth";
 	import { auth } from "$lib/stores/auth.svelte";
+	import { getAppConfig } from "$lib/config";
 	import {
 		acceptInvitation,
 		ensureIdentityKey,
@@ -18,6 +19,7 @@
 
 	type Step =
 		| "checking"
+		| "closed"
 		| "username"
 		| "passkey"
 		| "recovery"
@@ -86,6 +88,11 @@
 	};
 
 	onMount(async () => {
+		const config = await getAppConfig().catch(() => ({ registrationOpen: true }));
+		if (!config.registrationOpen) {
+			step = "closed";
+			return;
+		}
 		const result = await detectPRFSupport();
 		if (!result.supported) {
 			prfError = result.reason;
@@ -224,6 +231,17 @@
 					Checking browser compatibility…
 				</p>
 			{/if}
+		</div>
+	{:else if step === "closed"}
+		<div class="w-full max-w-100">
+			<div class="flex flex-col items-center mb-8">
+				<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
+				<h1 class="text-xl font-semibold text-text-body tracking-tight">Registration closed</h1>
+			</div>
+			<div class="bg-surface border border-border rounded-xl p-6 text-center">
+				<p class="text-sm text-muted-dim">Account registration is not open. Contact an admin to receive an invitation.</p>
+				<a href="/login" class="text-text-blue hover:underline text-sm mt-4 block">Sign in instead</a>
+			</div>
 		</div>
 	{:else if step === "success"}
 		<div class="w-full max-w-100">

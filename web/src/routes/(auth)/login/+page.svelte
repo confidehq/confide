@@ -4,11 +4,17 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { login, isPasskeyCancelled } from '$lib/auth';
 	import { ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
+	import { getAppConfig } from '$lib/config';
 	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
 	let error = $state<string | null>(null);
 	let loading = $state(false);
 	let username = $state('');
+	let registrationOpen = $state(true);
+
+	$effect(() => {
+		getAppConfig().then(c => { registrationOpen = c.registrationOpen; }).catch(() => {});
+	});
 
 	const next = $derived(page.url.searchParams.get('next') ?? '/dashboard');
 
@@ -82,12 +88,14 @@
 		</p>
 
 		<!-- Sign up -->
+		{#if registrationOpen}
 		<div class="mt-6 pt-5 border-t border-border text-center">
 			<p class="text-sm text-muted-dim">
 				Don't have an account?
 				<a href="/signup" class="text-text-blue hover:underline font-medium">Sign up</a>
 			</p>
 		</div>
+		{/if}
 
 	</div>
 </div>

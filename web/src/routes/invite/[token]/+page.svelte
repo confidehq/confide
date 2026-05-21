@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { resolveInvitation, acceptInvitation, ensureIdentityKey, WorkspaceError, type InvitePreview } from '$lib/workspaces';
+	import { getAppConfig } from '$lib/config';
 	import faviconSvg from '$lib/assets/favicon.svg?raw';
 
 	type PageState = 'loading' | 'preview' | 'accepting' | 'pending' | 'already_member' | 'error';
@@ -11,12 +12,14 @@
 	let pageState = $state<PageState>('loading');
 	let preview = $state<InvitePreview | null>(null);
 	let errorMsg = $state('');
+	let registrationOpen = $state(true);
 
 	const token = $derived(page.params.token as string);
 	const isLoggedIn = $derived(auth.masterKey !== null);
 	const autoAccept = $derived(page.url.searchParams.get('auto_accept') === '1');
 
 	onMount(async () => {
+		getAppConfig().then(c => { registrationOpen = c.registrationOpen; }).catch(() => {});
 		try {
 			preview = await resolveInvitation(token);
 			if (isLoggedIn && autoAccept) {
@@ -81,8 +84,10 @@
 				<p class="text-error text-sm text-center">{errorMsg}</p>
 			</div>
 			<p class="text-xs text-muted-dark text-center mt-4">
-				<a href="/login" class="text-text-blue hover:underline">Sign in</a> or
-				<a href="/signup" class="text-text-blue hover:underline">create an account</a>
+				<a href="/login" class="text-text-blue hover:underline">Sign in</a>
+				{#if registrationOpen}
+				or <a href="/signup" class="text-text-blue hover:underline">create an account</a>
+				{/if}
 			</p>
 
 		{:else if pageState === 'already_member'}
@@ -127,6 +132,7 @@
 						{pageState === 'accepting' ? 'Accepting…' : 'Accept invitation'}
 					</button>
 				{:else}
+					{#if registrationOpen}
 					<div class="flex gap-3">
 						<a
 							href="/signup?invite={token}"
@@ -141,6 +147,14 @@
 							Sign in
 						</a>
 					</div>
+					{:else}
+					<a
+						href="/login?next={encodeURIComponent(`/invite/${token}?auto_accept=1`)}"
+						class="w-full py-3 text-center text-white bg-primary hover:bg-primary-hover rounded-lg font-mono text-sm font-medium no-underline transition-colors duration-100 block"
+					>
+						Sign in to accept
+					</a>
+					{/if}
 				{/if}
 			</div>
 
