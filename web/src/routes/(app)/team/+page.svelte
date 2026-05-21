@@ -9,18 +9,9 @@
 		WorkspaceError,
 		type WorkspaceMember, type WorkspaceInvitation
 	} from '$lib/workspaces';
-	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link, Building2 } from '@lucide/svelte';
-
-	function planLabel(plan: string, planStatus: string): string {
-		if (plan === 'pro') {
-			if (planStatus === 'past_due') return 'Pro · past due';
-			if (planStatus === 'canceled') return 'Pro · canceled';
-			if (planStatus === 'canceling') return 'Pro · cancels at period end';
-			return 'Pro';
-		}
-		return 'Free';
-	}
+	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
 
 	// ─── Invite form state ───────────────────────────────────────────────────────
 
@@ -291,24 +282,7 @@
 		</div>
 	</div>
 
-	{#if workspacesStore.active}
-		{@const ws = workspacesStore.active}
-		<div class="flex items-center gap-3 mb-4">
-			<Building2 size={18} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
-			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
-			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
-				{ws.plan === 'pro'
-					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
-						? 'bg-open-bg text-open-text border-open-border'
-						: 'bg-closed-bg text-closed-text border-closed-border'
-					: 'text-muted-dim border-border-deep bg-transparent'}">
-				{planLabel(ws.plan, ws.planStatus)}
-			</span>
-			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
-				{ws.role}
-			</span>
-		</div>
-	{/if}
+	<WorkspaceHeader />
 
 	<!-- Inline invite form -->
 	{#if showInviteForm}

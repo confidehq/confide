@@ -21,8 +21,12 @@
 		type BillingInfo,
 		type CustomDomainInfo
 	} from '$lib/workspaces';
-	import { Settings, BarChart2, Building2, Mail, CreditCard, Check, ExternalLink, AlertTriangle } from '@lucide/svelte';
+	import { Settings, BarChart2, Mail, CreditCard, Check, ExternalLink, AlertTriangle } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
+	import UsageCard from '$lib/components/UsageCard.svelte';
+	import FormField from '$lib/components/FormField.svelte';
+	import { planLabel } from '$lib/utils/plan';
 
 	// ─── Tab init from URL ────────────────────────────────────────────────────────
 
@@ -334,16 +338,6 @@
 		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true             },
 	];
 
-	function planLabel(plan: string, planStatus: string): string {
-		if (plan === 'pro') {
-			if (planStatus === 'past_due') return 'Pro · past due';
-			if (planStatus === 'canceled') return 'Pro · canceled';
-			if (planStatus === 'canceling') return 'Pro · cancels at period end';
-			return 'Pro';
-		}
-		return 'Free';
-	}
-
 	const planBadge: Record<string, { label: string; color: string }> = {
 		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
 		org:  { label: 'Org',  color: 'var(--color-text-blue)'      },
@@ -475,24 +469,7 @@
 		<p class="m-0 text-sm text-muted-dim">Manage your workspace settings and billing</p>
 	</div>
 
-	{#if workspacesStore.active}
-		{@const ws = workspacesStore.active}
-		<div class="flex items-center gap-3 mb-4">
-			<Building2 size={18} strokeWidth={1.75} class="shrink-0 text-muted-dim" />
-			<span class="text-xl font-semibold text-text-bright truncate min-w-0">{ws.name}</span>
-			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base border
-				{ws.plan === 'pro'
-					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
-						? 'bg-open-bg text-open-text border-open-border'
-						: 'bg-closed-bg text-closed-text border-closed-border'
-					: 'text-muted-dim border-border-deep bg-transparent'}">
-				{planLabel(ws.plan, ws.planStatus)}
-			</span>
-			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
-				{ws.role}
-			</span>
-		</div>
-	{/if}
+	<WorkspaceHeader />
 
 	<!-- Tab bar -->
 	<div class="flex border-b border-border-mid mb-8 gap-1">
@@ -532,141 +509,79 @@
 				{@const responseLimit = billingInfo?.plan === 'free' ? 250 : billingInfo?.plan === 'pro' ? 10_000 : billingInfo?.plan === 'org' ? 100_000 : -1}
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
 
-					<!-- Forms -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Forms</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">Forms per workspace</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{billingInfo ? billingInfo.formCount : '—'}
-						</p>
-						<p class="m-0 text-xs text-muted-mid">Unlimited</p>
-					</div>
+					<UsageCard label="Forms" sublabel="Forms per workspace">
+						{billingInfo ? billingInfo.formCount : '—'}
+						{#snippet footer()}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/snippet}
+					</UsageCard>
 
-					<!-- Responses -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Responses</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">Records collected this month</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{#if billingInfo}
-								{billingInfo.monthlyResponseCount.toLocaleString()}{#if responseLimit > 0}<span class="text-muted-mid font-normal text-base"> / {responseLimit.toLocaleString()}</span>{/if}
-							{:else}—{/if}
-						</p>
-						{#if billingInfo && responseLimit > 0}
-							{@const pct = Math.min(100, (billingInfo.monthlyResponseCount / responseLimit) * 100)}
-							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-300
-									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
-									style="width: {pct}%"></div>
-							</div>
-						{/if}
-					</div>
+					<UsageCard
+						label="Responses"
+						sublabel="Records collected this month"
+						pct={billingInfo && responseLimit > 0 ? Math.min(100, (billingInfo.monthlyResponseCount / responseLimit) * 100) : undefined}
+					>
+						{#if billingInfo}
+							{billingInfo.monthlyResponseCount.toLocaleString()}{#if responseLimit > 0}<span class="text-muted-mid font-normal text-base"> / {responseLimit.toLocaleString()}</span>{/if}
+						{:else}—{/if}
+					</UsageCard>
 
-					<!-- Members -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Members</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">Members per workspace</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{#if billingInfo}
-								{billingInfo.memberCount}{#if memberLimit > 0}<span class="text-muted-mid font-normal text-base"> / {memberLimit}</span>{/if}
-							{:else}—{/if}
-						</p>
-						{#if billingInfo && memberLimit > 0}
-							{@const pct = Math.min(100, (billingInfo.memberCount / memberLimit) * 100)}
-							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-300
-									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
-									style="width: {pct}%"></div>
-							</div>
-						{/if}
-					</div>
+					<UsageCard
+						label="Members"
+						sublabel="Members per workspace"
+						pct={billingInfo && memberLimit > 0 ? Math.min(100, (billingInfo.memberCount / memberLimit) * 100) : undefined}
+					>
+						{#if billingInfo}
+							{billingInfo.memberCount}{#if memberLimit > 0}<span class="text-muted-mid font-normal text-base"> / {memberLimit}</span>{/if}
+						{:else}—{/if}
+					</UsageCard>
 
-					<!-- Stored Responses -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Stored Responses</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">Total responses stored</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{#if usageInfo}
-								{usageInfo.stored_responses.current.toLocaleString()}{#if usageInfo.stored_responses.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.stored_responses.limit.toLocaleString()}</span>{/if}
-							{:else if usageLoading}
-								<span class="text-muted-mid">…</span>
-							{:else}—{/if}
-						</p>
-						{#if usageInfo && usageInfo.stored_responses.limit > 0}
-							{@const pct = Math.min(100, (usageInfo.stored_responses.current / usageInfo.stored_responses.limit) * 100)}
-							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-300
-									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
-									style="width: {pct}%"></div>
-							</div>
-						{:else if usageInfo}
-							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
-						{/if}
-					</div>
+					<UsageCard
+						label="Stored Responses"
+						sublabel="Total responses stored"
+						pct={usageInfo && usageInfo.stored_responses.limit > 0 ? Math.min(100, (usageInfo.stored_responses.current / usageInfo.stored_responses.limit) * 100) : undefined}
+					>
+						{#if usageInfo}
+							{usageInfo.stored_responses.current.toLocaleString()}{#if usageInfo.stored_responses.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.stored_responses.limit.toLocaleString()}</span>{/if}
+						{:else if usageLoading}<span class="text-muted-mid">…</span>
+						{:else}—{/if}
+						{#snippet footer()}
+							{#if usageInfo && usageInfo.stored_responses.limit <= 0}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/if}
+						{/snippet}
+					</UsageCard>
 
-					<!-- Emails Sent -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Emails Sent</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">Notification emails this month</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{#if usageInfo}
-								{usageInfo.monthly_emails.current.toLocaleString()}{#if usageInfo.monthly_emails.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.monthly_emails.limit.toLocaleString()}</span>{/if}
-							{:else if usageLoading}
-								<span class="text-muted-mid">…</span>
-							{:else}—{/if}
-						</p>
-						{#if usageInfo && usageInfo.monthly_emails.limit > 0}
-							{@const pct = Math.min(100, (usageInfo.monthly_emails.current / usageInfo.monthly_emails.limit) * 100)}
-							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-300
-									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
-									style="width: {pct}%"></div>
-							</div>
-						{:else if usageInfo}
-							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
-						{/if}
-					</div>
+					<UsageCard
+						label="Emails Sent"
+						sublabel="Notification emails this month"
+						pct={usageInfo && usageInfo.monthly_emails.limit > 0 ? Math.min(100, (usageInfo.monthly_emails.current / usageInfo.monthly_emails.limit) * 100) : undefined}
+					>
+						{#if usageInfo}
+							{usageInfo.monthly_emails.current.toLocaleString()}{#if usageInfo.monthly_emails.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.monthly_emails.limit.toLocaleString()}</span>{/if}
+						{:else if usageLoading}<span class="text-muted-mid">…</span>
+						{:else}—{/if}
+						{#snippet footer()}
+							{#if usageInfo && usageInfo.monthly_emails.limit <= 0}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/if}
+						{/snippet}
+					</UsageCard>
 
-					<!-- Storage Used -->
-					<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
-						<div>
-							<p class="m-0 text-sm font-semibold text-text-body">Storage Used</p>
-							<p class="m-0 text-xs text-muted-mid mt-0.5">File storage across all forms</p>
-						</div>
-						<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
-							{#if usageInfo}
-								{#if usageInfo.file_storage_bytes.limit > 0}
-									{@const limitMB = usageInfo.file_storage_bytes.limit / 1_048_576}
-									{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
-									{Math.round(usedMB)} MB<span class="text-muted-mid font-normal text-base"> / {limitMB >= 1024 ? (limitMB / 1024).toFixed(0) + ' GB' : limitMB.toFixed(0) + ' MB'}</span>
-								{:else}
-									{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
-									{Math.round(usedMB)} MB
-								{/if}
-							{:else if usageLoading}
-								<span class="text-muted-mid">…</span>
-							{:else}—{/if}
-						</p>
-						{#if usageInfo && usageInfo.file_storage_bytes.limit > 0}
-							{@const pct = Math.min(100, (usageInfo.file_storage_bytes.current / usageInfo.file_storage_bytes.limit) * 100)}
-							<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
-								<div class="h-full rounded-full transition-all duration-300
-									{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"
-									style="width: {pct}%"></div>
-							</div>
-						{:else if usageInfo}
-							<p class="m-0 text-xs text-muted-mid">Unlimited</p>
-						{/if}
-					</div>
+					<UsageCard
+						label="Storage Used"
+						sublabel="File storage across all forms"
+						pct={usageInfo && usageInfo.file_storage_bytes.limit > 0 ? Math.min(100, (usageInfo.file_storage_bytes.current / usageInfo.file_storage_bytes.limit) * 100) : undefined}
+					>
+						{#if usageInfo}
+							{#if usageInfo.file_storage_bytes.limit > 0}
+								{@const limitMB = usageInfo.file_storage_bytes.limit / 1_048_576}
+								{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
+								{Math.round(usedMB)} MB<span class="text-muted-mid font-normal text-base"> / {limitMB >= 1024 ? (limitMB / 1024).toFixed(0) + ' GB' : limitMB.toFixed(0) + ' MB'}</span>
+							{:else}
+								{@const usedMB = usageInfo.file_storage_bytes.current / 1_048_576}
+								{Math.round(usedMB)} MB
+							{/if}
+						{:else if usageLoading}<span class="text-muted-mid">…</span>
+						{:else}—{/if}
+						{#snippet footer()}
+							{#if usageInfo && usageInfo.file_storage_bytes.limit <= 0}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/if}
+						{/snippet}
+					</UsageCard>
 
 				</div>
 			{/if}
@@ -936,35 +851,17 @@
 	{:else if activeTab === 'workspace'}
 		<div class="max-w-lg flex flex-col gap-6">
 
-			<div class="flex flex-col gap-1.5">
-				<label for="ws-name" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-					Workspace Name
-				</label>
-				<input
-					id="ws-name"
-					type="text"
-					bind:value={workspaceName}
-					placeholder="Workspace name"
-					class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-						placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-				/>
-				<p class="m-0 text-xs text-muted-mid">The public name for this workspace shown in metadata.</p>
-			</div>
+			<FormField
+				id="ws-name"
+				label="Workspace Name"
+				bind:value={workspaceName}
+				placeholder="Workspace name"
+				help="The public name for this workspace shown in metadata."
+			/>
 
 			{#if workspacesStore.active}
-				<div class="flex flex-col gap-1.5">
-					<p class="m-0 text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">Slug</p>
-					<p class="m-0 px-3 py-2.5 border border-border-mid rounded text-base text-muted-dim bg-surface-read select-all">
-						{workspacesStore.active.slug}
-					</p>
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<p class="m-0 text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">Workspace ID</p>
-					<p class="m-0 px-3 py-2.5 border border-border-mid rounded text-base text-muted-dim bg-surface-read select-all break-all">
-						{workspacesStore.active.id}
-					</p>
-				</div>
+				<FormField id="ws-slug" label="Slug" value={workspacesStore.active.slug} readonly />
+				<FormField id="ws-id" label="Workspace ID" value={workspacesStore.active.id} readonly />
 			{/if}
 
 			<div class="flex items-center gap-3">
@@ -1134,76 +1031,13 @@
 			</p>
 
 			<div class="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
-				<div class="flex flex-col gap-1.5">
-					<label for="smtp-host" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-						Host
-					</label>
-					<input
-						id="smtp-host"
-						type="text"
-						bind:value={smtpHost}
-						placeholder="smtp.example.com"
-						class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-							placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-					/>
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<label for="smtp-port" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-						Port
-					</label>
-					<input
-						id="smtp-port"
-						type="text"
-						bind:value={smtpPort}
-						placeholder="587"
-						class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-							placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-					/>
-				</div>
+				<FormField id="smtp-host" label="Host" bind:value={smtpHost} placeholder="smtp.example.com" />
+				<FormField id="smtp-port" label="Port" bind:value={smtpPort} placeholder="587" />
 			</div>
 
-			<div class="flex flex-col gap-1.5">
-				<label for="smtp-user" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-					Username
-				</label>
-				<input
-					id="smtp-user"
-					type="text"
-					bind:value={smtpUser}
-					placeholder="user@example.com"
-					class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-						placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-				/>
-			</div>
-
-			<div class="flex flex-col gap-1.5">
-				<label for="smtp-pass" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-					Password
-				</label>
-				<input
-					id="smtp-pass"
-					type="password"
-					bind:value={smtpPass}
-					placeholder="••••••••"
-					class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-						placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-				/>
-			</div>
-
-			<div class="flex flex-col gap-1.5">
-				<label for="smtp-from" class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
-					From address
-				</label>
-				<input
-					id="smtp-from"
-					type="text"
-					bind:value={smtpFrom}
-					placeholder="noreply@example.com"
-					class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-						placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
-				/>
-			</div>
+			<FormField id="smtp-user" label="Username" bind:value={smtpUser} placeholder="user@example.com" />
+			<FormField id="smtp-pass" label="Password" type="password" bind:value={smtpPass} placeholder="••••••••" />
+			<FormField id="smtp-from" label="From address" bind:value={smtpFrom} placeholder="noreply@example.com" />
 
 			<div class="flex items-center gap-3">
 				<button
