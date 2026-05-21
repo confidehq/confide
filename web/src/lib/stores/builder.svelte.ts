@@ -21,6 +21,7 @@ export interface BuilderStore {
 	readonly dirty: boolean;
 	readonly activeLocale: string;
 	readonly selectedFieldId: string | null;
+	readonly submitButtonSelected: boolean;
 	readonly mode: BuilderMode;
 	readonly renderKeySalt: Uint8Array | null;
 	readonly formKey: CryptoKey | null;
@@ -53,9 +54,11 @@ export interface BuilderStore {
 	setLayout(layout: BuilderSchema['layout']): void;
 	setActiveLocale(locale: string): void;
 	setSelectedField(id: string | null): void;
+	setSubmitButtonSelected(v: boolean): void;
 	setMode(mode: BuilderMode): void;
 	setConvoAllowEdit(allow: boolean): void;
 	setShowWatermark(show: boolean): void;
+	setSubmitButtonIcon(icon: BuilderSchema['submitButtonIcon']): void;
 	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
 	load(): Promise<FormRecord>;
 	save(): Promise<void>;
@@ -113,6 +116,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	let dirty = $state(false);
 	let activeLocale = $state('en');
 	let selectedFieldId = $state<string | null>(null);
+	let submitButtonSelected = $state(false);
 	let mode = $state<BuilderMode>('edit');
 	let expiresAt = $state<string | null>(null);
 	let responseLimit = $state<number | null>(null);
@@ -470,12 +474,17 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function setSelectedField(id: string | null): void {
 		selectedFieldId = id;
-		if (id !== null) showFormSettings = false;
+		if (id !== null) { showFormSettings = false; submitButtonSelected = false; }
+	}
+
+	function setSubmitButtonSelected(v: boolean): void {
+		submitButtonSelected = v;
+		if (v) { selectedFieldId = null; showFormSettings = false; }
 	}
 
 	function setShowFormSettings(show: boolean): void {
 		showFormSettings = show;
-		if (show) selectedFieldId = null;
+		if (show) { selectedFieldId = null; submitButtonSelected = false; }
 	}
 
 	function setMode(m: BuilderMode): void {
@@ -489,6 +498,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function setShowWatermark(show: boolean): void {
 		schema = { ...schema, showWatermark: show };
+		markDirty();
+	}
+
+	function setSubmitButtonIcon(icon: BuilderSchema['submitButtonIcon']): void {
+		schema = { ...schema, submitButtonIcon: icon };
 		markDirty();
 	}
 
@@ -576,6 +590,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		get selectedFieldId() {
 			return selectedFieldId;
 		},
+		get submitButtonSelected() {
+			return submitButtonSelected;
+		},
 		get mode() {
 			return mode;
 		},
@@ -625,10 +642,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setLayout,
 		setActiveLocale,
 		setSelectedField,
+		setSubmitButtonSelected,
 		setShowFormSettings,
 		setMode,
 		setConvoAllowEdit,
 		setShowWatermark,
+		setSubmitButtonIcon,
 		setExpiration,
 		setRenderKeySalt,
 		markPublished,

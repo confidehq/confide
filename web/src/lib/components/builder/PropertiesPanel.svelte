@@ -27,8 +27,10 @@
 	let panelTop = $state(8);
 
 	function updatePosition() {
-		if (!store.selectedFieldId || !panelEl) return;
-		const fieldEl = document.querySelector<HTMLElement>(`[data-field-id="${store.selectedFieldId}"]`);
+		if (!panelEl) return;
+		const anchorId = store.selectedFieldId ?? (store.submitButtonSelected ? '__submit__' : null);
+		if (!anchorId) return;
+		const fieldEl = document.querySelector<HTMLElement>(`[data-field-id="${anchorId}"]`);
 		const container = panelEl.parentElement;
 		if (!fieldEl || !container) return;
 		const fieldRect = fieldEl.getBoundingClientRect();
@@ -38,6 +40,7 @@
 
 	$effect(() => {
 		store.selectedFieldId; // reactive dependency
+		store.submitButtonSelected;
 		updatePosition();
 		const canvas = document.querySelector<HTMLElement>('main[role="presentation"]');
 		canvas?.addEventListener('scroll', updatePosition);
@@ -65,7 +68,7 @@
 <aside
 	bind:this={panelEl}
 	style="top: {panelTop}px;"
-	class="properties-panel {store.selectedField ? 'is-open' : ''}
+	class="properties-panel {store.selectedField || store.submitButtonSelected ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:bottom-auto sm:left-auto sm:right-2 sm:w-64 sm:max-h-none sm:rounded-xl
 		bg-canvas border border-border-deep overflow-y-auto z-20"
@@ -352,6 +355,43 @@
 						</p>
 					{/if}
 
+				</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if store.submitButtonSelected}
+		{@const submitIcons: { key: AccentIcon | undefined; component: typeof Shield | null; label: string }[] = [
+			{ key: undefined,  component: null,          label: 'None' },
+			{ key: 'lock',     component: Lock,          label: 'Lock' },
+			{ key: 'shield',   component: Shield,        label: 'Shield' },
+			{ key: 'check',    component: CircleCheck,   label: 'Check' },
+			{ key: 'info',     component: Info,          label: 'Info' },
+			{ key: 'alert',    component: TriangleAlert, label: 'Alert' },
+			{ key: 'star',     component: Star,          label: 'Star' },
+			{ key: 'bell',     component: Bell,          label: 'Bell' },
+			{ key: 'zap',      component: Zap,           label: 'Zap' },
+		]}
+		<div class="p-3 flex flex-col gap-3.5">
+			<p class="m-0 text-xs font-semibold uppercase tracking-widest text-muted">Submit Button</p>
+			<div>
+				<label class="block text-sm text-muted mb-1">Icon</label>
+				<div class="flex flex-wrap gap-1">
+					{#each submitIcons as icon}
+						<button
+							type="button"
+							title={icon.label}
+							onclick={() => store.setSubmitButtonIcon(icon.key)}
+							class="icon-pick-btn"
+							class:active={store.schema.submitButtonIcon === icon.key || (!store.schema.submitButtonIcon && icon.key === undefined)}
+						>
+							{#if icon.component}
+								<svelte:component this={icon.component} size={14} />
+							{:else}
+								<Ban size={14} class="opacity-40" />
+							{/if}
+						</button>
+					{/each}
 				</div>
 			</div>
 		</div>

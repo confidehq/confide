@@ -1,8 +1,11 @@
 <script lang="ts">
-	import type { BuilderSchema, BuilderField } from '$lib/types/builder';
+	import type { BuilderSchema, BuilderField, AccentIcon } from '$lib/types/builder';
 	import { getOrderedFields } from '$lib/types/builder';
 	import type { AnswerValue } from '$lib/validation';
 	import FieldRenderer from './FieldRenderer.svelte';
+	import { Lock, Shield, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
+
+	const iconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
 
 	interface Props {
 		schema: BuilderSchema;
@@ -105,8 +108,12 @@
 			<button
 				type="button"
 				disabled
-				class="px-6 py-2.5 bg-form-muted-light text-white border-none rounded-md text-base font-[inherit] cursor-not-allowed"
+				class="px-6 py-2.5 bg-form-muted-light text-white border-none rounded-md text-base font-[inherit] cursor-not-allowed inline-flex items-center gap-2"
 			>
+				{#if schema.submitButtonIcon}
+					{@const BtnIcon = iconMap[schema.submitButtonIcon]}
+					<svelte:component this={BtnIcon} size={13} strokeWidth={2} class="opacity-70" />
+				{/if}
 				{translation?.submitButtonText || 'Submit'}
 			</button>
 		{/if}

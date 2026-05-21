@@ -6,7 +6,10 @@
 	import { validateAll } from '$lib/validation';
 	import type { AnswerValue } from '$lib/validation';
 	import FieldRenderer from './FieldRenderer.svelte';
-	import { Languages, Lock } from '@lucide/svelte';
+	import { Languages, Lock, Shield, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
+	import type { AccentIcon } from '$lib/types/builder';
+
+	const iconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
 
 	interface Props {
 		schema: BuilderSchema;
@@ -205,7 +208,10 @@
 				{submitting ? 'bg-form-muted-light cursor-not-allowed' : 'bg-form-primary hover:bg-form-primary-hover cursor-pointer'}"
 		>
 			<span class="inline-flex items-center justify-center gap-2">
-				<Lock size={13} strokeWidth={2} class="opacity-70" />
+				{#if schema.submitButtonIcon}
+					{@const BtnIcon = iconMap[schema.submitButtonIcon]}
+					<svelte:component this={BtnIcon} size={13} strokeWidth={2} class="opacity-70" />
+				{/if}
 				{submitting ? 'Submitting…' : (translation?.submitButtonText || 'Submit')}
 			</span>
 		</button>

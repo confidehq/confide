@@ -7,8 +7,12 @@
 	import type { Component } from 'svelte';
 	import {
 		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
-		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical, Copy
+		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical, Copy,
+		Shield, Lock, CircleCheck, Info, Bell, Zap
 	} from '@lucide/svelte';
+	import type { AccentIcon } from '$lib/types/builder';
+
+	const submitIconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
 	import RichEditable from './RichEditable.svelte';
 
 	const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> = [
@@ -186,7 +190,7 @@ function getOptionLabels(fieldId: string): string[] {
 <main
 	style="background: {store.mode === 'preview' ? 'var(--color-form-surface)' : 'var(--color-surface)'};"
 	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 min-w-0"
-	onclick={() => { store.setSelectedField(null); closeSlot(); }}
+	onclick={() => { store.setSelectedField(null); store.setSubmitButtonSelected(false); closeSlot(); }}
 	role="presentation"
 >
 	{#if store.mode === 'preview'}
@@ -683,11 +687,21 @@ function getOptionLabels(fieldId: string): string[] {
 	<!-- Submit button inline editor -->
 	{#if store.mode !== 'preview' && fields.length > 0}
 		<div
+			data-field-id="__submit__"
 			class="max-w-4xl mx-auto w-full mt-2 mb-6"
-			onclick={(e) => e.stopPropagation()}
+			onclick={(e) => { e.stopPropagation(); store.setSubmitButtonSelected(true); }}
 			role="none"
 		>
-			<div class="inline-flex items-center gap-2 px-8 py-3 bg-form-primary rounded-md">
+			<div
+				class="inline-flex items-center gap-2 px-8 py-3 rounded-md transition-[outline] duration-100"
+				class:bg-form-primary={!store.submitButtonSelected}
+				class:bg-form-primary-hover={store.submitButtonSelected}
+				style={store.submitButtonSelected ? 'outline: 2px solid var(--color-primary); outline-offset: 2px;' : ''}
+			>
+				{#if store.schema.submitButtonIcon}
+					{@const BtnIcon = submitIconMap[store.schema.submitButtonIcon]}
+					<svelte:component this={BtnIcon} size={14} class="opacity-80 text-white shrink-0" />
+				{/if}
 				<input
 					type="text"
 					value={store.activeTranslation?.submitButtonText ?? ''}
@@ -720,3 +734,4 @@ function getOptionLabels(fieldId: string): string[] {
 		</div>
 	{/if}
 </main>
+
