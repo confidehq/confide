@@ -334,11 +334,11 @@
 						/>
 					</div>
 
-					<div class="min-h-[1.25rem] mb-3">
+					<div class="h-5 overflow-hidden mb-3">
 						{#if usernameStatus === "available"}
-							<span class="text-success-text text-sm">Looks good!</span>
+							<span class="block text-success-text text-sm leading-5">Looks good!</span>
 						{:else if usernameStatus === "taken"}
-							<span class="text-error text-sm">Username taken</span>
+							<span class="block text-error text-sm leading-5">Username taken</span>
 						{/if}
 					</div>
 

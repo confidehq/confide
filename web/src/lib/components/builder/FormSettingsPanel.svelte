@@ -3,6 +3,7 @@
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { CustomDomainInfo } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
+	import { access } from '$lib/stores/access.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
 	import { Link, Check, X, QrCode, Download, Languages, ChevronDown } from '@lucide/svelte';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
@@ -364,13 +365,21 @@
 			<div class="flex items-center justify-between gap-3">
 				<div>
 					<p class="m-0 text-sm text-text-dim">Show Confide watermark</p>
-					<p class="m-0 text-xs text-muted-dark mt-0.5">Display the Confide logo at the bottom of the form.</p>
+					<p class="m-0 text-xs text-muted-dark mt-0.5">
+						{#if access.can('whitelabel')}
+							Display the Confide logo at the bottom of the form.
+						{:else}
+							Upgrade to Pro to hide the Confide watermark.
+						{/if}
+					</p>
 				</div>
 				<button
 					role="switch"
 					aria-checked={store.schema.showWatermark !== false}
-					onclick={() => store.setShowWatermark(store.schema.showWatermark === false)}
-					class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+					onclick={() => access.can('whitelabel') && store.setShowWatermark(store.schema.showWatermark === false)}
+					disabled={!access.can('whitelabel')}
+					class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none
+						{access.can('whitelabel') ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}
 						{store.schema.showWatermark !== false ? 'bg-primary' : 'bg-border-deep'}"
 				>
 					<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
