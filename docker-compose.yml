@@ -1,39 +1,39 @@
 services:
-  postgres:
+  confide:
+    image: ghcr.io/confidehq/confide:latest
+    restart: always
+    ports:
+      - "3000:3000"
+    # volumes:
+    #   - /etc/dokploy/traefik/dynamic:/traefik-config
+    # env_file:
+    #   - .env
+    environment:
+      CONFIDE_DATABASE_URL: postgresql://confide:confide@db:5432/confide
+      CONFIDE_EDITION: community
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  db:
     image: postgres:16-alpine
-    restart: unless-stopped
+    restart: always 
     environment:
       POSTGRES_USER: confide
       POSTGRES_PASSWORD: confide
       POSTGRES_DB: confide
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:                                                                                                                     
-      - "5432:5432"
+      - confide-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U confide"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:                                                                                                                     
-      - "8080:8080"
-    volumes:
-      - /etc/dokploy/traefik/dynamic:/traefik-config
-    env_file:
-      - .env
-    environment:
-      CONFIDE_DATABASE_URL: postgresql://confide:confide@postgres:5432/confide
-      CONFIDE_RP_ORIGIN: http://localhost:8080                                                                                 
-      CONFIDE_CORS_ORIGIN: http://localhost:8080
-
 volumes:
-  pgdata:
+  confide-db-data:

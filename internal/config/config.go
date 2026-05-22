@@ -1,9 +1,11 @@
 package config
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
@@ -92,7 +94,7 @@ func Load() (*Config, error) {
 	appDomain := getEnv("CONFIDE_APP_DOMAIN", "http://localhost:3000")
 
 	cfg := &Config{
-		BindAddr:            ":" + getEnv("CONFIDE_PORT", "8080"),
+		BindAddr:            ":" + getEnv("CONFIDE_PORT", "3000"),
 		RPID:                getEnv("CONFIDE_RP_ID", "localhost"),
 		RPOrigin:            getEnv("CONFIDE_RP_ORIGIN", appDomain),
 		RPDisplayName:       getEnv("CONFIDE_RP_DISPLAY_NAME", "Confide"),
@@ -168,7 +170,13 @@ func Load() (*Config, error) {
 
 	hmacRaw := os.Getenv("CONFIDE_SECRET_KEY")
 	if hmacRaw == "" {
-		errs = append(errs, errors.New("CONFIDE_SECRET_KEY is required"))
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			errs = append(errs, fmt.Errorf("generating CONFIDE_SECRET_KEY: %w", err))
+		} else {
+			cfg.HMACKey = key
+			slog.Warn("CONFIDE_SECRET_KEY not set — generated a random key; sessions will not survive restarts. Set CONFIDE_SECRET_KEY=" + base64.URLEncoding.EncodeToString(key) + " to persist sessions.")
+		}
 	} else {
 		key, err := base64.URLEncoding.DecodeString(hmacRaw)
 		if err != nil || len(key) != 32 {
