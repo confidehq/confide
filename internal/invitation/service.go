@@ -54,14 +54,16 @@ type Service struct {
 	db        DB
 	mailer    Mailer
 	appDomain string
+	limits    billing.InstanceLimits
 }
 
-func NewService(pool *pgxpool.Pool, m *mailer.Mailer, appDomain string) *Service {
+func NewService(pool *pgxpool.Pool, m *mailer.Mailer, appDomain string, limits billing.InstanceLimits) *Service {
 	return &Service{
 		log:       log.With().Str("module", "invitation").Logger(),
 		db:        queries.New(pool),
 		mailer:    m,
 		appDomain: appDomain,
+		limits:    limits,
 	}
 }
 
@@ -98,7 +100,7 @@ func (s *Service) Create(ctx context.Context, workspaceID, callerRole, callerAcc
 	if err != nil {
 		return Invitation{}, err
 	}
-	limit := billing.PlanMemberLimit(ws.Plan)
+	limit := s.limits.MemberLimit(ws.Plan)
 	if limit >= 0 {
 		count, err := s.db.CountWorkspaceMembers(ctx, workspaceID)
 		if err != nil {

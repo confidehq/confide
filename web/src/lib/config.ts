@@ -3,6 +3,7 @@ interface AppConfig {
 	registrationOpen: boolean;
 	emailEnabled: boolean;
 	smtpSender: string;
+	edition: string; // "community" = self-hosted, "" = managed
 }
 
 let cached: AppConfig | null = null;
@@ -20,5 +21,5 @@ export async function getAppConfig(): Promise<AppConfig> {
 	} catch {
 		// ignore — caller falls back to window.location.origin
 	}
-	return { formsDomain: envFormsDomain, registrationOpen: true, emailEnabled: false, smtpSender: '' };
+	return { formsDomain: envFormsDomain, registrationOpen: true, emailEnabled: false, smtpSender: '', edition: '' };
 }

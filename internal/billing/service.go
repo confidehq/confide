@@ -53,9 +53,10 @@ type Service struct {
 	stripeWebhookSecret string
 	stripePriceIDPro    string
 	stripePriceIDOrg    string
+	limits              InstanceLimits
 }
 
-func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripePriceIDPro, stripePriceIDOrg string) *Service {
+func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripePriceIDPro, stripePriceIDOrg string, limits InstanceLimits) *Service {
 	return &Service{
 		log:                 log.With().Str("module", "billing").Logger(),
 		db:                  queries.New(pool),
@@ -63,6 +64,7 @@ func NewService(pool *pgxpool.Pool, stripeSecretKey, stripeWebhookSecret, stripe
 		stripeWebhookSecret: stripeWebhookSecret,
 		stripePriceIDPro:    stripePriceIDPro,
 		stripePriceIDOrg:    stripePriceIDOrg,
+		limits:              limits,
 	}
 }
 
@@ -559,7 +561,7 @@ func (s *Service) CheckMonthlyResponseLimit(ctx context.Context, workspaceID str
 	if err != nil {
 		return err
 	}
-	hard := hardResponseLimit(PlanMonthlyResponseLimit(ws.Plan))
+	hard := hardResponseLimit(s.limits.MonthlyResponseLimit(ws.Plan))
 	if hard != -1 && count >= hard {
 		return ErrResponseLimitReached
 	}
@@ -575,7 +577,7 @@ func (s *Service) CheckStoredResponseLimit(ctx context.Context, workspaceID stri
 	if err != nil {
 		return err
 	}
-	hard := hardResponseLimit(PlanStoredResponseLimit(ws.Plan))
+	hard := hardResponseLimit(s.limits.StoredResponseLimit(ws.Plan))
 	if hard != -1 && count >= hard {
 		return ErrStoredResponseLimitReached
 	}
@@ -646,12 +648,12 @@ func (s *Service) GetUsage(ctx context.Context, workspaceID string) (*WorkspaceU
 	}
 
 	return &WorkspaceUsage{
-		Members:          UsageInfo{Current: res.members, Limit: PlanMemberLimit(plan)},
+		Members:          UsageInfo{Current: res.members, Limit: s.limits.MemberLimit(plan)},
 		Forms:            UsageInfo{Current: res.forms, Limit: -1},
-		MonthlyResponses: UsageInfo{Current: res.monthlyResponses, Limit: PlanMonthlyResponseLimit(plan)},
-		StoredResponses:  UsageInfo{Current: res.totalResponses, Limit: PlanStoredResponseLimit(plan)},
-		MonthlyEmails:    UsageInfo{Current: 0, Limit: PlanMonthlyEmailLimit(plan)},
-		FileStorageBytes: UsageInfo{Current: 0, Limit: PlanFileStorageLimit(plan)},
+		MonthlyResponses: UsageInfo{Current: res.monthlyResponses, Limit: s.limits.MonthlyResponseLimit(plan)},
+		StoredResponses:  UsageInfo{Current: res.totalResponses, Limit: s.limits.StoredResponseLimit(plan)},
+		MonthlyEmails:    UsageInfo{Current: 0, Limit: s.limits.MonthlyEmailLimit(plan)},
+		FileStorageBytes: UsageInfo{Current: 0, Limit: s.limits.FileStorageLimit(plan)},
 	}, nil
 }
 

@@ -7,6 +7,8 @@
 	import { logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { createWorkspace, createProWorkspace } from '$lib/workspaces';
+	import { getAppConfig } from '$lib/config';
+	import { isManagedEdition } from '$lib/utils/plan';
 
 	let moreOpen = $state(false);
 	let showWorkspacePicker = $state(false);
@@ -15,9 +17,12 @@
 	let creating = $state(false);
 	let createError = $state('');
 
+	let managed = $state(true);
+	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
+
 	// True when the user already owns a free workspace and must upgrade to create another.
 	const atFreeLimit = $derived(
-		workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
+		managed && workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
 	);
 
 	function isActive(href: string): boolean {

@@ -52,8 +52,19 @@ func (s *Services) Start(ctx context.Context) {
 
 // NewServices constructs all application services from the pool and webauthn instance.
 func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) *Services {
+	limits := billing.InstanceLimits{
+		Edition:                 cfg.Edition,
+		MaxMembersPerWorkspace:  cfg.MaxMembersPerWorkspace,
+		MaxMonthlyResponses:     cfg.MaxMonthlyResponses,
+		MaxStoredResponses:      cfg.MaxStoredResponses,
+		MaxMonthlyEmails:        cfg.MaxMonthlyEmails,
+		MaxFileStorageBytes:     cfg.MaxFileStorageBytes,
+		MaxWorkspacesPerAccount: cfg.MaxWorkspacesPerAccount,
+	}
+
 	m := mailer.New(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.Sender, cfg.ResendAPIKey)
 	wsSvc := workspace.NewService(pool)
+	wsSvc.WithWorkspaceLimit(limits.WorkspaceLimit())
 
 	// Build domain registry from DB and wire it into the workspace service.
 	enabledDomains, err := queries.New(pool).ListAllEnabledDomains(context.Background())
@@ -72,7 +83,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 	}
 	wsSvc.WithDomainChecker(worker)
 
-	billingSvc := billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg)
+	billingSvc := billing.NewService(pool, cfg.StripeSecretKey, cfg.StripeWebhookSecret, cfg.StripePriceIDPro, cfg.StripePriceIDOrg, limits)
 	wsSvc.WithSubscriptionCanceler(billingSvc)
 
 	return &Services{
@@ -81,7 +92,7 @@ func NewServices(pool *pgxpool.Pool, wa *webauthn.WebAuthn, cfg *config.Config) 
 		Responses:    responses.NewService(pool, m),
 		Workspace:    wsSvc,
 		Identity:     identity.NewService(pool),
-		Invitation:   invitation.NewService(pool, m, cfg.AppDomain),
+		Invitation:   invitation.NewService(pool, m, cfg.AppDomain, limits),
 		Billing:      billingSvc,
 		RelayQ:       &relay.Queue{},
 		domainWorker: worker,
@@ -132,6 +143,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				"registrationOpen": cfg.RegistrationOpen,
 				"emailEnabled":     cfg.EmailEnabled,
 				"smtpSender":       cfg.Sender,
+				"edition":          cfg.Edition,
 			})
 		})
 

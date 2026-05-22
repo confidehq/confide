@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -61,6 +62,20 @@ type Config struct {
 	// written so Traefik can obtain Let's Encrypt certs for custom domains.
 	// Leave empty to disable file writing (e.g. in local dev).
 	TraefikConfigDir string
+
+	// Edition controls instance-wide behaviour. Set to "community" for self-hosted
+	// deployments: all Pro features are unlocked and Stripe billing is not required.
+	Edition string
+
+	// Limit overrides — used when Edition is "community" or when the IT admin wants
+	// to cap usage below the plan default. Zero means "use plan/edition default".
+	// Use -1 for explicit unlimited.
+	MaxMembersPerWorkspace  int64
+	MaxMonthlyResponses     int64
+	MaxStoredResponses      int64
+	MaxMonthlyEmails        int64
+	MaxFileStorageBytes     int64
+	MaxWorkspacesPerAccount int64
 }
 
 func Load() (*Config, error) {
@@ -135,6 +150,13 @@ func Load() (*Config, error) {
 	}
 
 	cfg.TraefikConfigDir = os.Getenv("CONFIDE_TRAEFIK_DYNAMIC_DIR")
+	cfg.Edition = strings.ToLower(strings.TrimSpace(os.Getenv("CONFIDE_EDITION")))
+	cfg.MaxMembersPerWorkspace = parseInt64Env("CONFIDE_MAX_MEMBERS_PER_WORKSPACE")
+	cfg.MaxMonthlyResponses = parseInt64Env("CONFIDE_MAX_MONTHLY_RESPONSES")
+	cfg.MaxStoredResponses = parseInt64Env("CONFIDE_MAX_STORED_RESPONSES")
+	cfg.MaxMonthlyEmails = parseInt64Env("CONFIDE_MAX_MONTHLY_EMAILS")
+	cfg.MaxFileStorageBytes = parseInt64Env("CONFIDE_MAX_FILE_STORAGE_BYTES")
+	cfg.MaxWorkspacesPerAccount = parseInt64Env("CONFIDE_MAX_WORKSPACES_PER_ACCOUNT")
 
 	var errs []error
 
@@ -174,6 +196,15 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func parseInt64Env(key string) int64 {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
+			return n
+		}
+	}
+	return 0
 }
 
 // parseBool parses "true"/"1"/"yes" as true, "false"/"0"/"no" as false.

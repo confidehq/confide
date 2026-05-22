@@ -88,7 +88,7 @@ func PlanAllows(plan string, f Feature) bool {
 	if _, gated := proFeatures[f]; !gated {
 		return true
 	}
-	return plan == "pro"
+	return plan == "pro" || plan == "community"
 }
 
 // UpgradeRequiredError is returned by service methods when a Pro feature is

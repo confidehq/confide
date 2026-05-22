@@ -76,6 +76,8 @@ type Service struct {
 	checker          domainChecker
 	canceler         SubscriptionCanceler
 	traefikConfigDir string
+	// workspaceLimit is the max owned workspaces per account. -1 = unlimited.
+	workspaceLimit int64
 }
 
 type domainRegistry interface {
@@ -91,16 +93,23 @@ type domainChecker interface {
 
 func NewService(pool *pgxpool.Pool) *Service {
 	return &Service{
-		log:   log.With().Str("module", "workspace").Logger(),
-		db:    queries.New(pool),
-		pool:  pool,
-		cache: permission.NewRoleCache(),
+		log:            log.With().Str("module", "workspace").Logger(),
+		db:             queries.New(pool),
+		pool:           pool,
+		cache:          permission.NewRoleCache(),
+		workspaceLimit: 1,
 	}
+}
+
+// WithWorkspaceLimit sets the maximum number of workspaces an account may own.
+// Pass -1 for unlimited (community/self-hosted mode).
+func (s *Service) WithWorkspaceLimit(limit int64) {
+	s.workspaceLimit = limit
 }
 
 // NewServiceWithDB is for test injection.
 func NewServiceWithDB(db DB) *Service {
-	return &Service{db: db}
+	return &Service{db: db, workspaceLimit: 1}
 }
 
 // WithRegistry attaches the domain registry to the service so domain changes
@@ -236,16 +245,18 @@ func (s *Service) GetPersonalWorkspaceID(ctx context.Context, accountID string) 
 	return row.ID, nil
 }
 
-// Create creates a new workspace for the account, enforcing the free-plan 1-owned-workspace limit.
+// Create creates a new workspace for the account, enforcing the configured workspace limit.
 // Users may join unlimited other workspaces as non-owners regardless of plan.
 // wrappedWorkspaceKey and ephemeralPublicKey are stored in workspace_member_keys for the owner.
 func (s *Service) Create(ctx context.Context, accountID, name string) (Workspace, error) {
-	count, err := s.db.CountFreeOwnerWorkspaces(ctx, accountID)
-	if err != nil {
-		return Workspace{}, err
-	}
-	if count >= 1 {
-		return Workspace{}, ErrPlanLimit
+	if s.workspaceLimit >= 0 {
+		count, err := s.db.CountFreeOwnerWorkspaces(ctx, accountID)
+		if err != nil {
+			return Workspace{}, err
+		}
+		if count >= s.workspaceLimit {
+			return Workspace{}, ErrPlanLimit
+		}
 	}
 
 	id, err := randomID()

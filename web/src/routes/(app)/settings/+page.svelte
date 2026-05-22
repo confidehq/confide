@@ -26,7 +26,8 @@
 	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
 	import UsageCard from '$lib/components/UsageCard.svelte';
 	import FormField from '$lib/components/FormField.svelte';
-	import { planLabel } from '$lib/utils/plan';
+	import { planLabel, isManagedEdition } from '$lib/utils/plan';
+	import { getAppConfig } from '$lib/config';
 
 	// ─── Tab init from URL ────────────────────────────────────────────────────────
 
@@ -34,6 +35,9 @@
 	const _urlTab = get(page).url.searchParams.get('tab') as Tab | null;
 	const _validTabs: Tab[] = ['usage', 'billing', 'workspace', 'smtp'];
 	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'workspace');
+
+	let managed = $state(true);
+	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
 
 	// Show success banner when returning from Stripe checkout
 	const _upgraded = get(page).url.searchParams.get('upgraded') === 'true';
@@ -83,7 +87,7 @@
 	});
 
 	$effect(() => {
-		if (activeTab === 'usage' || activeTab === 'billing') {
+		if (activeTab === 'billing') {
 			loadBillingInfo();
 		}
 		if (activeTab === 'usage') {
@@ -331,11 +335,11 @@
 
 	// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean; ownerOnly?: boolean }[] = [
-		{ id: 'workspace', label: 'General',   icon: Settings                               },
-		{ id: 'usage',     label: 'Usage',     icon: BarChart2                              },
-		{ id: 'billing',   label: 'Billing',   icon: CreditCard, ownerOnly: true            },
-		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true             },
+	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean; ownerOnly?: boolean; managedOnly?: boolean }[] = [
+		{ id: 'workspace', label: 'General',   icon: Settings                                             },
+		{ id: 'usage',     label: 'Usage',     icon: BarChart2                                            },
+		{ id: 'billing',   label: 'Billing',   icon: CreditCard, ownerOnly: true, managedOnly: true       },
+		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true                          },
 	];
 
 	const planBadge: Record<string, { label: string; color: string }> = {
@@ -475,7 +479,7 @@
 	<div class="flex border-b border-border-mid mb-8 gap-1">
 		{#each tabs as tab}
 			{@const active = activeTab === tab.id}
-			{@const hidden = tab.ownerOnly && workspacesStore.active?.role !== 'owner'}
+			{@const hidden = (tab.ownerOnly && workspacesStore.active?.role !== 'owner') || (tab.managedOnly && !managed)}
 			{#if !hidden}
 				<button
 					onclick={() => !tab.disabled && (activeTab = tab.id)}
@@ -498,40 +502,44 @@
 	<!-- ─── Usage tab ─────────────────────────────────────────────────────────── -->
 	{#if activeTab === 'usage'}
 		<div>
-			{#if billingLoading && !billingInfo}
+			{#if usageLoading && !usageInfo}
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
 					{#each [0, 1, 2] as _}
 						<div class="border border-border-deep rounded-lg p-5 h-32 animate-pulse bg-surface-deep"></div>
 					{/each}
 				</div>
 			{:else}
-				{@const memberLimit = billingInfo?.plan === 'free' ? 2 : billingInfo?.plan === 'pro' ? 10 : -1}
-				{@const responseLimit = billingInfo?.plan === 'free' ? 250 : billingInfo?.plan === 'pro' ? 10_000 : billingInfo?.plan === 'org' ? 100_000 : -1}
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
 
 					<UsageCard label="Forms" sublabel="Forms per workspace">
-						{billingInfo ? billingInfo.formCount : '—'}
+						{usageInfo ? usageInfo.forms.current : '—'}
 						{#snippet footer()}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/snippet}
 					</UsageCard>
 
 					<UsageCard
 						label="Responses"
 						sublabel="Records collected this month"
-						pct={billingInfo && responseLimit > 0 ? Math.min(100, (billingInfo.monthlyResponseCount / responseLimit) * 100) : undefined}
+						pct={usageInfo && usageInfo.monthly_responses.limit > 0 ? Math.min(100, (usageInfo.monthly_responses.current / usageInfo.monthly_responses.limit) * 100) : undefined}
 					>
-						{#if billingInfo}
-							{billingInfo.monthlyResponseCount.toLocaleString()}{#if responseLimit > 0}<span class="text-muted-mid font-normal text-base"> / {responseLimit.toLocaleString()}</span>{/if}
+						{#if usageInfo}
+							{usageInfo.monthly_responses.current.toLocaleString()}{#if usageInfo.monthly_responses.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.monthly_responses.limit.toLocaleString()}</span>{/if}
 						{:else}—{/if}
+						{#snippet footer()}
+							{#if usageInfo && usageInfo.monthly_responses.limit <= 0}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/if}
+						{/snippet}
 					</UsageCard>
 
 					<UsageCard
 						label="Members"
 						sublabel="Members per workspace"
-						pct={billingInfo && memberLimit > 0 ? Math.min(100, (billingInfo.memberCount / memberLimit) * 100) : undefined}
+						pct={usageInfo && usageInfo.members.limit > 0 ? Math.min(100, (usageInfo.members.current / usageInfo.members.limit) * 100) : undefined}
 					>
-						{#if billingInfo}
-							{billingInfo.memberCount}{#if memberLimit > 0}<span class="text-muted-mid font-normal text-base"> / {memberLimit}</span>{/if}
+						{#if usageInfo}
+							{usageInfo.members.current}{#if usageInfo.members.limit > 0}<span class="text-muted-mid font-normal text-base"> / {usageInfo.members.limit}</span>{/if}
 						{:else}—{/if}
+						{#snippet footer()}
+							{#if usageInfo && usageInfo.members.limit <= 0}<p class="m-0 text-xs text-muted-mid">Unlimited</p>{/if}
+						{/snippet}
 					</UsageCard>
 
 					<UsageCard

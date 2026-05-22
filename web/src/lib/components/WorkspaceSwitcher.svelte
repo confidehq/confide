@@ -4,6 +4,8 @@
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createWorkspace, createProWorkspace, WorkspaceError } from '$lib/workspaces';
 	import { ChevronsUpDown, Check, Plus } from '@lucide/svelte';
+	import { getAppConfig } from '$lib/config';
+	import { isManagedEdition } from '$lib/utils/plan';
 
 	let dropdownOpen = $state(false);
 	let showCreate = $state(false);
@@ -15,9 +17,12 @@
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let dropdownPos = $state({ left: 0, top: 0, width: 0 });
 
+	let managed = $state(true);
+	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
+
 	// True when the user already owns a free workspace and must upgrade to create another.
 	const atFreeLimit = $derived(
-		workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
+		managed && workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
 	);
 
 	function initials(name: string): string {
