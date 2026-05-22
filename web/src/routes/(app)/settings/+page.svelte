@@ -26,8 +26,8 @@
 	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
 	import UsageCard from '$lib/components/UsageCard.svelte';
 	import FormField from '$lib/components/FormField.svelte';
-	import { planLabel, isManagedEdition } from '$lib/utils/plan';
-	import { getAppConfig } from '$lib/config';
+	import { planLabel } from '$lib/utils/plan';
+	import { access } from '$lib/stores/access.svelte';
 
 	// ─── Tab init from URL ────────────────────────────────────────────────────────
 
@@ -35,9 +35,6 @@
 	const _urlTab = get(page).url.searchParams.get('tab') as Tab | null;
 	const _validTabs: Tab[] = ['usage', 'billing', 'workspace', 'smtp'];
 	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'workspace');
-
-	let managed = $state(true);
-	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
 
 	// Show success banner when returning from Stripe checkout
 	const _upgraded = get(page).url.searchParams.get('upgraded') === 'true';
@@ -56,7 +53,7 @@
 
 	async function loadBillingInfo() {
 		const ws = workspacesStore.active;
-		if (!ws || ws.role !== 'owner' || billingLoaded || billingLoading) return;
+		if (!ws || !access.isOwner || billingLoaded || billingLoading) return;
 		billingLoading = true;
 		billingError = '';
 		try {
@@ -121,14 +118,10 @@
 	let domainError = $state('');
 	let domainRemoving = $state(false);
 
-	function isAdmin() {
-		const role = workspacesStore.active?.role;
-		return role === 'admin' || role === 'owner';
-	}
 
 	async function loadCustomDomain() {
 		const ws = workspacesStore.active;
-		if (!ws || !isAdmin()) return;
+		if (!ws || !access.isAdmin) return;
 		try {
 			customDomain = await getCustomDomain(ws.id);
 		} catch {
@@ -479,7 +472,7 @@
 	<div class="flex border-b border-border-mid mb-8 gap-1">
 		{#each tabs as tab}
 			{@const active = activeTab === tab.id}
-			{@const hidden = (tab.ownerOnly && workspacesStore.active?.role !== 'owner') || (tab.managedOnly && !managed)}
+			{@const hidden = (tab.ownerOnly && !access.isOwner) || (tab.managedOnly && !access.managed)}
 			{#if !hidden}
 				<button
 					onclick={() => !tab.disabled && (activeTab = tab.id)}
@@ -607,7 +600,7 @@
 								Status: {workspacesStore.active.planStatus}
 							</p>
 						</div>
-						{#if workspacesStore.active.plan === 'free' && workspacesStore.active.role === 'owner'}
+						{#if !access.isPro && access.isOwner}
 							<button
 								onclick={() => { activeTab = 'billing'; }}
 								class="px-4 py-2 bg-primary text-white border-none rounded cursor-pointer font-mono text-base
@@ -627,7 +620,7 @@
 
 	<!-- ─── Billing tab ───────────────────────────────────────────────────────── -->
 	{:else if activeTab === 'billing'}
-		{#if workspacesStore.active?.role !== 'owner'}
+		{#if !access.isOwner}
 			<p class="text-sm text-muted-dim">Only workspace owners can manage billing.</p>
 		{:else}
 			<!-- Upgraded success banner -->
@@ -894,16 +887,16 @@
 			</div>
 
 			<!-- Custom domain -->
-			{#if isAdmin()}
+			{#if access.isAdmin}
 			<div class="mt-4 pt-6 border-t border-border-deep flex flex-col gap-3">
 				<div class="flex items-center gap-3">
 					<p class="m-0 text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">Custom domain</p>
-					{#if workspacesStore.active?.plan !== 'pro'}
+					{#if !access.isPro}
 						<span class="px-2 py-0.5 rounded text-xs border border-border-deep text-muted-dim">Pro</span>
 					{/if}
 				</div>
 
-				{#if workspacesStore.active?.plan !== 'pro'}
+				{#if !access.isPro}
 					<p class="m-0 text-muted-dim text-base">Upgrade to Pro to serve forms on your own domain.</p>
 				{:else if customDomain === null}
 					<p class="m-0 text-muted-dim text-base">Loading…</p>
@@ -994,7 +987,7 @@
 			{/if}
 
 			<!-- Danger zone -->
-			{#if workspacesStore.active?.role === 'owner'}
+			{#if access.isOwner}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
 				<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">

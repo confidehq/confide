@@ -1,11 +1,10 @@
 <script lang="ts">
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { access } from '$lib/stores/access.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { createWorkspace, createProWorkspace, WorkspaceError } from '$lib/workspaces';
 	import { ChevronsUpDown, Check, Plus } from '@lucide/svelte';
-	import { getAppConfig } from '$lib/config';
-	import { isManagedEdition } from '$lib/utils/plan';
 
 	let dropdownOpen = $state(false);
 	let showCreate = $state(false);
@@ -16,14 +15,6 @@
 	// Fixed-position dropdown coords (escapes sidebar's overflow-hidden)
 	let triggerEl = $state<HTMLButtonElement | null>(null);
 	let dropdownPos = $state({ left: 0, top: 0, width: 0 });
-
-	let managed = $state(true);
-	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
-
-	// True when the user already owns a free workspace and must upgrade to create another.
-	const atFreeLimit = $derived(
-		managed && workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
-	);
 
 	function initials(name: string): string {
 		const words = name.trim().split(/\s+/);
@@ -75,7 +66,7 @@
 		creating = true;
 		createError = '';
 		try {
-			if (atFreeLimit) {
+			if (access.atWorkspaceLimit) {
 				const { workspace, checkoutUrl } = await createProWorkspace(
 					name,
 					auth.masterKey,
@@ -172,7 +163,7 @@
 			<!-- Create workspace form -->
 			<div class="p-3">
 				<p class="m-0 mb-2.5 text-sm text-muted-mid uppercase tracking-widest font-medium">New workspace</p>
-				{#if atFreeLimit}
+				{#if access.atWorkspaceLimit}
 					<p class="m-0 mb-2 text-sm text-muted-dim leading-relaxed">
 						Additional workspaces require a Pro plan. You'll be taken to checkout after creation.
 					</p>
@@ -195,7 +186,7 @@
 						disabled={creating || !newName.trim()}
 						class="flex-1 py-1.5 text-sm text-white border-none rounded cursor-pointer font-mono transition-colors duration-100
 							{creating || !newName.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
-					>{creating ? 'Creating…' : atFreeLimit ? 'Create & subscribe' : 'Create'}</button>
+					>{creating ? 'Creating…' : access.atWorkspaceLimit ? 'Create & subscribe' : 'Create'}</button>
 					<button
 						onclick={() => { showCreate = false; createError = ''; newName = ''; }}
 						class="px-3 py-1.5 text-sm text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body hover:border-border-subtle transition-colors duration-100"

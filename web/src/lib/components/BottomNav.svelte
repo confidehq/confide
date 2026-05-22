@@ -3,12 +3,11 @@
 	import { LayoutGrid, FileText, Users, Menu, Settings, UserRound, Sun, Moon, X, Check, Plus, LogOut } from '@lucide/svelte';
 	import { theme } from '$lib/stores/theme.svelte';
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { access } from '$lib/stores/access.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { logout } from '$lib/auth';
 	import { goto } from '$app/navigation';
 	import { createWorkspace, createProWorkspace } from '$lib/workspaces';
-	import { getAppConfig } from '$lib/config';
-	import { isManagedEdition } from '$lib/utils/plan';
 
 	let moreOpen = $state(false);
 	let showWorkspacePicker = $state(false);
@@ -16,14 +15,6 @@
 	let newWorkspaceName = $state('');
 	let creating = $state(false);
 	let createError = $state('');
-
-	let managed = $state(true);
-	getAppConfig().then((c) => { managed = isManagedEdition(c.edition); });
-
-	// True when the user already owns a free workspace and must upgrade to create another.
-	const atFreeLimit = $derived(
-		managed && workspacesStore.workspaces.some(w => w.plan === 'free' && w.role === 'owner')
-	);
 
 	function isActive(href: string): boolean {
 		const path = $page.url.pathname;
@@ -63,7 +54,7 @@
 		creating = true;
 		createError = '';
 		try {
-			if (atFreeLimit) {
+			if (access.atWorkspaceLimit) {
 				const { workspace, checkoutUrl } = await createProWorkspace(
 					name,
 					auth.masterKey,
@@ -142,7 +133,7 @@
 				{#if showCreateWorkspace}
 					<div class="mb-3">
 						<p class="m-0 mb-2 text-xs uppercase tracking-widest text-muted-mid font-medium">New workspace</p>
-						{#if atFreeLimit}
+						{#if access.atWorkspaceLimit}
 							<p class="m-0 mb-2 text-sm text-muted-dim leading-relaxed">
 								Additional workspaces require a Pro plan. You'll be taken to checkout after creation.
 							</p>
@@ -165,7 +156,7 @@
 								disabled={creating || !newWorkspaceName.trim()}
 								class="flex-1 py-2 text-sm text-white border-none rounded cursor-pointer font-mono transition-colors duration-100
 									{creating || !newWorkspaceName.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
-							>{creating ? 'Creating…' : atFreeLimit ? 'Create & subscribe' : 'Create'}</button>
+							>{creating ? 'Creating…' : access.atWorkspaceLimit ? 'Create & subscribe' : 'Create'}</button>
 							<button
 								onclick={() => { showCreateWorkspace = false; createError = ''; newWorkspaceName = ''; }}
 								class="px-3 py-2 text-sm text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body transition-colors duration-100"

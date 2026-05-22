@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { workspacesStore } from '$lib/stores/workspaces.svelte';
+	import { access } from '$lib/stores/access.svelte';
 	import { teamStore } from '$lib/stores/team.svelte';
 	import { auth } from '$lib/stores/auth.svelte';
 	import {
@@ -42,8 +43,7 @@
 	$effect(() => {
 		const ws = workspacesStore.active;
 		if (ws) {
-			const isAdmin = ws.role === 'owner' || ws.role === 'admin';
-			teamStore.load(ws.id, isAdmin);
+			teamStore.load(ws.id, access.isAdmin);
 		}
 	});
 
@@ -51,7 +51,7 @@
 		const ws = workspacesStore.active;
 		if (!ws) return;
 		teamStore.invalidate();
-		teamStore.load(ws.id, ws.role === 'owner' || ws.role === 'admin');
+		teamStore.load(ws.id, access.isAdmin);
 	}
 
 	// ─── Invite ─────────────────────────────────────────────────────────────────
@@ -194,7 +194,7 @@
 	// ─── Helpers ────────────────────────────────────────────────────────────────
 
 	const myRole = $derived(workspacesStore.active?.role ?? 'viewer');
-	const canManage = $derived(myRole === 'owner' || myRole === 'admin');
+	const canManage = $derived(access.isAdmin);
 
 	// Alias store references for template conciseness
 	const members = $derived(teamStore.members);
@@ -376,7 +376,7 @@
 			{#if invitePlanLimit}
 				<p class="mt-3 mb-0 text-xs text-warning-text">
 					Member limit reached for your current plan.
-					{#if workspacesStore.active?.role === 'owner'}
+					{#if access.isOwner}
 						<a href="/settings?tab=billing" class="underline text-text-blue hover:text-text-bright">Upgrade to Pro →</a>
 					{/if}
 				</p>
