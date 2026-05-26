@@ -10,37 +10,10 @@
 	import QRCode from 'qrcode';
 
 	const LANGUAGES: { code: string; name: string }[] = [
-		{ code: 'af', name: 'Afrikaans' },
-		{ code: 'ar', name: 'Arabic' },
-		{ code: 'cs', name: 'Czech' },
-		{ code: 'da', name: 'Danish' },
-		{ code: 'de', name: 'German' },
-		{ code: 'el', name: 'Greek' },
 		{ code: 'en', name: 'English' },
 		{ code: 'es', name: 'Spanish' },
-		{ code: 'fi', name: 'Finnish' },
 		{ code: 'fr', name: 'French' },
-		{ code: 'he', name: 'Hebrew' },
-		{ code: 'hi', name: 'Hindi' },
-		{ code: 'hu', name: 'Hungarian' },
-		{ code: 'id', name: 'Indonesian' },
-		{ code: 'it', name: 'Italian' },
-		{ code: 'ja', name: 'Japanese' },
-		{ code: 'ko', name: 'Korean' },
-		{ code: 'ms', name: 'Malay' },
-		{ code: 'nl', name: 'Dutch' },
-		{ code: 'no', name: 'Norwegian' },
-		{ code: 'pl', name: 'Polish' },
-		{ code: 'pt', name: 'Portuguese' },
-		{ code: 'ro', name: 'Romanian' },
-		{ code: 'ru', name: 'Russian' },
-		{ code: 'sv', name: 'Swedish' },
-		{ code: 'th', name: 'Thai' },
-		{ code: 'tr', name: 'Turkish' },
-		{ code: 'uk', name: 'Ukrainian' },
-		{ code: 'vi', name: 'Vietnamese' },
-		{ code: 'zh', name: 'Chinese (Simplified)' },
-		{ code: 'zh-TW', name: 'Chinese (Traditional)' }
+		{ code: 'pt', name: 'Portuguese' }
 	];
 
 	function languageName(code: string): string {
