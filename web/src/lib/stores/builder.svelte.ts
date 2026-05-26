@@ -428,17 +428,18 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function addLocale(locale: string): void {
 		if (schema.locales.includes(locale)) return;
-		// Seed the new locale's field order from the current default order
 		const defaultOrder = getOrderedFields(schema, schema.defaultLocale).map((f) => f.id);
+		const defaultTranslation = schema.translations[schema.defaultLocale];
 		schema = {
 			...schema,
 			locales: [...schema.locales, locale],
 			translations: {
 				...schema.translations,
 				[locale]: {
-					formTitle: '',
-					formDescription: '',
-					fields: Object.fromEntries(schema.fields.map((f) => [f.id, { label: '' }]))
+					...defaultTranslation,
+					fields: Object.fromEntries(
+						Object.entries(defaultTranslation.fields).map(([id, ft]) => [id, { ...ft }])
+					)
 				}
 			},
 			fieldOrders: {
