@@ -85,7 +85,7 @@
 					<div>
 						<input
 							type="text"
-							placeholder="Option {i + 1}"
+							placeholder={getDefaultOptionLabel(i) || `Option ${i + 1}`}
 							value={getOptionLabel(i)}
 							oninput={(e) => setOptionLabel(i, (e.target as HTMLInputElement).value)}
 							class="input-base text-xs {!getOptionLabel(i) ? '!border-warning-text' : ''}"

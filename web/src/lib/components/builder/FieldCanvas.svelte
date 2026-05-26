@@ -148,6 +148,11 @@ function getOptionLabels(fieldId: string): string[] {
 		return Array.from({ length: count }, (_, i) => translated?.[i] ?? '');
 	}
 
+	function getDefaultOptionLabel(fieldId: string, index: number): string {
+		if (store.activeLocale === store.schema.defaultLocale) return '';
+		return store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]?.options?.[index] ?? '';
+	}
+
 	function setOptionLabel(fieldId: string, index: number, value: string) {
 		const field = store.schema.fields.find((f) => f.id === fieldId);
 		if (!field) return;
@@ -565,7 +570,7 @@ function getOptionLabels(fieldId: string): string[] {
 										<input
 											type="text"
 											value={optLabel}
-											placeholder="Option {i + 1}"
+											placeholder={getDefaultOptionLabel(field.id, i) || `Option ${i + 1}`}
 											onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 											oninput={(e) => setOptionLabel(field.id, i, (e.target as HTMLInputElement).value)}
 											style="color: {optLabel ? 'var(--color-text-dim)' : 'var(--color-text-subtle)'};"
