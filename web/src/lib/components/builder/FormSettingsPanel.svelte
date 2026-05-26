@@ -59,8 +59,10 @@
 	let closeOnDatePending = $state(false);
 	let limitResponsesPending = $state(false);
 	let autoDeletePending = $state(false);
+	let completionMessagePending = $state(false);
 	const closeOnDateOpen = $derived(!!store.expiresAt || closeOnDatePending);
 	const limitResponsesOpen = $derived(!!store.responseLimit || limitResponsesPending);
+	const completionMessageOpen = $derived(!!store.activeTranslation?.convoCompletionMessage || completionMessagePending);
 
 	let shareUrl = $state('');
 	let shareUrlLoading = $state(false);
@@ -340,16 +342,40 @@
 			</div>
 		{/if}
 
-		{#if isConvo}
+		<div class="flex items-center justify-between gap-3">
 			<div>
-				<label class="block text-sm text-muted mb-1">Completion message</label>
-				<textarea
-					value={store.activeTranslation?.convoCompletionMessage ?? ''}
-					oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
-					rows={2}
-					class="input-base"
-				></textarea>
+				<p class="m-0 text-sm text-text-dim">Custom completion message</p>
+				<p class="m-0 text-xs text-muted-dark mt-0.5">Show a message after respondents submit.</p>
 			</div>
+			<button
+				role="switch"
+				aria-checked={completionMessageOpen}
+				onclick={() => {
+					if (completionMessageOpen) {
+						completionMessagePending = false;
+						store.updateTranslation(null, 'convoCompletionMessage', '');
+					} else {
+						completionMessagePending = true;
+					}
+				}}
+				class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+					{completionMessageOpen ? 'bg-primary' : 'bg-border-deep'}"
+			>
+				<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+					{completionMessageOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
+			</button>
+		</div>
+		{#if completionMessageOpen}
+			<textarea
+				value={store.activeTranslation?.convoCompletionMessage ?? ''}
+				oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
+				placeholder="Your response has been submitted."
+				rows={2}
+				class="input-base"
+			></textarea>
+		{/if}
+
+		{#if isConvo}
 			<div class="flex items-center justify-between">
 				<label class="text-sm text-text-dim">Allow edit after submit</label>
 				<input
