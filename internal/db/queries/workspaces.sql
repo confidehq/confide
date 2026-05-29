@@ -148,6 +148,12 @@ UPDATE custom_domains SET enabled = FALSE, cname_ok = FALSE, txt_ok = FALSE WHER
 -- name: ListAllUnverifiedDomains :many
 SELECT * FROM custom_domains WHERE enabled = FALSE;
 
+-- name: GetWorkspaceLegalText :one
+SELECT legal_text FROM workspaces WHERE id = $1;
+
+-- name: UpdateWorkspaceLegalText :exec
+UPDATE workspaces SET legal_text = $2, updated_at = NOW() WHERE id = $1;
+
 -- name: GetMembersWithoutWorkspaceKeyWithUsername :many
 SELECT wm.account_id, a.username
 FROM workspace_members wm

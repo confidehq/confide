@@ -49,6 +49,7 @@
 	let showLocaleInput = $state(false);
 
 	let workspaceDomain = $state<CustomDomainInfo | null>(null);
+	let workspaceId = $state<string | undefined>(undefined);
 	let formsBaseUrl = $state('');
 
 	onMount(async () => {
@@ -59,6 +60,7 @@
 		try {
 			const record = await store.load();
 			if (record.workspaceId) {
+				workspaceId = record.workspaceId;
 				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});
 			}
 			getAppConfig().then(c => { formsBaseUrl = c.formsDomain ? `https://${c.formsDomain}` : ''; }).catch(() => {});
@@ -249,6 +251,7 @@
 				<FormSettingsPanel
 					{store}
 					{formId}
+					{workspaceId}
 					{workspaceDomain}
 					customDomainBase={customDomainBase}
 				/>

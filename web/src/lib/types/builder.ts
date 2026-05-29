@@ -123,6 +123,7 @@ export interface BuilderSchema {
 	layout: 'scroll' | 'steps' | 'convo';
 	convoAllowEdit?: boolean;
 	showWatermark?: boolean;
+	legalText?: string;
 	submitButtonIcon?: AccentIcon;
 	fields: BuilderField[];
 	translations: Record<string, TranslationMap>;

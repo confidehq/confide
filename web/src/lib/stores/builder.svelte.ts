@@ -59,6 +59,7 @@ export interface BuilderStore {
 	setConvoAllowEdit(allow: boolean): void;
 	setShowWatermark(show: boolean): void;
 	setSubmitButtonIcon(icon: BuilderSchema['submitButtonIcon']): void;
+	setLegalText(text: string | undefined): void;
 	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
 	load(): Promise<FormRecord>;
 	save(): Promise<void>;
@@ -507,6 +508,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markDirty();
 	}
 
+	function setLegalText(text: string | undefined): void {
+		schema = { ...schema, legalText: text || undefined };
+		markDirty();
+	}
+
 	async function setExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newResponseTtlDays: number | null, newBurnAfterReading: boolean): Promise<void> {
 		await updateFormExpiration(formId, newExpiresAt, newResponseLimit, newResponseTtlDays, newBurnAfterReading);
 		expiresAt = newExpiresAt;
@@ -649,6 +655,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		setConvoAllowEdit,
 		setShowWatermark,
 		setSubmitButtonIcon,
+		setLegalText,
 		setExpiration,
 		setRenderKeySalt,
 		markPublished,

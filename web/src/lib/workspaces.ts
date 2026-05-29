@@ -115,6 +115,35 @@ async function getOrCreateIdentityKey(masterKey: CryptoKey): Promise<ArrayBuffer
 
 // ─── API ─────────────────────────────────────────────────────────────────────
 
+export interface WorkspaceSettings {
+	legalText: string;
+}
+
+export async function getWorkspaceSettings(id: string): Promise<WorkspaceSettings> {
+	const res = await apiFetch(`/api/workspaces/${id}/settings`);
+	if (!res.ok) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'fetch_failed';
+		const message = (body as { message?: string }).message ?? `Failed to get settings (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+	return res.json() as Promise<WorkspaceSettings>;
+}
+
+export async function updateWorkspaceSettings(id: string, settings: Partial<WorkspaceSettings>): Promise<void> {
+	const res = await apiFetch(`/api/workspaces/${id}/settings`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(settings)
+	});
+	if (!res.ok && res.status !== 204) {
+		const body = await res.json().catch(() => ({}));
+		const code = (body as { code?: string }).code ?? 'update_failed';
+		const message = (body as { message?: string }).message ?? `Failed to update settings (${res.status})`;
+		throw new WorkspaceError(code, message);
+	}
+}
+
 export async function renameWorkspace(id: string, name: string): Promise<void> {
 	const res = await apiFetch(`/api/workspaces/${id}`, {
 		method: 'PATCH',

@@ -60,6 +60,9 @@ type DB interface {
 	CountNonOwnerMembers(ctx context.Context, workspaceID string) (int64, error)
 	GetWorkspaceForBilling(ctx context.Context, id string) (queries.GetWorkspaceForBillingRow, error)
 
+	GetWorkspaceLegalText(ctx context.Context, id string) (string, error)
+	UpdateWorkspaceLegalText(ctx context.Context, id, legalText string) error
+
 	InsertCustomDomain(ctx context.Context, arg queries.InsertCustomDomainParams) (queries.CustomDomain, error)
 	GetCustomDomainByWorkspace(ctx context.Context, workspaceID string) (queries.CustomDomain, error)
 	GetCustomDomainByHost(ctx context.Context, domain string) (queries.CustomDomain, error)
@@ -596,6 +599,30 @@ func (s *Service) PendingKeyGrants(ctx context.Context, workspaceID string) ([]P
 		}
 	}
 	return out, nil
+}
+
+// ─── Workspace Settings ───────────────────────────────────────────────────────
+
+// WorkspaceSettings holds editable workspace-level configuration.
+type WorkspaceSettings struct {
+	LegalText string
+}
+
+// GetSettings returns editable settings for a workspace.
+func (s *Service) GetSettings(ctx context.Context, workspaceID string) (WorkspaceSettings, error) {
+	text, err := s.db.GetWorkspaceLegalText(ctx, workspaceID)
+	if err != nil {
+		if isNotFound(err) {
+			return WorkspaceSettings{}, ErrNotFound
+		}
+		return WorkspaceSettings{}, err
+	}
+	return WorkspaceSettings{LegalText: text}, nil
+}
+
+// UpdateSettings saves editable settings for a workspace.
+func (s *Service) UpdateSettings(ctx context.Context, workspaceID, legalText string) error {
+	return s.db.UpdateWorkspaceLegalText(ctx, workspaceID, legalText)
 }
 
 // ─── Custom Domains ───────────────────────────────────────────────────────────

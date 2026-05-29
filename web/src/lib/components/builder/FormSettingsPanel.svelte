@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import type { createBuilderStore } from '$lib/stores/builder.svelte';
 	import type { CustomDomainInfo } from '$lib/workspaces';
+	import { getWorkspaceSettings } from '$lib/workspaces';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { access } from '$lib/stores/access.svelte';
 	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
@@ -23,11 +24,12 @@
 	interface Props {
 		store: ReturnType<typeof createBuilderStore>;
 		formId: string;
+		workspaceId?: string;
 		workspaceDomain: CustomDomainInfo | null;
 		customDomainBase: () => string | undefined;
 	}
 
-	const { store, formId, workspaceDomain, customDomainBase }: Props = $props();
+	const { store, formId, workspaceId, workspaceDomain, customDomainBase }: Props = $props();
 
 	let closeOnDatePending = $state(false);
 	let limitResponsesPending = $state(false);
@@ -50,6 +52,18 @@
 
 	let expirationSaving = $state(false);
 	let expirationError = $state<string | null>(null);
+
+	let legalTextPending = $state(false);
+	let workspaceLegalDefault = $state('');
+	const legalTextOpen = $derived(!!store.schema.legalText || legalTextPending);
+
+	$effect(() => {
+		if (workspaceId) {
+			getWorkspaceSettings(workspaceId).then(s => {
+				untrack(() => { workspaceLegalDefault = s.legalText; });
+			}).catch(() => {});
+		}
+	});
 
 	// Re-derive share URL whenever the custom domain becomes available or changes.
 	// Using $effect instead of onMount so it re-runs after the parent's async
@@ -385,6 +399,52 @@
 						{store.schema.showWatermark !== false ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 				</button>
 			</div>
+		</div>
+
+		<!-- Legal text / Impressum -->
+		<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
+			<div class="flex items-center justify-between gap-3">
+				<div>
+					<p class="m-0 text-sm text-text-dim">Legal / Impressum</p>
+					<p class="m-0 text-xs text-muted-dark mt-0.5">Footer shown on every submission page.</p>
+				</div>
+				<button
+					role="switch"
+					aria-checked={legalTextOpen}
+					onclick={() => {
+						if (legalTextOpen) {
+							legalTextPending = false;
+							store.setLegalText(undefined);
+						} else {
+							legalTextPending = true;
+							if (!store.schema.legalText && workspaceLegalDefault) {
+								store.setLegalText(workspaceLegalDefault);
+							}
+						}
+					}}
+					class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
+						{legalTextOpen ? 'bg-primary' : 'bg-border-deep'}"
+				>
+					<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
+						{legalTextOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
+				</button>
+			</div>
+			{#if legalTextOpen}
+				<textarea
+					value={store.schema.legalText ?? ''}
+					oninput={(e) => store.setLegalText((e.target as HTMLTextAreaElement).value)}
+					placeholder={workspaceLegalDefault || 'e.g. © 2025 Acme Inc. · Privacy Policy'}
+					rows={3}
+					class="input-base text-xs"
+				></textarea>
+				{#if workspaceLegalDefault && store.schema.legalText !== workspaceLegalDefault}
+					<button
+						type="button"
+						onclick={() => store.setLegalText(workspaceLegalDefault)}
+						class="self-start text-xs text-muted-dark hover:text-muted cursor-pointer bg-transparent border-none px-0 py-0"
+					>Use workspace default</button>
+				{/if}
+			{/if}
 		</div>
 
 		<!-- Scheduling options -->

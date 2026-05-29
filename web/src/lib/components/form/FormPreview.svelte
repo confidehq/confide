@@ -118,4 +118,10 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if schema.legalText}
+		<div class="mt-10 pt-4 border-t border-form-border">
+			<p class="m-0 text-xs text-form-muted leading-relaxed">{schema.legalText}</p>
+		</div>
+	{/if}
 </div>

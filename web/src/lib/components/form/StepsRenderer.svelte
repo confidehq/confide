@@ -274,16 +274,23 @@
 		{/if}
 	</div>
 
-	{#if schema.showWatermark !== false && isLastStep}
-		<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer" class="sm:hidden flex justify-center items-center gap-1.5 mt-8 pt-4 border-t border-form-border text-xs text-form-muted no-underline hover:text-form-text-mid transition-colors duration-100">
-			Made with
-			<img src="/favicon.svg" alt="" class="w-4 h-4" />
-			<span class="font-medium text-form-text-mid">Confide</span>
-		</a>
-		<div class="hidden sm:flex justify-end mt-6">
-			<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer">
-				<img src="/watermark.svg" alt="Powered by Confide" class="w-[100px] opacity-70 hover:opacity-100 transition-opacity duration-100" />
-			</a>
+	{#if isLastStep && (schema.legalText || schema.showWatermark !== false)}
+		<div class="mt-10 pt-4 border-t border-form-border flex flex-col gap-3">
+			{#if schema.legalText}
+				<p class="m-0 text-xs text-form-muted leading-relaxed">{schema.legalText}</p>
+			{/if}
+			{#if schema.showWatermark !== false}
+				<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer" class="sm:hidden flex justify-center items-center gap-1.5 text-xs text-form-muted no-underline hover:text-form-text-mid transition-colors duration-100">
+					Made with
+					<img src="/favicon.svg" alt="" class="w-4 h-4" />
+					<span class="font-medium text-form-text-mid">Confide</span>
+				</a>
+				<div class="hidden sm:flex justify-end">
+					<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer">
+						<img src="/watermark.svg" alt="Powered by Confide" class="w-[100px] opacity-70 hover:opacity-100 transition-opacity duration-100" />
+					</a>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>

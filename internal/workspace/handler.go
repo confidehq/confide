@@ -24,6 +24,7 @@ func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http
 
 		// viewer+ (membership proof is sufficient)
 		r.Get("/", getWorkspace(svc))
+		r.Get("/settings", getWorkspaceSettings(svc))
 		r.Get("/members", listMembers(svc))
 		r.Get("/members/identity-keys", listMemberIdentityKeys(svc))
 		r.Get("/member-key", getMyKey(svc))
@@ -31,6 +32,8 @@ func Handler(svc *Service, cache *permission.RoleCache, cnameTarget string) http
 		// admin+
 		r.With(permission.RequireAction(permission.ActionRenameWorkspace)).
 			Patch("/", renameWorkspace(svc))
+		r.With(permission.RequireAction(permission.ActionRenameWorkspace)).
+			Put("/settings", updateWorkspaceSettings(svc))
 		r.With(permission.RequireAction(permission.ActionChangeRoles)).
 			Patch("/members/{accountId}", updateMemberRole(svc))
 		r.Delete("/members/{accountId}", removeMember(svc))
@@ -383,6 +386,42 @@ func pendingKeyGrants(svc *Service) http.HandlerFunc {
 			}
 		}
 		writeJSON(w, http.StatusOK, map[string]any{"pending": out})
+	}
+}
+
+// ─── Workspace Settings ───────────────────────────────────────────────────────
+
+func getWorkspaceSettings(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+		settings, err := svc.GetSettings(r.Context(), workspaceID)
+		if err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "workspace not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to get settings")
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{"legalText": settings.LegalText})
+	}
+}
+
+func updateWorkspaceSettings(svc *Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		workspaceID := chi.URLParam(r, "id")
+		var req struct {
+			LegalText string `json:"legalText"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_json", "invalid request body")
+			return
+		}
+		if err := svc.UpdateSettings(r.Context(), workspaceID, req.LegalText); err != nil {
+			writeError(w, http.StatusInternalServerError, "internal", "failed to update settings")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

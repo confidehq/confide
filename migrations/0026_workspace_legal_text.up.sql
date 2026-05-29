@@ -1,0 +1,1 @@
+ALTER TABLE workspaces ADD COLUMN legal_text TEXT NOT NULL DEFAULT '';

@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import { auth } from '$lib/stores/auth.svelte';
 	import { listForms, getForm, setWorkspaceFormKey, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, loadWorkspaceKey, type Workspace } from '$lib/workspaces';
+	import { listWorkspaces, loadWorkspaceKey, getWorkspaceSettings, updateWorkspaceSettings, type Workspace } from '$lib/workspaces';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
 	const workspaceId = $derived($page.params.id);
@@ -19,16 +19,24 @@
 	let deleteLoading = $state(false);
 	let deleteError = $state('');
 
+	let legalText = $state('');
+	let legalTextSaving = $state(false);
+	let legalTextError = $state('');
+	let legalTextSaved = $state(false);
+	let legalTextTimer: ReturnType<typeof setTimeout> | null = null;
+
 
 async function load() {
 		loading = true;
 		error = '';
 		try {
-			const [allWorkspaces, rawForms] = await Promise.all([
+			const [allWorkspaces, rawForms, settings] = await Promise.all([
 				listWorkspaces(),
-				listForms(workspaceId)
+				listForms(workspaceId),
+				getWorkspaceSettings(workspaceId).catch(() => ({ legalText: '' }))
 			]);
 			workspace = allWorkspaces.find(w => w.id === workspaceId) ?? null;
+			legalText = settings.legalText;
 			forms = rawForms;
 
 			// Decrypt names in background (best-effort)
@@ -104,6 +112,21 @@ async function load() {
 
 	function formName(formId: string): string {
 		return formNames.get(formId) ?? '—';
+	}
+
+	async function saveLegalText() {
+		legalTextSaving = true;
+		legalTextError = '';
+		try {
+			await updateWorkspaceSettings(workspaceId, { legalText });
+			legalTextSaved = true;
+			if (legalTextTimer) clearTimeout(legalTextTimer);
+			legalTextTimer = setTimeout(() => { legalTextSaved = false; }, 2000);
+		} catch {
+			legalTextError = 'Failed to save — please try again.';
+		} finally {
+			legalTextSaving = false;
+		}
 	}
 
 	function planLabel(ws: Workspace): string {
@@ -278,6 +301,38 @@ async function load() {
 			</table>
 		{/if}
 
+	{/if}
+
+	<!-- Workspace settings -->
+	{#if workspace && (workspace.role === 'owner' || workspace.role === 'admin')}
+		<div class="mt-12 pt-8 border-t border-border-deep">
+			<h2 class="text-lg m-0 mb-6 text-text-bright font-semibold">Settings</h2>
+
+			<div class="max-w-xl">
+				<div class="mb-1">
+					<label class="block text-base text-text-dim mb-1" for="ws-legal-text">Default legal text / Impressum</label>
+					<p class="m-0 mb-2 text-base text-muted-dim">Shown as a footer on all forms in this workspace. Individual forms can override this.</p>
+				</div>
+				<textarea
+					id="ws-legal-text"
+					rows={4}
+					value={legalText}
+					oninput={(e) => { legalText = (e.target as HTMLTextAreaElement).value; legalTextSaved = false; }}
+					placeholder="e.g. © 2025 Acme Inc. · Privacy Policy · Impressum"
+					class="block w-full px-3 py-2 bg-surface border border-border-deep rounded-md font-mono text-base text-text-dim outline-none resize-none focus:border-border transition-colors"
+				></textarea>
+				<div class="flex items-center gap-3 mt-2">
+					<button
+						onclick={saveLegalText}
+						disabled={legalTextSaving}
+						class="px-4 py-1.5 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
+					>{legalTextSaving ? 'Saving…' : legalTextSaved ? 'Saved' : 'Save'}</button>
+					{#if legalTextError}
+						<p class="m-0 text-base text-error-light">{legalTextError}</p>
+					{/if}
+				</div>
+			</div>
+		</div>
 	{/if}
 
 </div>
