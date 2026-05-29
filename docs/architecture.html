@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Confide — Architecture & Data Flow</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3348;
+    --accent: #6c8fff;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --accent5: #f87171;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --label: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    padding: 32px;
+    min-width: 1400px;
+  }
+
+  h1 {
+    font-family: system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    letter-spacing: -0.3px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-family: system-ui, sans-serif;
+    font-size: 13px;
+    margin-bottom: 36px;
+  }
+
+  /* ── legend ── */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: fit-content;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-family: system-ui, sans-serif;
+    font-size: 12px;
+    color: var(--label);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── outer layers ── */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .layer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 0;
+    position: relative;
+  }
+
+  .layer + .layer {
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+  }
+
+  .layer:first-child {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .layer-label {
+    font-family: system-ui, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 16px;
+    width: fit-content;
+  }
+
+  .layer-browser  { background: #111827; }
+  .layer-api      { background: #0f1721; }
+  .layer-services { background: #0e1a13; }
+  .layer-data     { background: #150f1f; }
+  .layer-external { background: #1a120a; }
+
+  .layer-browser  .layer-label { background: #1e3a5f; color: #93c5fd; }
+  .layer-api      .layer-label { background: #1e3a5f; color: #93c5fd; }
+  .layer-services .layer-label { background: #14391f; color: #6ee7b7; }
+  .layer-data     .layer-label { background: #2d1f4e; color: #c4b5fd; }
+  .layer-external .layer-label { background: #3d1f0a; color: #fdba74; }
+
+  /* ── module boxes ── */
+  .modules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .module {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    min-width: 150px;
+    max-width: 220px;
+    flex: 1 1 160px;
+    background: var(--surface);
+    transition: border-color 0.15s;
+  }
+
+  .module:hover { border-color: #4a5680; }
+
+  .module-title {
+    font-family: system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .module-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .module-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .module-items li {
+    color: var(--muted);
+    font-size: 11px;
+    padding-left: 2px;
+    line-height: 1.5;
+  }
+
+  .module-items li::before {
+    content: '· ';
+    color: var(--border);
+  }
+
+  /* color variants */
+  .c-blue   .module-dot { background: #6c8fff; }
+  .c-blue   .module-title { color: #93c5fd; }
+  .c-blue   { border-color: #1e3a6e; }
+
+  .c-purple .module-dot { background: #a78bfa; }
+  .c-purple .module-title { color: #c4b5fd; }
+  .c-purple { border-color: #3b2a6e; }
+
+  .c-green  .module-dot { background: #34d399; }
+  .c-green  .module-title { color: #6ee7b7; }
+  .c-green  { border-color: #1a4a30; }
+
+  .c-orange .module-dot { background: #fb923c; }
+  .c-orange .module-title { color: #fdba74; }
+  .c-orange { border-color: #4a2a0a; }
+
+  .c-red    .module-dot { background: #f87171; }
+  .c-red    .module-title { color: #fca5a5; }
+  .c-red    { border-color: #4a1a1a; }
+
+  .c-teal   .module-dot { background: #2dd4bf; }
+  .c-teal   .module-title { color: #5eead4; }
+  .c-teal   { border-color: #1a3a38; }
+
+  /* ── flow arrows between layers ── */
+  .flow-connector {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 24px;
+    background: var(--bg);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .flow-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 180px;
+    flex: 1 1 180px;
+  }
+
+  .flow-arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0;
+    width: 100%;
+  }
+
+  .flow-line {
+    width: 1px;
+    height: 20px;
+    position: relative;
+  }
+
+  .flow-line.down { background: linear-gradient(to bottom, transparent, var(--muted)); }
+  .flow-line.up   { background: linear-gradient(to top,   transparent, var(--muted)); }
+
+  .flow-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.3;
+    max-width: 160px;
+  }
+
+  .flow-arrowhead {
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1;
+  }
+
+  /* ── full-width SVG flow diagram ── */
+  .flow-svg-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 36px;
+  }
+
+  .flow-svg-wrap h2 {
+    font-family: system-ui, sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--label);
+    margin-bottom: 20px;
+    letter-spacing: -0.2px;
+  }
+
+  svg text { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  /* ── encryption badge ── */
+  .enc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a1f10;
+    border: 1px solid #3a4a20;
+    color: #a3e635;
+    font-size: 10px;
+    font-family: system-ui, sans-serif;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+</style>
+</head>
+<body>
+
+<h1>Confide — Architecture &amp; Data Flow</h1>
+<p class="subtitle">End-to-end encrypted forms platform · Go backend · SvelteKit frontend · PostgreSQL</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#6c8fff"></div> Frontend / Browser</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div> Backend Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div> Data / DB</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#fb923c"></div> External Services</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#f87171"></div> Security / Auth</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2dd4bf"></div> Background Workers</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LAYER 1 — BROWSER
+═══════════════════════════════════════════════ -->
+<div class="diagram">
+<div class="layer layer-browser">
+  <div class="layer-label">Browser — SvelteKit Frontend</div>
+  <div class="modules">
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>Routes / Pages</div>
+      <ul class="module-items">
+        <li>(app)/ — authenticated shell</li>
+        <li>dashboard, forms, workspaces</li>
+        <li>settings, team, me</li>
+        <li>(auth)/ — login, signup, pair</li>
+        <li>f/[id]/ — public responder</li>
+        <li>invite/[token]/ — accept invite</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>Form Builder</div>
+      <ul class="module-items">
+        <li>FieldCanvas</li>
+        <li>FieldPalette</li>
+        <li>FormSettingsPanel</li>
+        <li>PropertiesPanel</li>
+        <li>RichEditable</li>
+        <li>TranslationEditor</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>Form Renderer</div>
+      <ul class="module-items">
+        <li>ScrollRenderer</li>
+        <li>FieldShell</li>
+        <li>LongTextInput</li>
+        <li>MultipleChoiceInput</li>
+        <li>DateTimeInput</li>
+        <li>RichTextEditor</li>
+      </ul>
+    </div>
+
+    <div class="module c-red">
+      <div class="module-title"><span class="module-dot"></span>crypto.ts <span class="enc-badge">🔐 client-only</span></div>
+      <ul class="module-items">
+        <li>AES-256-GCM encrypt/decrypt</li>
+        <li>X25519 key agreement</li>
+        <li>HKDF-SHA256 key derivation</li>
+        <li>Form / workspace key mgmt</li>
+        <li>Response envelope sealing</li>
+        <li>Web Crypto API only</li>
+      </ul>
+    </div>
+
+    <div class="module c-red">
+      <div class="module-title"><span class="module-dot"></span>auth.ts</div>
+      <ul class="module-items">
+        <li>WebAuthn registration</li>
+        <li>WebAuthn login ceremony</li>
+        <li>PRF extension (device key)</li>
+        <li>Reauth &amp; rekey flows</li>
+        <li>Recovery code ceremony</li>
+        <li>Cross-device pairing</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>Svelte Stores</div>
+      <ul class="module-items">
+        <li>auth.svelte.ts — session</li>
+        <li>forms.svelte.ts — form cache</li>
+        <li>builder.svelte.ts — editor</li>
+        <li>workspaces.svelte.ts</li>
+        <li>team.svelte.ts</li>
+        <li>access.svelte.ts — RBAC</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>forms.ts / workspaces.ts</div>
+      <ul class="module-items">
+        <li>Form CRUD API calls</li>
+        <li>Schema fetch + decrypt</li>
+        <li>Workspace key cache</li>
+        <li>Member key distribution</li>
+        <li>Invitation accept flow</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- connector -->
+<div class="flow-connector">
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">HTTPS API requests<br><code>/api/*</code></div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">WebAuthn ceremony<br>(attestation / assertion)</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">Encrypted response<br><code>POST /relay/submit</code></div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line up" style="height:12px"></div>
+      <div class="flow-arrowhead" style="transform:rotate(180deg)">▼</div>
+      <div class="flow-label">Encrypted schema blob<br>+ JSON responses</div>
+      <div class="flow-line up" style="height:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LAYER 2 — API / HTTP
+═══════════════════════════════════════════════ -->
+<div class="layer layer-api">
+  <div class="layer-label">API Layer — Go / Chi Router</div>
+  <div class="modules">
+
+    <div class="module c-red">
+      <div class="module-title"><span class="module-dot"></span>Middleware Stack</div>
+      <ul class="module-items">
+        <li>Session auth (cookie/token)</li>
+        <li>CORS policy</li>
+        <li>CSP headers</li>
+        <li>Rate limiter</li>
+        <li>Forms-domain gate</li>
+        <li>Permission check (RBAC)</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>auth/handler.go</div>
+      <ul class="module-items">
+        <li>POST /api/auth/register/begin</li>
+        <li>POST /api/auth/register/finish</li>
+        <li>POST /api/auth/login/begin</li>
+        <li>POST /api/auth/login/finish</li>
+        <li>POST /api/auth/logout</li>
+        <li>POST /api/auth/recover</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>forms/handler.go</div>
+      <ul class="module-items">
+        <li>GET/POST /api/forms</li>
+        <li>GET/PUT/DELETE /api/forms/:id</li>
+        <li>GET /api/f/:id/schema (public)</li>
+        <li>Schema version history</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>responses/handler.go</div>
+      <ul class="module-items">
+        <li>GET /api/forms/:id/responses</li>
+        <li>DELETE .../responses/:id</li>
+        <li>Paginated listing</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>workspace/handler.go</div>
+      <ul class="module-items">
+        <li>GET/POST /api/workspaces</li>
+        <li>Members CRUD</li>
+        <li>Role management</li>
+        <li>Custom domain endpoints</li>
+        <li>Billing info</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>relay/handler.go</div>
+      <ul class="module-items">
+        <li>POST /relay/submit (open CORS)</li>
+        <li>Bot guard check</li>
+        <li>Enqueue to in-memory queue</li>
+        <li>Rate limit per form</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>invitation/handler.go</div>
+      <ul class="module-items">
+        <li>POST /api/workspaces/:id/invitations</li>
+        <li>GET /api/invitations/:token</li>
+        <li>POST /api/invitations/:token/accept</li>
+      </ul>
+    </div>
+
+    <div class="module c-blue">
+      <div class="module-title"><span class="module-dot"></span>billing/handler.go</div>
+      <ul class="module-items">
+        <li>POST /api/stripe/webhook</li>
+        <li>Signature verification</li>
+        <li>Subscription state update</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- connector -->
+<div class="flow-connector">
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">Validated requests<br>to service layer</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">Relay flush<br>batch writes</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">Plan limit checks<br>before write</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line up" style="height:12px"></div>
+      <div class="flow-arrowhead" style="transform:rotate(180deg)">▼</div>
+      <div class="flow-label">DB query results<br>JSON serialized</div>
+      <div class="flow-line up" style="height:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LAYER 3 — SERVICES
+═══════════════════════════════════════════════ -->
+<div class="layer layer-services">
+  <div class="layer-label">Service Layer — Business Logic</div>
+  <div class="modules">
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>auth/service.go</div>
+      <ul class="module-items">
+        <li>Credential store / lookup</li>
+        <li>Session creation &amp; expiry</li>
+        <li>Master key wrapping (PRF)</li>
+        <li>add_cred.go — add passkey</li>
+        <li>pairing.go — cross-device</li>
+        <li>rekey.go — rotate keys</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>forms/service.go</div>
+      <ul class="module-items">
+        <li>Form creation / listing</li>
+        <li>Schema version history</li>
+        <li>Publish / unpublish</li>
+        <li>Access ownership checks</li>
+        <li>Encrypted blob passthrough</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>responses/service.go</div>
+      <ul class="module-items">
+        <li>Store encrypted response</li>
+        <li>Paginated retrieval</li>
+        <li>TTL expiry enforcement</li>
+        <li>PGP email notification</li>
+        <li>Response count tracking</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>workspace/service.go</div>
+      <ul class="module-items">
+        <li>Workspace CRUD</li>
+        <li>Member invite &amp; roles</li>
+        <li>Encrypted key distribution</li>
+        <li>workspace_member_keys table</li>
+        <li>Custom domain mgmt</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>billing/service.go</div>
+      <ul class="module-items">
+        <li>Plan limit enforcement</li>
+        <li>Response / storage quotas</li>
+        <li>Member count limits</li>
+        <li>Stripe customer sync</li>
+        <li>limits.go — per-plan caps</li>
+      </ul>
+    </div>
+
+    <div class="module c-teal">
+      <div class="module-title"><span class="module-dot"></span>relay/queue.go</div>
+      <ul class="module-items">
+        <li>In-memory submission queue</li>
+        <li>Batch accumulator</li>
+        <li>flusher.go — periodic write</li>
+        <li>Dedup &amp; ordering</li>
+      </ul>
+    </div>
+
+    <div class="module c-teal">
+      <div class="module-title"><span class="module-dot"></span>domain/worker.go</div>
+      <ul class="module-items">
+        <li>DNS CNAME/TXT polling</li>
+        <li>verifier.go — verify state</li>
+        <li>registry.go — domain index</li>
+        <li>traefik.go — dynamic config</li>
+      </ul>
+    </div>
+
+    <div class="module c-teal">
+      <div class="module-title"><span class="module-dot"></span>reaper.go</div>
+      <ul class="module-items">
+        <li>TTL-expired response cleanup</li>
+        <li>Expired session pruning</li>
+        <li>Expired invitation cleanup</li>
+        <li>Background ticker</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>permission/</div>
+      <ul class="module-items">
+        <li>RBAC: owner/admin/editor/viewer</li>
+        <li>cache.go — role cache</li>
+        <li>middleware.go — route guard</li>
+        <li>permission.go — action check</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>identity/service.go</div>
+      <ul class="module-items">
+        <li>Profile &amp; username mgmt</li>
+        <li>Account deletion cascade</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>botguard.go</div>
+      <ul class="module-items">
+        <li>Honeypot field detection</li>
+        <li>Velocity-based blocking</li>
+        <li>Per-IP rate tracking</li>
+      </ul>
+    </div>
+
+    <div class="module c-green">
+      <div class="module-title"><span class="module-dot"></span>mailer.go</div>
+      <ul class="module-items">
+        <li>SMTP / Resend API</li>
+        <li>RFC 3156 PGP/MIME email</li>
+        <li>Invitation emails</li>
+        <li>Response notifications</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- connector -->
+<div class="flow-connector">
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">SQL queries via SQLc<br>generated Go stubs</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line down"></div>
+      <div class="flow-arrowhead">▼</div>
+      <div class="flow-label">pgx/v5 connection pool<br>transactions</div>
+      <div class="flow-line down"></div>
+    </div>
+  </div>
+  <div class="flow-group">
+    <div class="flow-arrow">
+      <div class="flow-line up" style="height:12px"></div>
+      <div class="flow-arrowhead" style="transform:rotate(180deg)">▼</div>
+      <div class="flow-label">Row structs<br>→ domain models</div>
+      <div class="flow-line up" style="height:12px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LAYER 4 — DATA
+═══════════════════════════════════════════════ -->
+<div class="layer layer-data">
+  <div class="layer-label">Data Layer — PostgreSQL (25 migrations)</div>
+  <div class="modules">
+
+    <div class="module c-purple">
+      <div class="module-title"><span class="module-dot"></span>accounts &amp; credentials</div>
+      <ul class="module-items">
+        <li>accounts — user identity</li>
+        <li>credentials — WebAuthn passkeys</li>
+        <li>sessions — auth tokens</li>
+        <li>recovery_codes — hashed OTPs</li>
+        <li>identity_keys — per-workspace</li>
+      </ul>
+    </div>
+
+    <div class="module c-purple">
+      <div class="module-title"><span class="module-dot"></span>forms &amp; responses <span class="enc-badge">🔐 encrypted</span></div>
+      <ul class="module-items">
+        <li>forms — metadata + enc schema</li>
+        <li>schema_versions — history blobs</li>
+        <li>responses — enc data + eph pubkey</li>
+        <li>Server cannot decrypt any blob</li>
+      </ul>
+    </div>
+
+    <div class="module c-purple">
+      <div class="module-title"><span class="module-dot"></span>workspaces &amp; members</div>
+      <ul class="module-items">
+        <li>workspaces — plan, Stripe IDs</li>
+        <li>workspace_members — role FK</li>
+        <li>workspace_member_keys — enc keys</li>
+        <li>invitations — token hash + expiry</li>
+      </ul>
+    </div>
+
+    <div class="module c-purple">
+      <div class="module-title"><span class="module-dot"></span>custom_domains</div>
+      <ul class="module-items">
+        <li>domain + workspace FK</li>
+        <li>CNAME / TXT verified flags</li>
+        <li>Traefik route state</li>
+      </ul>
+    </div>
+
+    <div class="module c-purple">
+      <div class="module-title"><span class="module-dot"></span>db/queries/ (SQLc)</div>
+      <ul class="module-items">
+        <li>auth.sql — session/cred ops</li>
+        <li>forms.sql — schema CRUD</li>
+        <li>responses.sql — paged fetch</li>
+        <li>workspaces.sql — member ops</li>
+        <li>billing.sql — plan lookups</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     LAYER 5 — EXTERNAL
+═══════════════════════════════════════════════ -->
+<div class="layer layer-external" style="border-radius: 0 0 12px 12px;">
+  <div class="layer-label">External Services</div>
+  <div class="modules">
+
+    <div class="module c-orange">
+      <div class="module-title"><span class="module-dot"></span>Stripe</div>
+      <ul class="module-items">
+        <li>Subscription management</li>
+        <li>Webhook: sub.created/updated</li>
+        <li>Pro / Org plan pricing IDs</li>
+        <li>Customer portal</li>
+      </ul>
+    </div>
+
+    <div class="module c-orange">
+      <div class="module-title"><span class="module-dot"></span>SMTP / Resend</div>
+      <ul class="module-items">
+        <li>Workspace invitation emails</li>
+        <li>RFC 3156 PGP/MIME responses</li>
+        <li>Resend API fallback</li>
+      </ul>
+    </div>
+
+    <div class="module c-orange">
+      <div class="module-title"><span class="module-dot"></span>Traefik (optional)</div>
+      <ul class="module-items">
+        <li>Dynamic route config files</li>
+        <li>Custom domain TLS termination</li>
+        <li>Reverse proxy to app port</li>
+      </ul>
+    </div>
+
+    <div class="module c-orange">
+      <div class="module-title"><span class="module-dot"></span>DNS (custom domains)</div>
+      <ul class="module-items">
+        <li>CNAME → app target</li>
+        <li>TXT ownership proof</li>
+        <li>Polled every 2 min by worker</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /diagram -->
+
+
+<!-- ══════════════════════════════════════════════
+     FLOW DIAGRAM — Key Scenarios
+═══════════════════════════════════════════════ -->
+<div class="flow-svg-wrap">
+  <h2>Key Data Flow Scenarios</h2>
+  <svg width="100%" viewBox="0 0 1300 780" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#4a5680"/>
+      </marker>
+      <marker id="arr-blue" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#6c8fff"/>
+      </marker>
+      <marker id="arr-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+      </marker>
+      <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+      </marker>
+      <marker id="arr-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 z" fill="#fb923c"/>
+      </marker>
+    </defs>
+
+    <!-- background panels -->
+    <rect x="10" y="10" width="1280" height="760" rx="10" fill="#1a1d27" stroke="#2e3348" stroke-width="1"/>
+
+    <!-- ── FLOW A: Form creation (left column) ── -->
+    <!-- title -->
+    <text x="40" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">A · FORM CREATION</text>
+
+    <!-- nodes -->
+    <rect x="40"  y="60"  width="160" height="40" rx="6" fill="#1e3a6e" stroke="#6c8fff" stroke-width="1"/>
+    <text x="120" y="84"  fill="#93c5fd" font-size="11" text-anchor="middle">User (Browser)</text>
+
+    <rect x="40"  y="148" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#a78bfa" stroke-width="1"/>
+    <text x="120" y="166" fill="#c4b5fd" font-size="11" text-anchor="middle">crypto.ts</text>
+    <text x="120" y="180" fill="#7c6fb0" font-size="10" text-anchor="middle">AES-256-GCM encrypt</text>
+
+    <rect x="40"  y="240" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#a78bfa" stroke-width="1"/>
+    <text x="120" y="258" fill="#c4b5fd" font-size="11" text-anchor="middle">forms.ts</text>
+    <text x="120" y="272" fill="#7c6fb0" font-size="10" text-anchor="middle">POST /api/forms</text>
+
+    <rect x="40"  y="332" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="120" y="350" fill="#6ee7b7" font-size="11" text-anchor="middle">forms/handler.go</text>
+    <text x="120" y="364" fill="#3a7a50" font-size="10" text-anchor="middle">validate + store</text>
+
+    <rect x="40"  y="424" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="120" y="442" fill="#6ee7b7" font-size="11" text-anchor="middle">forms/service.go</text>
+    <text x="120" y="456" fill="#3a7a50" font-size="10" text-anchor="middle">ownership check</text>
+
+    <rect x="40"  y="514" width="160" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="120" y="532" fill="#c4b5fd" font-size="11" text-anchor="middle">PostgreSQL</text>
+    <text x="120" y="546" fill="#6c5a9a" font-size="10" text-anchor="middle">forms table (enc blob)</text>
+
+    <!-- arrows A -->
+    <line x1="120" y1="100" x2="120" y2="144" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="126" y="130" fill="#4a5680" font-size="10">1. build schema</text>
+
+    <line x1="120" y1="188" x2="120" y2="236" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="126" y="220" fill="#4a5680" font-size="10">2. encrypted blob</text>
+
+    <line x1="120" y1="280" x2="120" y2="328" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="126" y="312" fill="#4a5680" font-size="10">3. HTTPS request</text>
+
+    <line x1="120" y1="372" x2="120" y2="420" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <line x1="120" y1="464" x2="120" y2="510" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- enc badge in flow A -->
+    <rect x="46" y="596" width="148" height="28" rx="4" fill="#1a1f10" stroke="#3a4a20" stroke-width="1"/>
+    <text x="120" y="614" fill="#a3e635" font-size="10" text-anchor="middle">🔐 server never sees</text>
+    <text x="120" y="626" fill="#6a8a25" font-size="10" text-anchor="middle">plaintext schema</text>
+
+    <!-- ── FLOW B: Public form submission (center-left) ── -->
+    <text x="260" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">B · FORM SUBMISSION (public)</text>
+
+    <rect x="260" y="60"  width="160" height="40" rx="6" fill="#1e3a6e" stroke="#6c8fff" stroke-width="1"/>
+    <text x="340" y="84"  fill="#93c5fd" font-size="11" text-anchor="middle">Respondent (Browser)</text>
+
+    <rect x="260" y="148" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="340" y="166" fill="#6ee7b7" font-size="11" text-anchor="middle">GET /api/f/:id/schema</text>
+    <text x="340" y="180" fill="#3a7a50" font-size="10" text-anchor="middle">rate-limited, public</text>
+
+    <rect x="260" y="240" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#a78bfa" stroke-width="1"/>
+    <text x="340" y="258" fill="#c4b5fd" font-size="11" text-anchor="middle">crypto.ts</text>
+    <text x="340" y="272" fill="#7c6fb0" font-size="10" text-anchor="middle">X25519 ephemeral key</text>
+
+    <rect x="260" y="332" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#a78bfa" stroke-width="1"/>
+    <text x="340" y="350" fill="#c4b5fd" font-size="11" text-anchor="middle">Sealed envelope</text>
+    <text x="340" y="364" fill="#7c6fb0" font-size="10" text-anchor="middle">AES-GCM + eph pubkey</text>
+
+    <rect x="260" y="424" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="340" y="442" fill="#6ee7b7" font-size="11" text-anchor="middle">relay/handler.go</text>
+    <text x="340" y="456" fill="#3a7a50" font-size="10" text-anchor="middle">botguard → enqueue</text>
+
+    <rect x="260" y="514" width="160" height="40" rx="6" fill="#14391f" stroke="#2dd4bf" stroke-width="1"/>
+    <text x="340" y="532" fill="#5eead4" font-size="11" text-anchor="middle">relay/flusher.go</text>
+    <text x="340" y="546" fill="#1a6a60" font-size="10" text-anchor="middle">batch write to DB</text>
+
+    <rect x="260" y="604" width="160" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="340" y="622" fill="#c4b5fd" font-size="11" text-anchor="middle">PostgreSQL</text>
+    <text x="340" y="636" fill="#6c5a9a" font-size="10" text-anchor="middle">responses (enc + pubkey)</text>
+
+    <!-- arrows B -->
+    <line x1="340" y1="100" x2="340" y2="144" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="346" y="130" fill="#4a5680" font-size="10">1. fetch schema</text>
+    <line x1="340" y1="188" x2="340" y2="236" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="346" y="220" fill="#4a5680" font-size="10">2. decrypt + render</text>
+    <line x1="340" y1="280" x2="340" y2="328" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="346" y="312" fill="#4a5680" font-size="10">3. encrypt answer</text>
+    <line x1="340" y1="372" x2="340" y2="420" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="346" y="404" fill="#4a5680" font-size="10">4. POST /relay/submit</text>
+    <line x1="340" y1="464" x2="340" y2="510" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <line x1="340" y1="554" x2="340" y2="600" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- ── FLOW C: Authentication (center-right) ── -->
+    <text x="480" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">C · AUTHENTICATION</text>
+
+    <rect x="480" y="60"  width="160" height="40" rx="6" fill="#1e3a6e" stroke="#6c8fff" stroke-width="1"/>
+    <text x="560" y="84"  fill="#93c5fd" font-size="11" text-anchor="middle">User (Browser)</text>
+
+    <rect x="480" y="148" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#f87171" stroke-width="1"/>
+    <text x="560" y="166" fill="#fca5a5" font-size="11" text-anchor="middle">auth.ts</text>
+    <text x="560" y="180" fill="#9a5a5a" font-size="10" text-anchor="middle">WebAuthn ceremony</text>
+
+    <rect x="480" y="240" width="160" height="40" rx="6" fill="#1e1a3a" stroke="#f87171" stroke-width="1"/>
+    <text x="560" y="258" fill="#fca5a5" font-size="11" text-anchor="middle">PRF extension</text>
+    <text x="560" y="272" fill="#9a5a5a" font-size="10" text-anchor="middle">device → master key</text>
+
+    <rect x="480" y="332" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="560" y="350" fill="#6ee7b7" font-size="11" text-anchor="middle">auth/handler.go</text>
+    <text x="560" y="364" fill="#3a7a50" font-size="10" text-anchor="middle">assertion verify</text>
+
+    <rect x="480" y="424" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="560" y="442" fill="#6ee7b7" font-size="11" text-anchor="middle">auth/service.go</text>
+    <text x="560" y="456" fill="#3a7a50" font-size="10" text-anchor="middle">create session token</text>
+
+    <rect x="480" y="514" width="160" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="560" y="532" fill="#c4b5fd" font-size="11" text-anchor="middle">sessions table</text>
+    <text x="560" y="546" fill="#6c5a9a" font-size="10" text-anchor="middle">hashed token + expiry</text>
+
+    <!-- arrows C -->
+    <line x1="560" y1="100" x2="560" y2="144" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr-red)"/>
+    <text x="566" y="130" fill="#4a5680" font-size="10">1. click login</text>
+    <line x1="560" y1="188" x2="560" y2="236" stroke="#f87171" stroke-width="1.5" marker-end="url(#arr-red)"/>
+    <text x="566" y="220" fill="#4a5680" font-size="10">2. hardware sign</text>
+    <line x1="560" y1="280" x2="560" y2="328" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="566" y="312" fill="#4a5680" font-size="10">3. POST login/finish</text>
+    <line x1="560" y1="372" x2="560" y2="420" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <line x1="560" y1="464" x2="560" y2="510" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- ── FLOW D: Workspace collaboration (right) ── -->
+    <text x="700" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">D · WORKSPACE COLLAB</text>
+
+    <rect x="700" y="60"  width="160" height="40" rx="6" fill="#1e3a6e" stroke="#6c8fff" stroke-width="1"/>
+    <text x="780" y="84"  fill="#93c5fd" font-size="11" text-anchor="middle">Workspace Owner</text>
+
+    <rect x="700" y="148" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="780" y="166" fill="#6ee7b7" font-size="11" text-anchor="middle">invitation/handler.go</text>
+    <text x="780" y="180" fill="#3a7a50" font-size="10" text-anchor="middle">POST .../invitations</text>
+
+    <rect x="700" y="240" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="780" y="258" fill="#6ee7b7" font-size="11" text-anchor="middle">mailer.go</text>
+    <text x="780" y="272" fill="#3a7a50" font-size="10" text-anchor="middle">SMTP / Resend API</text>
+
+    <rect x="700" y="332" width="160" height="40" rx="6" fill="#1e3a6e" stroke="#6c8fff" stroke-width="1"/>
+    <text x="780" y="350" fill="#93c5fd" font-size="11" text-anchor="middle">Invitee (Browser)</text>
+    <text x="780" y="364" fill="#3a5a8a" font-size="10" text-anchor="middle">invite/[token]/ route</text>
+
+    <rect x="700" y="424" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="780" y="442" fill="#6ee7b7" font-size="11" text-anchor="middle">workspace/service.go</text>
+    <text x="780" y="456" fill="#3a7a50" font-size="10" text-anchor="middle">distribute enc ws-key</text>
+
+    <rect x="700" y="514" width="160" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="780" y="532" fill="#c4b5fd" font-size="11" text-anchor="middle">workspace_member_keys</text>
+    <text x="780" y="546" fill="#6c5a9a" font-size="10" text-anchor="middle">enc key per member</text>
+
+    <!-- arrows D -->
+    <line x1="780" y1="100" x2="780" y2="144" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <line x1="780" y1="188" x2="780" y2="236" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-orange)"/>
+    <text x="786" y="220" fill="#4a5680" font-size="10">email invite</text>
+    <line x1="780" y1="280" x2="780" y2="328" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="786" y="312" fill="#4a5680" font-size="10">click link</text>
+    <line x1="780" y1="372" x2="780" y2="420" stroke="#6c8fff" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="786" y="404" fill="#4a5680" font-size="10">POST accept + pubkey</text>
+    <line x1="780" y1="464" x2="780" y2="510" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- ── FLOW E: Billing (far right) ── -->
+    <text x="930" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">E · BILLING / LIMITS</text>
+
+    <rect x="930" y="60"  width="160" height="40" rx="6" fill="#3d1f0a" stroke="#fb923c" stroke-width="1"/>
+    <text x="1010" y="84"  fill="#fdba74" font-size="11" text-anchor="middle">Stripe</text>
+
+    <rect x="930" y="148" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="1010" y="166" fill="#6ee7b7" font-size="11" text-anchor="middle">billing/handler.go</text>
+    <text x="1010" y="180" fill="#3a7a50" font-size="10" text-anchor="middle">POST /stripe/webhook</text>
+
+    <rect x="930" y="240" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="1010" y="258" fill="#6ee7b7" font-size="11" text-anchor="middle">billing/service.go</text>
+    <text x="1010" y="272" fill="#3a7a50" font-size="10" text-anchor="middle">update plan + limits</text>
+
+    <rect x="930" y="332" width="160" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="1010" y="350" fill="#c4b5fd" font-size="11" text-anchor="middle">workspaces table</text>
+    <text x="1010" y="364" fill="#6c5a9a" font-size="10" text-anchor="middle">plan + resp_limit cols</text>
+
+    <rect x="930" y="424" width="160" height="40" rx="6" fill="#14391f" stroke="#34d399" stroke-width="1"/>
+    <text x="1010" y="442" fill="#6ee7b7" font-size="11" text-anchor="middle">relay/handler.go</text>
+    <text x="1010" y="456" fill="#3a7a50" font-size="10" text-anchor="middle">check limit before enq</text>
+
+    <rect x="930" y="514" width="160" height="40" rx="6" fill="#14391f" stroke="#2dd4bf" stroke-width="1"/>
+    <text x="1010" y="532" fill="#5eead4" font-size="11" text-anchor="middle">reaper.go</text>
+    <text x="1010" y="546" fill="#1a6a60" font-size="10" text-anchor="middle">TTL / expiry cleanup</text>
+
+    <!-- arrows E -->
+    <line x1="1010" y1="100" x2="1010" y2="144" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-orange)"/>
+    <text x="1016" y="130" fill="#4a5680" font-size="10">sub.updated event</text>
+    <line x1="1010" y1="188" x2="1010" y2="236" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <line x1="1010" y1="280" x2="1010" y2="328" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <line x1="1010" y1="372" x2="1010" y2="420" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="1016" y="404" fill="#4a5680" font-size="10">read limit before write</text>
+    <line x1="1010" y1="464" x2="1010" y2="510" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arr-green)"/>
+
+    <!-- ── FLOW F: Custom domain (far right) ── -->
+    <text x="1140" y="44" fill="#64748b" font-size="11" font-weight="bold" letter-spacing="1.5">F · CUSTOM DOMAINS</text>
+
+    <rect x="1140" y="60"  width="140" height="40" rx="6" fill="#3d1f0a" stroke="#fb923c" stroke-width="1"/>
+    <text x="1210" y="84"  fill="#fdba74" font-size="11" text-anchor="middle">DNS Provider</text>
+
+    <rect x="1140" y="148" width="140" height="40" rx="6" fill="#14391f" stroke="#2dd4bf" stroke-width="1"/>
+    <text x="1210" y="166" fill="#5eead4" font-size="11" text-anchor="middle">domain/worker.go</text>
+    <text x="1210" y="180" fill="#1a6a60" font-size="10" text-anchor="middle">poll every 2 min</text>
+
+    <rect x="1140" y="240" width="140" height="40" rx="6" fill="#14391f" stroke="#2dd4bf" stroke-width="1"/>
+    <text x="1210" y="258" fill="#5eead4" font-size="11" text-anchor="middle">domain/traefik.go</text>
+    <text x="1210" y="272" fill="#1a6a60" font-size="10" text-anchor="middle">write route config</text>
+
+    <rect x="1140" y="332" width="140" height="40" rx="6" fill="#3d1f0a" stroke="#fb923c" stroke-width="1"/>
+    <text x="1210" y="350" fill="#fdba74" font-size="11" text-anchor="middle">Traefik</text>
+    <text x="1210" y="364" fill="#7a4a20" font-size="10" text-anchor="middle">TLS + route</text>
+
+    <rect x="1140" y="424" width="140" height="40" rx="6" fill="#2d1f4e" stroke="#a78bfa" stroke-width="1"/>
+    <text x="1210" y="442" fill="#c4b5fd" font-size="11" text-anchor="middle">custom_domains</text>
+    <text x="1210" y="456" fill="#6c5a9a" font-size="10" text-anchor="middle">verified flag updated</text>
+
+    <!-- arrows F -->
+    <line x1="1210" y1="100" x2="1210" y2="144" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-orange)"/>
+    <text x="1216" y="130" fill="#4a5680" font-size="10">CNAME/TXT check</text>
+    <line x1="1210" y1="188" x2="1210" y2="236" stroke="#2dd4bf" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    <text x="1216" y="220" fill="#4a5680" font-size="10">verified → write</text>
+    <line x1="1210" y1="280" x2="1210" y2="328" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arr-orange)"/>
+    <line x1="1210" y1="372" x2="1210" y2="420" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-blue)"/>
+    <text x="1216" y="404" fill="#4a5680" font-size="10">update DB state</text>
+
+    <!-- bottom labels -->
+    <text x="650" y="750" fill="#3a4050" font-size="10" text-anchor="middle">All form schemas and responses are encrypted client-side (AES-256-GCM) — the server stores and serves only ciphertext.</text>
+  </svg>
+</div>
+
+</body>
+</html>
