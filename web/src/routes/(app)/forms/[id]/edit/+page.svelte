@@ -130,7 +130,7 @@
 {:else if store}
 	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text overflow-hidden">
 		<!-- Toolbar -->
-		<div class="relative flex items-center gap-3 px-5 h-9 border-b border-border shrink-0 overflow-x-auto">
+		<div class="relative flex items-center gap-3 px-5 h-9 border-b border-border-canvas shrink-0 overflow-x-auto">
 			<!-- Breadcrumb -->
 			<Breadcrumb items={[
 				{ label: 'Forms', href: '/forms' },
@@ -160,7 +160,7 @@
 					</button>
 
 					{#if layoutOpen}
-						<div class="absolute top-[calc(100%+4px)] left-0 bg-canvas border border-border rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
+						<div class="absolute top-[calc(100%+4px)] left-0 bg-canvas border border-border-canvas rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
 							{#each layoutModes as mode}
 								{@const active = mode.value === store.schema.layout}
 								<button
@@ -190,7 +190,7 @@
 						<select
 							value={store.activeLocale}
 							onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-							class="appearance-none pl-7 pr-7 h-7 bg-canvas text-subtle border border-border rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
+							class="appearance-none pl-7 pr-7 h-7 bg-canvas text-subtle border border-border-canvas rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
 						>
 							{#each store.schema.locales as locale}
 								<option value={locale}>

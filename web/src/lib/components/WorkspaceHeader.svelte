@@ -14,10 +14,10 @@
 				? ws.planStatus === 'active' || ws.planStatus === 'canceling'
 					? 'bg-open-bg text-open-text border-open-border'
 					: 'bg-closed-bg text-closed-text border-closed-border'
-				: 'text-subtle border-border bg-transparent'}">
+				: 'text-subtle border-border-canvas bg-transparent'}">
 			{planLabel(ws.plan, ws.planStatus)}
 		</span>
-		<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border">
+		<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border-canvas">
 			{ws.role}
 		</span>
 	</div>

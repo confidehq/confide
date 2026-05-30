@@ -409,7 +409,7 @@
 			aria-modal="true"
 		>
 			<div class="flex items-center gap-2.5">
-				<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-canvas border border-border">
+				<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-canvas border border-border-canvas">
 					<AlertTriangle size={14} strokeWidth={1.75} class="text-warning-text" />
 				</span>
 				<h2 class="m-0 text-base font-semibold text-text">Before you downgrade</h2>
@@ -440,14 +440,14 @@
 			<div class="flex gap-2 justify-end">
 				<button
 					onclick={() => { showDowngradeModal = false; }}
-					class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer
+					class="px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer
 						font-mono text-sm hover:text-text hover:border-muted transition-colors duration-100"
 				>Cancel</button>
 				<button
 					onclick={() => { showDowngradeModal = false; handleOpenPortal(); }}
 					disabled={portalLoading}
-					class="px-4 py-2 border border-border rounded cursor-pointer font-mono text-sm flex items-center gap-1.5
-						text-subtle bg-transparent hover:text-text hover:border-border transition-colors duration-100
+					class="px-4 py-2 border border-border-canvas rounded cursor-pointer font-mono text-sm flex items-center gap-1.5
+						text-subtle bg-transparent hover:text-text hover:border-border-canvas transition-colors duration-100
 						disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{portalLoading ? 'Opening…' : 'Continue to billing portal'}
@@ -470,7 +470,7 @@
 	<WorkspaceHeader />
 
 	<!-- Tab bar -->
-	<div class="flex border-b border-border mb-8 gap-1">
+	<div class="flex border-b border-border-canvas mb-8 gap-1">
 		{#each tabs as tab}
 			{@const active = activeTab === tab.id}
 			{@const hidden = (tab.ownerOnly && !access.isOwner) || (tab.managedOnly && !access.managed)}
@@ -499,7 +499,7 @@
 			{#if usageLoading && !usageInfo}
 				<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
 					{#each [0, 1, 2] as _}
-						<div class="border border-border rounded-lg p-5 h-32 animate-pulse bg-canvas"></div>
+						<div class="border border-border-canvas rounded-lg p-5 h-32 animate-pulse bg-canvas"></div>
 					{/each}
 				</div>
 			{:else}
@@ -589,7 +589,7 @@
 			{/if}
 
 			<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Plan</h2>
-			<div class="border border-border rounded-lg overflow-hidden">
+			<div class="border border-border-canvas rounded-lg overflow-hidden">
 				{#if workspacesStore.active}
 					{@const plan = planBadge[workspacesStore.active.plan] ?? planBadge.free}
 					<div class="flex items-center justify-between px-4 py-4">
@@ -662,7 +662,7 @@
 			{#if billingLoading && !billingInfo}
 				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
 					{#each [0, 1] as _}
-						<div class="border border-border rounded-lg p-5 h-64 animate-pulse bg-canvas"></div>
+						<div class="border border-border-canvas rounded-lg p-5 h-64 animate-pulse bg-canvas"></div>
 					{/each}
 				</div>
 			{:else}
@@ -671,14 +671,14 @@
 
 					<!-- Free card -->
 					<div class="border rounded-lg p-5 flex flex-col gap-4
-						{currentPlan === 'free' ? 'border-border bg-canvas' : 'border-border'}">
+						{currentPlan === 'free' ? 'border-border-canvas bg-canvas' : 'border-border-canvas'}">
 						<div class="flex items-start justify-between gap-2">
 							<div>
 								<p class="m-0 text-base font-semibold text-text">Free</p>
 								<p class="m-0 text-2xl font-semibold text-text mt-1">$0<span class="text-sm font-normal text-subtle">/mo</span></p>
 							</div>
 							{#if currentPlan === 'free'}
-								<span class="px-2 py-0.5 text-xs font-medium rounded border border-border text-subtle bg-canvas">
+								<span class="px-2 py-0.5 text-xs font-medium rounded border border-border-canvas text-subtle bg-canvas">
 									Current plan
 								</span>
 							{/if}
@@ -697,8 +697,8 @@
 							<button
 								onclick={handleDowngradeClick}
 								disabled={portalLoading}
-								class="w-full py-2 text-sm font-medium rounded border border-border text-subtle
-									bg-transparent cursor-pointer hover:border-border hover:text-text
+								class="w-full py-2 text-sm font-medium rounded border border-border-canvas text-subtle
+									bg-transparent cursor-pointer hover:border-border-canvas hover:text-text
 									transition-colors duration-100 font-mono disabled:opacity-50 disabled:cursor-not-allowed"
 							>{portalLoading ? 'Opening…' : 'Downgrade'}</button>
 						{/if}
@@ -706,7 +706,7 @@
 
 					<!-- Pro card -->
 					<div class="border rounded-lg p-5 flex flex-col gap-4
-						{currentPlan === 'pro' ? 'border-text-blue bg-canvas' : 'border-border'}">
+						{currentPlan === 'pro' ? 'border-text-blue bg-canvas' : 'border-border-canvas'}">
 						<div class="flex items-start justify-between gap-2">
 							<div>
 								<p class="m-0 text-base font-semibold text-text">Pro</p>
@@ -725,11 +725,11 @@
 									{#if f.enabled}
 										<Check size={12} strokeWidth={2.5} class="shrink-0 text-success" />
 									{:else}
-										<span class="shrink-0 w-3 h-3 rounded-full border border-border flex items-center justify-center"></span>
+										<span class="shrink-0 w-3 h-3 rounded-full border border-border-canvas flex items-center justify-center"></span>
 									{/if}
 									{f.label}
 									{#if !f.enabled}
-										<span class="ml-auto text-xs text-subtle border border-border rounded px-1.5 py-0.5 shrink-0">soon</span>
+										<span class="ml-auto text-xs text-subtle border border-border-canvas rounded px-1.5 py-0.5 shrink-0">soon</span>
 									{/if}
 								</li>
 							{/each}
@@ -764,7 +764,7 @@
 				{@const memberLimit = billingInfo.plan === 'free' ? 2 : billingInfo.plan === 'pro' ? 10 : -1}
 				{@const responseLimit = billingInfo.plan === 'free' ? 250 : billingInfo.plan === 'pro' ? 10_000 : billingInfo.plan === 'org' ? 100_000 : -1}
 				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Usage</h2>
-				<div class="border border-border rounded-lg divide-y divide-border-deep mb-8">
+				<div class="border border-border-canvas rounded-lg divide-y divide-border-deep mb-8">
 					<!-- Members row -->
 					<div class="px-4 py-3 flex items-center gap-4">
 						<p class="m-0 text-sm text-subtle w-28 shrink-0">Members</p>
@@ -821,7 +821,7 @@
 			<!-- Billing management (shown once a Stripe customer exists) -->
 			{#if billingInfo?.hasStripeCustomer}
 				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Billing</h2>
-				<div class="border border-border rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-border-canvas rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Manage payment method and invoices</p>
 						{#if billingInfo.planPeriodEnd}
@@ -833,8 +833,8 @@
 					<button
 						onclick={handleOpenPortal}
 						disabled={portalLoading}
-						class="shrink-0 px-4 py-2 bg-transparent text-subtle border border-border rounded
-							cursor-pointer font-mono text-sm hover:text-text hover:border-border
+						class="shrink-0 px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded
+							cursor-pointer font-mono text-sm hover:text-text hover:border-border-canvas
 							transition-colors duration-100 flex items-center gap-1.5
 							disabled:opacity-50 disabled:cursor-not-allowed"
 					>
@@ -889,11 +889,11 @@
 
 			<!-- Custom domain -->
 			{#if access.isAdmin}
-			<div class="mt-4 pt-6 border-t border-border flex flex-col gap-3">
+			<div class="mt-4 pt-6 border-t border-border-canvas flex flex-col gap-3">
 				<div class="flex items-center gap-3">
 					<p class="m-0 text-sm font-semibold tracking-[0.08em] uppercase text-subtle">Custom domain</p>
 					{#if !access.isPro}
-						<span class="px-2 py-0.5 rounded text-xs border border-border text-subtle">Pro</span>
+						<span class="px-2 py-0.5 rounded text-xs border border-border-canvas text-subtle">Pro</span>
 					{/if}
 				</div>
 
@@ -913,12 +913,12 @@
 						<button
 							onclick={removeDomain}
 							disabled={domainRemoving}
-							class="px-3 py-1 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100 disabled:opacity-50"
+							class="px-3 py-1 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-50"
 						>{domainRemoving ? 'Removing…' : 'Remove'}</button>
 					</div>
 
 					{#if !customDomain.enabled}
-						<div class="p-4 bg-canvas border border-border rounded flex flex-col gap-3">
+						<div class="p-4 bg-canvas border border-border-canvas rounded flex flex-col gap-3">
 							<p class="m-0 text-base text-text">Add these DNS records, then click Check:</p>
 
 							<!-- CNAME record -->
@@ -926,9 +926,9 @@
 								<div class="flex items-center gap-2">
 									<span class="text-xs font-mono text-subtle uppercase tracking-wide w-10">CNAME</span>
 									<div class="flex-1 flex items-center gap-2 min-w-0">
-										<code class="flex-1 px-2 py-1 bg-canvas border border-border rounded font-mono text-sm text-text truncate">{customDomain.cnameRecord?.name ?? customDomain.domain}</code>
+										<code class="flex-1 px-2 py-1 bg-canvas border border-border-canvas rounded font-mono text-sm text-text truncate">{customDomain.cnameRecord?.name ?? customDomain.domain}</code>
 										<span class="text-subtle shrink-0">→</span>
-										<code class="flex-1 px-2 py-1 bg-canvas border border-border rounded font-mono text-sm text-text truncate">{customDomain.cnameRecord?.value ?? customDomain.cnameTarget}</code>
+										<code class="flex-1 px-2 py-1 bg-canvas border border-border-canvas rounded font-mono text-sm text-text truncate">{customDomain.cnameRecord?.value ?? customDomain.cnameTarget}</code>
 									</div>
 									{#if customDomain.cnameOK}
 										<span class="shrink-0 text-xs text-open-text font-mono">✓</span>
@@ -943,8 +943,8 @@
 								<div class="flex items-center gap-2">
 									<span class="text-xs font-mono text-subtle uppercase tracking-wide w-10">TXT</span>
 									<div class="flex-1 flex flex-col gap-1 min-w-0">
-										<code class="px-2 py-1 bg-canvas border border-border rounded font-mono text-sm text-text truncate">{customDomain.txtRecord?.name ?? `_confide-verify.${customDomain.domain}`}</code>
-										<code class="px-2 py-1 bg-canvas border border-border rounded font-mono text-sm text-text truncate">{customDomain.txtRecord?.value ?? '—'}</code>
+										<code class="px-2 py-1 bg-canvas border border-border-canvas rounded font-mono text-sm text-text truncate">{customDomain.txtRecord?.name ?? `_confide-verify.${customDomain.domain}`}</code>
+										<code class="px-2 py-1 bg-canvas border border-border-canvas rounded font-mono text-sm text-text truncate">{customDomain.txtRecord?.value ?? '—'}</code>
 									</div>
 									{#if customDomain.txtOK}
 										<span class="shrink-0 text-xs text-open-text font-mono self-start mt-1">✓</span>
@@ -957,7 +957,7 @@
 							<button
 								onclick={checkDomainNow}
 								disabled={domainChecking}
-								class="self-end px-4 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100 disabled:opacity-50"
+								class="self-end px-4 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100 disabled:opacity-50"
 							>{domainChecking ? 'Checking…' : 'Check now'}</button>
 						</div>
 					{/if}
@@ -967,7 +967,7 @@
 						<input
 							bind:value={domainInput}
 							placeholder="forms.yourdomain.com"
-							class="px-3 py-2 bg-canvas border border-border rounded font-mono text-base text-text placeholder-subtle focus:outline-none focus:border-border transition-colors duration-100 w-64"
+							class="px-3 py-2 bg-canvas border border-border-canvas rounded font-mono text-base text-text placeholder-subtle focus:outline-none focus:border-border-canvas transition-colors duration-100 w-64"
 						/>
 						<button
 							onclick={saveDomain}
@@ -991,14 +991,14 @@
 			{#if access.isOwner}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Delete workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete this workspace and all its data.</p>
 					</div>
 					<button
 						onclick={() => { showDeleteConfirm = true; deleteError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
+						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
 							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
 					>
 						Delete
@@ -1008,14 +1008,14 @@
 			{:else}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Leave workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Remove yourself from this workspace. You'll need an invitation to rejoin.</p>
 					</div>
 					<button
 						onclick={() => { showLeaveConfirm = true; leaveError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
+						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
 							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
 					>
 						Leave
@@ -1059,7 +1059,7 @@
 				</button>
 				<button
 					disabled
-					class="px-4 py-2.5 bg-transparent text-subtle border border-border rounded
+					class="px-4 py-2.5 bg-transparent text-subtle border border-border-canvas rounded
 						cursor-not-allowed font-mono text-base opacity-50"
 				>
 					Send test email

@@ -45,18 +45,18 @@
 
 	.item:hover,
 	.item:focus-visible {
-		background: var(--color-canvas);
+		background: var(--color-surface);
 		color: var(--color-text);
 	}
 
 	.item.destructive {
-		color: var(--color-error-light);
+		color: var(--color-danger);
 	}
 
 	.item.destructive:hover,
 	.item.destructive:focus-visible {
-		background: var(--color-danger-bg-dark);
-		color: var(--color-danger-text-dark);
+		background: var(--color-danger-dark);
+		color: var(--color-danger);
 	}
 
 	.item.disabled,

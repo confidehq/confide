@@ -71,7 +71,7 @@
 	class="properties-panel {store.selectedField || store.submitButtonSelected ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:bottom-auto sm:left-auto sm:right-2 sm:w-64 sm:max-h-none sm:rounded-xl
-		bg-base border border-border overflow-y-auto z-20"
+		bg-base border border-border-canvas overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
 	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-base">

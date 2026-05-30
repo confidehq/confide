@@ -76,10 +76,10 @@
 					? ws.planStatus === 'active' || ws.planStatus === 'canceling'
 						? 'bg-open-bg text-open-text border-open-border'
 						: 'bg-closed-bg text-closed-text border-closed-border'
-					: 'text-subtle border-border bg-transparent'}">
+					: 'text-subtle border-border-canvas bg-transparent'}">
 				{planLabel(ws.plan, ws.planStatus)}
 			</span>
-			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border">
+			<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border-canvas">
 				{ws.role}
 			</span>
 		</div>
@@ -87,7 +87,7 @@
 
 	{#if workspacesStore.active?.status === 'pending'}
 		<!-- Pending approval state -->
-		<div class="py-14 border border-dashed border-border rounded-lg text-center px-6">
+		<div class="py-14 border border-dashed border-border-canvas rounded-lg text-center px-6">
 			<p class="m-0 mb-1 text-text text-base font-medium">Access pending approval</p>
 			<p class="m-0 text-subtle text-sm mt-1.5 max-w-sm mx-auto">
 				A workspace admin needs to grant you access before you can view forms and workspace content.
@@ -97,7 +97,7 @@
 		<!-- Stats -->
 		<div class="grid grid-cols-3 gap-2 sm:gap-3 mb-10">
 			{#each stats as stat}
-				<div class="px-4 py-4 sm:px-5 sm:py-5 border border-border rounded-lg flex flex-col gap-2">
+				<div class="px-4 py-4 sm:px-5 sm:py-5 border border-border-canvas rounded-lg flex flex-col gap-2">
 					<p class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">{stat.label}</p>
 					<p class="m-0 text-4xl sm:text-5xl text-text leading-none tabular-nums">{stat.value}</p>
 				</div>
@@ -118,20 +118,20 @@
 			{#if formsStore.loading && recentForms.length === 0}
 				<div class="py-6 text-center text-subtle text-base">Loading…</div>
 			{:else if recentForms.length === 0 && !formsStore.loading}
-				<div class="py-10 border border-dashed border-border rounded-lg text-center">
+				<div class="py-10 border border-dashed border-border-canvas rounded-lg text-center">
 					<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>
 					<p class="m-0 text-subtle text-base">Create your first form to start collecting responses</p>
 					<button
 						onclick={() => goto(newFormHref())}
-						class="mt-4 px-4 py-2 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+						class="mt-4 px-4 py-2 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 					>+ New form</button>
 				</div>
 			{:else}
-				<div class="border border-border rounded-lg overflow-hidden">
+				<div class="border border-border-canvas rounded-lg overflow-hidden">
 					{#each recentForms as form, i (form.formId)}
 						<div
 							class="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-surface transition-colors duration-75
-								{i < recentForms.length - 1 ? 'border-b border-border' : ''}"
+								{i < recentForms.length - 1 ? 'border-b border-border-canvas' : ''}"
 							onclick={() => goto(`/forms/${form.formId}`)}
 							role="button"
 							tabindex="0"

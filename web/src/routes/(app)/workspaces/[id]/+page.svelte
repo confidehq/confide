@@ -186,10 +186,10 @@ async function load() {
 								: workspace.planStatus === 'canceling'
 									? 'bg-open-bg text-open-text border-open-border'
 									: 'bg-closed-bg text-closed-text border-closed-border'
-							: 'text-subtle border-border bg-transparent'}">
+							: 'text-subtle border-border-canvas bg-transparent'}">
 						{planLabel(workspace)}
 					</span>
-					<span class="shrink-0 hidden sm:inline px-2.5 py-0.5 rounded-full text-base text-subtle border border-border">
+					<span class="shrink-0 hidden sm:inline px-2.5 py-0.5 rounded-full text-base text-subtle border border-border-canvas">
 						{workspace.role}
 					</span>
 				{/if}
@@ -202,19 +202,19 @@ async function load() {
 
 		<!-- Forms -->
 		{#if forms.length === 0}
-			<div class="py-12 border border-dashed border-border rounded-lg text-center">
+			<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 				<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>
 				<p class="m-0 text-subtle text-base">Create your first form to get started</p>
 				<button
 					onclick={() => goto(`/forms/new?workspaceId=${workspaceId}`)}
-					class="mt-4 px-4 py-2 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+					class="mt-4 px-4 py-2 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 				>+ New form</button>
 			</div>
 		{:else}
 			<!-- Mobile card list -->
 			<div class="flex flex-col gap-2 sm:hidden">
 				{#each forms as form (form.formId)}
-					<div class="p-4 border border-border rounded-lg">
+					<div class="p-4 border border-border-canvas rounded-lg">
 						<div class="flex items-center justify-between gap-2 mb-2">
 							<span class="text-text text-base truncate">{formName(form.formId)}</span>
 							<StatusBadge status={form.status} />
@@ -225,19 +225,19 @@ async function load() {
 						<div class="flex gap-2 flex-wrap">
 							<button
 								onclick={() => goto(`/forms/${form.formId}/edit`)}
-								class="px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>Edit</button>
 							<button
 								onclick={() => goto(`/forms/${form.formId}/responses`)}
-								class="px-3 py-1.5 bg-transparent text-open-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-open-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>Responses</button>
 							<button
 								onclick={() => toggleStatus(form)}
-								class="px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>{form.status === 'open' ? 'Close' : 'Open'}</button>
 							<button
 								onclick={() => handleDelete(form)}
-								class="px-3 py-1.5 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
 							>Delete</button>
 						</div>
 					</div>
@@ -247,7 +247,7 @@ async function load() {
 			<!-- Desktop table -->
 			<table class="hidden sm:table w-full border-collapse text-base">
 				<thead>
-					<tr class="border-b border-border text-subtle">
+					<tr class="border-b border-border-canvas text-subtle">
 						<th class="text-left px-3 py-2.5 font-normal">Title</th>
 						<th class="text-left px-3 py-2.5 font-normal">Form ID</th>
 						<th class="text-left px-3 py-2.5 font-normal">Status</th>
@@ -258,7 +258,7 @@ async function load() {
 				</thead>
 				<tbody>
 					{#each forms as form (form.formId)}
-						<tr class="border-b border-border">
+						<tr class="border-b border-border-canvas">
 							<td class="p-3 text-text text-base">{formName(form.formId)}</td>
 							<td class="p-3 text-subtle text-base">{form.formId.slice(0, 12)}…</td>
 							<td class="p-3">
@@ -270,19 +270,19 @@ async function load() {
 								<div class="flex gap-2 justify-end">
 									<button
 										onclick={() => goto(`/forms/${form.formId}/edit`)}
-										class="px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 									>Edit</button>
 									<button
 										onclick={() => goto(`/forms/${form.formId}/responses`)}
-										class="px-3 py-1.5 bg-transparent text-open-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-open-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 									>Responses ({form.responseCount})</button>
 									<button
 										onclick={() => toggleStatus(form)}
-										class="px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 									>{form.status === 'open' ? 'Close' : 'Open'}</button>
 									<button
 										onclick={() => handleDelete(form)}
-										class="px-3 py-1.5 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
 									>Delete</button>
 								</div>
 							</td>
@@ -296,7 +296,7 @@ async function load() {
 
 	<!-- Workspace settings -->
 	{#if workspace && (workspace.role === 'owner' || workspace.role === 'admin')}
-		<div class="mt-12 pt-8 border-t border-border">
+		<div class="mt-12 pt-8 border-t border-border-canvas">
 			<h2 class="text-lg m-0 mb-6 text-text font-semibold">Settings</h2>
 
 			<div class="max-w-xl">
@@ -310,7 +310,7 @@ async function load() {
 					value={legalText}
 					oninput={(e) => { legalText = (e.target as HTMLTextAreaElement).value; legalTextSaved = false; }}
 					placeholder="e.g. © 2025 Acme Inc. · Privacy Policy · Impressum"
-					class="block w-full px-3 py-2 bg-canvas border border-border rounded-md font-mono text-base text-text outline-none resize-none focus:border-border transition-colors"
+					class="block w-full px-3 py-2 bg-canvas border border-border-canvas rounded-md font-mono text-base text-text outline-none resize-none focus:border-border-canvas transition-colors"
 				></textarea>
 				<div class="flex items-center gap-3 mt-2">
 					<button

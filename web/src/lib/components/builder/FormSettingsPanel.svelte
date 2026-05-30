@@ -199,7 +199,7 @@
 	class="form-settings-panel {store.showFormSettings ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-96 sm:max-h-none sm:rounded-xl
-		bg-base border border-border overflow-y-auto z-20 flex flex-col"
+		bg-base border border-border-canvas overflow-y-auto z-20 flex flex-col"
 >
 	<!-- Mobile drag handle -->
 	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-base">
@@ -232,7 +232,7 @@
 							type="text"
 							readonly
 							value={shareUrl}
-							class="flex-1 px-3 py-2 bg-canvas border border-border text-text rounded-md font-mono text-sm outline-none min-w-0"
+							class="flex-1 px-3 py-2 bg-canvas border border-border-canvas text-text rounded-md font-mono text-sm outline-none min-w-0"
 						/>
 						<button
 							onclick={copyShareUrl}
@@ -604,7 +604,7 @@
 			<!-- Added locales -->
 			<div class="flex flex-col gap-1.5">
 				{#each store.schema.locales as locale (locale)}
-					<div class="flex items-center justify-between gap-2 px-3 py-2 bg-canvas border border-border rounded-md">
+					<div class="flex items-center justify-between gap-2 px-3 py-2 bg-canvas border border-border-canvas rounded-md">
 						<span class="text-sm text-text font-mono">{languageName(locale)}</span>
 						{#if locale === store.schema.defaultLocale}
 							<span class="text-xs text-subtle">default</span>

@@ -190,7 +190,7 @@
 
 	<!-- Inline create form -->
 	{#if showCreate}
-		<div class="mb-8 p-5 border border-border rounded-lg flex flex-col gap-4">
+		<div class="mb-8 p-5 border border-border-canvas rounded-lg flex flex-col gap-4">
 			<div class="flex items-center justify-between gap-2">
 				<span class="text-base text-text font-semibold">New workspace</span>
 				<button
@@ -223,7 +223,7 @@
 				>{creating ? 'Creating…' : 'Create workspace'}</button>
 				<button
 					onclick={cancelCreate}
-					class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:text-text hover:border-border transition-colors duration-100"
+					class="px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-base hover:text-text hover:border-border-canvas transition-colors duration-100"
 				>Cancel</button>
 			</div>
 		</div>
@@ -234,7 +234,7 @@
 	{:else if error}
 		<p class="text-error-light text-base">{error}</p>
 	{:else if workspaces.length === 0}
-		<div class="py-12 border border-dashed border-border rounded-lg text-center">
+		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 text-subtle text-base">No workspaces found</p>
 		</div>
 	{:else}
@@ -255,12 +255,12 @@
 								? ws.planStatus === 'active' || ws.planStatus === 'canceling'
 									? 'bg-open-bg text-open-text border-open-border'
 									: 'bg-closed-bg text-closed-text border-closed-border'
-								: 'text-subtle border-border bg-transparent'}">
+								: 'text-subtle border-border-canvas bg-transparent'}">
 							{planLabel(ws)}
 						</span>
 
 						<!-- Role badge -->
-						<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border">
+						<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base text-subtle border border-border-canvas">
 							{ws.role}
 						</span>
 
@@ -268,7 +268,7 @@
 							<!-- New form button -->
 							<button
 								onclick={() => goto(`/forms/new?workspaceId=${ws.id}`)}
-								class="px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>+ New form</button>
 
 							<!-- Dropdown menu -->
@@ -284,8 +284,8 @@
 									onclick={() => (openMenuId = openMenuId === ws.id ? null : ws.id)}
 									class="flex items-center justify-center w-8 h-8 bg-transparent border rounded cursor-pointer text-subtle transition-colors duration-100
 										{openMenuId === ws.id
-											? 'text-text border-border bg-canvas'
-											: 'border-border hover:text-text hover:border-border'}"
+											? 'text-text border-border-canvas bg-canvas'
+											: 'border-border-canvas hover:text-text hover:border-border-canvas'}"
 									aria-label="Workspace options"
 									aria-expanded={openMenuId === ws.id}
 								><MoreHorizontal size={16} strokeWidth={1.75} /></button>
@@ -319,15 +319,15 @@
 					{#if formsLoading}
 						<div class="py-5 text-subtle text-base">Loading forms…</div>
 					{:else if forms.length === 0}
-						<div class="py-8 border border-dashed border-border rounded-lg text-center">
+						<div class="py-8 border border-dashed border-border-canvas rounded-lg text-center">
 							<p class="m-0 text-subtle text-base">No forms in this workspace</p>
 						</div>
 					{:else}
-						<div class="border border-border rounded-lg overflow-hidden">
+						<div class="border border-border-canvas rounded-lg overflow-hidden">
 							{#each forms as form, i (form.formId)}
 								<div
 									class="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-border-card transition-colors duration-100
-										{i < forms.length - 1 ? 'border-b border-border' : ''}"
+										{i < forms.length - 1 ? 'border-b border-border-canvas' : ''}"
 									onclick={() => goto(`/forms/${form.formId}`)}
 									role="button"
 									tabindex="0"

@@ -86,7 +86,7 @@
 	<div class="fixed inset-0 z-[45]" onclick={() => (accountMenuOpen = false)}></div>
 	<div
 		style={popoverStyle}
-		class="fixed z-50 bg-canvas border border-border rounded-md shadow-[0_2px_12px_var(--color-overlay-light)] overflow-hidden"
+		class="fixed z-50 bg-canvas border border-border-canvas rounded-md shadow-[0_2px_12px_var(--color-overlay-light)] overflow-hidden"
 	>
 		<a
 			href="/me"
@@ -96,7 +96,7 @@
 			<UserRound size={15} strokeWidth={1.75} class="text-subtle shrink-0" />
 			Profile
 		</a>
-		<div class="border-t border-border"></div>
+		<div class="border-t border-border-canvas"></div>
 		<button
 			onclick={handleLogout}
 			class="flex items-center gap-2.5 px-3 py-2.5 text-error-light hover:bg-danger-hover w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
@@ -244,7 +244,7 @@
 						transition-colors duration-100 border-t border-canvas px-[10px] py-3
 						{isActive('/me') ? 'bg-canvas' : 'hover:bg-surface'}"
 				>
-					<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-canvas border border-border
+					<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-canvas border border-border-canvas
 						{isActive('/me') ? 'text-text border-primary' : 'text-subtle'}">
 						<UserRound size={17} strokeWidth={1.5} />
 					</span>

@@ -16,7 +16,7 @@
 	} = $props();
 </script>
 
-<div class="border border-border rounded-lg px-5 py-4 flex flex-col gap-3">
+<div class="border border-border-canvas rounded-lg px-5 py-4 flex flex-col gap-3">
 	<div>
 		<p class="m-0 text-sm font-semibold text-text">{label}</p>
 		<p class="m-0 text-xs text-subtle mt-0.5">{sublabel}</p>

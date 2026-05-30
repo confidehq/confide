@@ -28,7 +28,9 @@
   --color-highlight-high: #2B3D64;
 
   /* ── Borders ── */
-  --color-border:              #2E416B;
+  --color-border:              var(--color-highlight-high);
+  /* --color-border:              #2E416B; */
+  --color-border-canvas:       var(--color-highlight-mid);
   --color-border-danger-dark:  #5C2A2A;
   --color-border-danger-deep:  #3D1515;
   --color-border-danger-muted: #2E1818;

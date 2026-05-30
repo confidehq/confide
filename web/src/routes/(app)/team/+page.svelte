@@ -266,7 +266,7 @@
 				onclick={refresh}
 				disabled={loading}
 				title="Refresh"
-				class="flex items-center justify-center w-9 h-9 bg-transparent border border-border rounded cursor-pointer text-subtle hover:text-text hover:border-border transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+				class="flex items-center justify-center w-9 h-9 bg-transparent border border-border-canvas rounded cursor-pointer text-subtle hover:text-text hover:border-border-canvas transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 			>
 				<RefreshCw size={15} strokeWidth={1.75} class={loading ? 'animate-spin' : ''} />
 			</button>
@@ -286,7 +286,7 @@
 
 	<!-- Inline invite form -->
 	{#if showInviteForm}
-		<div class="mb-6 p-5 border border-border rounded-lg bg-canvas">
+		<div class="mb-6 p-5 border border-border-canvas rounded-lg bg-canvas">
 			<div class="flex items-center justify-between gap-2 mb-4">
 				<p class="m-0 text-sm text-text font-medium">Invite a new member</p>
 				<button
@@ -319,12 +319,12 @@
 				<!-- Role selector -->
 				<div class="shrink-0">
 					<label class="block text-xs text-subtle mb-1.5 uppercase tracking-wider">Role</label>
-					<div class="flex rounded-md overflow-hidden border border-border w-full sm:w-auto">
+					<div class="flex rounded-md overflow-hidden border border-border-canvas w-full sm:w-auto">
 						{#each inviteRoleOptions as role}
 							<button
 								type="button"
 								onclick={() => (inviteRole = role)}
-								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border last:border-r-0 transition-colors duration-100 cursor-pointer
+								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border-canvas last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
 										? 'bg-info-action-bg-mid text-text border-b-2 border-b-info-border'
 										: 'bg-transparent text-subtle hover:text-subtle hover:bg-info-action-bg'}"
@@ -361,7 +361,7 @@
 							class="shrink-0 flex items-center gap-1.5 px-3 py-2 border rounded cursor-pointer font-mono text-xs transition-colors duration-100
 								{linkCopied
 									? 'bg-success-dark text-success border-success-dim'
-									: 'bg-transparent text-subtle border-border hover:text-text hover:border-border'}"
+									: 'bg-transparent text-subtle border-border-canvas hover:text-text hover:border-border-canvas'}"
 						>
 							{#if linkCopied}
 								<Check size={12} strokeWidth={2} />Copied
@@ -404,20 +404,20 @@
 				</button>
 				<button
 					onclick={closeInviteForm}
-					class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-sm hover:text-text hover:border-border transition-colors duration-100"
+					class="px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-sm hover:text-text hover:border-border-canvas transition-colors duration-100"
 				>Cancel</button>
 			</div>
 		</div>
 	{/if}
 
 	{#if roleError}
-		<div class="mb-4 px-4 py-3 border border-border-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
 			{roleError}
 		</div>
 	{/if}
 
 	{#if grantError}
-		<div class="mb-4 px-4 py-3 border border-border-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
 			{grantError}
 		</div>
 	{/if}
@@ -427,7 +427,7 @@
 	{:else if error}
 		<p class="text-error-light text-base">{error}</p>
 	{:else if members.length === 0}
-		<div class="py-12 border border-dashed border-border rounded-lg text-center">
+		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 text-subtle text-base">No members found</p>
 		</div>
 	{:else}
@@ -435,10 +435,10 @@
 		<!-- Mobile card list -->
 		<div class="flex flex-col gap-2 sm:hidden">
 			{#each members as member (member.accountId)}
-				<div class="p-4 border border-border rounded-lg">
+				<div class="p-4 border border-border-canvas rounded-lg">
 					<!-- Top row: avatar + name/id + role badge + menu -->
 					<div class="flex items-start gap-3">
-						<span class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-canvas border border-border text-subtle text-xs font-semibold select-none">
+						<span class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center bg-canvas border border-border-canvas text-subtle text-xs font-semibold select-none">
 							{(member.username || '?').slice(0, 2).toUpperCase()}
 						</span>
 						<div class="flex-1 min-w-0">
@@ -447,7 +447,7 @@
 									{member.username || 'No username'}
 									{#if member.accountId === auth.accountId}<span class="text-subtle font-normal"> (you)</span>{/if}
 								</p>
-								<span class="px-2 py-0.5 rounded-full text-xs text-subtle border border-border capitalize shrink-0">{member.role}</span>
+								<span class="px-2 py-0.5 rounded-full text-xs text-subtle border border-border-canvas capitalize shrink-0">{member.role}</span>
 							</div>
 						</div>
 						{#if canManage && member.accountId !== auth.accountId}
@@ -459,14 +459,14 @@
 									onclick={() => (openMenuId = openMenuId === member.accountId ? null : member.accountId)}
 									class="flex items-center justify-center w-7 h-7 bg-transparent border rounded cursor-pointer text-subtle transition-colors duration-100
 										{openMenuId === member.accountId
-											? 'text-text border-border bg-canvas'
-											: 'border-transparent hover:border-border hover:text-subtle'}"
+											? 'text-text border-border-canvas bg-canvas'
+											: 'border-transparent hover:border-border-canvas hover:text-subtle'}"
 									aria-label="Member options"
 								>
 									<MoreHorizontal size={15} strokeWidth={1.75} />
 								</button>
 								{#if openMenuId === member.accountId}
-									<div class="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[180px] bg-base border border-border rounded-lg shadow-[0_8px_24px_var(--color-overlay)] overflow-hidden py-1">
+									<div class="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[180px] bg-base border border-border-canvas rounded-lg shadow-[0_8px_24px_var(--color-overlay)] overflow-hidden py-1">
 										{#each availableRoles(member) as role}
 											<button
 												onclick={() => handleRoleChange(member, role)}
@@ -478,7 +478,7 @@
 											</button>
 										{/each}
 										{#if availableRoles(member).length > 0}
-											<div class="border-t border-border my-1"></div>
+											<div class="border-t border-border-canvas my-1"></div>
 										{/if}
 										<button
 											onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
@@ -523,10 +523,10 @@
 		</div>
 
 		<!-- Desktop table -->
-		<div class="hidden sm:block border border-border rounded-lg overflow-visible">
+		<div class="hidden sm:block border border-border-canvas rounded-lg overflow-visible">
 			<table class="w-full border-collapse text-sm">
 				<thead>
-					<tr class="border-b border-border">
+					<tr class="border-b border-border-canvas">
 						<th class="text-left px-4 py-3 font-normal text-subtle tracking-[0.06em] uppercase text-xs rounded-tl-lg">Member</th>
 						<th class="text-left px-4 py-3 font-normal text-subtle tracking-[0.06em] uppercase text-xs">Role</th>
 						<th class="text-left px-4 py-3 font-normal text-subtle tracking-[0.06em] uppercase text-xs">Status</th>
@@ -537,12 +537,12 @@
 				</thead>
 				<tbody>
 					{#each members as member (member.accountId)}
-						<tr class="border-b border-border last:border-b-0 hover:bg-surface transition-colors duration-75">
+						<tr class="border-b border-border-canvas last:border-b-0 hover:bg-surface transition-colors duration-75">
 
 							<!-- Member -->
 							<td class="px-4 py-3.5">
 								<div class="flex items-center gap-3">
-									<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-canvas border border-border text-subtle text-xs font-semibold select-none">
+									<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-canvas border border-border-canvas text-subtle text-xs font-semibold select-none">
 										{(member.username || '?').slice(0, 2).toUpperCase()}
 									</span>
 									<div class="min-w-0">
@@ -556,7 +556,7 @@
 
 							<!-- Role -->
 							<td class="px-4 py-3.5">
-								<span class="px-2.5 py-0.5 rounded-full text-xs text-subtle border border-border capitalize">
+								<span class="px-2.5 py-0.5 rounded-full text-xs text-subtle border border-border-canvas capitalize">
 									{member.role}
 								</span>
 							</td>
@@ -570,7 +570,7 @@
 											disabled={grantingId === member.accountId}
 											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-colors duration-100 cursor-pointer
 												{grantingId === member.accountId
-													? 'bg-transparent text-subtle border-border cursor-not-allowed'
+													? 'bg-transparent text-subtle border-border-canvas cursor-not-allowed'
 													: 'bg-success-action-bg text-success border-success-dim hover:bg-success-dark'}"
 										>
 											<KeyRound size={11} strokeWidth={1.75} />
@@ -611,15 +611,15 @@
 											onclick={() => (openMenuId = openMenuId === member.accountId ? null : member.accountId)}
 											class="flex items-center justify-center w-7 h-7 bg-transparent border rounded cursor-pointer text-subtle transition-colors duration-100
 												{openMenuId === member.accountId
-													? 'text-text border-border bg-canvas'
-													: 'border-transparent hover:border-border hover:text-subtle'}"
+													? 'text-text border-border-canvas bg-canvas'
+													: 'border-transparent hover:border-border-canvas hover:text-subtle'}"
 											aria-label="Member options"
 										>
 											<MoreHorizontal size={15} strokeWidth={1.75} />
 										</button>
 
 										{#if openMenuId === member.accountId}
-											<div class="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[180px] bg-base border border-border rounded-lg shadow-[0_8px_24px_var(--color-overlay)] overflow-hidden py-1">
+											<div class="absolute right-0 top-[calc(100%+4px)] z-20 min-w-[180px] bg-base border border-border-canvas rounded-lg shadow-[0_8px_24px_var(--color-overlay)] overflow-hidden py-1">
 												{#each availableRoles(member) as role}
 													<button
 														onclick={() => handleRoleChange(member, role)}
@@ -631,7 +631,7 @@
 													</button>
 												{/each}
 												{#if availableRoles(member).length > 0}
-													<div class="border-t border-border my-1"></div>
+													<div class="border-t border-border-canvas my-1"></div>
 												{/if}
 												<button
 													onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
@@ -663,7 +663,7 @@
 			<!-- Mobile -->
 			<div class="flex flex-col gap-2 sm:hidden">
 				{#each invitations as inv (inv.id)}
-					<div class="flex items-center justify-between gap-3 px-4 py-3 border border-border rounded-lg">
+					<div class="flex items-center justify-between gap-3 px-4 py-3 border border-border-canvas rounded-lg">
 						<div class="min-w-0">
 							{#if inv.email}
 								<p class="m-0 text-sm text-text truncate">{inv.email}</p>
@@ -675,17 +675,17 @@
 						<button
 							onclick={() => handleRevoke(inv)}
 							disabled={revokingId === inv.id}
-							class="shrink-0 px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							class="shrink-0 px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 						>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 					</div>
 				{/each}
 			</div>
 
 			<!-- Desktop -->
-			<div class="hidden sm:block border border-border rounded-lg">
+			<div class="hidden sm:block border border-border-canvas rounded-lg">
 				<table class="w-full border-collapse text-sm">
 					<thead>
-						<tr class="border-b border-border">
+						<tr class="border-b border-border-canvas">
 							<th class="text-left px-4 py-2.5 font-normal text-subtle tracking-[0.06em] uppercase text-xs">Email</th>
 							<th class="text-left px-4 py-2.5 font-normal text-subtle tracking-[0.06em] uppercase text-xs">Role</th>
 							<th class="text-left px-4 py-2.5 font-normal text-subtle tracking-[0.06em] uppercase text-xs">Sent</th>
@@ -695,7 +695,7 @@
 					</thead>
 					<tbody>
 						{#each invitations as inv (inv.id)}
-							<tr class="border-b border-border last:border-b-0">
+							<tr class="border-b border-border-canvas last:border-b-0">
 								<td class="px-4 py-3">
 										{#if inv.email}
 											<span class="text-text">{inv.email}</span>
@@ -704,7 +704,7 @@
 										{/if}
 									</td>
 								<td class="px-4 py-3">
-									<span class="px-2.5 py-0.5 rounded-full text-xs text-subtle border border-border capitalize">{inv.role}</span>
+									<span class="px-2.5 py-0.5 rounded-full text-xs text-subtle border border-border-canvas capitalize">{inv.role}</span>
 								</td>
 								<td class="px-4 py-3 text-subtle">{formatDate(inv.createdAt)}</td>
 								<td class="px-4 py-3 text-subtle text-xs">{formatExpiry(inv.expiresAt)}</td>
@@ -712,7 +712,7 @@
 									<button
 										onclick={() => handleRevoke(inv)}
 										disabled={revokingId === inv.id}
-										class="px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 									>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 								</td>
 							</tr>

@@ -471,7 +471,7 @@
 	// ── Derived ───────────────────────────────────────────────────────────────
 	const statusColor = $derived(
 		record?.status === 'open' ? 'bg-success'
-		: record?.status === 'draft' ? 'bg-warning-text-dark'
+		: record?.status === 'draft' ? 'bg-warn-dim'
 		: 'bg-muted'
 	);
 	const selectedRecord = $derived(responses.find(r => r.id === selectedId));
@@ -528,7 +528,7 @@
 <div class="flex flex-col flex-1 min-h-0 h-full font-mono">
 
 	<!-- Top bar -->
-	<div class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 h-9 border-b border-border shrink-0 overflow-hidden">
+	<div class="flex items-center gap-2 sm:gap-3 px-4 sm:px-5 h-9 border-b border-border-canvas shrink-0 overflow-hidden">
 		<Breadcrumb items={[
 			{ label: 'Forms', href: '/forms' },
 			{ label: formName || formId.slice(0, 12) + '…', onclick: selectedId ? () => { selectedId = null; } : undefined },
@@ -537,8 +537,8 @@
 		<div class="flex-1 min-w-0"></div>
 		<a
 			href="/forms/{formId}/edit"
-			class="shrink-0 font-mono text-base text-subtle no-underline px-2.5 py-0.5 border border-border rounded-sm whitespace-nowrap
-				hover:text-text hover:border-border transition-colors duration-100 flex items-center gap-1.5"
+			class="shrink-0 font-mono text-base text-subtle no-underline px-2.5 py-0.5 border border-border-canvas rounded-sm whitespace-nowrap
+				hover:text-text hover:border-border-canvas transition-colors duration-100 flex items-center gap-1.5"
 		>
 			<Pencil size={12} strokeWidth={1.75} />
 			<span class="hidden sm:inline">Edit form</span>
@@ -582,7 +582,7 @@
 					{#each responses as resp, i (resp.id)}
 						<button
 							onclick={() => selectResponse(resp.id)}
-							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface
+							class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-canvas cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface
 								{selectedId === resp.id ? 'bg-canvas border-l-2 border-l-info-border pl-[14px]' : ''}"
 						>
 							<div class="flex items-center justify-between gap-2">
@@ -601,11 +601,11 @@
 				</div>
 
 				{#if hasMore}
-					<div class="px-4 py-3 border-t border-border shrink-0">
+					<div class="px-4 py-3 border-t border-border-canvas shrink-0">
 						<button
 							onclick={() => loadResponses(nextCursor)}
 							disabled={loadingMore}
-							class="w-full px-3 py-1.5 bg-transparent text-subtle border border-surface rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100 hover:not-disabled:text-subtle hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+							class="w-full px-3 py-1.5 bg-transparent text-subtle border border-surface rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100 hover:not-disabled:text-subtle hover:not-disabled:border-border-canvas disabled:opacity-40 disabled:cursor-not-allowed"
 						>
 							{loadingMore ? 'Loading…' : 'Load more'}
 						</button>
@@ -627,7 +627,7 @@
 					{/if}
 
 					<!-- Tab bar -->
-					<div class="flex items-end h-9 border-b border-border shrink-0 px-4 gap-1">
+					<div class="flex items-end h-9 border-b border-border-canvas shrink-0 px-4 gap-1">
 						<button
 							onclick={() => { activeTab = 'responses'; }}
 							class="sm:hidden h-full px-3 text-base font-mono bg-transparent border-0 border-b-2 -mb-px cursor-pointer transition-colors duration-100 whitespace-nowrap
@@ -678,7 +678,7 @@
 												{#each responses as resp, i (resp.id)}
 													<button
 														onclick={() => selectResponse(resp.id)}
-														class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface"
+														class="block w-full px-4 py-[11px] text-left bg-transparent border-none border-b border-border-canvas cursor-pointer transition-[background] duration-100 font-mono hover:bg-surface"
 													>
 														<div class="flex items-center justify-between gap-2">
 															<span class="text-base overflow-hidden text-ellipsis whitespace-nowrap flex-1 text-subtle">
@@ -694,11 +694,11 @@
 												{/each}
 											</div>
 											{#if hasMore}
-												<div class="px-4 py-3 border-t border-border">
+												<div class="px-4 py-3 border-t border-border-canvas">
 													<button
 														onclick={() => loadResponses(nextCursor)}
 														disabled={loadingMore}
-														class="w-full px-3 py-1.5 bg-transparent text-subtle border border-surface rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100 hover:not-disabled:text-subtle hover:not-disabled:border-border disabled:opacity-40 disabled:cursor-not-allowed"
+														class="w-full px-3 py-1.5 bg-transparent text-subtle border border-surface rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100 hover:not-disabled:text-subtle hover:not-disabled:border-border-canvas disabled:opacity-40 disabled:cursor-not-allowed"
 													>
 														{loadingMore ? 'Loading…' : 'Load more'}
 													</button>
@@ -710,12 +710,12 @@
 								{:else if activeTab === 'details'}
 									<!-- Details -->
 									<section class="flex flex-col gap-4">
-										<div class="border border-border rounded-lg overflow-hidden">
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+										<div class="border border-border-canvas rounded-lg overflow-hidden">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Name</span>
 												<span class="text-base sm:text-lg text-text flex-1 min-w-0 truncate">{formName || '—'}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Status</span>
 												<div class="flex items-center gap-2 sm:gap-2.5 flex-1 min-w-0">
 													<span class="w-2 h-2 rounded-full shrink-0 {statusColor}"></span>
@@ -724,7 +724,7 @@
 														<a
 															href="/forms/{formId}/edit"
 															class="ml-auto px-2.5 sm:px-3 py-1 sm:py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100 no-underline
-																bg-transparent text-text border-info-action-border hover:bg-info-action-bg hover:border-info-border"
+																bg-transparent text-info border-info-dim hover:bg-info-dark hover:border-info-dim"
 														>Publish</a>
 													{:else}
 														<button
@@ -732,29 +732,29 @@
 															disabled={statusSaving}
 															class="ml-auto px-2.5 sm:px-3 py-1 sm:py-1.5 text-base font-mono border rounded cursor-pointer transition-colors duration-100
 																{statusSaving
-																	? 'bg-transparent text-subtle border-border cursor-not-allowed'
+																	? 'bg-transparent text-subtle border-border-canvas cursor-not-allowed'
 																	: record.status === 'open'
-																		? 'bg-transparent text-error-light border-border-danger-muted hover:bg-danger-hover hover:border-border-danger-dark'
-																		: 'bg-transparent text-success border-success-action-border hover:bg-success-action-bg hover:border-success-dim'}"
+																		? 'bg-transparent text-danger border-danger-dim hover:bg-danger-dark hover:border-danger-dim'
+																		: 'bg-transparent text-success border-success-dim hover:bg-success-dark hover:border-success-dim'}"
 														>
 															{statusSaving ? '…' : record.status === 'open' ? 'Close' : 'Open'}
 														</button>
 													{/if}
 												</div>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Form ID</span>
 												<span class="text-base sm:text-lg text-subtle font-mono flex-1 min-w-0 truncate">{formId}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Responses</span>
 												<span class="text-base sm:text-lg text-text tabular-nums">{record.responseCount}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Version</span>
 												<span class="text-base sm:text-lg text-subtle tabular-nums">v{record.schemaVersion}</span>
 											</div>
-											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border">
+											<div class="flex items-center gap-4 px-4 py-3 sm:py-3.5 border-b border-border-canvas">
 												<span class="w-24 sm:w-32 shrink-0 text-base text-subtle">Created</span>
 												<span class="text-base sm:text-lg text-subtle">{formatDate(record.createdAt)}</span>
 											</div>
@@ -800,7 +800,7 @@
 													type="text"
 													readonly
 													value={shareUrl}
-													class="flex-1 px-3 py-2 bg-base border border-border text-subtle rounded-md font-mono text-sm outline-none min-w-0"
+													class="flex-1 px-3 py-2 bg-base border border-border-canvas text-subtle rounded-md font-mono text-sm outline-none min-w-0"
 												/>
 												<button
 													onclick={copyShareUrl}
@@ -831,18 +831,18 @@
 											{/if}
 
 											<!-- QR Code -->
-											<div class="border-t border-border pt-3 flex flex-col gap-2">
+											<div class="border-t border-border-canvas pt-3 flex flex-col gap-2">
 												{#if !qrVisible}
 													<button
 														onclick={showQRCode}
-														class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border transition-colors duration-100"
+														class="px-3 py-2 bg-transparent text-subtle border border-border-canvas rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border-canvas transition-colors duration-100"
 													><QrCode size={13} strokeWidth={1.75} />Get QR code</button>
 												{:else}
 													<div class="flex flex-col items-center gap-2">
 														<canvas bind:this={qrCanvas} class="rounded-md"></canvas>
 														<button
 															onclick={downloadQR}
-															class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border transition-colors duration-100 w-full justify-center"
+															class="px-3 py-2 bg-transparent text-subtle border border-border-canvas rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border-canvas transition-colors duration-100 w-full justify-center"
 														><Download size={13} strokeWidth={1.75} />Download PNG</button>
 														<button
 															onclick={() => { qrVisible = false; }}
@@ -862,8 +862,8 @@
 											<button
 												onclick={() => { confirmRotate = true; }}
 												disabled={publishing}
-												class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm
-													{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text hover:border-border transition-colors duration-100'}"
+												class="px-3 py-2 bg-transparent text-subtle border border-border-canvas rounded-md cursor-pointer font-mono text-sm
+													{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text hover:border-border-canvas transition-colors duration-100'}"
 											>Generate new link</button>
 										{/if}
 									</section>
@@ -1013,9 +1013,9 @@
 
 													<!-- Email headers -->
 													<div>
-														<div class="border border-border rounded-md overflow-hidden">
-															<div class="flex items-center border-b border-border">
-																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border">To</span>
+														<div class="border border-border-canvas rounded-md overflow-hidden">
+															<div class="flex items-center border-b border-border-canvas">
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border-canvas">To</span>
 																<input
 																	type="email"
 																	placeholder="recipient@example.com"
@@ -1023,14 +1023,14 @@
 																	class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text placeholder:text-subtle font-mono"
 																/>
 															</div>
-															<div class="flex items-center border-b border-border">
-																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border">From</span>
+															<div class="flex items-center border-b border-border-canvas">
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border-canvas">From</span>
 																<span class="flex-1 min-w-0 px-3 py-2 text-sm text-subtle font-mono truncate">
 																	{smtpSender || 'Confide Forms <notifications@example.com>'}
 																</span>
 															</div>
 															<div class="flex items-center">
-																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border">Subject</span>
+																<span class="w-20 shrink-0 px-3 py-2 text-sm text-subtle border-r border-border-canvas">Subject</span>
 																<input
 																	type="text"
 																	placeholder="New Confide Form submission"
@@ -1045,7 +1045,7 @@
 													<!-- PGP key -->
 													<div>
 														<p class="m-0 mb-1.5 text-sm text-text">PGP Public Key</p>
-														<div class="border border-border rounded-md overflow-hidden {pgpKeyError ? 'border-border-danger-muted' : ''}">
+														<div class="border border-border-canvas rounded-md overflow-hidden {pgpKeyError ? 'border-border-canvas-danger-muted' : ''}">
 															<textarea
 																placeholder="Begins with '-----BEGIN PGP PUBLIC KEY BLOCK----'"
 																value={pgpPublicKey}
@@ -1071,13 +1071,13 @@
 
 									</div>
 
-									<div class="border-t border-border pt-4 flex items-center gap-3">
+									<div class="border-t border-border-canvas pt-4 flex items-center gap-3">
 										<button
 											onclick={saveSettings}
 											disabled={settingsSaving || !!pgpKeyError}
 											class="px-4 py-2 border rounded font-mono text-base cursor-pointer transition-colors duration-100
 												{settingsSaving || pgpKeyError
-													? 'bg-transparent text-subtle border-border cursor-not-allowed'
+													? 'bg-transparent text-subtle border-border-canvas cursor-not-allowed'
 													: 'bg-transparent text-text border-info-action-border hover:bg-info-action-bg hover:border-info-border'}"
 										>
 											{settingsSaving ? 'Saving…' : 'Save settings'}
@@ -1097,7 +1097,7 @@
 									<!-- Danger zone -->
 									<section class="flex flex-col gap-4 mt-8">
 										<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-										<div class="border border-border-danger-muted rounded-lg px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+										<div class="border border-border-canvas-danger-muted rounded-lg px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 											<div class="min-w-0">
 												<p class="m-0 text-base sm:text-lg text-text">Delete this form</p>
 												<p class="m-0 mt-0.5 text-base text-subtle">
@@ -1106,8 +1106,8 @@
 											</div>
 											<button
 												onclick={() => { pendingDeleteForm = true; }}
-												class="sm:shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-muted rounded cursor-pointer font-mono text-base sm:text-lg
-													hover:bg-danger-hover hover:border-border-danger-dark transition-colors duration-100"
+												class="sm:shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-muted rounded cursor-pointer font-mono text-base sm:text-lg
+													hover:bg-danger-hover hover:border-border-canvas-danger-dark transition-colors duration-100"
 											>Delete</button>
 										</div>
 									</section>
@@ -1140,7 +1140,7 @@
 							<div class="flex items-center gap-2 shrink-0">
 								<button
 									onclick={() => (confirmDeleteResponse = selectedRecord.id)}
-									class="px-3 sm:px-4 py-1.5 sm:py-2 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base sm:text-lg transition-colors duration-100 hover:bg-danger-hover hover:border-border-danger-dark"
+									class="px-3 sm:px-4 py-1.5 sm:py-2 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base sm:text-lg transition-colors duration-100 hover:bg-danger-hover hover:border-border-canvas-danger-dark"
 								>
 									Delete
 								</button>
@@ -1167,7 +1167,7 @@
 									{#if field.type !== 'section_break'}
 										{@const fieldT = (selectedDecrypted.schema.translations[selectedDecrypted.locale] ?? selectedDecrypted.schema.translations[selectedDecrypted.schema.defaultLocale])?.fields[field.id]}
 										{@const answer = renderAnswer(field, selectedDecrypted)}
-										<div class="border-b border-border pb-6 last:border-b-0 last:pb-0">
+										<div class="border-b border-border-canvas pb-6 last:border-b-0 last:pb-0">
 											<p class="text-base font-semibold tracking-[0.08em] uppercase text-subtle m-0 mb-2">
 												{fieldT?.label ?? field.id}{#if field.required}<span class="text-error-light ml-0.5">*</span>{/if}
 											</p>

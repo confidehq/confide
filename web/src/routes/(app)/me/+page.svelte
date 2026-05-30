@@ -410,7 +410,7 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between gap-3">
 				<div class="flex items-center gap-2.5">
-					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-canvas border border-border">
+					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-canvas border border-border-canvas">
 						<ShieldAlert size={14} strokeWidth={1.75} class="text-subtle" />
 					</span>
 					<h2 id="recovery-dialog-title" class="m-0 text-base font-semibold text-text">Recovery Code</h2>
@@ -430,7 +430,7 @@
 
 				<div class="flex flex-col gap-2">
 					<div
-						class="px-4 py-4 rounded-lg border border-border select-all font-mono text-sm text-text break-all leading-loose"
+						class="px-4 py-4 rounded-lg border border-border-canvas select-all font-mono text-sm text-text break-all leading-loose"
 						style="background: var(--color-canvas); letter-spacing: 0.05em;"
 					>
 						{recoveryCode}
@@ -440,7 +440,7 @@
 						class="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
 							{codeCopied
 								? 'bg-success-dark border-success-dim text-success'
-								: 'bg-transparent border-border text-subtle hover:text-text hover:border-border'}"
+								: 'bg-transparent border-border-canvas text-subtle hover:text-text hover:border-border-canvas'}"
 					>
 						{#if codeCopied}
 							<Check size={13} strokeWidth={2} />
@@ -472,7 +472,7 @@
 				onclick={handleGenerateRecoveryCode}
 				disabled={generatingCode}
 				class="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
-					bg-transparent border-border text-subtle hover:text-text hover:border-border
+					bg-transparent border-border-canvas text-subtle hover:text-text hover:border-border-canvas
 					disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{#if generatingCode}
@@ -492,7 +492,7 @@
 	<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div class="flex items-center gap-3 min-w-0">
-			<div class="w-10 h-10 rounded-lg bg-canvas border border-border flex items-center justify-center text-sm font-semibold text-subtle shrink-0 select-none">
+			<div class="w-10 h-10 rounded-lg bg-canvas border border-border-canvas flex items-center justify-center text-sm font-semibold text-subtle shrink-0 select-none">
 				{avatarInitials()}
 			</div>
 			<div class="min-w-0">
@@ -525,16 +525,16 @@
 			{#if !workspacesStore.loaded && workspacesStore.loading}
 				<p class="text-subtle text-base">Loading…</p>
 			{:else if workspacesStore.workspaces.length === 0}
-				<div class="py-10 border border-dashed border-border rounded-lg text-center">
+				<div class="py-10 border border-dashed border-border-canvas rounded-lg text-center">
 					<p class="m-0 text-subtle text-base">No workspaces</p>
 				</div>
 			{:else}
-				<div class="border border-border rounded-lg overflow-hidden">
+				<div class="border border-border-canvas rounded-lg overflow-hidden">
 					{#each workspacesStore.workspaces as ws, i (ws.id)}
 						{@const role = roleBadge[ws.role] ?? roleBadge.member}
 						{@const plan = planBadge[ws.plan] ?? planBadge.free}
 						<div class="flex items-center gap-3 px-4 py-3.5
-							{i < workspacesStore.workspaces.length - 1 ? 'border-b border-border' : ''}">
+							{i < workspacesStore.workspaces.length - 1 ? 'border-b border-border-canvas' : ''}">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2">
 									<span class="text-base text-text truncate">{ws.name}</span>
@@ -569,8 +569,8 @@
 							disabled={revokingAll}
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
-									? 'text-subtle border-border cursor-not-allowed'
-									: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
+									? 'text-subtle border-border-canvas cursor-not-allowed'
+									: 'text-error-light border-border-canvas-danger-dark hover:bg-danger-hover'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
 						</button>
@@ -584,14 +584,14 @@
 				{#if sessionsLoading}
 					<p class="text-subtle text-base">Loading…</p>
 				{:else if sessions.length === 0}
-					<div class="py-10 border border-dashed border-border rounded-lg text-center">
+					<div class="py-10 border border-dashed border-border-canvas rounded-lg text-center">
 						<p class="m-0 text-subtle text-base">No active sessions</p>
 					</div>
 				{:else}
-					<div class="border border-border rounded-lg overflow-hidden">
+					<div class="border border-border-canvas rounded-lg overflow-hidden">
 						{#each sessions as session, i (session.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
-								{i < sessions.length - 1 ? 'border-b border-border' : ''}">
+								{i < sessions.length - 1 ? 'border-b border-border-canvas' : ''}">
 								<div class="text-subtle shrink-0" title={session.userAgent ?? 'Unknown device'}>
 									{#if isMobile(session.userAgent)}
 										<Smartphone size={16} strokeWidth={1.75} />
@@ -611,8 +611,8 @@
 									title={sessions.length <= 1 ? 'Cannot revoke your only session' : 'Revoke session'}
 									class="shrink-0 px-3 py-1.5 bg-transparent border rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100
 										{revoking === session.id || sessions.length <= 1
-											? 'text-subtle border-border cursor-not-allowed'
-											: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
+											? 'text-subtle border-border-canvas cursor-not-allowed'
+											: 'text-error-light border-border-canvas-danger-dark hover:bg-danger-hover'}"
 								>
 									{revoking === session.id ? '…' : 'Revoke'}
 								</button>
@@ -635,14 +635,14 @@
 						<div class="flex gap-2">
 							<button
 								onclick={() => (addStep = 'naming')}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>
 								<Plus size={13} strokeWidth={2} />
 								Add passkey
 							</button>
 							<button
 								onclick={startPairing}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 							>
 								<Monitor size={13} strokeWidth={2} />
 								Add new device
@@ -657,11 +657,11 @@
 
 				<!-- Add new device (pairing) panel -->
 				{#if pairStep === 'loading'}
-					<div class="mb-3 p-4 border border-border rounded-lg">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg">
 						<p class="text-subtle text-base animate-pulse m-0">Setting up pairing session…</p>
 					</div>
 				{:else if pairStep === 'qr'}
-					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-4">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-4">
 						<div class="flex items-start justify-between">
 							<p class="text-text text-base m-0">On your new device, scan this QR or enter the code below.</p>
 							<button onclick={cancelPairing} class="text-subtle hover:text-subtle cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
@@ -670,7 +670,7 @@
 						</div>
 						<div class="flex flex-col sm:flex-row gap-6 items-start">
 							{#if pairQrDataUrl}
-								<img src={pairQrDataUrl} alt="Pairing QR code" class="w-[140px] h-[140px] rounded border border-border shrink-0" />
+								<img src={pairQrDataUrl} alt="Pairing QR code" class="w-[140px] h-[140px] rounded border border-border-canvas shrink-0" />
 							{/if}
 							<div class="flex flex-col gap-2">
 								<p class="text-subtle text-sm m-0">Or enter this code on the other device:</p>
@@ -685,7 +685,7 @@
 						</div>
 					</div>
 				{:else if pairStep === 'fingerprint'}
-					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-4">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-4">
 						<div class="flex items-start justify-between">
 							<p class="text-text text-base m-0">Confirm these words match what you see on the new device:</p>
 							<button onclick={cancelPairing} class="text-subtle hover:text-subtle cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
@@ -694,7 +694,7 @@
 						</div>
 						<div class="flex gap-2 flex-wrap">
 							{#each pairFingerprint.split('-') as word}
-								<span class="px-2.5 py-1 bg-info-code-bg border border-border rounded text-sm text-info-code-text font-mono tracking-wide">
+								<span class="px-2.5 py-1 bg-info-code-bg border border-border-canvas rounded text-sm text-info-code-text font-mono tracking-wide">
 									{word}
 								</span>
 							{/each}
@@ -703,24 +703,24 @@
 							<button
 								onclick={confirmPairing}
 								disabled={pairConfirming}
-								class="px-4 py-2 bg-success-action-bg-mid border border-border-success-dark rounded text-base text-success-action-text hover:bg-success-action-bg-hover transition-colors cursor-pointer font-mono disabled:opacity-50"
+								class="px-4 py-2 bg-success-action-bg-mid border border-border-canvas-success-dark rounded text-base text-success-action-text hover:bg-success-action-bg-hover transition-colors cursor-pointer font-mono disabled:opacity-50"
 							>
 								{pairConfirming ? 'Approving…' : 'Yes, these match'}
 							</button>
 							<button
 								onclick={cancelPairing}
-								class="px-4 py-2 bg-transparent border border-border rounded text-base text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
+								class="px-4 py-2 bg-transparent border border-border-canvas rounded text-base text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
 							>
 								No, cancel
 							</button>
 						</div>
 					</div>
 				{:else if pairStep === 'done'}
-					<div class="mb-3 p-3 border border-border-success-dark rounded-lg bg-success-action-bg-mid">
+					<div class="mb-3 p-3 border border-border-canvas-success-dark rounded-lg bg-success-action-bg-mid">
 						<p class="text-success-action-text text-base m-0">New device successfully added.</p>
 					</div>
 				{:else if pairStep === 'error'}
-					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-2">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-2">
 						<p class="text-error-light text-base m-0">{pairError}</p>
 						<button onclick={cancelPairing} class="text-sm text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0 self-start">
 							Dismiss
@@ -730,13 +730,13 @@
 
 				<!-- Add passkey panel -->
 				{#if addStep === 'naming'}
-					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-3">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-3">
 						<p class="text-text text-base m-0">Name your new passkey (optional):</p>
 						<input
 							type="text"
 							bind:value={newName}
 							placeholder="e.g. MacBook Touch ID"
-							class="font-mono bg-canvas border border-border rounded px-3 py-2 text-base text-text placeholder-subtle focus:outline-none focus:border-border"
+							class="font-mono bg-canvas border border-border-canvas rounded px-3 py-2 text-base text-text placeholder-subtle focus:outline-none focus:border-border-canvas"
 						/>
 						{#if addError}
 							<p class="text-error-light text-base m-0">{addError}</p>
@@ -750,18 +750,18 @@
 							</button>
 							<button
 								onclick={() => { addStep = 'idle'; addError = null; newName = ''; }}
-								class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:text-subtle hover:border-border transition-colors duration-100"
+								class="px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-base hover:text-subtle hover:border-border-canvas transition-colors duration-100"
 							>
 								Cancel
 							</button>
 						</div>
 					</div>
 				{:else if addStep === 'reauth'}
-					<div class="mb-3 p-4 border border-border rounded-lg">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg">
 						<p class="text-subtle text-base animate-pulse m-0">Verifying your existing passkey…</p>
 					</div>
 				{:else if addStep === 'registering'}
-					<div class="mb-3 p-4 border border-border rounded-lg">
+					<div class="mb-3 p-4 border border-border-canvas rounded-lg">
 						<p class="text-subtle text-base animate-pulse m-0">Registering new passkey…</p>
 					</div>
 				{/if}
@@ -769,14 +769,14 @@
 				{#if credsLoading}
 					<p class="text-subtle text-base">Loading…</p>
 				{:else if credentials.length === 0}
-					<div class="py-10 border border-dashed border-border rounded-lg text-center">
+					<div class="py-10 border border-dashed border-border-canvas rounded-lg text-center">
 						<p class="m-0 text-subtle text-base">No passkeys</p>
 					</div>
 				{:else}
-					<div class="border border-border rounded-lg overflow-hidden">
+					<div class="border border-border-canvas rounded-lg overflow-hidden">
 						{#each credentials as cred, i (cred.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
-								{i < credentials.length - 1 ? 'border-b border-border' : ''}">
+								{i < credentials.length - 1 ? 'border-b border-border-canvas' : ''}">
 								<div class="text-subtle shrink-0">
 									<KeyRound size={16} strokeWidth={1.75} />
 								</div>
@@ -811,7 +811,7 @@
 										<div class="flex items-center gap-2 flex-wrap">
 											<span class="text-base text-text">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
-												<span class="text-[10px] px-1.5 py-0.5 bg-success-action-bg-mid border border-border-success-dark rounded text-success-action-text leading-none shrink-0">
+												<span class="text-[10px] px-1.5 py-0.5 bg-success-action-bg-mid border border-border-canvas-success-dark rounded text-success-action-text leading-none shrink-0">
 													This session
 												</span>
 											{/if}
@@ -842,13 +842,13 @@
 											<button
 												onclick={() => confirmDelete(cred.id)}
 												disabled={deletingId === cred.id}
-												class="px-2 py-1 border border-border-danger-dark rounded text-sm text-error-light hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border-canvas-danger-dark rounded text-sm text-error-light hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												{deletingId === cred.id ? '…' : 'Yes'}
 											</button>
 											<button
 												onclick={cancelDelete}
-												class="px-2 py-1 border border-border rounded text-sm text-subtle hover:text-subtle transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border-canvas rounded text-sm text-subtle hover:text-subtle transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												No
 											</button>
@@ -884,15 +884,15 @@
 					</h2>
 				</div>
 
-				<div class="border border-border rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-border-canvas rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Recovery codes</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Use a recovery code to regain access if you lose all your passkeys.</p>
 					</div>
 					<button
 						onclick={() => { recoveryDialogOpen = true; codeGenError = null; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-subtle border border-border rounded
-							cursor-pointer font-mono text-base hover:text-text hover:border-border
+						class="shrink-0 px-4 py-2 bg-transparent text-subtle border border-border-canvas rounded
+							cursor-pointer font-mono text-base hover:text-text hover:border-border-canvas
 							transition-colors duration-100"
 					>
 						View
@@ -903,16 +903,16 @@
 	</div>
 
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
-	<div class="mt-10 pt-8 border-t border-border">
+	<div class="mt-10 pt-8 border-t border-border-canvas">
 		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-		<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
+		<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
 			<div>
 				<p class="m-0 text-base text-text">Delete account</p>
 				<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete your account and all its data.</p>
 			</div>
 			<button
 				onclick={() => { showDeleteAccountConfirm = true; deleteAccountError = ''; }}
-				class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-danger-dark rounded
+				class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
 					cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
 			>
 				Delete account

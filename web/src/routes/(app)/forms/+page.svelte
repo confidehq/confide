@@ -152,7 +152,7 @@
 	<WorkspaceHeader />
 
 	{#if workspacesStore.active?.status === 'pending'}
-		<div class="py-14 border border-dashed border-border rounded-lg text-center px-6">
+		<div class="py-14 border border-dashed border-border-canvas rounded-lg text-center px-6">
 			<p class="m-0 mb-1 text-text text-base font-medium">Access pending approval</p>
 			<p class="m-0 text-subtle text-sm mt-1.5 max-w-sm mx-auto">
 				A workspace admin needs to grant you access before you can view forms and workspace content.
@@ -163,20 +163,20 @@
 	{:else if formsStore.error}
 		<p class="text-error-light text-base">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
-		<div class="py-12 border border-dashed border-border rounded-lg text-center">
+		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>
 			<p class="m-0 text-subtle text-base">Create your first form to get started</p>
 			<button
 				onclick={() => goto('/forms/new')}
-				class="mt-4 px-4 py-2 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+				class="mt-4 px-4 py-2 bg-transparent text-text border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas transition-colors duration-100"
 			>+ New form</button>
 		</div>
 	{:else}
-		<div class="border border-border rounded-lg overflow-hidden">
+		<div class="border border-border-canvas rounded-lg overflow-hidden">
 			{#each formsStore.forms as form, i (form.formId)}
 				<div
 					class="flex items-center gap-6 px-4 py-3.5 cursor-pointer hover:bg-surface transition-colors duration-75
-						{i < formsStore.forms.length - 1 ? 'border-b border-border' : ''}"
+						{i < formsStore.forms.length - 1 ? 'border-b border-border-canvas' : ''}"
 					onclick={() => goto(`/forms/${form.formId}`)}
 					role="button"
 					tabindex="0"

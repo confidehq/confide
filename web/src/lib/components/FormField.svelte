@@ -23,7 +23,7 @@
 		{label}
 	</label>
 	{#if readonly}
-		<p class="m-0 px-3 py-2.5 border border-border rounded text-base text-subtle bg-canvas select-all break-all">
+		<p class="m-0 px-3 py-2.5 border border-border-canvas rounded text-base text-subtle bg-canvas select-all break-all">
 			{value}
 		</p>
 	{:else}
@@ -32,8 +32,8 @@
 			{type}
 			bind:value
 			{placeholder}
-			class="font-mono bg-canvas border border-border rounded px-3 py-2.5 text-base text-text
-				placeholder-subtle focus:outline-none focus:border-border transition-colors duration-100"
+			class="font-mono bg-canvas border border-border-canvas rounded px-3 py-2.5 text-base text-text
+				placeholder-subtle focus:outline-none focus:border-border-canvas transition-colors duration-100"
 		/>
 	{/if}
 	{#if help}

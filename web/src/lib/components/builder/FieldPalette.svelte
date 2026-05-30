@@ -28,7 +28,7 @@
 	];
 </script>
 
-<aside class="hidden xl:flex w-[240px] bg-base border border-border rounded-xl my-2 ml-2 p-4 overflow-y-auto shrink-0 flex-col">
+<aside class="hidden xl:flex w-[240px] bg-base border border-border-canvas rounded-xl my-2 ml-2 p-4 overflow-y-auto shrink-0 flex-col">
 	<p class="m-0 mb-3 text-sm text-subtle uppercase tracking-[0.05em]">Fields</p>
 
 	<div class="flex flex-col gap-1">
