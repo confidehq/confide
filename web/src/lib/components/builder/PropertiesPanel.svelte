@@ -71,10 +71,10 @@
 	class="properties-panel {store.selectedField || store.submitButtonSelected ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:bottom-auto sm:left-auto sm:right-2 sm:w-64 sm:max-h-none sm:rounded-xl
-		bg-canvas border border-border-deep overflow-y-auto z-20"
+		bg-base border border-border overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
-	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-canvas">
+	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-base">
 		<div class="w-8 h-1 bg-border rounded-full"></div>
 	</div>
 
@@ -88,7 +88,7 @@
 
 					<!-- Required toggle -->
 					<div class="flex items-center justify-between">
-						<label class="text-sm text-text-dim">Required</label>
+						<label class="text-sm text-text">Required</label>
 						<input
 							type="checkbox"
 							checked={field.required}
@@ -100,7 +100,7 @@
 					{#if field.type === 'short_text'}
 						{@const cfg = field.config as ShortTextConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Max length</label>
+							<label class="block text-sm text-subtle mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -115,7 +115,7 @@
 					{#if field.type === 'long_text'}
 						{@const cfg = field.config as LongTextConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Max length</label>
+							<label class="block text-sm text-subtle mb-1">Max length</label>
 							<input
 								type="number"
 								min="1"
@@ -125,7 +125,7 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm text-muted mb-1">Min rows</label>
+							<label class="block text-sm text-subtle mb-1">Min rows</label>
 							<input
 								type="number"
 								min="1"
@@ -141,21 +141,21 @@
 					{#if field.type === 'multiple_choice' || field.type === 'checkboxes' || field.type === 'dropdown'}
 						{@const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Options</label>
+							<label class="block text-sm text-subtle mb-1">Options</label>
 							<div class="flex flex-col gap-1.5">
 								{#each cfg.options ?? [] as opt (opt.id)}
 									<div class="flex items-center gap-1.5">
-										<span class="text-muted-dark text-sm min-w-5">{opt.order + 1}.</span>
-										<span class="flex-1 text-sm text-muted">Option {opt.order + 1}</span>
+										<span class="text-subtle text-sm min-w-5">{opt.order + 1}.</span>
+										<span class="flex-1 text-sm text-subtle">Option {opt.order + 1}</span>
 										<button
 											onclick={() => removeOption(opt.id)}
-											class="bg-transparent border-none text-muted-dark cursor-pointer font-mono"
+											class="bg-transparent border-none text-subtle cursor-pointer font-mono"
 										>×</button>
 									</div>
 								{/each}
 								<button
 									onclick={addOption}
-									class="px-2.5 py-1.5 bg-transparent text-muted-dark border border-dashed border-border rounded cursor-pointer font-mono text-sm hover:text-muted transition-colors duration-100"
+									class="px-2.5 py-1.5 bg-transparent text-subtle border border-dashed border-border rounded cursor-pointer font-mono text-sm hover:text-subtle transition-colors duration-100"
 								>
 									+ Add option
 								</button>
@@ -165,7 +165,7 @@
 						{#if field.type === 'multiple_choice'}
 							{@const mcCfg = field.config as MultipleChoiceConfig}
 							<div class="flex items-center justify-between">
-								<label class="text-sm text-text-dim">Allow "Other"</label>
+								<label class="text-sm text-text">Allow "Other"</label>
 								<input
 									type="checkbox"
 									checked={mcCfg.allowOther ?? false}
@@ -177,7 +177,7 @@
 						{#if field.type === 'checkboxes'}
 							{@const cbCfg = field.config as CheckboxesConfig}
 							<div>
-								<label class="block text-sm text-muted mb-1">Min selections</label>
+								<label class="block text-sm text-subtle mb-1">Min selections</label>
 								<input
 									type="number"
 									min="0"
@@ -187,7 +187,7 @@
 								/>
 							</div>
 							<div>
-								<label class="block text-sm text-muted mb-1">Max selections</label>
+								<label class="block text-sm text-subtle mb-1">Max selections</label>
 								<input
 									type="number"
 									min="0"
@@ -201,7 +201,7 @@
 						{#if field.type === 'dropdown'}
 							{@const ddCfg = field.config as DropdownConfig}
 							<div class="flex items-center justify-between">
-								<label class="text-sm text-text-dim">Searchable</label>
+								<label class="text-sm text-text">Searchable</label>
 								<input
 									type="checkbox"
 									checked={ddCfg.searchable ?? false}
@@ -215,7 +215,7 @@
 					{#if field.type === 'date_time'}
 						{@const cfg = field.config as DateTimeConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Mode</label>
+							<label class="block text-sm text-subtle mb-1">Mode</label>
 							<select
 								value={cfg.mode}
 								onchange={(e) => store.updateFieldConfig(field.id, { mode: (e.target as HTMLSelectElement).value as 'date' | 'time' | 'datetime' })}
@@ -227,7 +227,7 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm text-muted mb-1">Min</label>
+							<label class="block text-sm text-subtle mb-1">Min</label>
 							<input
 								type="text"
 								placeholder="e.g. 2024-01-01"
@@ -237,7 +237,7 @@
 							/>
 						</div>
 						<div>
-							<label class="block text-sm text-muted mb-1">Max</label>
+							<label class="block text-sm text-subtle mb-1">Max</label>
 							<input
 								type="text"
 								placeholder="e.g. 2030-12-31"
@@ -252,7 +252,7 @@
 					{#if field.type === 'rating'}
 						{@const cfg = field.config as RatingConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Scale</label>
+							<label class="block text-sm text-subtle mb-1">Scale</label>
 							<select
 								value={cfg.scale}
 								onchange={(e) => store.updateFieldConfig(field.id, { scale: parseInt((e.target as HTMLSelectElement).value) as 5 | 10 })}
@@ -263,7 +263,7 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm text-muted mb-1">Shape</label>
+							<label class="block text-sm text-subtle mb-1">Shape</label>
 							<select
 								value={cfg.shape}
 								onchange={(e) => store.updateFieldConfig(field.id, { shape: (e.target as HTMLSelectElement).value as 'star' | 'number' })}
@@ -279,7 +279,7 @@
 					{#if field.type === 'heading'}
 						{@const cfg = field.config as HeadingConfig}
 						<div>
-							<label class="block text-sm text-muted mb-1">Level</label>
+							<label class="block text-sm text-subtle mb-1">Level</label>
 							<select
 								value={cfg.level}
 								onchange={(e) => store.updateFieldConfig(field.id, { level: parseInt((e.target as HTMLSelectElement).value) as 0 | 1 | 2 | 3 | 4 })}
@@ -309,7 +309,7 @@
 							{ key: 'zap',     component: Zap,           label: 'Zap' },
 						]}
 						<div>
-							<label class="block text-sm text-muted mb-1">Variant</label>
+							<label class="block text-sm text-subtle mb-1">Variant</label>
 							<select
 								value={cfg.variant}
 								onchange={(e) => store.updateFieldConfig(field.id, { variant: (e.target as HTMLSelectElement).value as AccentConfig['variant'] })}
@@ -322,7 +322,7 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm text-muted mb-1">Icon</label>
+							<label class="block text-sm text-subtle mb-1">Icon</label>
 							<div class="flex flex-wrap gap-1">
 								{#each accentIcons as icon}
 									<button
@@ -344,13 +344,13 @@
 					{/if}
 
 					{#if field.type === 'section_break'}
-						<p class="text-sm text-muted-dark m-0">
+						<p class="text-sm text-subtle m-0">
 							Section breaks have no settings. Edit the label directly on the field.
 						</p>
 					{/if}
 
 					{#if field.type === 'accordion'}
-						<p class="text-sm text-muted-dark m-0">
+						<p class="text-sm text-subtle m-0">
 							Edit the title and body text directly on the field.
 						</p>
 					{/if}
@@ -373,9 +373,9 @@
 			{ key: 'zap',      component: Zap,           label: 'Zap' },
 		]}
 		<div class="p-3 flex flex-col gap-3.5">
-			<p class="m-0 text-xs font-semibold uppercase tracking-widest text-muted">Submit Button</p>
+			<p class="m-0 text-xs font-semibold uppercase tracking-widest text-subtle">Submit Button</p>
 			<div>
-				<label class="block text-sm text-muted mb-1">Icon</label>
+				<label class="block text-sm text-subtle mb-1">Icon</label>
 				<div class="flex flex-wrap gap-1">
 					{#each submitIcons as icon}
 						<button
@@ -428,21 +428,21 @@
 		width: 30px;
 		height: 30px;
 		border-radius: 5px;
-		border: 1px solid var(--color-border-field);
+		border: 1px solid var(--color-border);
 		background: transparent;
-		color: var(--color-muted);
+		color: var(--color-subtle);
 		cursor: pointer;
 		transition: background 0.1s, border-color 0.1s, color 0.1s;
 	}
 
 	.icon-pick-btn:hover {
-		background: var(--color-surface-hover);
-		color: var(--color-text-dim);
+		background: var(--color-canvas);
+		color: var(--color-text);
 	}
 
 	.icon-pick-btn.active {
-		background: var(--color-surface-active);
+		background: var(--color-canvas);
 		border-color: var(--color-primary);
-		color: var(--color-text-bright);
+		color: var(--color-text);
 	}
 </style>

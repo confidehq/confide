@@ -19,11 +19,11 @@
 </script>
 
 <div class="flex flex-col gap-1.5">
-	<label for={id} class="text-sm font-semibold tracking-[0.08em] uppercase text-muted-mid">
+	<label for={id} class="text-sm font-semibold tracking-[0.08em] uppercase text-subtle">
 		{label}
 	</label>
 	{#if readonly}
-		<p class="m-0 px-3 py-2.5 border border-border-mid rounded text-base text-muted-dim bg-surface-read select-all break-all">
+		<p class="m-0 px-3 py-2.5 border border-border rounded text-base text-subtle bg-canvas select-all break-all">
 			{value}
 		</p>
 	{:else}
@@ -32,11 +32,11 @@
 			{type}
 			bind:value
 			{placeholder}
-			class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2.5 text-base text-text-body
-				placeholder-muted-dim focus:outline-none focus:border-border-focus transition-colors duration-100"
+			class="font-mono bg-canvas border border-border rounded px-3 py-2.5 text-base text-text
+				placeholder-subtle focus:outline-none focus:border-border transition-colors duration-100"
 		/>
 	{/if}
 	{#if help}
-		<p class="m-0 text-xs text-muted-mid">{help}</p>
+		<p class="m-0 text-xs text-subtle">{help}</p>
 	{/if}
 </div>

@@ -71,14 +71,14 @@
 		<!-- Logo + heading -->
 		<div class="flex flex-col items-center mb-8">
 			<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
-			<h1 class="text-xl font-semibold text-text-body tracking-tight">Account Recovery</h1>
-			<p class="text-sm text-muted-dim mt-1.5">Regain access using your recovery code.</p>
+			<h1 class="text-xl font-semibold text-text tracking-tight">Account Recovery</h1>
+			<p class="text-sm text-subtle mt-1.5">Regain access using your recovery code.</p>
 		</div>
 
 		{#if step === 'enter-code'}
 			<!-- Form card -->
-			<div class="bg-surface border border-border rounded-xl p-6">
-				<label class="block text-sm text-muted mb-1.5" for="username">Username</label>
+			<div class="bg-canvas border border-border rounded-xl p-6">
+				<label class="block text-sm text-subtle mb-1.5" for="username">Username</label>
 				<input
 					id="username"
 					type="text"
@@ -88,7 +88,7 @@
 					class="input-base w-full mb-4 text-sm py-2.5 px-3"
 				/>
 
-				<label class="block text-sm text-muted mb-1.5" for="recovery-code">Recovery code</label>
+				<label class="block text-sm text-subtle mb-1.5" for="recovery-code">Recovery code</label>
 				<input
 					id="recovery-code"
 					type="text"
@@ -102,7 +102,7 @@
 					onclick={handleRecover}
 					disabled={loading}
 					class="w-full py-3 text-white border-none rounded-lg font-mono text-sm font-medium
-						{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+						{loading ? 'bg-muted cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
 						transition-colors duration-100"
 				>
 					{loading ? 'Verifying…' : 'Verify recovery code'}
@@ -113,15 +113,15 @@
 				{/if}
 			</div>
 
-			<p class="text-xs text-muted-dark text-center mt-4">
-				<a href="/login" class="text-text-blue hover:underline">Back to sign in</a>
+			<p class="text-xs text-subtle text-center mt-4">
+				<a href="/login" class="text-text hover:underline">Back to sign in</a>
 			</p>
 
 		{:else if step === 'rekey'}
 			<!-- Form card -->
-			<div class="bg-surface border border-border rounded-xl p-6">
-				<div class="p-4 border border-success-text rounded-lg bg-success-bg-deep mb-5">
-					<p class="text-success-text-dark text-xs m-0">
+			<div class="bg-canvas border border-border rounded-xl p-6">
+				<div class="p-4 border border-success-dim rounded-lg bg-success-dark mb-5">
+					<p class="text-success text-xs m-0">
 						Recovery code verified. Now register a new passkey on this device.
 					</p>
 				</div>
@@ -130,7 +130,7 @@
 					onclick={handleRekey}
 					disabled={loading}
 					class="w-full py-3 text-white border-none rounded-lg font-mono text-sm font-medium
-						{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+						{loading ? 'bg-muted cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
 						transition-colors duration-100"
 				>
 					{loading ? 'Registering passkey…' : 'Register new passkey'}
@@ -142,8 +142,8 @@
 			</div>
 
 		{:else if step === 'success'}
-			<div class="bg-surface border border-border rounded-xl p-6">
-				<div class="p-4 border border-success-text rounded-lg bg-success-bg-deep text-success-text-dark text-xs text-center">
+			<div class="bg-canvas border border-border rounded-xl p-6">
+				<div class="p-4 border border-success-dim rounded-lg bg-success-dark text-success text-xs text-center">
 					New passkey registered. Redirecting to dashboard…
 				</div>
 			</div>

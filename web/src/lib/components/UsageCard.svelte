@@ -16,16 +16,16 @@
 	} = $props();
 </script>
 
-<div class="border border-border-deep rounded-lg px-5 py-4 flex flex-col gap-3">
+<div class="border border-border rounded-lg px-5 py-4 flex flex-col gap-3">
 	<div>
-		<p class="m-0 text-sm font-semibold text-text-body">{label}</p>
-		<p class="m-0 text-xs text-muted-mid mt-0.5">{sublabel}</p>
+		<p class="m-0 text-sm font-semibold text-text">{label}</p>
+		<p class="m-0 text-xs text-subtle mt-0.5">{sublabel}</p>
 	</div>
-	<p class="m-0 text-3xl font-semibold tabular-nums text-text-bright leading-none">
+	<p class="m-0 text-3xl font-semibold tabular-nums text-text leading-none">
 		{@render children?.()}
 	</p>
 	{#if pct !== undefined}
-		<div class="h-1.5 bg-surface-deep rounded-full overflow-hidden">
+		<div class="h-1.5 bg-canvas rounded-full overflow-hidden">
 			<div
 				class="h-full rounded-full transition-all duration-300
 					{pct >= 100 ? 'bg-error-light' : pct >= 80 ? 'bg-warning-text' : 'bg-text-blue'}"

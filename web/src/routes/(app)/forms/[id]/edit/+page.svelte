@@ -119,18 +119,18 @@
 </svelte:head>
 
 {#if loading}
-	<div class="font-mono flex items-center justify-center flex-1 bg-surface text-muted">
+	<div class="font-mono flex items-center justify-center flex-1 bg-canvas text-subtle">
 		<p>Loading form…</p>
 	</div>
 {:else if loadError}
-	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-surface text-error-light gap-4">
+	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-error-light gap-4">
 		<p>{loadError}</p>
-		<a href="/forms" class="text-muted-dark text-sm no-underline">← Back to forms</a>
+		<a href="/forms" class="text-subtle text-sm no-underline">← Back to forms</a>
 	</div>
 {:else if store}
-	<div class="flex flex-col flex-1 min-h-0 bg-surface font-mono text-text-dim overflow-hidden">
+	<div class="flex flex-col flex-1 min-h-0 bg-canvas font-mono text-text overflow-hidden">
 		<!-- Toolbar -->
-		<div class="relative flex items-center gap-3 px-5 h-9 border-b border-border-deep shrink-0 overflow-x-auto">
+		<div class="relative flex items-center gap-3 px-5 h-9 border-b border-border shrink-0 overflow-x-auto">
 			<!-- Breadcrumb -->
 			<Breadcrumb items={[
 				{ label: 'Forms', href: '/forms' },
@@ -147,8 +147,8 @@
 					{/if}
 					<button
 						onclick={() => layoutOpen = !layoutOpen}
-						style="background: {layoutOpen ? 'var(--color-surface-toolbar)' : 'transparent'}; border-color: {layoutOpen ? 'var(--color-border)' : 'var(--color-border-field)'};"
-						class="flex items-center gap-1.5 px-2 h-7 text-muted border rounded-md cursor-pointer font-mono text-sm transition-[background,border-color] duration-100"
+						style="background: {layoutOpen ? 'var(--color-canvas)' : 'transparent'}; border-color: {layoutOpen ? 'var(--color-border)' : 'var(--color-border)'};"
+						class="flex items-center gap-1.5 px-2 h-7 text-subtle border rounded-md cursor-pointer font-mono text-sm transition-[background,border-color] duration-100"
 					>
 						{#each layoutModes as mode}
 							{#if mode.value === store.schema.layout}
@@ -156,24 +156,24 @@
 								<span>{mode.label}</span>
 							{/if}
 						{/each}
-						<ChevronDown size={11} strokeWidth={1.75} class="text-muted-dark ml-0.5" />
+						<ChevronDown size={11} strokeWidth={1.75} class="text-subtle ml-0.5" />
 					</button>
 
 					{#if layoutOpen}
-						<div class="absolute top-[calc(100%+4px)] left-0 bg-surface border border-border-field rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
+						<div class="absolute top-[calc(100%+4px)] left-0 bg-canvas border border-border rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
 							{#each layoutModes as mode}
 								{@const active = mode.value === store.schema.layout}
 								<button
 									onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
 									class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
-										{active ? 'bg-surface-hover text-text' : 'bg-transparent text-muted hover:bg-surface-hover hover:text-text-dim'}"
+										{active ? 'bg-canvas text-text' : 'bg-transparent text-subtle hover:bg-surface hover:text-text'}"
 								>
-									<span class="mt-0.5 shrink-0 {active ? 'text-text-blue' : 'text-muted-dim'}">
+									<span class="mt-0.5 shrink-0 {active ? 'text-text' : 'text-subtle'}">
 										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
 									</span>
 									<span>
 										<span class="block text-sm">{mode.label}</span>
-										<span class="block text-sm text-muted-dim mt-0.5">{mode.help}</span>
+										<span class="block text-sm text-subtle mt-0.5">{mode.help}</span>
 									</span>
 								</button>
 							{/each}
@@ -186,11 +186,11 @@
 			{#if store.schema.locales.length > 1}
 				<div class="hidden sm:flex absolute left-1/2 -translate-x-1/2 items-center pointer-events-none">
 					<div class="relative flex items-center pointer-events-auto">
-						<Languages size={13} strokeWidth={1.75} class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-dark" />
+						<Languages size={13} strokeWidth={1.75} class="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none text-subtle" />
 						<select
 							value={store.activeLocale}
 							onchange={(e) => store!.setActiveLocale((e.target as HTMLSelectElement).value)}
-							class="appearance-none pl-7 pr-7 h-7 bg-surface text-muted border border-border-field rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
+							class="appearance-none pl-7 pr-7 h-7 bg-canvas text-subtle border border-border rounded-md cursor-pointer font-mono text-sm outline-none leading-none"
 						>
 							{#each store.schema.locales as locale}
 								<option value={locale}>
@@ -198,7 +198,7 @@
 								</option>
 							{/each}
 						</select>
-						<span class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
+						<span class="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none flex text-subtle">
 							<ChevronDown size={12} strokeWidth={1.75} />
 						</span>
 					</div>
@@ -210,9 +210,9 @@
 
 			<!-- Save indicator -->
 			{#if store.saving}
-				<span title="Saving…" class="flex shrink-0 text-muted-dark"><Loader size={14} strokeWidth={2} /></span>
+				<span title="Saving…" class="flex shrink-0 text-subtle"><Loader size={14} strokeWidth={2} /></span>
 			{:else if store.dirty}
-				<span title="Unsaved changes" class="flex shrink-0 text-muted-dark"><CloudOff size={14} strokeWidth={2} /></span>
+				<span title="Unsaved changes" class="flex shrink-0 text-subtle"><CloudOff size={14} strokeWidth={2} /></span>
 			{:else if store.lastSaved}
 				<span title="Saved" class="flex shrink-0 text-border"><Check size={14} strokeWidth={2} /></span>
 			{/if}
@@ -221,8 +221,8 @@
 			<button
 				onclick={() => store!.setShowFormSettings(!store.showFormSettings)}
 				title="Form settings"
-				style="background: {store.showFormSettings ? 'var(--color-surface-toolbar)' : 'transparent'}; color: {store.showFormSettings ? 'var(--color-text)' : 'var(--color-text-subtle)'}; border-color: {store.showFormSettings ? 'var(--color-border)' : 'transparent'};"
-				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-muted"
+				style="background: {store.showFormSettings ? 'var(--color-canvas)' : 'transparent'}; color: {store.showFormSettings ? 'var(--color-text)' : 'var(--color-text)'}; border-color: {store.showFormSettings ? 'var(--color-border)' : 'transparent'};"
+				class="shrink-0 px-1.5 h-7 flex items-center border rounded-md cursor-pointer transition-colors duration-100 hover:text-subtle"
 			><Settings size={15} strokeWidth={1.75} /></button>
 
 			<div class="w-px h-4 bg-border-field shrink-0"></div>
@@ -230,7 +230,7 @@
 			<!-- Preview toggle -->
 			<button
 				onclick={() => store!.setMode(store!.mode === 'edit' ? 'preview' : 'edit')}
-				style="background: {store.mode === 'preview' ? 'var(--color-surface-toolbar)' : 'transparent'}; color: {store.mode === 'preview' ? 'var(--color-text)' : 'var(--color-muted-dark)'}; border-color: {store.mode === 'preview' ? 'var(--color-border)' : 'var(--color-border-field)'};"
+				style="background: {store.mode === 'preview' ? 'var(--color-canvas)' : 'transparent'}; color: {store.mode === 'preview' ? 'var(--color-text)' : 'var(--color-subtle)'}; border-color: {store.mode === 'preview' ? 'var(--color-border)' : 'var(--color-border)'};"
 				class="shrink-0 px-3 h-7 border rounded-md cursor-pointer font-mono text-sm"
 			>{store.mode === 'preview' ? 'Edit' : 'Preview'}</button>
 

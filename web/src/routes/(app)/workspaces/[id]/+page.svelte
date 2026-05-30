@@ -6,6 +6,7 @@
 	import { listForms, getForm, setWorkspaceFormKey, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
 	import { listWorkspaces, loadWorkspaceKey, getWorkspaceSettings, updateWorkspaceSettings, type Workspace } from '$lib/workspaces';
 	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 
 	const workspaceId = $derived($page.params.id);
 
@@ -167,14 +168,14 @@ async function load() {
 <div class="font-mono w-full max-w-3xl md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 pt-10 pb-12 sm:px-8 sm:pt-10">
 
 	{#if loading}
-		<p class="text-muted-dim text-base">Loading…</p>
+		<p class="text-subtle text-base">Loading…</p>
 	{:else if error}
 		<p class="text-error-light text-base">{error}</p>
 	{:else}
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-8 gap-4">
 			<div class="flex items-center gap-3 min-w-0">
-				<h1 class="text-2xl m-0 text-text-bright font-semibold truncate">
+				<h1 class="text-2xl m-0 text-text font-semibold truncate">
 					{workspace?.name ?? workspaceId}
 				</h1>
 				{#if workspace}
@@ -185,10 +186,10 @@ async function load() {
 								: workspace.planStatus === 'canceling'
 									? 'bg-open-bg text-open-text border-open-border'
 									: 'bg-closed-bg text-closed-text border-closed-border'
-							: 'text-muted-dim border-border-deep bg-transparent'}">
+							: 'text-subtle border-border bg-transparent'}">
 						{planLabel(workspace)}
 					</span>
-					<span class="shrink-0 hidden sm:inline px-2.5 py-0.5 rounded-full text-base text-muted-mid border border-border-deep">
+					<span class="shrink-0 hidden sm:inline px-2.5 py-0.5 rounded-full text-base text-subtle border border-border">
 						{workspace.role}
 					</span>
 				{/if}
@@ -202,46 +203,41 @@ async function load() {
 		<!-- Forms -->
 		{#if forms.length === 0}
 			<div class="py-12 border border-dashed border-border rounded-lg text-center">
-				<p class="m-0 mb-1 text-muted-dim text-base">No forms yet</p>
-				<p class="m-0 text-muted-mid text-base">Create your first form to get started</p>
+				<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>
+				<p class="m-0 text-subtle text-base">Create your first form to get started</p>
 				<button
 					onclick={() => goto(`/forms/new?workspaceId=${workspaceId}`)}
-					class="mt-4 px-4 py-2 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+					class="mt-4 px-4 py-2 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 				>+ New form</button>
 			</div>
 		{:else}
 			<!-- Mobile card list -->
 			<div class="flex flex-col gap-2 sm:hidden">
 				{#each forms as form (form.formId)}
-					<div class="p-4 border border-border-deep rounded-lg">
+					<div class="p-4 border border-border rounded-lg">
 						<div class="flex items-center justify-between gap-2 mb-2">
-							<span class="text-text-body text-base truncate">{formName(form.formId)}</span>
-							<span class="shrink-0 px-2.5 py-0.5 rounded-full text-base
-								{form.status === 'open'
-									? 'bg-open-bg text-open-text border border-open-border'
-									: 'bg-closed-bg text-closed-text border border-closed-border'}">
-								{form.status}
-							</span>
+							<span class="text-text text-base truncate">{formName(form.formId)}</span>
+							<StatusBadge status={form.status} />
 						</div>
-						<p class="m-0 mb-3 text-muted-dim text-base">
+						<p class="m-0 mb-3 text-subtle text-base">
 							{form.responseCount} response{form.responseCount === 1 ? '' : 's'} · {form.createdAt}
 						</p>
 						<div class="flex gap-2 flex-wrap">
 							<button
 								onclick={() => goto(`/forms/${form.formId}/edit`)}
-								class="px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>Edit</button>
 							<button
 								onclick={() => goto(`/forms/${form.formId}/responses`)}
-								class="px-3 py-1.5 bg-transparent text-open-text border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-open-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>Responses</button>
 							<button
 								onclick={() => toggleStatus(form)}
-								class="px-3 py-1.5 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>{form.status === 'open' ? 'Close' : 'Open'}</button>
 							<button
 								onclick={() => handleDelete(form)}
-								class="px-3 py-1.5 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
 							>Delete</button>
 						</div>
 					</div>
@@ -251,7 +247,7 @@ async function load() {
 			<!-- Desktop table -->
 			<table class="hidden sm:table w-full border-collapse text-base">
 				<thead>
-					<tr class="border-b border-border-subtle text-muted-dim">
+					<tr class="border-b border-border text-subtle">
 						<th class="text-left px-3 py-2.5 font-normal">Title</th>
 						<th class="text-left px-3 py-2.5 font-normal">Form ID</th>
 						<th class="text-left px-3 py-2.5 font-normal">Status</th>
@@ -262,36 +258,31 @@ async function load() {
 				</thead>
 				<tbody>
 					{#each forms as form (form.formId)}
-						<tr class="border-b border-border-deep">
-							<td class="p-3 text-text-body text-base">{formName(form.formId)}</td>
-							<td class="p-3 text-muted-dim text-base">{form.formId.slice(0, 12)}…</td>
+						<tr class="border-b border-border">
+							<td class="p-3 text-text text-base">{formName(form.formId)}</td>
+							<td class="p-3 text-subtle text-base">{form.formId.slice(0, 12)}…</td>
 							<td class="p-3">
-								<span class="px-2.5 py-0.5 rounded-full text-base
-									{form.status === 'open'
-										? 'bg-open-bg text-open-text border border-open-border'
-										: 'bg-closed-bg text-closed-text border border-closed-border'}">
-									{form.status}
-								</span>
+								<StatusBadge status={form.status} />
 							</td>
-							<td class="p-3 text-right text-text-body text-base tabular-nums">{form.responseCount}</td>
-							<td class="p-3 text-muted-dim text-base">{form.createdAt}</td>
+							<td class="p-3 text-right text-text text-base tabular-nums">{form.responseCount}</td>
+							<td class="p-3 text-subtle text-base">{form.createdAt}</td>
 							<td class="p-3 whitespace-nowrap">
 								<div class="flex gap-2 justify-end">
 									<button
 										onclick={() => goto(`/forms/${form.formId}/edit`)}
-										class="px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 									>Edit</button>
 									<button
 										onclick={() => goto(`/forms/${form.formId}/responses`)}
-										class="px-3 py-1.5 bg-transparent text-open-text border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-open-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 									>Responses ({form.responseCount})</button>
 									<button
 										onclick={() => toggleStatus(form)}
-										class="px-3 py-1.5 bg-transparent text-muted-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 									>{form.status === 'open' ? 'Close' : 'Open'}</button>
 									<button
 										onclick={() => handleDelete(form)}
-										class="px-3 py-1.5 bg-transparent text-error-light border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-error-light border border-border rounded cursor-pointer font-mono text-base hover:border-border-danger-dark transition-colors duration-100"
 									>Delete</button>
 								</div>
 							</td>
@@ -305,13 +296,13 @@ async function load() {
 
 	<!-- Workspace settings -->
 	{#if workspace && (workspace.role === 'owner' || workspace.role === 'admin')}
-		<div class="mt-12 pt-8 border-t border-border-deep">
-			<h2 class="text-lg m-0 mb-6 text-text-bright font-semibold">Settings</h2>
+		<div class="mt-12 pt-8 border-t border-border">
+			<h2 class="text-lg m-0 mb-6 text-text font-semibold">Settings</h2>
 
 			<div class="max-w-xl">
 				<div class="mb-1">
-					<label class="block text-base text-text-dim mb-1" for="ws-legal-text">Default legal text / Impressum</label>
-					<p class="m-0 mb-2 text-base text-muted-dim">Shown as a footer on all forms in this workspace. Individual forms can override this.</p>
+					<label class="block text-base text-text mb-1" for="ws-legal-text">Default legal text / Impressum</label>
+					<p class="m-0 mb-2 text-base text-subtle">Shown as a footer on all forms in this workspace. Individual forms can override this.</p>
 				</div>
 				<textarea
 					id="ws-legal-text"
@@ -319,7 +310,7 @@ async function load() {
 					value={legalText}
 					oninput={(e) => { legalText = (e.target as HTMLTextAreaElement).value; legalTextSaved = false; }}
 					placeholder="e.g. © 2025 Acme Inc. · Privacy Policy · Impressum"
-					class="block w-full px-3 py-2 bg-surface border border-border-deep rounded-md font-mono text-base text-text-dim outline-none resize-none focus:border-border transition-colors"
+					class="block w-full px-3 py-2 bg-canvas border border-border rounded-md font-mono text-base text-text outline-none resize-none focus:border-border transition-colors"
 				></textarea>
 				<div class="flex items-center gap-3 mt-2">
 					<button

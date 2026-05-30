@@ -133,17 +133,17 @@
 	<title>Confide — Add New Device</title>
 </svelte:head>
 
-<div class="font-mono min-h-screen flex items-center justify-center bg-surface-base px-4">
+<div class="font-mono min-h-screen flex items-center justify-center bg-canvas-base px-4">
 	<div class="w-full max-w-sm">
 		<div class="mb-8">
-			<h1 class="text-2xl text-text-bright m-0 mb-1">Add this device</h1>
-			<p class="text-muted-dim text-sm m-0">Sign in by pairing with a device you're already signed in on.</p>
+			<h1 class="text-2xl text-text m-0 mb-1">Add this device</h1>
+			<p class="text-subtle text-sm m-0">Sign in by pairing with a device you're already signed in on.</p>
 		</div>
 
 		{#if stage === 'entry'}
 			<div class="flex flex-col gap-4">
 				<div class="flex flex-col gap-2">
-					<label class="text-text-body text-sm" for="pair-code">
+					<label class="text-text text-sm" for="pair-code">
 						Enter the code shown on your signed-in device
 					</label>
 					<input
@@ -152,7 +152,7 @@
 						bind:value={codeInput}
 						placeholder="e.g. AB3K7M2P"
 						maxlength="12"
-						class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2 text-sm text-text-body placeholder-muted-dim focus:outline-none focus:border-border-focus uppercase tracking-widest"
+						class="font-mono bg-canvas border border-border rounded px-3 py-2 text-sm text-text placeholder-subtle focus:outline-none focus:border-border uppercase tracking-widest"
 						onkeydown={(e) => { if (e.key === 'Enter') handleCodeSubmit(); }}
 					/>
 				</div>
@@ -161,39 +161,39 @@
 				{/if}
 				<button
 					onclick={handleCodeSubmit}
-					class="px-4 py-2 bg-info-action-bg-light border border-surface-3 rounded text-sm text-text-body hover:bg-info-action-bg-hover transition-colors cursor-pointer font-mono"
+					class="px-4 py-2 bg-info-action-bg-light border border-canvas rounded text-sm text-text hover:bg-info-action-bg-hover transition-colors cursor-pointer font-mono"
 				>
 					Continue
 				</button>
-				<p class="text-muted-dim text-xs m-0 text-center">
+				<p class="text-subtle text-xs m-0 text-center">
 					Or scan the QR code on your other device's screen with your camera app.
 				</p>
 			</div>
 
 		{:else if stage === 'fingerprint'}
 			<div class="flex flex-col gap-5">
-				<div class="p-4 border border-border-deep rounded-md bg-surface-mid">
-					<p class="text-text-body text-sm m-0 mb-3">
-						On your <strong class="text-text-bright">signed-in device</strong>, confirm these words before tapping Yes:
+				<div class="p-4 border border-border rounded-md bg-canvas">
+					<p class="text-text text-sm m-0 mb-3">
+						On your <strong class="text-text">signed-in device</strong>, confirm these words before tapping Yes:
 					</p>
 					<div class="flex gap-2 flex-wrap">
 						{#each fingerprint.split('-') as word}
-							<span class="px-2.5 py-1 bg-info-code-bg border border-border-deep rounded text-sm text-info-code-text font-mono tracking-wide">
+							<span class="px-2.5 py-1 bg-info-code-bg border border-border rounded text-sm text-info-code-text font-mono tracking-wide">
 								{word}
 							</span>
 						{/each}
 					</div>
 				</div>
-				<p class="text-muted-dim text-xs m-0">
+				<p class="text-subtle text-xs m-0">
 					Waiting for approval on your other device…
 				</p>
 				<div class="flex items-center gap-2">
 					<span class="inline-block w-2 h-2 bg-status-waiting-green rounded-full animate-pulse"></span>
-					<span class="text-muted-blue text-xs">Connected</span>
+					<span class="text-subtle text-xs">Connected</span>
 				</div>
 				<button
 					onclick={reset}
-					class="text-xs text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0 self-start"
+					class="text-xs text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0 self-start"
 				>
 					Cancel
 				</button>
@@ -201,14 +201,14 @@
 
 		{:else if stage === 'waiting'}
 			<div class="flex flex-col gap-4">
-				<p class="text-muted-blue text-sm animate-pulse m-0">Waiting for approval on your other device…</p>
-				<button onclick={reset} class="text-xs text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0 self-start">
+				<p class="text-subtle text-sm animate-pulse m-0">Waiting for approval on your other device…</p>
+				<button onclick={reset} class="text-xs text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0 self-start">
 					Cancel
 				</button>
 			</div>
 
 		{:else if stage === 'registering'}
-			<p class="text-muted-blue text-sm animate-pulse m-0">Creating your passkey…</p>
+			<p class="text-subtle text-sm animate-pulse m-0">Creating your passkey…</p>
 
 		{:else if stage === 'done'}
 			<div class="flex flex-col gap-3">
@@ -220,7 +220,7 @@
 				<p class="text-error-light text-sm m-0">{errorMsg}</p>
 				<button
 					onclick={reset}
-					class="px-4 py-2 bg-transparent border border-border-subtle rounded text-sm text-muted-dim hover:text-muted-blue transition-colors cursor-pointer font-mono self-start"
+					class="px-4 py-2 bg-transparent border border-border rounded text-sm text-subtle hover:text-subtle transition-colors cursor-pointer font-mono self-start"
 				>
 					Try again
 				</button>

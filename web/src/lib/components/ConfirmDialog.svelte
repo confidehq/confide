@@ -56,14 +56,14 @@
 					</span>
 					<h2
 						id="confirm-dialog-title"
-						class="m-0 text-base font-semibold text-text-bright leading-snug"
+						class="m-0 text-base font-semibold text-text leading-snug"
 					>{title}</h2>
 				</div>
 				<button
 					onclick={oncancel}
 					disabled={loading}
 					class="shrink-0 w-7 h-7 flex items-center justify-center rounded bg-transparent border-none cursor-pointer
-						text-muted-mid hover:text-text-body hover:bg-surface transition-colors duration-100
+						text-subtle hover:text-text hover:bg-surface transition-colors duration-100
 						disabled:pointer-events-none"
 					aria-label="Cancel"
 				>
@@ -73,7 +73,7 @@
 
 			<!-- Description -->
 			{#if description}
-				<p class="m-0 text-sm text-muted-dim leading-relaxed">{description}</p>
+				<p class="m-0 text-sm text-subtle leading-relaxed">{description}</p>
 			{/if}
 
 			<!-- Error -->
@@ -89,8 +89,8 @@
 				<button
 					onclick={oncancel}
 					disabled={loading}
-					class="px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded cursor-pointer
-						font-mono text-sm hover:text-text-body hover:border-muted-mid transition-colors duration-100
+					class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer
+						font-mono text-sm hover:text-text hover:border-muted transition-colors duration-100
 						disabled:pointer-events-none"
 				>Cancel</button>
 				<button
@@ -98,7 +98,7 @@
 					disabled={loading}
 					class="px-4 py-2 border-none rounded cursor-pointer font-mono text-sm transition-colors duration-100
 						{loading
-							? 'bg-muted-mid text-muted-dim cursor-not-allowed'
+							? 'bg-muted text-subtle cursor-not-allowed'
 							: 'bg-danger-text text-danger-text-dark hover:bg-danger-border'}"
 				>{loading ? (loadingLabel ?? 'Deleting…') : confirmLabel}</button>
 			</div>
@@ -114,8 +114,8 @@
 	}
 
 	.dialog {
-		background: var(--color-surface-subtle);
-		border: 1px solid var(--color-border-deep);
+		background: var(--color-canvas);
+		border: 1px solid var(--color-border);
 		border-radius: 10px;
 		padding: 1.25rem;
 		box-shadow:

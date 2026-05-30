@@ -193,7 +193,7 @@ function getOptionLabels(fieldId: string): string[] {
 </script>
 
 <main
-	style="background: {store.mode === 'preview' ? 'var(--color-form-surface)' : 'var(--color-surface)'};"
+	style="background: {store.mode === 'preview' ? 'var(--color-form-canvas)' : 'var(--color-canvas)'};"
 	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 min-w-0"
 	onclick={() => { store.setSelectedField(null); store.setSubmitButtonSelected(false); closeSlot(); }}
 	role="presentation"
@@ -227,7 +227,7 @@ function getOptionLabels(fieldId: string): string[] {
 					autoGrow(el);
 					store.updateTranslation(null, 'formHeadline', el.value);
 				}}
-				style="color: {store.activeTranslation?.formHeadline ? 'var(--color-muted)' : 'var(--color-border)'};"
+				style="color: {store.activeTranslation?.formHeadline ? 'var(--color-subtle)' : 'var(--color-border)'};"
 				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-semibold uppercase tracking-widest font-[inherit] px-1 py-0.5 mb-1"
 			></textarea>
 			<textarea
@@ -241,18 +241,29 @@ function getOptionLabels(fieldId: string): string[] {
 					autoGrow(el);
 					store.updateTranslation(null, 'formTitle', el.value);
 				}}
-				style="color: {store.activeTranslation?.formTitle ? 'var(--color-text-bright)' : 'var(--color-text-subtle)'};"
+				style="color: {store.activeTranslation?.formTitle ? 'var(--color-text)' : 'var(--color-text)'};"
 				class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-3xl font-semibold font-[inherit] px-1 py-0.5 mb-1.5"
 			></textarea>
-			<RichEditable
-				value={store.activeTranslation?.formDescription ?? ''}
-				placeholder={defaultLocaleDesc || 'Form description…'}
-				onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
-				onfocus={() => store.setSelectedField(null)}
-				style="color: {store.activeTranslation?.formDescription ? 'var(--color-muted)' : 'var(--color-border)'};"
-				class="block w-full box-border text-base font-[inherit] px-1 py-0.5"
-				onchange={(html) => store.updateTranslation(null, 'formDescription', html)}
-			/>
+			<div class="group/desc relative">
+				<RichEditable
+					value={store.activeTranslation?.formDescription ?? ''}
+					placeholder={defaultLocaleDesc || 'Form description…'}
+					onclick={(e) => { e.stopPropagation(); store.setSelectedField(null); }}
+					onfocus={() => store.setSelectedField(null)}
+					style="color: {store.activeTranslation?.formDescription ? 'var(--color-subtle)' : 'var(--color-border)'};"
+					class="block w-full box-border text-base font-[inherit] px-1 py-0.5"
+					onchange={(html) => store.updateTranslation(null, 'formDescription', html)}
+				/>
+				{#if store.activeTranslation?.formDescription}
+					<button
+						onclick={(e) => { e.stopPropagation(); store.updateTranslation(null, 'formDescription', ''); }}
+						class="absolute top-1 right-0 p-1 opacity-0 group-hover/desc:opacity-100 transition-opacity text-[var(--color-border)] hover:text-[var(--color-subtle)] cursor-pointer bg-transparent border-none"
+						title="Clear description"
+					>
+						<Trash2 size={14} strokeWidth={1.75} />
+					</button>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Backdrop to close popover -->
@@ -261,10 +272,10 @@ function getOptionLabels(fieldId: string): string[] {
 		{/if}
 
 		{#if fields.length === 0}
-		<div class="flex flex-col items-center justify-center min-h-72 border-2 border-dashed border-border rounded-lg text-muted-dark">
+		<div class="flex flex-col items-center justify-center min-h-72 border-2 border-dashed border-border rounded-lg text-subtle">
 			<button
 				onclick={(e) => openSlot(e, -1)}
-				class="flex items-center gap-2 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm px-4 py-2.5 transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
+				class="flex items-center gap-2 bg-transparent border border-dashed border-border rounded-md text-subtle cursor-pointer font-mono text-sm px-4 py-2.5 transition-[color,border-color] duration-100 hover:text-subtle hover:border-text-subtle"
 			>
 				<Plus size={14} strokeWidth={2} />
 				Add first field
@@ -302,12 +313,12 @@ function getOptionLabels(fieldId: string): string[] {
 					<div
 						role="none"
 						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'transparent'}; cursor: default;"
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-canvas)' : 'transparent'}; cursor: default;"
 						class="flex items-center gap-3 px-3 py-2 border rounded-md"
 					>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-							class="bg-transparent border-none text-muted-dark cursor-grab flex p-0"
+							class="bg-transparent border-none text-subtle cursor-grab flex p-0"
 							aria-label="Field settings"
 						><GripVertical size={15} strokeWidth={1.75} /></button>
 						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
@@ -317,19 +328,19 @@ function getOptionLabels(fieldId: string): string[] {
 								onclick={(e) => e.stopPropagation()}
 								onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 								onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-								style="color: {label ? 'var(--color-muted)' : undefined};"
-								class="relative z-[1] text-muted text-sm font-mono text-center px-2 py-0 min-w-20 max-w-48"
+								style="color: {label ? 'var(--color-subtle)' : undefined};"
+								class="relative z-[1] text-subtle text-sm font-mono text-center px-2 py-0 min-w-20 max-w-48"
 								onchange={(html) => store.updateTranslation(field.id, 'label', html)}
 							/>
 						</div>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
-							class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 hover:text-muted transition-colors duration-100"
+							class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 hover:text-subtle transition-colors duration-100"
 							aria-label="Duplicate field" title="Duplicate field"
 						><Copy size={15} strokeWidth={1.75} /></button>
 						<button
 							onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-							class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 hover:text-muted transition-colors duration-100"
+							class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 hover:text-subtle transition-colors duration-100"
 							aria-label="Delete field" title="Delete field"
 						><Trash2 size={15} strokeWidth={1.75} /></button>
 					</div>
@@ -343,29 +354,29 @@ function getOptionLabels(fieldId: string): string[] {
 					<div
 						role="none"
 						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border-field)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'}; cursor: default;"
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-canvas)' : 'var(--color-canvas)'}; cursor: default;"
 						class="px-3 py-2 border rounded-md"
 					>
 						<div class="flex items-center gap-2 mb-1.5">
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
 								aria-label="Field settings"
 							><GripVertical size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="px-1.5 py-px bg-surface text-muted-dark rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface-hover transition-colors duration-100"
+								class="px-1.5 py-px bg-canvas text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface transition-colors duration-100"
 								aria-label="Open field settings"
 							>{headingBadge}</button>
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Duplicate field" title="Duplicate field"
 							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Delete field" title="Delete field"
 							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
@@ -375,7 +386,7 @@ function getOptionLabels(fieldId: string): string[] {
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-							style="color: {headingLevel === 4 ? (label ? 'var(--color-muted)' : 'var(--color-border)') : (label ? 'var(--color-text-bright)' : undefined)}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
+							style="color: {headingLevel === 4 ? (label ? 'var(--color-subtle)' : 'var(--color-border)') : (label ? 'var(--color-text)' : undefined)}; font-size: {headingSizes[headingLevel]}; font-weight: {headingWeights[headingLevel]};"
 							class="block w-full box-border cursor-text font-[inherit] px-1 py-0.5 leading-relaxed"
 							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
 						/>
@@ -406,7 +417,7 @@ function getOptionLabels(fieldId: string): string[] {
 						<div class="flex items-center gap-2 mb-1.5">
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
 								aria-label="Field settings"
 							><GripVertical size={15} strokeWidth={1.75} /></button>
 							<button
@@ -418,12 +429,12 @@ function getOptionLabels(fieldId: string): string[] {
 							<span class="flex-1"></span>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Duplicate field" title="Duplicate field"
 							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Delete field" title="Delete field"
 							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
@@ -442,7 +453,7 @@ function getOptionLabels(fieldId: string): string[] {
 							placeholder={defaultHelpText || 'Body text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							style="color: {helpText ? 'var(--color-text-note)' : 'var(--color-text-subtle)'};"
+							style="color: {helpText ? 'var(--color-text)' : 'var(--color-text)'};"
 							class="block w-full box-border cursor-text text-sm font-[inherit] px-1 py-0.5 leading-relaxed"
 							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
 						/>
@@ -453,20 +464,20 @@ function getOptionLabels(fieldId: string): string[] {
 					<div
 						role="none"
 						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-surface-selected)' : 'var(--color-surface)'}; cursor: default;"
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-canvas)' : 'var(--color-canvas)'}; cursor: default;"
 						class="px-4 py-3.5 border rounded-md"
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
 						<div class="flex items-center gap-2 mb-3">
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-grab shrink-0 flex p-0"
+								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
 								aria-label="Field settings"
 							><GripVertical size={15} strokeWidth={1.75} /></button>
 
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="px-2 py-0.5 bg-border text-muted rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface-hover transition-colors duration-100"
+								class="px-2 py-0.5 bg-border text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface transition-colors duration-100"
 								aria-label="Open field settings"
 							>
 								{FIELD_TYPE_LABELS[field.type] ?? field.type}
@@ -483,18 +494,18 @@ function getOptionLabels(fieldId: string): string[] {
 							<button
 								onclick={(e) => { e.stopPropagation(); store.updateField(field.id, { required: !field.required }); }}
 								title={field.required ? 'Mark as optional' : 'Mark as required'}
-								style={field.required ? 'background: var(--color-info-bg-dark); color: var(--color-text-blue);' : 'background: transparent; color: var(--color-muted-dark);'}
+								style={field.required ? 'background: var(--color-info-bg-dark); color: var(--color-text);' : 'background: transparent; color: var(--color-subtle);'}
 								class="px-1.5 py-0.5 border-none rounded-full text-xs shrink-0 cursor-pointer font-mono transition-colors duration-100 hover:opacity-80"
 							>{field.required ? 'required' : 'optional'}</button>
 
 							<button
 								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Duplicate field" title="Duplicate field"
 							><Copy size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-								class="bg-transparent border-none text-muted-dark cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-muted transition-colors duration-100"
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 								aria-label="Delete field" title="Delete field"
 							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
@@ -517,7 +528,7 @@ function getOptionLabels(fieldId: string): string[] {
 							placeholder={defaultHelpText || 'Add help text…'}
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-							style="color: {helpText ? 'var(--color-muted)' : 'var(--color-text-subtle)'};"
+							style="color: {helpText ? 'var(--color-subtle)' : 'var(--color-text)'};"
 							class="block w-full box-border text-sm font-[inherit] px-1 py-0.5 cursor-text"
 							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
 						/>
@@ -525,7 +536,7 @@ function getOptionLabels(fieldId: string): string[] {
 						<!-- Placeholder inline editor (text fields only) -->
 						{#if hasPlaceholder}
 							<div class="mt-3">
-								<div class="bg-surface-input border border-border-field rounded px-1.5 pt-0.5 pb-0.5">
+								<div class="bg-canvas border border-border rounded px-1.5 pt-0.5 pb-0.5">
 									<textarea
 										rows={1}
 										value={placeholder}
@@ -537,7 +548,7 @@ function getOptionLabels(fieldId: string): string[] {
 											autoGrow(el);
 											store.updateTranslation(field.id, 'placeholder', el.value);
 										}}
-										style="color: {placeholder ? 'var(--color-muted-dark)' : 'var(--color-border)'};"
+										style="color: {placeholder ? 'var(--color-subtle)' : 'var(--color-border)'};"
 										class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-[inherit] py-1 cursor-text italic"
 									></textarea>
 								</div>
@@ -551,12 +562,12 @@ function getOptionLabels(fieldId: string): string[] {
 							{@const isCheckbox = field.type === 'checkboxes'}
 							<div
 								onclick={(e) => e.stopPropagation()}
-								class="mt-3 border-t border-border-field pt-3 flex flex-col gap-0.5"
+								class="mt-3 border-t border-border pt-3 flex flex-col gap-0.5"
 							>
 								{#each optionLabels as optLabel, i}
 									{@const opt = (field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig).options?.[i]}
 									<div
-										class="flex items-center gap-2 px-1.5 py-1 rounded transition-[background] duration-100 hover:bg-surface-item-hover"
+										class="flex items-center gap-2 px-1.5 py-1 rounded transition-[background] duration-100 hover:bg-surface"
 										role="none"
 									>
 										<!-- Type indicator -->
@@ -565,7 +576,7 @@ function getOptionLabels(fieldId: string): string[] {
 										{:else if isCheckbox}
 											<span class="inline-block shrink-0 w-3 h-3 border-[1.5px] border-text-subtle rounded-sm"></span>
 										{:else}
-											<span class="text-muted-dark text-xs font-mono shrink-0 w-3.5 text-right">{i + 1}.</span>
+											<span class="text-subtle text-xs font-mono shrink-0 w-3.5 text-right">{i + 1}.</span>
 										{/if}
 										<input
 											type="text"
@@ -573,12 +584,12 @@ function getOptionLabels(fieldId: string): string[] {
 											placeholder={getDefaultOptionLabel(field.id, i) || `Option ${i + 1}`}
 											onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 											oninput={(e) => setOptionLabel(field.id, i, (e.target as HTMLInputElement).value)}
-											style="color: {optLabel ? 'var(--color-text-dim)' : 'var(--color-text-subtle)'};"
+											style="color: {optLabel ? 'var(--color-text)' : 'var(--color-text)'};"
 											class="flex-1 min-w-0 bg-transparent border-none outline-none text-sm font-[inherit] py-px"
 										/>
 										<button
 											onclick={(e) => { e.stopPropagation(); if (opt) removeOption(field.id, opt.id); }}
-											class="bg-transparent border-none text-border cursor-pointer flex items-center px-0.5 shrink-0 hover:text-muted-dark transition-colors duration-100"
+											class="bg-transparent border-none text-border cursor-pointer flex items-center px-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
 											aria-label="Remove option" title="Remove option"
 										><Trash2 size={15} strokeWidth={1.75} /></button>
 									</div>
@@ -586,12 +597,12 @@ function getOptionLabels(fieldId: string): string[] {
 								{#if isMultiple && (field.config as MultipleChoiceConfig).allowOther}
 									<div class="flex items-center gap-2 px-1.5 py-1 rounded opacity-50 select-none">
 										<span class="inline-block shrink-0 w-3 h-3 border-[1.5px] border-text-subtle rounded-full"></span>
-										<span class="text-sm font-[inherit] text-text-subtle py-px">Other…</span>
+										<span class="text-sm font-[inherit] text-text py-px">Other…</span>
 									</div>
 								{/if}
 								<button
 									onclick={(e) => { e.stopPropagation(); addOption(field.id); }}
-									class="self-start bg-transparent border-none text-muted-dark text-sm cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-muted"
+									class="self-start bg-transparent border-none text-subtle text-sm cursor-pointer font-[inherit] px-1.5 py-1 mt-0.5 rounded transition-colors duration-100 hover:text-subtle"
 								>+ Add option</button>
 							</div>
 						{/if}
@@ -601,7 +612,7 @@ function getOptionLabels(fieldId: string): string[] {
 							{@const cfg = field.config as RatingConfig}
 							{@const scale = cfg.scale ?? 5}
 							{@const activeUp = ratingHover?.fieldId === field.id ? ratingHover.value : 0}
-							<div class="mt-3 border-t border-border-field pt-3">
+							<div class="mt-3 border-t border-border pt-3">
 								<div
 									class="flex gap-1.5 flex-wrap items-center"
 									onmouseleave={() => ratingHover = null}
@@ -612,9 +623,9 @@ function getOptionLabels(fieldId: string): string[] {
 										{#if cfg.shape === 'number'}
 											<span
 												style="
-													border-color: {lit ? 'var(--color-info-border)' : 'var(--color-border-field)'};
-													background: var(--color-surface-subtle);
-													color: {lit ? 'var(--color-text-blue)' : 'var(--color-muted-dark)'};
+													border-color: {lit ? 'var(--color-info-border)' : 'var(--color-border)'};
+													background: var(--color-canvas);
+													color: {lit ? 'var(--color-text)' : 'var(--color-subtle)'};
 												"
 												class="inline-flex items-center justify-center w-8 h-8 border rounded-md text-sm font-mono cursor-default transition-[background,border-color,color] duration-100"
 												onmouseenter={() => ratingHover = { fieldId: field.id, value: i + 1 }}
@@ -622,7 +633,7 @@ function getOptionLabels(fieldId: string): string[] {
 											>{i + 1}</span>
 										{:else}
 											<span
-												style="color: {lit ? 'var(--color-warning-border)' : 'var(--color-text-subtle)'};"
+												style="color: {lit ? 'var(--color-warning-border)' : 'var(--color-text)'};"
 												class="text-2xl leading-none cursor-default transition-colors duration-100"
 												onmouseenter={() => ratingHover = { fieldId: field.id, value: i + 1 }}
 												role="none"
@@ -638,10 +649,10 @@ function getOptionLabels(fieldId: string): string[] {
 						{#if isDateTime}
 							{@const cfg = field.config as import('$lib/types/builder').DateTimeConfig}
 							{@const mode = cfg.mode ?? 'date'}
-							<div class="mt-3 border-t border-border-field pt-3">
+							<div class="mt-3 border-t border-border pt-3">
 								<div class="flex gap-2">
 									{#if mode === 'date' || mode === 'datetime'}
-										<div class="flex-1 flex items-center gap-2 bg-surface-input border border-border-field rounded px-2.5 py-1.5">
+										<div class="flex-1 flex items-center gap-2 bg-canvas border border-border rounded px-2.5 py-1.5">
 											<span class="text-border flex shrink-0">
 												<Calendar size={14} strokeWidth={1.75} />
 											</span>
@@ -651,7 +662,7 @@ function getOptionLabels(fieldId: string): string[] {
 									{#if mode === 'time' || mode === 'datetime'}
 										<div
 											style="flex: {mode === 'datetime' ? '0 0 auto' : '1'};"
-											class="flex items-center gap-2 bg-surface-input border border-border-field rounded px-2.5 py-1.5"
+											class="flex items-center gap-2 bg-canvas border border-border rounded px-2.5 py-1.5"
 										>
 											<span class="text-border flex shrink-0">
 												<Clock size={14} strokeWidth={1.75} />
@@ -677,11 +688,11 @@ function getOptionLabels(fieldId: string): string[] {
 	{#if store.mode !== 'preview' && fields.length > 0}
 	<div
 		class="fixed sm:sticky bottom-[76px] sm:bottom-0 left-3 right-3 sm:left-auto sm:right-auto sm:w-full max-w-4xl sm:mx-auto pt-3 pb-3 z-10"
-		style="background: linear-gradient(to bottom, transparent, var(--color-surface) 40%);"
+		style="background: linear-gradient(to bottom, transparent, var(--color-canvas) 40%);"
 	>
 		<button
 			onclick={(e) => openSlot(e, fields.length > 0 ? fields.length - 1 : -1, 'above')}
-			class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-muted-dark cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-muted hover:border-text-subtle"
+			class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-subtle cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-subtle hover:border-text-subtle"
 		>
 			<Plus size={14} strokeWidth={2} />
 			Add field
@@ -723,14 +734,14 @@ function getOptionLabels(fieldId: string): string[] {
 	{#if insertSlot !== null && popoverAnchor}
 		<div
 			style="top: {popoverAnchor.top}px; left: {popoverAnchor.left}px;"
-			class="fixed bg-surface border border-border-field rounded-lg p-1.5 z-50 shadow-[0_8px_32px_var(--color-overlay)] grid grid-cols-2 gap-0.5 w-72"
+			class="fixed bg-canvas border border-border rounded-lg p-1.5 z-50 shadow-[0_8px_32px_var(--color-overlay)] grid grid-cols-2 gap-0.5 w-72"
 		>
 			{#each fieldPalette as item}
 				<button
 					onclick={() => pickField(item.type)}
-					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-muted cursor-pointer font-mono text-sm text-left transition-[background,color] duration-100 hover:bg-surface-popover-hover hover:text-text-dim"
+					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-subtle cursor-pointer font-mono text-sm text-left transition-[background,color] duration-100 hover:bg-surface hover:text-text"
 				>
-					<span class="shrink-0 text-muted-dim">
+					<span class="shrink-0 text-subtle">
 						<svelte:component this={item.icon} size={14} strokeWidth={1.75} />
 					</span>
 					{item.label}

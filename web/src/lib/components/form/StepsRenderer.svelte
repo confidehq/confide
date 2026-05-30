@@ -168,7 +168,7 @@
 
 	{#if currentStep === 0}
 		<div class="flex justify-between items-center mb-4">
-			<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-form-surface border border-form-border text-xs text-form-muted">
+			<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-form-canvas border border-form-border text-xs text-form-muted">
 				<ShieldCheck size={12} strokeWidth={2} class="text-form-primary shrink-0" />
 				<span class="sm:hidden">Your response is encrypted</span>
 			<span class="hidden sm:inline">Your response is end-to-end encrypted</span>
@@ -180,7 +180,7 @@
 					<select
 						value={locale}
 						onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
-						class="appearance-none pl-7 pr-5 py-1 text-xs rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40 uppercase"
+						class="appearance-none pl-7 pr-5 py-1 text-xs rounded-md border border-form-border bg-form-canvas text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40 uppercase"
 					>
 						{#each locales as code (code)}
 							<option value={code}>{code.toUpperCase()}</option>
@@ -196,7 +196,7 @@
 					<select
 						value={locale}
 						onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
-						class="appearance-none pl-8 pr-7 py-1.5 text-sm rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40"
+						class="appearance-none pl-8 pr-7 py-1.5 text-sm rounded-md border border-form-border bg-form-canvas text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40"
 					>
 						{#each locales as code (code)}
 							<option value={code}>
@@ -241,7 +241,7 @@
 			<button
 				type="button"
 				onclick={handleBack}
-				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-canvas transition-colors duration-100"
 			>
 				← Back
 			</button>

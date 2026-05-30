@@ -88,7 +88,7 @@
 			<button
 				type="button"
 				onclick={() => { currentStep = Math.max(currentStep - 1, 0); }}
-				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-surface transition-colors duration-100"
+				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-canvas transition-colors duration-100"
 			>
 				← Back
 			</button>

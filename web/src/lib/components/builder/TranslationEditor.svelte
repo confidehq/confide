@@ -60,7 +60,7 @@
 <div class="flex flex-col gap-3.5">
 	<!-- Label -->
 	<div>
-		<label class="block text-xs text-muted mb-1">
+		<label class="block text-xs text-subtle mb-1">
 			Label {#if !currentFieldTranslation?.label}<span class="text-warning-border">*</span>{/if}
 		</label>
 		<textarea
@@ -70,7 +70,7 @@
 			class="input-base {!currentFieldTranslation?.label ? '!border-warning-text' : ''}"
 		></textarea>
 		{#if isNonDefaultLocale && defaultLocaleTranslation?.label}
-			<p class="mt-1 m-0 text-sm text-muted-dark">
+			<p class="mt-1 m-0 text-sm text-subtle">
 				{store.schema.defaultLocale}: {defaultLocaleTranslation.label}
 			</p>
 		{/if}
@@ -79,7 +79,7 @@
 	<!-- Options (for choice fields) -->
 	{#if hasOptions}
 		<div>
-			<label class="block text-xs text-muted mb-1">Options</label>
+			<label class="block text-xs text-subtle mb-1">Options</label>
 			<div class="flex flex-col gap-1.5">
 				{#each { length: optionsCount } as _, i}
 					<div>
@@ -91,7 +91,7 @@
 							class="input-base text-xs {!getOptionLabel(i) ? '!border-warning-text' : ''}"
 						/>
 						{#if isNonDefaultLocale && getDefaultOptionLabel(i)}
-							<p class="mt-0.5 m-0 text-sm text-muted-dark">
+							<p class="mt-0.5 m-0 text-sm text-subtle">
 								{store.schema.defaultLocale}: {getDefaultOptionLabel(i)}
 							</p>
 						{/if}

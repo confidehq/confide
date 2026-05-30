@@ -199,16 +199,16 @@
 	class="form-settings-panel {store.showFormSettings ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
 		sm:absolute sm:top-2 sm:bottom-2 sm:left-auto sm:right-2 sm:w-96 sm:max-h-none sm:rounded-xl
-		bg-canvas border border-border-deep overflow-y-auto z-20 flex flex-col"
+		bg-base border border-border overflow-y-auto z-20 flex flex-col"
 >
 	<!-- Mobile drag handle -->
-	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-canvas">
+	<div class="sm:hidden flex justify-center pt-2.5 pb-1 shrink-0 sticky top-0 bg-base">
 		<div class="w-8 h-1 bg-border rounded-full"></div>
 	</div>
 
 	<!-- Header -->
-	<div class="flex items-center px-5 h-9 shrink-0 border-b border-border-deep sticky top-0 bg-canvas z-10">
-		<p class="m-0 text-sm text-muted-dark uppercase tracking-[0.05em]">Settings</p>
+	<div class="flex items-center px-5 h-9 shrink-0 border-b border-border sticky top-0 bg-base z-10">
+		<p class="m-0 text-sm text-subtle uppercase tracking-[0.05em]">Settings</p>
 	</div>
 
 	<!-- Scrollable content -->
@@ -219,12 +219,12 @@
 		<div class="flex flex-col gap-3">
 				{#if store.formStatus === 'draft'}
 					<div class="py-4 flex flex-col items-center gap-2 text-center">
-						<p class="m-0 text-sm text-text-dim">This form is unpublished</p>
-						<p class="m-0 text-xs text-muted-dark">Publish to make it accessible and get a share link.</p>
+						<p class="m-0 text-sm text-text">This form is unpublished</p>
+						<p class="m-0 text-xs text-subtle">Publish to make it accessible and get a share link.</p>
 					</div>
 				{:else if shareUrlLoading || !shareUrl}
 					<div class="py-4 flex flex-col items-center gap-2 text-center">
-						<p class="m-0 text-xs text-muted-dark">Loading link…</p>
+						<p class="m-0 text-xs text-subtle">Loading link…</p>
 					</div>
 				{:else}
 					<div class="flex gap-1.5">
@@ -232,7 +232,7 @@
 							type="text"
 							readonly
 							value={shareUrl}
-							class="flex-1 px-3 py-2 bg-surface border border-border-deep text-text-dim rounded-md font-mono text-sm outline-none min-w-0"
+							class="flex-1 px-3 py-2 bg-canvas border border-border text-text rounded-md font-mono text-sm outline-none min-w-0"
 						/>
 						<button
 							onclick={copyShareUrl}
@@ -251,21 +251,21 @@
 					{#if store.formStatus === 'closed'}
 						<p class="m-0 text-xs text-closed-text">This form is closed — the link is active but not accepting responses.</p>
 					{:else}
-						<p class="m-0 text-xs text-muted-dark">Anyone with the link can access this form.</p>
+						<p class="m-0 text-xs text-subtle">Anyone with the link can access this form.</p>
 					{/if}
 
 					{#if workspaceDomain?.enabled && workspaceDomain.domain}
-						<p class="m-0 text-xs text-muted-dark font-mono">
-							Served on <span class="text-text-dim">{workspaceDomain.domain}</span>
+						<p class="m-0 text-xs text-subtle font-mono">
+							Served on <span class="text-text">{workspaceDomain.domain}</span>
 						</p>
 					{/if}
 
 					<!-- QR Code section -->
-					<div class="border-t border-border-deep pt-3 flex flex-col gap-2">
+					<div class="border-t border-border pt-3 flex flex-col gap-2">
 						{#if !qrVisible}
 							<button
 								onclick={showQRCode}
-								class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100"
+								class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border transition-colors duration-100"
 							>
 								<QrCode size={13} strokeWidth={1.75} />Get QR code
 							</button>
@@ -274,20 +274,20 @@
 								<canvas bind:this={qrCanvas} class="rounded-md"></canvas>
 								<button
 									onclick={downloadQR}
-									class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text-dim hover:border-border transition-colors duration-100 w-full justify-center"
+									class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm flex items-center gap-1.5 hover:text-text hover:border-border transition-colors duration-100 w-full justify-center"
 								>
 									<Download size={13} strokeWidth={1.75} />Download PNG
 								</button>
 								<button
 									onclick={() => { qrVisible = false; }}
-									class="text-xs text-muted-dark hover:text-muted cursor-pointer bg-transparent border-none"
+									class="text-xs text-subtle hover:text-subtle cursor-pointer bg-transparent border-none"
 								>Hide</button>
 							</div>
 						{/if}
 						{#if qrError}
 							<p class="m-0 text-xs text-error">{qrError}</p>
 						{/if}
-						<p class="m-0 text-xs text-muted-dark">QR code stays valid when you edit your form. Rotating your link will require a new QR code.</p>
+						<p class="m-0 text-xs text-subtle">QR code stays valid when you edit your form. Rotating your link will require a new QR code.</p>
 					</div>
 
 					<div class="h-px bg-border-deep"></div>
@@ -295,8 +295,8 @@
 					<button
 						onclick={() => { confirmRotate = true; }}
 						disabled={publishing}
-						class="px-3 py-2 bg-transparent text-muted border border-border-deep rounded-md cursor-pointer font-mono text-sm
-							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text-dim hover:border-border transition-colors duration-100'}"
+						class="px-3 py-2 bg-transparent text-subtle border border-border rounded-md cursor-pointer font-mono text-sm
+							{publishing ? 'cursor-not-allowed opacity-60' : 'hover:text-text hover:border-border transition-colors duration-100'}"
 					>Generate new link</button>
 				{/if}
 			</div>
@@ -308,9 +308,9 @@
 		<!-- Locale switcher — mobile only (desktop: in toolbar) -->
 		{#if store.schema.locales.length > 1}
 			<div class="sm:hidden">
-				<label class="block text-xs text-muted-mid mb-1.5 uppercase tracking-wider">Language</label>
+				<label class="block text-xs text-subtle mb-1.5 uppercase tracking-wider">Language</label>
 				<div class="relative">
-					<Languages size={13} strokeWidth={1.75} class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-dark" />
+					<Languages size={13} strokeWidth={1.75} class="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-subtle" />
 					<select
 						value={store.activeLocale}
 						onchange={(e) => store.setActiveLocale((e.target as HTMLSelectElement).value)}
@@ -322,7 +322,7 @@
 							</option>
 						{/each}
 					</select>
-					<span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none flex text-muted-dark">
+					<span class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none flex text-subtle">
 						<ChevronDown size={12} strokeWidth={1.75} />
 					</span>
 				</div>
@@ -331,8 +331,8 @@
 
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="m-0 text-sm text-text-dim">Custom completion message</p>
-				<p class="m-0 text-xs text-muted-dark mt-0.5">Show a message after respondents submit.</p>
+				<p class="m-0 text-sm text-text">Custom completion message</p>
+				<p class="m-0 text-xs text-subtle mt-0.5">Show a message after respondents submit.</p>
 			</div>
 			<button
 				role="switch"
@@ -364,7 +364,7 @@
 
 		{#if isConvo}
 			<div class="flex items-center justify-between">
-				<label class="text-sm text-text-dim">Allow edit after submit</label>
+				<label class="text-sm text-text">Allow edit after submit</label>
 				<input
 					type="checkbox"
 					checked={store.schema.convoAllowEdit ?? false}
@@ -374,11 +374,11 @@
 		{/if}
 
 		<!-- Branding -->
-		<div class="border-t border-border-deep pt-4">
+		<div class="border-t border-border pt-4">
 			<div class="flex items-center justify-between gap-3">
 				<div>
-					<p class="m-0 text-sm text-text-dim">Show Confide watermark</p>
-					<p class="m-0 text-xs text-muted-dark mt-0.5">
+					<p class="m-0 text-sm text-text">Show Confide watermark</p>
+					<p class="m-0 text-xs text-subtle mt-0.5">
 						{#if access.can('whitelabel')}
 							Display the Confide logo at the bottom of the form.
 						{:else}
@@ -402,11 +402,11 @@
 		</div>
 
 		<!-- Legal text / Impressum -->
-		<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
+		<div class="border-t border-border pt-4 flex flex-col gap-3">
 			<div class="flex items-center justify-between gap-3">
 				<div>
-					<p class="m-0 text-sm text-text-dim">Legal / Impressum</p>
-					<p class="m-0 text-xs text-muted-dark mt-0.5">Footer shown on every submission page.</p>
+					<p class="m-0 text-sm text-text">Legal / Impressum</p>
+					<p class="m-0 text-xs text-subtle mt-0.5">Footer shown on every submission page.</p>
 				</div>
 				<button
 					role="switch"
@@ -441,21 +441,21 @@
 					<button
 						type="button"
 						onclick={() => store.setLegalText(workspaceLegalDefault)}
-						class="self-start text-xs text-muted-dark hover:text-muted cursor-pointer bg-transparent border-none px-0 py-0"
+						class="self-start text-xs text-subtle hover:text-subtle cursor-pointer bg-transparent border-none px-0 py-0"
 					>Use workspace default</button>
 				{/if}
 			{/if}
 		</div>
 
 		<!-- Scheduling options -->
-		<div class="border-t border-border-deep pt-4 flex flex-col divide-y divide-border-deep">
+		<div class="border-t border-border pt-4 flex flex-col divide-y divide-border-deep">
 
 			<!-- Close on date -->
 			<div class="py-3 first:pt-0">
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<p class="m-0 text-sm text-text-dim">Close on date</p>
-						<p class="m-0 text-xs text-muted-dark mt-0.5">Stop accepting responses after a date.</p>
+						<p class="m-0 text-sm text-text">Close on date</p>
+						<p class="m-0 text-xs text-subtle mt-0.5">Stop accepting responses after a date.</p>
 					</div>
 					<button
 						role="switch"
@@ -494,8 +494,8 @@
 			<div class="py-3">
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<p class="m-0 text-sm text-text-dim">Limit total responses</p>
-						<p class="m-0 text-xs text-muted-dark mt-0.5">Close after a set number of submissions.</p>
+						<p class="m-0 text-sm text-text">Limit total responses</p>
+						<p class="m-0 text-xs text-subtle mt-0.5">Close after a set number of submissions.</p>
 					</div>
 					<button
 						role="switch"
@@ -536,8 +536,8 @@
 			<div class="py-3">
 				<div class="flex items-center justify-between gap-3">
 					<div>
-						<p class="m-0 text-sm text-text-dim">Auto delete responses</p>
-						<p class="m-0 text-xs text-muted-dark mt-0.5">Remove responses from our servers after a set period.</p>
+						<p class="m-0 text-sm text-text">Auto delete responses</p>
+						<p class="m-0 text-xs text-subtle mt-0.5">Remove responses from our servers after a set period.</p>
 					</div>
 					<button
 						role="switch"
@@ -583,10 +583,10 @@
 									}}
 									class="input-base"
 								/>
-								<span class="text-sm text-muted shrink-0">days</span>
+								<span class="text-sm text-subtle shrink-0">days</span>
 							</div>
 						{:else if responseLifetimePolicy === 'burn'}
-							<p class="m-0 text-xs text-muted-dark leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
+							<p class="m-0 text-xs text-subtle leading-relaxed">Responses are scheduled for deletion once you view them. They remain visible until the next cleanup pass.</p>
 						{/if}
 					</div>
 				{/if}
@@ -595,24 +595,24 @@
 		</div>
 
 		<!-- Languages -->
-		<div class="border-t border-border-deep pt-4 flex flex-col gap-3">
+		<div class="border-t border-border pt-4 flex flex-col gap-3">
 			<div>
-				<p class="m-0 text-sm text-text-dim">Support languages</p>
-				<p class="m-0 text-xs text-muted-dark mt-0.5">Add languages to provide translated versions of this form.</p>
+				<p class="m-0 text-sm text-text">Support languages</p>
+				<p class="m-0 text-xs text-subtle mt-0.5">Add languages to provide translated versions of this form.</p>
 			</div>
 
 			<!-- Added locales -->
 			<div class="flex flex-col gap-1.5">
 				{#each store.schema.locales as locale (locale)}
-					<div class="flex items-center justify-between gap-2 px-3 py-2 bg-surface border border-border-deep rounded-md">
-						<span class="text-sm text-text-dim font-mono">{languageName(locale)}</span>
+					<div class="flex items-center justify-between gap-2 px-3 py-2 bg-canvas border border-border rounded-md">
+						<span class="text-sm text-text font-mono">{languageName(locale)}</span>
 						{#if locale === store.schema.defaultLocale}
-							<span class="text-xs text-muted-dark">default</span>
+							<span class="text-xs text-subtle">default</span>
 						{:else}
 							<button
 								onclick={() => { confirmRemoveLocale = locale; }}
 								class="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none cursor-pointer
-									text-muted hover:text-error-light hover:bg-danger-bg-dark transition-colors duration-100"
+									text-subtle hover:text-error-light hover:bg-danger-bg-dark transition-colors duration-100"
 								aria-label="Remove {languageName(locale)}"
 							>
 								<X size={12} strokeWidth={2} />
@@ -626,7 +626,7 @@
 			{#if availableLanguages.length > 0}
 				<select
 					onchange={handleAddLanguage}
-					class="input-base text-muted-dark"
+					class="input-base text-subtle"
 				>
 					<option value="">Add a language…</option>
 					{#each availableLanguages as lang (lang.code)}
@@ -637,7 +637,7 @@
 		</div>
 
 		{#if expirationSaving}
-			<p class="m-0 text-xs text-muted-dark">Saving…</p>
+			<p class="m-0 text-xs text-subtle">Saving…</p>
 		{:else if expirationError}
 			<p class="m-0 text-xs text-error">{expirationError}</p>
 		{/if}
@@ -664,7 +664,7 @@
 	/>
 
 	<!-- Sticky publish button -->
-	<div class="shrink-0 p-3 border-t border-border-deep bg-canvas">
+	<div class="shrink-0 p-3 border-t border-border bg-base">
 		{#if publishError}
 			<p class="m-0 mb-2 text-xs text-error-light">{publishError}</p>
 		{/if}

@@ -43,14 +43,14 @@
 	<title>Creating form…</title>
 </svelte:head>
 
-<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-text-dim">
+<div class="font-mono flex flex-col items-center justify-center flex-1 bg-base text-text">
 	{#if status === 'creating'}
-		<p class="text-muted text-sm">Creating form…</p>
+		<p class="text-subtle text-sm">Creating form…</p>
 	{:else}
 		<p class="text-error-light text-sm mb-4">
 			Failed to create form: {errorMessage}
 		</p>
-		<a href="/forms" class="text-muted-dark text-sm no-underline">
+		<a href="/forms" class="text-subtle text-sm no-underline">
 			← Go back to forms
 		</a>
 	{/if}

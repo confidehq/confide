@@ -109,7 +109,7 @@
 			title={workspacesStore.active?.name ?? 'Workspace'}
 			class="w-full flex items-center justify-center py-1"
 		>
-			<span class="w-8 h-8 rounded-md flex items-center justify-center bg-surface-deep border border-border text-text-blue text-sm font-semibold select-none">
+			<span class="w-8 h-8 rounded-md flex items-center justify-center bg-canvas border border-border text-text text-sm font-semibold select-none">
 				{workspacesStore.active ? initials(workspacesStore.active.name) : '…'}
 			</span>
 		</button>
@@ -120,7 +120,7 @@
 			onclick={openDropdown}
 			class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface transition-colors duration-100 group text-left"
 		>
-			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-surface-deep border border-border text-text-blue text-sm font-semibold select-none">
+			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-canvas border border-border text-text text-sm font-semibold select-none">
 				{#if workspacesStore.loading && !workspacesStore.loaded}
 					…
 				{:else}
@@ -129,16 +129,16 @@
 			</span>
 
 			<span class="flex-1 min-w-0">
-				<span class="block text-text-body truncate leading-tight font-medium">
+				<span class="block text-text truncate leading-tight font-medium">
 					{workspacesStore.active?.name ?? (workspacesStore.loading ? 'Loading…' : 'No workspace')}
 				</span>
 				{#if workspacesStore.active}
 					<span class="block text-sm leading-tight capitalize
 						{workspacesStore.active.plan === 'pro'
 							? workspacesStore.active.planStatus === 'active' || workspacesStore.active.planStatus === 'canceling'
-								? 'text-success-text-dark'
+								? 'text-success'
 								: 'text-error-light'
-							: 'text-muted-dim'}">
+							: 'text-subtle'}">
 						{planLabel(workspacesStore.active.plan, workspacesStore.active.planStatus)}
 					</span>
 				{/if}
@@ -147,7 +147,7 @@
 			<ChevronsUpDown
 				size={13}
 				strokeWidth={1.75}
-				class="shrink-0 text-muted-mid group-hover:text-muted-dim transition-colors duration-100"
+				class="shrink-0 text-subtle group-hover:text-subtle transition-colors duration-100"
 			/>
 		</button>
 	{/if}
@@ -157,14 +157,14 @@
 {#if dropdownOpen && !sidebar.collapsed}
 	<div
 		style="position: fixed; left: {dropdownPos.left}px; top: {dropdownPos.top}px; width: {dropdownPos.width}px;"
-		class="z-50 bg-canvas border border-border rounded-lg shadow-[0_8px_32px_var(--color-overlay)] overflow-hidden"
+		class="z-50 bg-base border border-border rounded-lg shadow-[0_8px_32px_var(--color-overlay)] overflow-hidden"
 	>
 		{#if showCreate}
 			<!-- Create workspace form -->
 			<div class="p-3">
-				<p class="m-0 mb-2.5 text-sm text-muted-mid uppercase tracking-widest font-medium">New workspace</p>
+				<p class="m-0 mb-2.5 text-sm text-subtle uppercase tracking-widest font-medium">New workspace</p>
 				{#if access.atWorkspaceLimit}
-					<p class="m-0 mb-2 text-sm text-muted-dim leading-relaxed">
+					<p class="m-0 mb-2 text-sm text-subtle leading-relaxed">
 						Additional workspaces require a Pro plan. You'll be taken to checkout after creation.
 					</p>
 				{/if}
@@ -185,11 +185,11 @@
 						onclick={handleCreate}
 						disabled={creating || !newName.trim()}
 						class="flex-1 py-1.5 text-sm text-white border-none rounded cursor-pointer font-mono transition-colors duration-100
-							{creating || !newName.trim() ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
+							{creating || !newName.trim() ? 'bg-muted cursor-not-allowed' : 'bg-primary hover:bg-primary-hover'}"
 					>{creating ? 'Creating…' : access.atWorkspaceLimit ? 'Create & subscribe' : 'Create'}</button>
 					<button
 						onclick={() => { showCreate = false; createError = ''; newName = ''; }}
-						class="px-3 py-1.5 text-sm text-muted-dim bg-transparent border border-border-deep rounded cursor-pointer font-mono hover:text-text-body hover:border-border-subtle transition-colors duration-100"
+						class="px-3 py-1.5 text-sm text-subtle bg-transparent border border-border rounded cursor-pointer font-mono hover:text-text hover:border-border transition-colors duration-100"
 					>Cancel</button>
 				</div>
 			</div>
@@ -198,22 +198,22 @@
 			<!-- Workspace list -->
 			<div class="py-1 max-h-[220px] overflow-y-auto">
 				{#if workspacesStore.workspaces.length === 0}
-					<p class="px-3 py-2 text-sm text-muted-mid">No workspaces</p>
+					<p class="px-3 py-2 text-sm text-subtle">No workspaces</p>
 				{:else}
 					{#each workspacesStore.workspaces as ws (ws.id)}
 						{@const isActive = ws.id === workspacesStore.active?.id}
 						<button
 							onclick={() => selectWorkspace(ws.id)}
 							class="w-full flex items-center gap-2.5 px-3 py-2 text-left bg-transparent border-none cursor-pointer font-mono transition-colors duration-100
-								{isActive ? 'bg-surface-hover' : 'hover:bg-surface-hover'}"
+								{isActive ? 'bg-canvas' : 'hover:bg-surface'}"
 						>
-							<span class="shrink-0 w-6 h-6 rounded flex items-center justify-center bg-canvas border border-border text-muted-dim text-sm font-semibold">
+							<span class="shrink-0 w-6 h-6 rounded flex items-center justify-center bg-base border border-border text-subtle text-sm font-semibold">
 								{initials(ws.name)}
 							</span>
-							<span class="flex-1 min-w-0 text-text-body truncate">{ws.name}</span>
-							<span class="shrink-0 text-sm text-muted-mid capitalize">{ws.plan}</span>
+							<span class="flex-1 min-w-0 text-text truncate">{ws.name}</span>
+							<span class="shrink-0 text-sm text-subtle capitalize">{ws.plan}</span>
 							{#if isActive}
-								<Check size={12} strokeWidth={2.5} class="shrink-0 text-text-blue" />
+								<Check size={12} strokeWidth={2.5} class="shrink-0 text-text" />
 							{:else}
 								<span class="shrink-0 w-3"></span>
 							{/if}
@@ -226,7 +226,7 @@
 			<div class="border-t border-border">
 				<button
 					onclick={() => { showCreate = true; }}
-					class="w-full flex items-center gap-2 px-3 py-2.5 text-left bg-transparent border-none cursor-pointer font-mono text-sm text-muted-dim hover:text-text-body hover:bg-surface-hover transition-colors duration-100"
+					class="w-full flex items-center gap-2 px-3 py-2.5 text-left bg-transparent border-none cursor-pointer font-mono text-sm text-subtle hover:text-text hover:bg-surface transition-colors duration-100"
 				>
 					<Plus size={13} strokeWidth={1.75} class="shrink-0" />
 					New workspace

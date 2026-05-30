@@ -227,7 +227,7 @@
 					<p class="mt-2">{prfError}</p>
 				</div>
 			{:else}
-				<p class="text-muted text-center text-base">
+				<p class="text-subtle text-center text-base">
 					Checking browser compatibility…
 				</p>
 			{/if}
@@ -236,17 +236,17 @@
 		<div class="w-full max-w-100">
 			<div class="flex flex-col items-center mb-8">
 				<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
-				<h1 class="text-xl font-semibold text-text-body tracking-tight">Registration closed</h1>
+				<h1 class="text-xl font-semibold text-text tracking-tight">Registration closed</h1>
 			</div>
-			<div class="bg-surface border border-border rounded-xl p-6 text-center">
-				<p class="text-sm text-muted-dim">Account registration is not open. Contact an admin to receive an invitation.</p>
-				<a href="/login" class="text-text-blue hover:underline text-sm mt-4 block">Sign in instead</a>
+			<div class="bg-canvas border border-border rounded-xl p-6 text-center">
+				<p class="text-sm text-subtle">Account registration is not open. Contact an admin to receive an invitation.</p>
+				<a href="/login" class="text-text hover:underline text-sm mt-4 block">Sign in instead</a>
 			</div>
 		</div>
 	{:else if step === "success"}
 		<div class="w-full max-w-100">
 			<div
-				class="p-6 border border-success-text rounded-xl bg-success-bg-deep text-success-text-dark text-base text-center"
+				class="p-6 border border-success-dim rounded-xl bg-success-dark text-success text-base text-center"
 			>
 				Account created. Redirecting…
 			</div>
@@ -259,10 +259,10 @@
 				<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">
 					{@html faviconSvg}
 				</a>
-				<h1 class="text-xl font-semibold text-text-body tracking-tight">
+				<h1 class="text-xl font-semibold text-text tracking-tight">
 					Create your account
 				</h1>
-				<p class="text-base text-muted-dim mt-1.5">
+				<p class="text-base text-subtle mt-1.5">
 					Set up Confide in just a few steps.
 				</p>
 			</div>
@@ -284,17 +284,17 @@
 								? 'bg-primary text-white'
 								: i < current
 									? 'bg-primary/20 text-primary'
-									: 'bg-surface border border-border text-muted-dark'}"
+									: 'bg-canvas border border-border text-subtle'}"
 						>
 							{#if i < current}✓{:else}{i + 1}{/if}
 						</div>
 						<span
 							class="text-[10px] mt-1 w-14 text-center leading-tight
 							{i === current
-								? 'text-text-body'
+								? 'text-text'
 								: i < current
-									? 'text-muted'
-									: 'text-muted-dark'}"
+									? 'text-subtle'
+									: 'text-subtle'}"
 						>
 							{label}
 						</span>
@@ -303,22 +303,22 @@
 			</div>
 
 			<!-- Step card -->
-			<div class="bg-surface border border-border rounded-xl p-6">
+			<div class="bg-canvas border border-border rounded-xl p-6">
 				{#if step === "username"}
-					<h2 class="text-base font-medium text-text-body mb-1">
+					<h2 class="text-base font-medium text-text mb-1">
 						Create your username
 					</h2>
-					<p class="text-sm text-muted-dim mb-5">
+					<p class="text-sm text-subtle mb-5">
 						This is your public name across Confide. You’ll use it to access any
 						workspace you join or create.
 					</p>
 
-					<label class="block text-base text-muted mb-1.5" for="username"
+					<label class="block text-base text-subtle mb-1.5" for="username"
 						>Username</label
 					>
 					<div class="relative">
 						<span
-							class="absolute left-2 flex items-center justify-center gap-2 top-1/2 -translate-y-1/2 text-muted-mid pointer-events-none"
+							class="absolute left-2 flex items-center justify-center gap-2 top-1/2 -translate-y-1/2 text-subtle pointer-events-none"
 						>
 							<AtSign size={18} strokeWidth={1.75} />
 						</span>
@@ -329,14 +329,14 @@
 							placeholder="Username"
 							onkeydown={(e) => e.key === "Enter" && continueToPasskey()}
 							class="input-base w-full mb-1 text-base py-2.5 pl-8 pr-3
-							{usernameStatus === 'available' ? '!border-success-text' : ''}
+							{usernameStatus === 'available' ? '!border-success-dim' : ''}
 							{usernameStatus === 'taken' ? '!border-danger-text' : ''}"
 						/>
 					</div>
 
 					<div class="h-5 overflow-hidden mb-3">
 						{#if usernameStatus === "available"}
-							<span class="block text-success-text text-sm leading-5">Looks good!</span>
+							<span class="block text-success text-sm leading-5">Looks good!</span>
 						{:else if usernameStatus === "taken"}
 							<span class="block text-error text-sm leading-5">Username taken</span>
 						{/if}
@@ -348,20 +348,20 @@
 							bind:checked={agreedToTerms}
 							class="mt-0.5 shrink-0 accent-primary w-4 h-4 cursor-pointer"
 						/>
-						<span class="text-sm text-muted-dim leading-snug">
+						<span class="text-sm text-subtle leading-snug">
 							I agree to the
 							<a
 								href="https://useconfide.app/terms/"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="text-text-blue hover:underline"
+								class="text-text hover:underline"
 							>Terms of Service</a>
 							and
 							<a
 								href="https://useconfide.app/privacy/"
 								target="_blank"
 								rel="noopener noreferrer"
-								class="text-text-blue hover:underline"
+								class="text-text hover:underline"
 							>Privacy Policy</a>
 						</span>
 					</label>
@@ -378,15 +378,15 @@
 						Continue
 					</button>
 				{:else if step === "passkey"}
-					<h2 class="text-base font-medium text-text-body mb-1">
+					<h2 class="text-base font-medium text-text mb-1">
 						Your data stays yours
 					</h2>
-					<p class="text-sm text-muted-dim mb-5">
+					<p class="text-sm text-subtle mb-5">
 						Confide encrypts your forms and responses in your browser before
 						they leave your device.
 					</p>
 
-					<p class="text-sm text-muted-dim mb-5">
+					<p class="text-sm text-subtle mb-5">
 						Your passkey (Face ID, Touch ID, Windows Hello) unlocks your data —
 						we never see your encryption key and cannot access your data.
 					</p>
@@ -400,7 +400,7 @@
 						disabled={loading}
 						class="w-full py-3 text-white border-none rounded-lg font-mono text-base font-medium
 							{loading
-							? 'bg-muted-mid cursor-not-allowed'
+							? 'bg-muted cursor-not-allowed'
 							: 'bg-primary hover:bg-primary-hover cursor-pointer'}
 							transition-colors duration-100"
 					>
@@ -412,12 +412,12 @@
 							step = "username";
 							registerError = null;
 						}}
-						class="w-full mt-2 py-2 text-muted-dark text-sm border-none bg-transparent cursor-pointer hover:text-muted transition-colors duration-100"
+						class="w-full mt-2 py-2 text-subtle text-sm border-none bg-transparent cursor-pointer hover:text-subtle transition-colors duration-100"
 					>
 						← Back
 					</button>
 				{:else if step === "recovery"}
-					<h2 class="text-base font-medium text-text-body mb-1">
+					<h2 class="text-base font-medium text-text mb-1">
 						Save your recovery code
 					</h2>
 					<p class="text-sm text-warning-border mb-4">
@@ -431,7 +431,7 @@
 					</p>
 
 					<div
-						class="p-4 bg-canvas border border-border rounded-lg text-sm text-text break-all tracking-[0.05em] mb-2 leading-relaxed"
+						class="p-4 bg-base border border-border rounded-lg text-sm text-text break-all tracking-[0.05em] mb-2 leading-relaxed"
 					>
 						{recoveryCode}
 					</div>
@@ -440,13 +440,13 @@
 						onclick={copyCode}
 						class="px-3 py-1.5 border rounded cursor-pointer font-mono text-sm mb-5 transition-colors duration-100
 							{codeCopied
-							? 'bg-success-bg border-success-text text-success-text'
-							: 'bg-surface text-muted border-border hover:text-text'}"
+							? 'bg-success-dark border-success-dim text-success'
+							: 'bg-canvas text-subtle border-border hover:text-text'}"
 					>
 						{codeCopied ? "✓ Copied" : "Copy code"}
 					</button>
 
-					<label class="block text-sm text-muted mb-1.5" for="verify">
+					<label class="block text-sm text-subtle mb-1.5" for="verify">
 						Paste your recovery code below to confirm you've saved it
 					</label>
 					<input
@@ -470,20 +470,20 @@
 						class="w-full py-3 mt-3 border-none rounded-lg font-mono text-base font-medium transition-colors duration-100
 							{verifyPassed
 							? 'bg-primary text-white cursor-pointer hover:bg-primary-hover'
-							: 'bg-surface-active text-muted-dark cursor-not-allowed'}"
+							: 'bg-canvas text-subtle cursor-not-allowed'}"
 					>
 						Continue
 					</button>
 				{:else if step === "workspace"}
-					<h2 class="text-base font-medium text-text-body mb-1">
+					<h2 class="text-base font-medium text-text mb-1">
 						Set up your workspace
 					</h2>
-					<p class="text-sm text-muted-dim mb-5">
+					<p class="text-sm text-subtle mb-5">
 						This is your hub for forms and team collaboration. You can customize
 						the name at any time.
 					</p>
 
-					<label class="block text-base text-muted mb-1.5" for="workspace-name"
+					<label class="block text-base text-subtle mb-1.5" for="workspace-name"
 						>Workspace name</label
 					>
 					<input
@@ -505,7 +505,7 @@
 						disabled={loading}
 						class="w-full py-3 text-white border-none rounded-lg font-mono text-base font-medium
 							{loading
-							? 'bg-muted-mid cursor-not-allowed'
+							? 'bg-muted cursor-not-allowed'
 							: 'bg-primary hover:bg-primary-hover cursor-pointer'}
 							transition-colors duration-100"
 					>
@@ -517,9 +517,9 @@
 			<!-- Sign in link (username step only) -->
 			{#if step === "username"}
 				<div class="mt-6 pt-5 border-t border-border text-center">
-					<p class="text-base text-muted-dim">
+					<p class="text-base text-subtle">
 						Already have an account?
-						<a href="/login" class="text-text-blue hover:underline font-medium"
+						<a href="/login" class="text-text hover:underline font-medium"
 							>Sign in</a
 						>
 					</p>

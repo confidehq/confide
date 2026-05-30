@@ -33,7 +33,7 @@
 		background: transparent;
 		border: none;
 		border-radius: 5px;
-		color: var(--color-text-body);
+		color: var(--color-text);
 		font-family: monospace;
 		font-size: 0.875rem;
 		line-height: 1.25rem;
@@ -45,8 +45,8 @@
 
 	.item:hover,
 	.item:focus-visible {
-		background: var(--color-surface-hover);
-		color: var(--color-text-bright);
+		background: var(--color-canvas);
+		color: var(--color-text);
 	}
 
 	.item.destructive {
@@ -65,6 +65,6 @@
 		opacity: 0.5;
 		cursor: default;
 		background: transparent;
-		color: var(--color-text-body);
+		color: var(--color-text);
 	}
 </style>

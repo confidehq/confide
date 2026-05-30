@@ -16,11 +16,11 @@
 
 		<a href="https://useconfide.app" class="w-14 h-14 mb-6 [&>svg]:w-full [&>svg]:h-full inline-block">{@html faviconSvg}</a>
 
-		<p class="text-5xl font-semibold text-text-body tabular-nums mb-2">{page.status}</p>
-		<h1 class="text-lg font-semibold text-text-body tracking-tight mb-1">
+		<p class="text-5xl font-semibold text-text tabular-nums mb-2">{page.status}</p>
+		<h1 class="text-lg font-semibold text-text tracking-tight mb-1">
 			{is404 ? 'Page not found' : 'Something went wrong'}
 		</h1>
-		<p class="text-sm text-muted-dim mb-8">
+		<p class="text-sm text-subtle mb-8">
 			{is404
 				? "The page you're looking for doesn't exist or has been moved."
 				: page.error?.message ?? 'An unexpected error occurred.'}

@@ -47,8 +47,8 @@
 
 <style>
 	.menu {
-		background: var(--color-surface-subtle);
-		border: 1px solid var(--color-border-deep);
+		background: var(--color-canvas);
+		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		padding: 4px;
 		box-shadow:

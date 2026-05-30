@@ -189,8 +189,8 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 1px;
-		background: var(--color-surface);
-		border: 1px solid var(--color-border-field);
+		background: var(--color-canvas);
+		border: 1px solid var(--color-border);
 		border-radius: 6px;
 		padding: 3px 4px;
 		box-shadow: 0 8px 32px var(--color-overlay);
@@ -206,7 +206,7 @@
 		left: 50%;
 		transform: translateX(-50%);
 		border: 5px solid transparent;
-		border-top-color: var(--color-border-field);
+		border-top-color: var(--color-border);
 	}
 
 	.rich-toolbar::before {
@@ -216,7 +216,7 @@
 		left: 50%;
 		transform: translateX(-50%);
 		border: 4px solid transparent;
-		border-top-color: var(--color-surface);
+		border-top-color: var(--color-canvas);
 		z-index: 1;
 	}
 
@@ -230,14 +230,14 @@
 		background: transparent;
 		border-radius: 4px;
 		cursor: pointer;
-		color: var(--color-muted);
+		color: var(--color-subtle);
 		padding: 0;
 		transition: background 0.1s, color 0.1s;
 	}
 
 	.toolbar-btn:hover {
-		background: var(--color-surface-popover-hover);
-		color: var(--color-text-dim);
+		background: var(--color-canvas);
+		color: var(--color-text);
 	}
 
 	.toolbar-btn.confirm {
@@ -252,29 +252,29 @@
 	.toolbar-sep {
 		width: 1px;
 		height: 14px;
-		background: var(--color-border-deep);
+		background: var(--color-border);
 		margin: 0 2px;
 		flex-shrink: 0;
 	}
 
 	.link-input {
-		background: var(--color-surface-input);
-		border: 1px solid var(--color-border-field);
+		background: var(--color-canvas);
+		border: 1px solid var(--color-border);
 		border-radius: 4px;
 		padding: 2px 7px;
 		font-size: 0.75rem;
-		color: var(--color-text-dim);
+		color: var(--color-text);
 		outline: none;
 		width: 170px;
 		font-family: inherit;
 	}
 
 	.link-input:focus {
-		border-color: var(--color-border-focus);
+		border-color: var(--color-border);
 	}
 
 	.link-input::placeholder {
-		color: var(--color-muted-dark);
+		color: var(--color-subtle);
 	}
 
 	.rich-editable {

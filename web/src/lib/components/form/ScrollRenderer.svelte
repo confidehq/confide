@@ -130,7 +130,7 @@
 				<select
 					value={locale}
 					onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
-					class="appearance-none pl-7 pr-5 py-1 text-xs rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40 uppercase"
+					class="appearance-none pl-7 pr-5 py-1 text-xs rounded-md border border-form-border bg-form-canvas text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40 uppercase"
 				>
 					{#each locales as code (code)}
 						<option value={code}>{code.toUpperCase()}</option>
@@ -146,7 +146,7 @@
 				<select
 					value={locale}
 					onchange={(e) => onlocalechange((e.target as HTMLSelectElement).value)}
-					class="appearance-none pl-8 pr-7 py-1.5 text-sm rounded-md border border-form-border bg-form-surface text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40"
+					class="appearance-none pl-8 pr-7 py-1.5 text-sm rounded-md border border-form-border bg-form-canvas text-form-text-mid cursor-pointer focus:outline-none focus:ring-2 focus:ring-form-primary/40"
 				>
 					{#each locales as code (code)}
 						<option value={code}>

@@ -153,7 +153,7 @@
 		gap: 1px;
 		padding: 4px 6px;
 		border-bottom: 1px solid var(--color-form-border-light, #e5e7eb);
-		background: var(--color-form-surface);
+		background: var(--color-form-canvas);
 		border-radius: 5px 5px 0 0;
 	}
 
@@ -191,7 +191,7 @@
 		gap: 4px;
 		padding: 5px 8px;
 		border-bottom: 1px solid var(--color-form-border-light, #e5e7eb);
-		background: var(--color-form-surface);
+		background: var(--color-form-canvas);
 	}
 
 	.link-input {

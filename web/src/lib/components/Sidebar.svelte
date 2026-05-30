@@ -31,8 +31,8 @@
 			'flex items-center h-10 no-underline overflow-hidden pl-[14px]',
 			'box-border w-full transition-[color,background] duration-100 border-l-2',
 			active
-				? 'text-text-bright bg-surface border-primary-hover'
-				: 'text-muted-dark bg-transparent border-transparent hover:text-muted'
+				? 'text-text bg-canvas border-primary-hover'
+				: 'text-subtle bg-transparent border-transparent hover:text-subtle'
 		].join(' ');
 	}
 
@@ -86,17 +86,17 @@
 	<div class="fixed inset-0 z-[45]" onclick={() => (accountMenuOpen = false)}></div>
 	<div
 		style={popoverStyle}
-		class="fixed z-50 bg-surface-input border border-border-mid rounded-md shadow-[0_2px_12px_var(--color-overlay-light)] overflow-hidden"
+		class="fixed z-50 bg-canvas border border-border rounded-md shadow-[0_2px_12px_var(--color-overlay-light)] overflow-hidden"
 	>
 		<a
 			href="/me"
 			onclick={() => { accountMenuOpen = false; sidebar.closeMobile(); }}
-			class="flex items-center gap-2.5 px-3 py-2.5 text-text-body hover:bg-surface-mid no-underline transition-colors duration-100 w-full"
+			class="flex items-center gap-2.5 px-3 py-2.5 text-text hover:bg-surface no-underline transition-colors duration-100 w-full"
 		>
-			<UserRound size={15} strokeWidth={1.75} class="text-muted-dim shrink-0" />
+			<UserRound size={15} strokeWidth={1.75} class="text-subtle shrink-0" />
 			Profile
 		</a>
-		<div class="border-t border-border-mid"></div>
+		<div class="border-t border-border"></div>
 		<button
 			onclick={handleLogout}
 			class="flex items-center gap-2.5 px-3 py-2.5 text-error-light hover:bg-danger-hover w-full bg-transparent border-none cursor-pointer font-mono transition-colors duration-100"
@@ -109,24 +109,24 @@
 
 <nav
 	style="width: {sidebar.width}px;"
-	class="hidden sm:flex sm:flex-col fixed top-0 left-0 h-screen bg-canvas z-40 overflow-hidden transition-[width] duration-200 ease-linear font-mono"
+	class="hidden sm:flex sm:flex-col fixed top-0 left-0 h-screen bg-base z-40 overflow-hidden transition-[width] duration-200 ease-linear font-mono"
 >
 	<!-- Logo / wordmark + collapse toggle -->
-	<div class="h-[52px] relative flex items-center justify-center shrink-0 border-b border-surface overflow-hidden whitespace-nowrap">
+	<div class="h-[52px] relative flex items-center justify-center shrink-0 border-b border-canvas overflow-hidden whitespace-nowrap">
 		{#if sidebar.collapsed}
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Expand sidebar"
-				class="bg-transparent border-none cursor-pointer text-muted-dark flex items-center p-1 rounded hover:text-muted transition-colors duration-100"
+				class="bg-transparent border-none cursor-pointer text-subtle flex items-center p-1 rounded hover:text-subtle transition-colors duration-100"
 			>
 				<ChevronRight size={16} strokeWidth={1.75} />
 			</button>
 		{:else}
-			<span class="text-text-dim text-xl font-semibold tracking-tight select-none">confide</span>
+			<span class="text-text text-xl font-semibold tracking-tight select-none">confide</span>
 			<button
 				onclick={() => sidebar.toggle()}
 				title="Collapse sidebar"
-				class="absolute right-2 bg-transparent border-none cursor-pointer text-muted-dark flex items-center p-1 rounded shrink-0 hover:text-muted transition-colors duration-100"
+				class="absolute right-2 bg-transparent border-none cursor-pointer text-subtle flex items-center p-1 rounded shrink-0 hover:text-subtle transition-colors duration-100"
 			>
 				<ChevronLeft size={16} strokeWidth={1.75} />
 			</button>
@@ -134,7 +134,7 @@
 	</div>
 
 	<!-- Workspace switcher -->
-	<div class="shrink-0 border-b border-surface">
+	<div class="shrink-0 border-b border-canvas">
 		<WorkspaceSwitcher />
 	</div>
 
@@ -149,7 +149,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/dashboard'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-text-blue' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-text' : 'text-subtle'}">
 					<LayoutGrid size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Dashboard</span>
@@ -162,7 +162,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/forms'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-text-blue' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-text' : 'text-subtle'}">
 					<FileText size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Forms</span>
@@ -175,7 +175,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/team'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-text-blue' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-text' : 'text-subtle'}">
 					<Users size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Team</span>
@@ -188,7 +188,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/settings'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-text-blue' : 'text-muted-dark'}">
+				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-text' : 'text-subtle'}">
 					<Settings size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Settings</span>
@@ -203,10 +203,10 @@
 				onclick={() => theme.toggle()}
 				use:tooltip={sidebar.collapsed ? (theme.value === 'dark' ? 'Light mode' : 'Dark mode') : null}
 				class="flex items-center h-10 w-full bg-transparent border-none border-l-2 border-transparent pl-[14px]
-					cursor-pointer font-mono text-muted-dark overflow-hidden
-					hover:text-muted transition-colors duration-100"
+					cursor-pointer font-mono text-subtle overflow-hidden
+					hover:text-subtle transition-colors duration-100"
 			>
-				<span class="shrink-0 flex items-center text-muted-dark">
+				<span class="shrink-0 flex items-center text-subtle">
 					{#if theme.value === 'dark'}
 						<Sun size={18} strokeWidth={1.75} />
 					{:else}
@@ -224,11 +224,11 @@
 				target="_blank"
 				rel="noopener noreferrer"
 				onclick={() => sidebar.closeMobile()}
-				class="flex items-center h-10 no-underline text-muted-dark bg-transparent pl-[14px]
+				class="flex items-center h-10 no-underline text-subtle bg-transparent pl-[14px]
 					border-l-2 border-transparent overflow-hidden
-					box-border w-full hover:text-muted transition-colors duration-100"
+					box-border w-full hover:text-subtle transition-colors duration-100"
 			>
-				<span class="shrink-0 flex items-center text-muted-dark">
+				<span class="shrink-0 flex items-center text-subtle">
 					<MessageSquare size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Request Feature</span>
@@ -241,15 +241,15 @@
 					onclick={() => (accountMenuOpen = !accountMenuOpen)}
 					use:tooltip={sidebar.collapsed ? 'My Account' : null}
 					class="flex items-center gap-0 w-full bg-transparent border-none cursor-pointer font-mono
-						transition-colors duration-100 border-t border-surface px-[10px] py-3
-						{isActive('/me') ? 'bg-surface' : 'hover:bg-surface'}"
+						transition-colors duration-100 border-t border-canvas px-[10px] py-3
+						{isActive('/me') ? 'bg-canvas' : 'hover:bg-surface'}"
 				>
-					<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-surface-deep border border-border
-						{isActive('/me') ? 'text-text-blue border-primary' : 'text-muted-dim'}">
+					<span class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-canvas border border-border
+						{isActive('/me') ? 'text-text border-primary' : 'text-subtle'}">
 						<UserRound size={17} strokeWidth={1.5} />
 					</span>
 					<span
-						class="overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-200 ease-linear text-sm font-medium text-text-body leading-tight"
+						class="overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-200 ease-linear text-sm font-medium text-text leading-tight"
 						style={textStyle}
 					>My Account</span>
 				</button>

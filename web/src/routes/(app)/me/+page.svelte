@@ -366,13 +366,13 @@
 	const roleBadge: Record<string, { label: string; color: string; border: string }> = {
 		owner:  { label: 'owner',  color: 'var(--color-role-owner)',  border: 'var(--color-role-owner-border)' },
 		admin:  { label: 'admin',  color: 'var(--color-role-admin)',  border: 'var(--color-role-admin-border)' },
-		member: { label: 'member', color: 'var(--color-muted-dim)',   border: 'var(--color-border-mid)' },
-		viewer: { label: 'viewer', color: 'var(--color-muted-dim)',   border: 'var(--color-border-mid)' }
+		member: { label: 'member', color: 'var(--color-subtle)',   border: 'var(--color-border)' },
+		viewer: { label: 'viewer', color: 'var(--color-subtle)',   border: 'var(--color-border)' }
 	};
 
 	const planBadge: Record<string, { label: string; color: string }> = {
 		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
-		free: { label: 'Free', color: 'var(--color-muted-dim)' }
+		free: { label: 'Free', color: 'var(--color-subtle)' }
 	};
 </script>
 
@@ -402,7 +402,7 @@
 	>
 		<div
 			class="font-mono w-full max-w-md flex flex-col gap-5"
-			style="background: var(--color-surface-subtle); border: 1px solid var(--color-border-deep); border-radius: 10px; padding: 1.5rem; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.7);"
+			style="background: var(--color-canvas); border: 1px solid var(--color-border); border-radius: 10px; padding: 1.5rem; box-shadow: 0 24px 48px -12px rgba(0,0,0,0.7);"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby="recovery-dialog-title"
@@ -410,28 +410,28 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between gap-3">
 				<div class="flex items-center gap-2.5">
-					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-surface-deep border border-border">
-						<ShieldAlert size={14} strokeWidth={1.75} class="text-muted-dim" />
+					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-canvas border border-border">
+						<ShieldAlert size={14} strokeWidth={1.75} class="text-subtle" />
 					</span>
-					<h2 id="recovery-dialog-title" class="m-0 text-base font-semibold text-text-bright">Recovery Code</h2>
+					<h2 id="recovery-dialog-title" class="m-0 text-base font-semibold text-text">Recovery Code</h2>
 				</div>
 				<button
 					onclick={() => { recoveryDialogOpen = false; }}
-					class="p-1.5 text-muted-dim hover:text-muted-blue bg-transparent border-none cursor-pointer rounded transition-colors duration-100"
+					class="p-1.5 text-subtle hover:text-subtle bg-transparent border-none cursor-pointer rounded transition-colors duration-100"
 					aria-label="Close"
 				>×</button>
 			</div>
 
 			{#if recoveryCode}
 				<!-- Code is generated — show it prominently -->
-				<p class="m-0 text-sm text-muted-dim leading-relaxed">
+				<p class="m-0 text-sm text-subtle leading-relaxed">
 					Store this code somewhere safe. If you lose all your passkeys, this is your only way back into your account.
 				</p>
 
 				<div class="flex flex-col gap-2">
 					<div
-						class="px-4 py-4 rounded-lg border border-border-deep select-all font-mono text-sm text-text-body break-all leading-loose"
-						style="background: var(--color-surface-deep); letter-spacing: 0.05em;"
+						class="px-4 py-4 rounded-lg border border-border select-all font-mono text-sm text-text break-all leading-loose"
+						style="background: var(--color-canvas); letter-spacing: 0.05em;"
 					>
 						{recoveryCode}
 					</div>
@@ -439,8 +439,8 @@
 						onclick={copyCode}
 						class="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
 							{codeCopied
-								? 'bg-success-bg border-success-border text-success-text-dark'
-								: 'bg-transparent border-border-deep text-muted-dim hover:text-text-body hover:border-border-subtle'}"
+								? 'bg-success-dark border-success-dim text-success'
+								: 'bg-transparent border-border text-subtle hover:text-text hover:border-border'}"
 					>
 						{#if codeCopied}
 							<Check size={13} strokeWidth={2} />
@@ -452,12 +452,12 @@
 					</button>
 				</div>
 
-				<p class="m-0 text-xs text-muted-mid leading-relaxed">
+				<p class="m-0 text-xs text-subtle leading-relaxed">
 					This code replaces any previous recovery code. Write it down or store it in a password manager — it won't be shown again.
 				</p>
 			{:else}
 				<!-- No code generated yet -->
-				<p class="m-0 text-sm text-muted-dim leading-relaxed">
+				<p class="m-0 text-sm text-subtle leading-relaxed">
 					Recovery codes let you regain access to your account if you lose all your passkeys. Generate one and keep it somewhere safe.
 				</p>
 			{/if}
@@ -472,7 +472,7 @@
 				onclick={handleGenerateRecoveryCode}
 				disabled={generatingCode}
 				class="flex items-center justify-center gap-2 w-full py-2.5 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
-					bg-transparent border-border-deep text-muted-dim hover:text-text-body hover:border-border-subtle
+					bg-transparent border-border text-subtle hover:text-text hover:border-border
 					disabled:opacity-50 disabled:cursor-not-allowed"
 			>
 				{#if generatingCode}
@@ -492,12 +492,12 @@
 	<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div class="flex items-center gap-3 min-w-0">
-			<div class="w-10 h-10 rounded-lg bg-surface-deep border border-border-deep flex items-center justify-center text-sm font-semibold text-muted-dim shrink-0 select-none">
+			<div class="w-10 h-10 rounded-lg bg-canvas border border-border flex items-center justify-center text-sm font-semibold text-subtle shrink-0 select-none">
 				{avatarInitials()}
 			</div>
 			<div class="min-w-0">
-				<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Profile</h1>
-				<p class="m-0 text-sm text-muted-dim truncate">
+				<h1 class="text-2xl m-0 mb-1 text-text font-semibold">Profile</h1>
+				<p class="m-0 text-sm text-subtle truncate">
 					{#if auth.username && auth.accountId}
 						{auth.username} · {auth.accountId}
 					{:else}
@@ -514,7 +514,7 @@
 		<div>
 			<!-- Workspaces -->
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
+				<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">
 					<span class="inline-flex items-center gap-2">
 						<LayoutGrid size={14} strokeWidth={1.75} />
 						Workspaces
@@ -523,21 +523,21 @@
 			</div>
 
 			{#if !workspacesStore.loaded && workspacesStore.loading}
-				<p class="text-muted-dim text-base">Loading…</p>
+				<p class="text-subtle text-base">Loading…</p>
 			{:else if workspacesStore.workspaces.length === 0}
 				<div class="py-10 border border-dashed border-border rounded-lg text-center">
-					<p class="m-0 text-muted-dim text-base">No workspaces</p>
+					<p class="m-0 text-subtle text-base">No workspaces</p>
 				</div>
 			{:else}
-				<div class="border border-border-deep rounded-lg overflow-hidden">
+				<div class="border border-border rounded-lg overflow-hidden">
 					{#each workspacesStore.workspaces as ws, i (ws.id)}
 						{@const role = roleBadge[ws.role] ?? roleBadge.member}
 						{@const plan = planBadge[ws.plan] ?? planBadge.free}
 						<div class="flex items-center gap-3 px-4 py-3.5
-							{i < workspacesStore.workspaces.length - 1 ? 'border-b border-border-deep' : ''}">
+							{i < workspacesStore.workspaces.length - 1 ? 'border-b border-border' : ''}">
 							<div class="flex-1 min-w-0">
 								<div class="flex items-center gap-2">
-									<span class="text-base text-text-body truncate">{ws.name}</span>
+									<span class="text-base text-text truncate">{ws.name}</span>
 									<span
 										class="text-[10px] px-1.5 py-0.5 rounded border leading-none shrink-0"
 										style="color: {role.color}; border-color: {role.border}; background: {role.border}22;"
@@ -545,7 +545,7 @@
 										{role.label}
 									</span>
 								</div>
-								<p class="m-0 text-sm text-muted-dim mt-0.5">{ws.slug}</p>
+								<p class="m-0 text-sm text-subtle mt-0.5">{ws.slug}</p>
 							</div>
 							<span class="text-sm shrink-0 font-semibold" style="color: {plan.color};">{plan.label}</span>
 						</div>
@@ -557,7 +557,7 @@
 		<!-- Sessions -->
 			<div>
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">
 						<span class="inline-flex items-center gap-2">
 							<Monitor size={14} strokeWidth={1.75} />
 							Active Sessions
@@ -569,7 +569,7 @@
 							disabled={revokingAll}
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
-									? 'text-muted-dim border-border-subtle cursor-not-allowed'
+									? 'text-subtle border-border cursor-not-allowed'
 									: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
@@ -582,17 +582,17 @@
 				{/if}
 
 				{#if sessionsLoading}
-					<p class="text-muted-dim text-base">Loading…</p>
+					<p class="text-subtle text-base">Loading…</p>
 				{:else if sessions.length === 0}
 					<div class="py-10 border border-dashed border-border rounded-lg text-center">
-						<p class="m-0 text-muted-dim text-base">No active sessions</p>
+						<p class="m-0 text-subtle text-base">No active sessions</p>
 					</div>
 				{:else}
-					<div class="border border-border-deep rounded-lg overflow-hidden">
+					<div class="border border-border rounded-lg overflow-hidden">
 						{#each sessions as session, i (session.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
-								{i < sessions.length - 1 ? 'border-b border-border-deep' : ''}">
-								<div class="text-muted-dim shrink-0" title={session.userAgent ?? 'Unknown device'}>
+								{i < sessions.length - 1 ? 'border-b border-border' : ''}">
+								<div class="text-subtle shrink-0" title={session.userAgent ?? 'Unknown device'}>
 									{#if isMobile(session.userAgent)}
 										<Smartphone size={16} strokeWidth={1.75} />
 									{:else}
@@ -600,8 +600,8 @@
 									{/if}
 								</div>
 								<div class="flex-1 min-w-0">
-									<span class="text-base text-text-body truncate block">{session.id.slice(0, 16)}…</span>
-									<p class="m-0 text-sm text-muted-dim mt-0.5">
+									<span class="text-base text-text truncate block">{session.id.slice(0, 16)}…</span>
+									<p class="m-0 text-sm text-subtle mt-0.5">
 										Created {session.createdAt} · Last seen {session.lastSeen}
 									</p>
 								</div>
@@ -611,7 +611,7 @@
 									title={sessions.length <= 1 ? 'Cannot revoke your only session' : 'Revoke session'}
 									class="shrink-0 px-3 py-1.5 bg-transparent border rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100
 										{revoking === session.id || sessions.length <= 1
-											? 'text-muted-mid border-border-mid cursor-not-allowed'
+											? 'text-subtle border-border cursor-not-allowed'
 											: 'text-error-light border-border-danger-dark hover:bg-danger-hover'}"
 								>
 									{revoking === session.id ? '…' : 'Revoke'}
@@ -625,7 +625,7 @@
 			<!-- Passkeys -->
 			<div>
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">
 						<span class="inline-flex items-center gap-2">
 							<KeyRound size={14} strokeWidth={1.75} />
 							Passkeys
@@ -635,14 +635,14 @@
 						<div class="flex gap-2">
 							<button
 								onclick={() => (addStep = 'naming')}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>
 								<Plus size={13} strokeWidth={2} />
 								Add passkey
 							</button>
 							<button
 								onclick={startPairing}
-								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+								class="flex items-center gap-1.5 px-3 py-1.5 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 							>
 								<Monitor size={13} strokeWidth={2} />
 								Add new device
@@ -657,44 +657,44 @@
 
 				<!-- Add new device (pairing) panel -->
 				{#if pairStep === 'loading'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg">
-						<p class="text-muted-dim text-base animate-pulse m-0">Setting up pairing session…</p>
+					<div class="mb-3 p-4 border border-border rounded-lg">
+						<p class="text-subtle text-base animate-pulse m-0">Setting up pairing session…</p>
 					</div>
 				{:else if pairStep === 'qr'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-4">
+					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-4">
 						<div class="flex items-start justify-between">
-							<p class="text-text-body text-base m-0">On your new device, scan this QR or enter the code below.</p>
-							<button onclick={cancelPairing} class="text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
+							<p class="text-text text-base m-0">On your new device, scan this QR or enter the code below.</p>
+							<button onclick={cancelPairing} class="text-subtle hover:text-subtle cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
 								<X size={14} strokeWidth={2} />
 							</button>
 						</div>
 						<div class="flex flex-col sm:flex-row gap-6 items-start">
 							{#if pairQrDataUrl}
-								<img src={pairQrDataUrl} alt="Pairing QR code" class="w-[140px] h-[140px] rounded border border-border-deep shrink-0" />
+								<img src={pairQrDataUrl} alt="Pairing QR code" class="w-[140px] h-[140px] rounded border border-border shrink-0" />
 							{/if}
 							<div class="flex flex-col gap-2">
-								<p class="text-muted-dim text-sm m-0">Or enter this code on the other device:</p>
-								<span class="text-text-bright text-lg tracking-[0.2em] font-mono">
+								<p class="text-subtle text-sm m-0">Or enter this code on the other device:</p>
+								<span class="text-text text-lg tracking-[0.2em] font-mono">
 									{pairShortCode.slice(0, 4)}-{pairShortCode.slice(4)}
 								</span>
 								<div class="flex items-center gap-2 mt-1">
 									<span class="inline-block w-2 h-2 bg-status-waiting-blue rounded-full animate-pulse"></span>
-									<span class="text-muted-dim text-sm">Waiting for new device…</span>
+									<span class="text-subtle text-sm">Waiting for new device…</span>
 								</div>
 							</div>
 						</div>
 					</div>
 				{:else if pairStep === 'fingerprint'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-4">
+					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-4">
 						<div class="flex items-start justify-between">
-							<p class="text-text-body text-base m-0">Confirm these words match what you see on the new device:</p>
-							<button onclick={cancelPairing} class="text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
+							<p class="text-text text-base m-0">Confirm these words match what you see on the new device:</p>
+							<button onclick={cancelPairing} class="text-subtle hover:text-subtle cursor-pointer bg-transparent border-none p-0 shrink-0 ml-3">
 								<X size={14} strokeWidth={2} />
 							</button>
 						</div>
 						<div class="flex gap-2 flex-wrap">
 							{#each pairFingerprint.split('-') as word}
-								<span class="px-2.5 py-1 bg-info-code-bg border border-border-deep rounded text-sm text-info-code-text font-mono tracking-wide">
+								<span class="px-2.5 py-1 bg-info-code-bg border border-border rounded text-sm text-info-code-text font-mono tracking-wide">
 									{word}
 								</span>
 							{/each}
@@ -709,7 +709,7 @@
 							</button>
 							<button
 								onclick={cancelPairing}
-								class="px-4 py-2 bg-transparent border border-border-subtle rounded text-base text-muted-dim hover:text-error-light transition-colors cursor-pointer font-mono"
+								class="px-4 py-2 bg-transparent border border-border rounded text-base text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
 							>
 								No, cancel
 							</button>
@@ -720,9 +720,9 @@
 						<p class="text-success-action-text text-base m-0">New device successfully added.</p>
 					</div>
 				{:else if pairStep === 'error'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-2">
+					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-2">
 						<p class="text-error-light text-base m-0">{pairError}</p>
-						<button onclick={cancelPairing} class="text-sm text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0 self-start">
+						<button onclick={cancelPairing} class="text-sm text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0 self-start">
 							Dismiss
 						</button>
 					</div>
@@ -730,13 +730,13 @@
 
 				<!-- Add passkey panel -->
 				{#if addStep === 'naming'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg flex flex-col gap-3">
-						<p class="text-text-body text-base m-0">Name your new passkey (optional):</p>
+					<div class="mb-3 p-4 border border-border rounded-lg flex flex-col gap-3">
+						<p class="text-text text-base m-0">Name your new passkey (optional):</p>
 						<input
 							type="text"
 							bind:value={newName}
 							placeholder="e.g. MacBook Touch ID"
-							class="font-mono bg-surface-input border border-border-subtle rounded px-3 py-2 text-base text-text-body placeholder-muted-dim focus:outline-none focus:border-border-focus"
+							class="font-mono bg-canvas border border-border rounded px-3 py-2 text-base text-text placeholder-subtle focus:outline-none focus:border-border"
 						/>
 						{#if addError}
 							<p class="text-error-light text-base m-0">{addError}</p>
@@ -750,34 +750,34 @@
 							</button>
 							<button
 								onclick={() => { addStep = 'idle'; addError = null; newName = ''; }}
-								class="px-4 py-2 bg-transparent text-muted-dim border border-border-subtle rounded cursor-pointer font-mono text-base hover:text-muted-blue hover:border-border transition-colors duration-100"
+								class="px-4 py-2 bg-transparent text-subtle border border-border rounded cursor-pointer font-mono text-base hover:text-subtle hover:border-border transition-colors duration-100"
 							>
 								Cancel
 							</button>
 						</div>
 					</div>
 				{:else if addStep === 'reauth'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg">
-						<p class="text-muted-dim text-base animate-pulse m-0">Verifying your existing passkey…</p>
+					<div class="mb-3 p-4 border border-border rounded-lg">
+						<p class="text-subtle text-base animate-pulse m-0">Verifying your existing passkey…</p>
 					</div>
 				{:else if addStep === 'registering'}
-					<div class="mb-3 p-4 border border-border-deep rounded-lg">
-						<p class="text-muted-dim text-base animate-pulse m-0">Registering new passkey…</p>
+					<div class="mb-3 p-4 border border-border rounded-lg">
+						<p class="text-subtle text-base animate-pulse m-0">Registering new passkey…</p>
 					</div>
 				{/if}
 
 				{#if credsLoading}
-					<p class="text-muted-dim text-base">Loading…</p>
+					<p class="text-subtle text-base">Loading…</p>
 				{:else if credentials.length === 0}
 					<div class="py-10 border border-dashed border-border rounded-lg text-center">
-						<p class="m-0 text-muted-dim text-base">No passkeys</p>
+						<p class="m-0 text-subtle text-base">No passkeys</p>
 					</div>
 				{:else}
-					<div class="border border-border-deep rounded-lg overflow-hidden">
+					<div class="border border-border rounded-lg overflow-hidden">
 						{#each credentials as cred, i (cred.id)}
 							<div class="flex items-center gap-3 px-4 py-3.5
-								{i < credentials.length - 1 ? 'border-b border-border-deep' : ''}">
-								<div class="text-muted-dim shrink-0">
+								{i < credentials.length - 1 ? 'border-b border-border' : ''}">
+								<div class="text-subtle shrink-0">
 									<KeyRound size={16} strokeWidth={1.75} />
 								</div>
 
@@ -790,7 +790,7 @@
 												if (e.key === 'Enter') saveEdit(cred.id);
 												if (e.key === 'Escape') cancelEdit();
 											}}
-											class="font-mono bg-surface-input border border-surface-3 rounded px-2 py-1 text-base text-text-body focus:outline-none w-full"
+											class="font-mono bg-canvas border border-canvas rounded px-2 py-1 text-base text-text focus:outline-none w-full"
 										/>
 										<div class="flex gap-3 mt-1.5">
 											<button
@@ -802,14 +802,14 @@
 											</button>
 											<button
 												onclick={cancelEdit}
-												class="text-sm text-muted-dim hover:text-muted-blue cursor-pointer bg-transparent border-none font-mono p-0"
+												class="text-sm text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0"
 											>
 												Cancel
 											</button>
 										</div>
 									{:else}
 										<div class="flex items-center gap-2 flex-wrap">
-											<span class="text-base text-text-body">{cred.name || 'Unnamed passkey'}</span>
+											<span class="text-base text-text">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
 												<span class="text-[10px] px-1.5 py-0.5 bg-success-action-bg-mid border border-border-success-dark rounded text-success-action-text leading-none shrink-0">
 													This session
@@ -821,7 +821,7 @@
 												</span>
 											{/if}
 										</div>
-										<p class="m-0 text-sm text-muted-dim mt-0.5">Added {formatDate(cred.createdAt)}</p>
+										<p class="m-0 text-sm text-subtle mt-0.5">Added {formatDate(cred.createdAt)}</p>
 									{/if}
 								</div>
 
@@ -830,7 +830,7 @@
 										<button
 											onclick={() => startEdit(cred)}
 											title="Rename"
-											class="p-2 text-muted-mid hover:text-muted-blue transition-colors cursor-pointer bg-transparent border-none rounded"
+											class="p-2 text-subtle hover:text-subtle transition-colors cursor-pointer bg-transparent border-none rounded"
 										>
 											<Pencil size={14} strokeWidth={1.75} />
 										</button>
@@ -838,7 +838,7 @@
 
 									{#if confirmDeleteId === cred.id}
 										<div class="flex items-center gap-1.5 ml-1">
-											<span class="text-sm text-muted-dim">Delete?</span>
+											<span class="text-sm text-subtle">Delete?</span>
 											<button
 												onclick={() => confirmDelete(cred.id)}
 												disabled={deletingId === cred.id}
@@ -848,7 +848,7 @@
 											</button>
 											<button
 												onclick={cancelDelete}
-												class="px-2 py-1 border border-border-subtle rounded text-sm text-muted-dim hover:text-muted-blue transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border rounded text-sm text-subtle hover:text-subtle transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												No
 											</button>
@@ -860,8 +860,8 @@
 											title={credentials.length <= 1 ? 'You must have at least one passkey' : 'Delete passkey'}
 											class="p-2 transition-colors cursor-pointer bg-transparent border-none rounded
 												{credentials.length <= 1
-													? 'text-muted-mid cursor-not-allowed'
-													: 'text-muted-mid hover:text-error-light'}"
+													? 'text-subtle cursor-not-allowed'
+													: 'text-subtle hover:text-error-light'}"
 										>
 											<Trash2 size={14} strokeWidth={1.75} />
 										</button>
@@ -876,7 +876,7 @@
 			<!-- Recovery -->
 			<div>
 				<div class="flex items-center justify-between mb-4">
-					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">
+					<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">
 						<span class="inline-flex items-center gap-2">
 							<ShieldAlert size={14} strokeWidth={1.75} />
 							Recovery
@@ -884,15 +884,15 @@
 					</h2>
 				</div>
 
-				<div class="border border-border-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-border rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
-						<p class="m-0 text-base text-text-body">Recovery codes</p>
-						<p class="m-0 mt-0.5 text-sm text-muted-dim">Use a recovery code to regain access if you lose all your passkeys.</p>
+						<p class="m-0 text-base text-text">Recovery codes</p>
+						<p class="m-0 mt-0.5 text-sm text-subtle">Use a recovery code to regain access if you lose all your passkeys.</p>
 					</div>
 					<button
 						onclick={() => { recoveryDialogOpen = true; codeGenError = null; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-muted-dim border border-border-deep rounded
-							cursor-pointer font-mono text-base hover:text-text-body hover:border-border-subtle
+						class="shrink-0 px-4 py-2 bg-transparent text-subtle border border-border rounded
+							cursor-pointer font-mono text-base hover:text-text hover:border-border
 							transition-colors duration-100"
 					>
 						View
@@ -903,12 +903,12 @@
 	</div>
 
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
-	<div class="mt-10 pt-8 border-t border-border-deep">
-		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-muted-mid">Danger zone</h2>
+	<div class="mt-10 pt-8 border-t border-border">
+		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
 		<div class="border border-border-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
 			<div>
-				<p class="m-0 text-base text-text-body">Delete account</p>
-				<p class="m-0 mt-0.5 text-sm text-muted-dim">Permanently delete your account and all its data.</p>
+				<p class="m-0 text-base text-text">Delete account</p>
+				<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete your account and all its data.</p>
 			</div>
 			<button
 				onclick={() => { showDeleteAccountConfirm = true; deleteAccountError = ''; }}

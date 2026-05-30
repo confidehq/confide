@@ -25,6 +25,7 @@
 	import DropdownMenuSeparator from '$lib/components/DropdownMenuSeparator.svelte';
 	import { Users, Ellipsis, Link, Check, Pencil } from '@lucide/svelte';
 	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
+	import StatusBadge from '$lib/components/StatusBadge.svelte';
 
 	function timeAgo(dateStr: string): string {
 		const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -134,8 +135,8 @@
 
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div>
-			<h1 class="text-2xl m-0 mb-1 text-text-bright font-semibold">Forms</h1>
-			<p class="m-0 text-sm text-muted-dim">Create and manage your encrypted forms</p>
+			<h1 class="text-2xl m-0 mb-1 text-text font-semibold">Forms</h1>
+			<p class="m-0 text-sm text-subtle">Create and manage your encrypted forms</p>
 		</div>
 		{#if workspacesStore.active?.status !== 'pending'}
 			<button
@@ -152,30 +153,30 @@
 
 	{#if workspacesStore.active?.status === 'pending'}
 		<div class="py-14 border border-dashed border-border rounded-lg text-center px-6">
-			<p class="m-0 mb-1 text-text-body text-base font-medium">Access pending approval</p>
-			<p class="m-0 text-muted-dim text-sm mt-1.5 max-w-sm mx-auto">
+			<p class="m-0 mb-1 text-text text-base font-medium">Access pending approval</p>
+			<p class="m-0 text-subtle text-sm mt-1.5 max-w-sm mx-auto">
 				A workspace admin needs to grant you access before you can view forms and workspace content.
 			</p>
 		</div>
 	{:else if formsStore.loading && !formsStore.loaded}
-		<p class="text-muted-dim text-base">Loading…</p>
+		<p class="text-subtle text-base">Loading…</p>
 	{:else if formsStore.error}
 		<p class="text-error-light text-base">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
 		<div class="py-12 border border-dashed border-border rounded-lg text-center">
-			<p class="m-0 mb-1 text-muted-dim text-base">No forms yet</p>
-			<p class="m-0 text-muted-mid text-base">Create your first form to get started</p>
+			<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>
+			<p class="m-0 text-subtle text-base">Create your first form to get started</p>
 			<button
 				onclick={() => goto('/forms/new')}
-				class="mt-4 px-4 py-2 bg-transparent text-text-blue border border-border-subtle rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
+				class="mt-4 px-4 py-2 bg-transparent text-text border border-border rounded cursor-pointer font-mono text-base hover:border-border transition-colors duration-100"
 			>+ New form</button>
 		</div>
 	{:else}
-		<div class="border border-border-deep rounded-lg overflow-hidden">
+		<div class="border border-border rounded-lg overflow-hidden">
 			{#each formsStore.forms as form, i (form.formId)}
 				<div
-					class="flex items-center gap-6 px-4 py-3.5 cursor-pointer hover:bg-border-card transition-colors duration-100
-						{i < formsStore.forms.length - 1 ? 'border-b border-border-deep' : ''}"
+					class="flex items-center gap-6 px-4 py-3.5 cursor-pointer hover:bg-surface transition-colors duration-75
+						{i < formsStore.forms.length - 1 ? 'border-b border-border' : ''}"
 					onclick={() => goto(`/forms/${form.formId}`)}
 					role="button"
 					tabindex="0"
@@ -184,33 +185,26 @@
 					<!-- Name + description + status badge -->
 					<div class="flex-1 min-w-0 flex flex-col">
 						<div class="flex items-center gap-2 min-w-0">
-							<span class="text-base text-text-body truncate">
+							<span class="text-base text-text truncate">
 								{formsStore.formNames.get(form.formId) ?? '—'}
 							</span>
-							<span class="shrink-0 px-1.5 py-px rounded-full text-sm
-								{form.status === 'open'
-									? 'bg-open-bg text-open-text border border-open-border'
-									: form.status === 'draft'
-										? 'bg-warning-bg-dark text-warning-text-dark border border-warning-border'
-										: 'bg-closed-bg text-closed-text border border-closed-border'}">
-								{form.status}
-							</span>
+							<StatusBadge status={form.status} />
 						</div>
 						{#if formsStore.formDescriptions.get(form.formId)}
-							<span class="text-sm text-muted-mid truncate">
+							<span class="text-sm text-subtle truncate">
 								{formsStore.formDescriptions.get(form.formId)?.replace(/<[^>]*>/g, '') ?? ''}
 							</span>
 						{/if}
 					</div>
 
 					<!-- Response count -->
-					<span class="shrink-0 flex items-center gap-1.5 text-base text-muted-dim tabular-nums">
+					<span class="shrink-0 flex items-center gap-1.5 text-base text-subtle tabular-nums">
 						<Users size={13} strokeWidth={1.75} />
 						{form.responseCount}
 					</span>
 
 					<!-- Relative time (hidden on small screens) -->
-					<span class="shrink-0 hidden sm:block text-base text-muted-dim">
+					<span class="shrink-0 hidden sm:block text-base text-subtle">
 						{timeAgo(form.updatedAt)}
 					</span>
 
@@ -221,7 +215,7 @@
 							onkeydown={e => e.stopPropagation()}
 							title="Copy share link"
 							class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer transition-colors duration-100
-								{copiedId === form.formId ? 'text-success-text-dark' : 'text-muted-dim hover:text-text-body'}"
+								{copiedId === form.formId ? 'text-success' : 'text-subtle hover:text-text'}"
 						>
 							{#if copiedId === form.formId}
 								<Check size={15} strokeWidth={2} />
@@ -235,7 +229,7 @@
 					<button
 						onclick={e => { e.stopPropagation(); goto(`/forms/${form.formId}/edit`); }}
 						title="Edit form"
-						class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer text-muted-dim hover:text-text-body transition-colors duration-100"
+						class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer text-subtle hover:text-text transition-colors duration-100"
 					><Pencil size={15} strokeWidth={1.75} /></button>
 
 					<!-- Actions menu -->
@@ -249,7 +243,7 @@
 							{#snippet trigger(attrs)}
 								<button
 									{...attrs}
-									class="p-1 bg-transparent text-muted-dim border-none rounded cursor-pointer hover:text-text-body transition-colors duration-100"
+									class="p-1 bg-transparent text-subtle border-none rounded cursor-pointer hover:text-text transition-colors duration-100"
 								><Ellipsis size={16} strokeWidth={1.75} /></button>
 							{/snippet}
 							{#snippet children({ close })}

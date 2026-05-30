@@ -28,16 +28,16 @@
 	];
 </script>
 
-<aside class="hidden xl:flex w-[240px] bg-canvas border border-border-deep rounded-xl my-2 ml-2 p-4 overflow-y-auto shrink-0 flex-col">
-	<p class="m-0 mb-3 text-sm text-muted-dark uppercase tracking-[0.05em]">Fields</p>
+<aside class="hidden xl:flex w-[240px] bg-base border border-border rounded-xl my-2 ml-2 p-4 overflow-y-auto shrink-0 flex-col">
+	<p class="m-0 mb-3 text-sm text-subtle uppercase tracking-[0.05em]">Fields</p>
 
 	<div class="flex flex-col gap-1">
 		{#each fieldTypes as { type, label, icon }}
 			<button
 				onclick={() => store.addField(type)}
-				class="flex items-center gap-2.5 px-3 py-2 bg-transparent text-text-dim border border-border rounded-md cursor-pointer font-mono text-sm text-left transition-[background] duration-100 hover:bg-border"
+				class="flex items-center gap-2.5 px-3 py-2 bg-transparent text-text border border-border rounded-md cursor-pointer font-mono text-sm text-left transition-[background] duration-100 hover:bg-border"
 			>
-				<span class="w-5 flex justify-center shrink-0 text-muted">
+				<span class="w-5 flex justify-center shrink-0 text-subtle">
 					<svelte:component this={icon} size={15} strokeWidth={1.75} />
 				</span>
 				<span>{label}</span>

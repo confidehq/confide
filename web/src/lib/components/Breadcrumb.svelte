@@ -23,17 +23,17 @@
 		{#if item.onclick && !isLast}
 			<button
 				onclick={item.onclick}
-				class="shrink-0 text-sm text-muted-mid bg-transparent border-none p-0 cursor-pointer whitespace-nowrap hover:text-muted-blue transition-colors duration-100"
+				class="shrink-0 text-sm text-subtle bg-transparent border-none p-0 cursor-pointer whitespace-nowrap hover:text-subtle transition-colors duration-100"
 			>{item.label}</button>
 		{:else if item.href && !isLast}
 			<a
 				href={item.href}
-				class="shrink-0 text-sm text-muted-mid no-underline whitespace-nowrap hover:text-muted-blue transition-colors duration-100"
+				class="shrink-0 text-sm text-subtle no-underline whitespace-nowrap hover:text-subtle transition-colors duration-100"
 			>{item.label}</a>
 		{:else}
 			<span
 				class="text-sm whitespace-nowrap overflow-hidden text-ellipsis min-w-0
-					{isLast ? 'text-text-body' : 'text-muted-mid shrink-0'}"
+					{isLast ? 'text-text' : 'text-subtle shrink-0'}"
 				title={item.label}
 			>{item.label}</span>
 		{/if}

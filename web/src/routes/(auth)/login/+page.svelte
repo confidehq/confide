@@ -50,13 +50,13 @@
 		<!-- Logo + heading -->
 		<div class="flex flex-col items-center mb-8">
 			<a href="https://useconfide.app" class="w-14 h-14 mb-1 [&>svg]:w-full [&>svg]:h-full block">{@html faviconSvg}</a>
-			<h1 class="text-xl font-semibold text-text-body tracking-tight">Sign in to Confide</h1>
-			<p class="text-sm text-muted-dim mt-1.5">Use your passkey to continue.</p>
+			<h1 class="text-xl font-semibold text-text tracking-tight">Sign in to Confide</h1>
+			<p class="text-sm text-subtle mt-1.5">Use your passkey to continue.</p>
 		</div>
 
 		<!-- Form card -->
-		<div class="bg-surface border border-border rounded-xl p-6">
-			<label class="block text-sm text-muted mb-1.5" for="username">Username</label>
+		<div class="bg-canvas border border-border rounded-xl p-6">
+			<label class="block text-sm text-subtle mb-1.5" for="username">Username</label>
 			<input
 				id="username"
 				type="text"
@@ -70,7 +70,7 @@
 				onclick={handleLogin}
 				disabled={loading}
 				class="w-full py-3 text-white border-none rounded-lg font-mono text-sm font-medium
-					{loading ? 'bg-muted-mid cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
+					{loading ? 'bg-muted cursor-not-allowed' : 'bg-primary hover:bg-primary-hover cursor-pointer'}
 					transition-colors duration-100"
 			>
 				{loading ? 'Authenticating…' : 'Sign in with passkey'}
@@ -82,17 +82,17 @@
 		</div>
 
 		<!-- Recovery link -->
-		<p class="text-xs text-muted-dark text-center mt-4">
+		<p class="text-xs text-subtle text-center mt-4">
 			Lost your passkey?
-			<a href="/recover" class="text-text-blue hover:underline">Recover your account</a>
+			<a href="/recover" class="text-text hover:underline">Recover your account</a>
 		</p>
 
 		<!-- Sign up -->
 		{#if registrationOpen}
 		<div class="mt-6 pt-5 border-t border-border text-center">
-			<p class="text-sm text-muted-dim">
+			<p class="text-sm text-subtle">
 				Don't have an account?
-				<a href="/signup" class="text-text-blue hover:underline font-medium">Sign up</a>
+				<a href="/signup" class="text-text hover:underline font-medium">Sign up</a>
 			</p>
 		</div>
 		{/if}
