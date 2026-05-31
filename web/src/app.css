@@ -18,6 +18,11 @@
   --color-warn-dim:     #B7A449;
   --color-warn:         #ECD155;
 
+  --color-purple:        #A78BFA;
+  --color-purple-dim:    #4C2D95;
+  --color-blue:          #60A5FA;
+  --color-blue-dim:      #1E3A5F;
+
   /* ── Text ── */
   --color-text:   #DEE5F2;
   --color-subtle: #A8B3CA;
@@ -29,49 +34,26 @@
 
   /* ── Borders ── */
   --color-border:              var(--color-highlight-high);
-  /* --color-border:              #2E416B; */
   --color-border-canvas:       var(--color-highlight-mid);
-  --color-border-danger-dark:  #fff;
-  --color-border-danger-deep:  #fff;
-  --color-border-danger-muted: #fff;
-  --color-border-success-dark: #fff;
-
 
   /* ── Actions ── */
-  --color-primary:       #3B82F6;
-  --color-primary-hover: #2563EB;
+  --color-primary:       var(--color-blue-500);
+  --color-primary-hover: var(--color-blue-600);
 
   /* ── Overlays ── */
   --color-overlay:       rgba(0, 0, 0, 0.65);
   --color-overlay-light: rgba(0, 0, 0, 0.4);
 
-  /* ── Info-action surfaces ── */
-  --color-info-action-bg:         #0D1A2E;
-  --color-info-action-bg-mid:     #0F2540;
-  --color-info-action-bg-light:   #162A44;
-  --color-info-action-bg-hover:   #1A2F4A;
-  --color-info-action-border:     #1E3A5C;
-  --color-info-code-bg:           #0A1828;
-  --color-info-code-text:         #7AADD0;
-  --color-info-code-text-hover:   #A8D4EF;
-
-  /* ── Success-action surfaces ── */
-  --color-success-action-bg:       #081810;
-  --color-success-action-bg-mid:   #0C2418;
-  --color-success-action-bg-hover: #102A1C;
-  --color-success-action-border:   #1A3820;
-  --color-success-action-text:     #4A9060;
-
   /* ── Status indicators ── */
-  --color-warning-indicator:    #A16207;
-  --color-status-waiting-blue:  #3A5A7A;
-  --color-status-waiting-green: #3A7A5A;
+  --color-warning-indicator:    var(--color-warn);
+  --color-status-waiting-blue:  var(--color-info);
+  --color-status-waiting-green: var(--color-success);
 
   /* ── Role badges ── */
-  --color-role-owner:        #A78BFA;
-  --color-role-owner-border: #4C2D95;
-  --color-role-admin:        #60A5FA;
-  --color-role-admin-border: #1E3A5F;
+  --color-role-owner:        var(--color-purple);
+  --color-role-owner-border: var(--color-purple-dim);
+  --color-role-admin:        var(--color-blue);
+  --color-role-admin-border: var(--color-blue-dim);
 
   /* ── Status badges ── */
   --color-open-bg:       var(--color-success-dark);

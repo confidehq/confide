@@ -161,7 +161,7 @@
 				{/if}
 				<button
 					onclick={handleCodeSubmit}
-					class="px-4 py-2 bg-info-action-bg-light border border-canvas rounded text-sm text-text hover:bg-info-action-bg-hover transition-colors cursor-pointer font-mono"
+					class="px-4 py-2 bg-info-dim border border-canvas rounded text-sm text-text hover:bg-info transition-colors cursor-pointer font-mono"
 				>
 					Continue
 				</button>
@@ -212,7 +212,7 @@
 
 		{:else if stage === 'done'}
 			<div class="flex flex-col gap-3">
-				<p class="text-success-action-text text-sm m-0">Device added. Redirecting…</p>
+				<p class="text-success text-sm m-0">Device added. Redirecting…</p>
 			</div>
 
 		{:else if stage === 'error'}

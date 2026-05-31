@@ -678,7 +678,7 @@
 									{pairShortCode.slice(0, 4)}-{pairShortCode.slice(4)}
 								</span>
 								<div class="flex items-center gap-2 mt-1">
-									<span class="inline-block w-2 h-2 bg-status-waiting-blue rounded-full animate-pulse"></span>
+									<span class="inline-block w-2 h-2 bg-primary rounded-full animate-pulse"></span>
 									<span class="text-subtle text-sm">Waiting for new device…</span>
 								</div>
 							</div>
@@ -703,21 +703,21 @@
 							<button
 								onclick={confirmPairing}
 								disabled={pairConfirming}
-								class="px-4 py-2 bg-success-action-bg-mid border border-border-canvas-success-dark rounded text-base text-success-action-text hover:bg-success-action-bg-hover transition-colors cursor-pointer font-mono disabled:opacity-50"
+								class="px-4 py-2 bg-success-dim border border-border-canvas-success-dark rounded text-success hover:bg-success transition-colors cursor-pointer font-mono disabled:opacity-50"
 							>
 								{pairConfirming ? 'Approving…' : 'Yes, these match'}
 							</button>
 							<button
 								onclick={cancelPairing}
-								class="px-4 py-2 bg-transparent border border-border-canvas rounded text-base text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
+								class="px-4 py-2 bg-transparent border border-border-canvas rounded text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
 							>
 								No, cancel
 							</button>
 						</div>
 					</div>
 				{:else if pairStep === 'done'}
-					<div class="mb-3 p-3 border border-border-canvas-success-dark rounded-lg bg-success-action-bg-mid">
-						<p class="text-success-action-text text-base m-0">New device successfully added.</p>
+					<div class="mb-3 p-3 border border-success-dark rounded-lg bg-success-dim">
+						<p class="text-success m-0">New device successfully added.</p>
 					</div>
 				{:else if pairStep === 'error'}
 					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-2">
@@ -811,7 +811,7 @@
 										<div class="flex items-center gap-2 flex-wrap">
 											<span class="text-base text-text">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
-												<span class="text-[10px] px-1.5 py-0.5 bg-success-action-bg-mid border border-border-canvas-success-dark rounded text-success-action-text leading-none shrink-0">
+												<span class="text-[10px] px-1.5 py-0.5 bg-success-dim border border-success-dark rounded text-success leading-none shrink-0">
 													This session
 												</span>
 											{/if}

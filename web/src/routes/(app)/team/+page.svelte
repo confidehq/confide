@@ -326,8 +326,8 @@
 								onclick={() => (inviteRole = role)}
 								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border-canvas last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
-										? 'bg-info-action-bg-mid text-text border-b-2 border-b-info-border'
-										: 'bg-transparent text-subtle hover:text-subtle hover:bg-info-action-bg'}"
+										? 'bg-info-dim text-text border-b-2 border-b-info-border'
+										: 'bg-transparent text-subtle hover:text-subtle hover:bg-info'}"
 							>{role}</button>
 						{/each}
 					</div>
@@ -511,7 +511,7 @@
 							<button
 								onclick={() => handleGrant(member)}
 								disabled={grantingId === member.accountId}
-								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success-action-bg text-success border border-success-dim rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success text-success border border-success-dim rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 							>
 								<KeyRound size={11} strokeWidth={1.75} />
 								{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
@@ -571,7 +571,7 @@
 											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-colors duration-100 cursor-pointer
 												{grantingId === member.accountId
 													? 'bg-transparent text-subtle border-border-canvas cursor-not-allowed'
-													: 'bg-success-action-bg text-success border-success-dim hover:bg-success-dark'}"
+													: 'bg-success text-success border-success-dim hover:bg-success-dark'}"
 										>
 											<KeyRound size={11} strokeWidth={1.75} />
 											{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
