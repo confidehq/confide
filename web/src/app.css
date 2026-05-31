@@ -196,6 +196,13 @@ body {
   }
 }
 
+/* divide-y children use surface color for the divider border */
+.divide-y {
+  :where(& > :not(:last-child)) {
+    border-bottom-color: var(--color-surface);
+  }
+}
+
 /* Restore list styles for rich HTML content (Tailwind preflight resets them) */
 .rich-html ul {
   list-style-type: '—';

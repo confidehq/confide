@@ -675,7 +675,7 @@
 						<button
 							onclick={() => handleRevoke(inv)}
 							disabled={revokingId === inv.id}
-							class="shrink-0 px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 						>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 					</div>
 				{/each}
@@ -712,7 +712,7 @@
 									<button
 										onclick={() => handleRevoke(inv)}
 										disabled={revokingId === inv.id}
-										class="px-3 py-1.5 bg-transparent text-subtle border border-border-canvas rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 									>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 								</td>
 							</tr>
