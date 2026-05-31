@@ -574,8 +574,8 @@
 				<div class="flex-1 flex items-center justify-center text-error-light text-base p-8 text-center">{responsesError}</div>
 			{:else if responses.length === 0}
 				<div class="flex-1 flex flex-col items-center justify-center text-border-subtle text-center p-12">
-					<div class="text-4xl mb-3 opacity-40">○</div>
-					<p class="text-base m-0">No responses yet</p>
+					<div class="text-4xl text-subtle mb-3 opacity-40">○</div>
+					<p class="text-subtle m-0">No responses yet</p>
 				</div>
 			{:else}
 				<div class="flex-1 overflow-y-auto overflow-x-hidden">
@@ -871,13 +871,13 @@
 								{:else if activeTab === 'settings'}
 									<!-- Settings -->
 									<section class="flex flex-col gap-4">
-										<div class="flex flex-col divide-y divide-border-deep">
+										<div class="flex flex-col divide-y border-surface">
 
 											<!-- Close on date -->
 											<div class="py-3 first:pt-0">
 												<div class="flex items-center justify-between gap-3">
 													<div>
-														<p class="m-0 text-base text-text">Close on date</p>
+														<p class="m-0 text-text">Close on date</p>
 														<p class="m-0 text-sm text-subtle mt-0.5">Stop accepting responses after a date.</p>
 													</div>
 													<button
@@ -905,7 +905,7 @@
 											<div class="py-3">
 												<div class="flex items-center justify-between gap-3">
 													<div>
-														<p class="m-0 text-base text-text">Limit total responses</p>
+														<p class="m-0 text-text">Limit total responses</p>
 														<p class="m-0 text-sm text-subtle mt-0.5">Close after a set number of submissions.</p>
 													</div>
 													<button
@@ -933,7 +933,7 @@
 											<div class="py-3">
 												<div class="flex items-center justify-between gap-3">
 													<div>
-														<p class="m-0 text-base text-text">Auto delete responses</p>
+														<p class="m-0 text-text">Auto delete responses</p>
 														<p class="m-0 text-sm text-subtle mt-0.5">Remove responses from our servers after a set period.</p>
 													</div>
 													<button
@@ -1096,17 +1096,17 @@
 
 									<!-- Danger zone -->
 									<section class="flex flex-col gap-4 mt-8">
-										<h2 class="m-0 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-										<div class="border border-border-canvas-danger-muted rounded-lg px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+										<h2 class="m-0 font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
+										<div class="border border-danger rounded-lg px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
 											<div class="min-w-0">
-												<p class="m-0 text-base sm:text-lg text-text">Delete this form</p>
-												<p class="m-0 mt-0.5 text-base text-subtle">
+												<p class="m-0 sm:text-lg text-text">Delete this form</p>
+												<p class="m-0 mt-0.5 text-subtle">
 													Permanently deletes the form and all {record.responseCount} response{record.responseCount === 1 ? '' : 's'}. Cannot be undone.
 												</p>
 											</div>
 											<button
 												onclick={() => { pendingDeleteForm = true; }}
-												class="sm:shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-muted rounded cursor-pointer font-mono text-base sm:text-lg
+												class="sm:shrink-0 px-4 py-2 bg-transparent text-error-light border border-danger rounded cursor-pointer font-mono text-danger sm:text-lg
 													hover:bg-danger-hover hover:border-border-canvas-danger-dark transition-colors duration-100"
 											>Delete</button>
 										</div>

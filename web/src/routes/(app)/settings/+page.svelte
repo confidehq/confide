@@ -435,7 +435,7 @@
 				{/if}
 			</div>
 
-			<div class="h-px bg-border-deep"></div>
+			<div class="h-px bg-surface"></div>
 
 			<div class="flex gap-2 justify-end">
 				<button
@@ -763,8 +763,8 @@
 			{#if billingInfo}
 				{@const memberLimit = billingInfo.plan === 'free' ? 2 : billingInfo.plan === 'pro' ? 10 : -1}
 				{@const responseLimit = billingInfo.plan === 'free' ? 250 : billingInfo.plan === 'pro' ? 10_000 : billingInfo.plan === 'org' ? 100_000 : -1}
-				<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Usage</h2>
-				<div class="border border-border-canvas rounded-lg divide-y divide-border-deep mb-8">
+				<h2 class="m-0 mb-4 font-semibold tracking-[0.08em] uppercase text-subtle">Usage</h2>
+				<div class="border border-border-canvas rounded-lg divide-y divide-border mb-8">
 					<!-- Members row -->
 					<div class="px-4 py-3 flex items-center gap-4">
 						<p class="m-0 text-sm text-subtle w-28 shrink-0">Members</p>
