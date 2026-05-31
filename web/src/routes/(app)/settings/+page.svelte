@@ -991,15 +991,15 @@
 			{#if access.isOwner}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Delete workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete this workspace and all its data.</p>
 					</div>
 					<button
 						onclick={() => { showDeleteConfirm = true; deleteError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
-							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
+						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+							cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 					>
 						Delete
 					</button>
@@ -1008,15 +1008,15 @@
 			{:else}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Leave workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Remove yourself from this workspace. You'll need an invitation to rejoin.</p>
 					</div>
 					<button
 						onclick={() => { showLeaveConfirm = true; leaveError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
-							cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
+						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+							cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 					>
 						Leave
 					</button>

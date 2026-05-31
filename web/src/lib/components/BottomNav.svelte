@@ -123,7 +123,7 @@
 				<div class="flex items-center gap-2 mb-3">
 					<button
 						onclick={() => { showWorkspacePicker = false; showCreateWorkspace = false; createError = ''; newWorkspaceName = ''; }}
-						class="p-1 -ml-1 bg-transparent border-none cursor-pointer text-subtle hover:text-subtle transition-colors duration-100"
+						class="p-1 -ml-1 bg-transparent border-none cursor-pointer text-muted hover:text-subtle transition-colors duration-100"
 					>
 						<X size={16} strokeWidth={2} />
 					</button>
@@ -177,7 +177,7 @@
 									{initials(ws.name)}
 								</span>
 								<span class="flex-1 min-w-0 text-text text-sm truncate">{ws.name}</span>
-								<span class="shrink-0 text-xs text-subtle capitalize">{ws.plan}</span>
+								<span class="shrink-0 text-xs text-muted capitalize">{ws.plan}</span>
 								{#if active}
 									<Check size={13} strokeWidth={2.5} class="shrink-0 text-text" />
 								{/if}
@@ -186,7 +186,7 @@
 					</div>
 					<button
 						onclick={() => { showCreateWorkspace = true; }}
-						class="flex items-center gap-2 w-full px-2 py-2 bg-transparent border border-dashed border-border rounded-md cursor-pointer font-mono text-sm text-subtle hover:text-text hover:border-border transition-colors duration-100"
+						class="flex items-center gap-2 w-full px-2 py-2 bg-transparent border border-dashed border-border rounded-md cursor-pointer font-mono text-sm text-muted hover:text-text hover:border-border transition-colors duration-100"
 					>
 						<Plus size={13} strokeWidth={1.75} />
 						New workspace
@@ -205,11 +205,11 @@
 						<span class="block text-sm text-text font-medium truncate leading-tight">
 							{workspacesStore.active?.name ?? 'No workspace'}
 						</span>
-						<span class="block text-xs text-subtle leading-tight capitalize">
+						<span class="block text-xs text-muted leading-tight capitalize">
 							{workspacesStore.active?.plan ?? ''}
 						</span>
 					</span>
-					<svg class="shrink-0 text-subtle" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+					<svg class="shrink-0 text-muted" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
 						<path d="M7 15l5 5 5-5M7 9l5-5 5 5"/>
 					</svg>
 				</button>
@@ -222,30 +222,30 @@
 				<a
 					href="/settings"
 					onclick={closeMore}
-					class="flex items-center gap-3 px-4 py-3 no-underline text-text hover:bg-surface transition-colors duration-100"
+					class="flex items-center gap-3 px-4 py-3 no-underline text-muted hover:bg-surface hover:text-subtle transition-colors duration-100"
 				>
-					<Settings size={18} strokeWidth={1.75} class="shrink-0 text-subtle" />
+					<Settings size={18} strokeWidth={1.75} class="shrink-0" />
 					<span class="text-sm">Settings</span>
 				</a>
 
 				<a
 					href="/me"
 					onclick={closeMore}
-					class="flex items-center gap-3 px-4 py-3 no-underline text-text hover:bg-surface transition-colors duration-100"
+					class="flex items-center gap-3 px-4 py-3 no-underline text-muted hover:bg-surface hover:text-subtle transition-colors duration-100"
 				>
-					<UserRound size={18} strokeWidth={1.75} class="shrink-0 text-subtle" />
+					<UserRound size={18} strokeWidth={1.75} class="shrink-0" />
 					<span class="text-sm">Account</span>
 				</a>
 
 				<button
 					onclick={() => theme.toggle()}
-					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-text hover:bg-surface transition-colors duration-100"
+					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-muted hover:bg-surface hover:text-subtle transition-colors duration-100"
 				>
 					{#if theme.value === 'dark'}
-						<Sun size={18} strokeWidth={1.75} class="shrink-0 text-subtle" />
+						<Sun size={18} strokeWidth={1.75} class="shrink-0" />
 						<span class="text-sm">Light mode</span>
 					{:else}
-						<Moon size={18} strokeWidth={1.75} class="shrink-0 text-subtle" />
+						<Moon size={18} strokeWidth={1.75} class="shrink-0" />
 						<span class="text-sm">Dark mode</span>
 					{/if}
 				</button>
@@ -276,7 +276,7 @@
 			<a
 				href={item.href}
 				class="flex-1 flex flex-col items-center justify-center gap-1 no-underline transition-colors duration-100
-					{active ? 'text-text' : 'text-subtle'}"
+					{active ? 'text-text' : 'text-muted'}"
 			>
 				<Icon size={20} strokeWidth={1.75} />
 				<span class="text-[10px] leading-none">{item.label}</span>
@@ -287,7 +287,7 @@
 		<button
 			onclick={moreOpen ? closeMore : openMore}
 			class="flex-1 flex flex-col items-center justify-center gap-1 bg-transparent border-none cursor-pointer font-mono transition-colors duration-100
-				{moreOpen || moreActive ? 'text-text' : 'text-subtle'}"
+				{moreOpen || moreActive ? 'text-text' : 'text-muted'}"
 		>
 			{#if moreOpen}
 				<X size={20} strokeWidth={1.75} />

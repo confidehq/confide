@@ -191,20 +191,20 @@
 							<StatusBadge status={form.status} />
 						</div>
 						{#if formsStore.formDescriptions.get(form.formId)}
-							<span class="text-sm text-subtle truncate">
+							<span class="text-sm text-muted truncate">
 								{formsStore.formDescriptions.get(form.formId)?.replace(/<[^>]*>/g, '') ?? ''}
 							</span>
 						{/if}
 					</div>
 
 					<!-- Response count -->
-					<span class="shrink-0 flex items-center gap-1.5 text-base text-subtle tabular-nums">
+					<span class="shrink-0 flex items-center gap-1.5 text-subtle tabular-nums">
 						<Users size={13} strokeWidth={1.75} />
 						{form.responseCount}
 					</span>
 
 					<!-- Relative time (hidden on small screens) -->
-					<span class="shrink-0 hidden sm:block text-base text-subtle">
+					<span class="shrink-0 hidden sm:block text-subtle">
 						{timeAgo(form.updatedAt)}
 					</span>
 

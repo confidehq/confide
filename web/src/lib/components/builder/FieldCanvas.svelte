@@ -486,7 +486,7 @@ function getOptionLabels(fieldId: string): string[] {
 							<span class="flex-1"></span>
 
 							{#if !label}
-								<span title="Missing translation for {store.activeLocale}" class="text-warning-border shrink-0 flex">
+								<span title="Missing translation for {store.activeLocale}" class="text-warn shrink-0 flex">
 									<TriangleAlert size={15} strokeWidth={1.75} />
 								</span>
 							{/if}

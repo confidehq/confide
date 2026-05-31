@@ -31,10 +31,10 @@
   --color-border:              var(--color-highlight-high);
   /* --color-border:              #2E416B; */
   --color-border-canvas:       var(--color-highlight-mid);
-  --color-border-danger-dark:  #5C2A2A;
-  --color-border-danger-deep:  #3D1515;
-  --color-border-danger-muted: #2E1818;
-  --color-border-success-dark: #1A4030;
+  --color-border-danger-dark:  #fff;
+  --color-border-danger-deep:  #fff;
+  --color-border-danger-muted: #fff;
+  --color-border-success-dark: #fff;
 
 
   /* ── Actions ── */
@@ -77,9 +77,9 @@
   --color-open-bg:       var(--color-success-dark);
   --color-open-text:     var(--color-success);
   --color-open-border:   var(--color-success-dim);
-  --color-closed-bg:     #1A253C;
-  --color-closed-text:   #607090;
-  --color-closed-border: #2E3F5C;
+  --color-closed-bg:     var(--color-highlight-low);
+  --color-closed-text:   var(--color-info-dim);
+  --color-closed-border: var(--color-info-dim);
   --color-danger-badge-bg:     var(--color-danger-dark);
   --color-danger-badge-text:   var(--color-danger);
   --color-danger-badge-border: var(--color-danger-dim);

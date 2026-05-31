@@ -18,6 +18,6 @@
   };
 </script>
 
-<span class="shrink-0 px-2.5 py-0.5 rounded-full border {colors[status]} {extraClass}">
+<span class="shrink-0 px-1.5 py-px text-sm rounded-full border {colors[status]} {extraClass}">
   {label ?? status}
 </span>

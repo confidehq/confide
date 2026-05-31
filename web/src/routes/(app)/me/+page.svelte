@@ -492,7 +492,7 @@
 	<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 	<div class="flex items-start justify-between mb-8 gap-4">
 		<div class="flex items-center gap-3 min-w-0">
-			<div class="w-10 h-10 rounded-lg bg-canvas border border-border-canvas flex items-center justify-center text-sm font-semibold text-subtle shrink-0 select-none">
+			<div class="w-10 h-10 rounded-lg bg-base border border-border-canvas flex items-center justify-center text-sm font-semibold text-subtle shrink-0 select-none">
 				{avatarInitials()}
 			</div>
 			<div class="min-w-0">
@@ -570,7 +570,7 @@
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
 									? 'text-subtle border-border-canvas cursor-not-allowed'
-									: 'text-error-light border-border-canvas-danger-dark hover:bg-danger-hover'}"
+									: 'text-danger border-danger-dim hover:bg-danger-dark'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
 						</button>
@@ -612,7 +612,7 @@
 									class="shrink-0 px-3 py-1.5 bg-transparent border rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100
 										{revoking === session.id || sessions.length <= 1
 											? 'text-subtle border-border-canvas cursor-not-allowed'
-											: 'text-error-light border-border-canvas-danger-dark hover:bg-danger-hover'}"
+											: 'text-danger border-danger-dim hover:bg-danger-dark'}"
 								>
 									{revoking === session.id ? '…' : 'Revoke'}
 								</button>
@@ -905,15 +905,15 @@
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
 	<div class="mt-10 pt-8 border-t border-border-canvas">
 		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-		<div class="border border-border-canvas-danger-deep rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
+		<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
 			<div>
 				<p class="m-0 text-base text-text">Delete account</p>
 				<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete your account and all its data.</p>
 			</div>
 			<button
 				onclick={() => { showDeleteAccountConfirm = true; deleteAccountError = ''; }}
-				class="shrink-0 px-4 py-2 bg-transparent text-error-light border border-border-canvas-danger-dark rounded
-					cursor-pointer font-mono text-base hover:bg-danger-bg-dark transition-colors duration-100"
+				class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+					cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 			>
 				Delete account
 			</button>
