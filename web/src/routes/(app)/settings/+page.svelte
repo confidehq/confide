@@ -752,7 +752,7 @@
 								{/if}
 							</button>
 							{#if upgradeError}
-								<p class="m-0 text-xs text-error-light">{upgradeError}</p>
+								<p class="m-0 text-xs text-danger">{upgradeError}</p>
 							{/if}
 						{/if}
 					</div>
@@ -845,7 +845,7 @@
 			{/if}
 
 			{#if billingError}
-				<p class="mt-4 text-sm text-error-light">{billingError}</p>
+				<p class="mt-4 text-sm text-danger">{billingError}</p>
 			{/if}
 		{/if}
 
@@ -883,7 +883,7 @@
 					{/if}
 				</button>
 				{#if workspaceSaveError}
-					<span class="text-sm text-error-light">{workspaceSaveError}</span>
+					<span class="text-sm text-danger">{workspaceSaveError}</span>
 				{/if}
 			</div>
 
@@ -913,7 +913,7 @@
 						<button
 							onclick={removeDomain}
 							disabled={domainRemoving}
-							class="px-3 py-1 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-50"
+							class="px-3 py-1 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-50"
 						>{domainRemoving ? 'Removing…' : 'Remove'}</button>
 					</div>
 
@@ -982,7 +982,7 @@
 				{/if}
 
 				{#if domainError}
-					<p class="m-0 text-error-light text-base">{domainError}</p>
+					<p class="m-0 text-danger text-base">{domainError}</p>
 				{/if}
 			</div>
 			{/if}

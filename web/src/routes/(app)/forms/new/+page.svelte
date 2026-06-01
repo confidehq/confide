@@ -47,7 +47,7 @@
 	{#if status === 'creating'}
 		<p class="text-subtle text-sm">Creating form…</p>
 	{:else}
-		<p class="text-error-light text-sm mb-4">
+		<p class="text-danger text-sm mb-4">
 			Failed to create form: {errorMessage}
 		</p>
 		<a href="/forms" class="text-subtle text-sm no-underline">

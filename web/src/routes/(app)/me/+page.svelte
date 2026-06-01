@@ -463,7 +463,7 @@
 			{/if}
 
 			{#if codeGenError}
-				<p class="m-0 text-sm text-error-light">{codeGenError}</p>
+				<p class="m-0 text-sm text-danger">{codeGenError}</p>
 			{/if}
 
 			<div class="h-px bg-border-deep"></div>
@@ -578,7 +578,7 @@
 				</div>
 
 				{#if sessionsError}
-					<p class="text-error-light text-base mb-3">{sessionsError}</p>
+					<p class="text-danger text-base mb-3">{sessionsError}</p>
 				{/if}
 
 				{#if sessionsLoading}
@@ -652,7 +652,7 @@
 				</div>
 
 				{#if credsError}
-					<p class="text-error-light text-base mb-3">{credsError}</p>
+					<p class="text-danger text-base mb-3">{credsError}</p>
 				{/if}
 
 				<!-- Add new device (pairing) panel -->
@@ -709,7 +709,7 @@
 							</button>
 							<button
 								onclick={cancelPairing}
-								class="px-4 py-2 bg-transparent border border-border-canvas rounded text-subtle hover:text-error-light transition-colors cursor-pointer font-mono"
+								class="px-4 py-2 bg-transparent border border-border-canvas rounded text-subtle hover:text-danger transition-colors cursor-pointer font-mono"
 							>
 								No, cancel
 							</button>
@@ -721,7 +721,7 @@
 					</div>
 				{:else if pairStep === 'error'}
 					<div class="mb-3 p-4 border border-border-canvas rounded-lg flex flex-col gap-2">
-						<p class="text-error-light text-base m-0">{pairError}</p>
+						<p class="text-danger text-base m-0">{pairError}</p>
 						<button onclick={cancelPairing} class="text-sm text-subtle hover:text-subtle cursor-pointer bg-transparent border-none font-mono p-0 self-start">
 							Dismiss
 						</button>
@@ -739,7 +739,7 @@
 							class="font-mono bg-canvas border border-border-canvas rounded px-3 py-2 text-base text-text placeholder-subtle focus:outline-none focus:border-border-canvas"
 						/>
 						{#if addError}
-							<p class="text-error-light text-base m-0">{addError}</p>
+							<p class="text-danger text-base m-0">{addError}</p>
 						{/if}
 						<div class="flex gap-2">
 							<button
@@ -842,7 +842,7 @@
 											<button
 												onclick={() => confirmDelete(cred.id)}
 												disabled={deletingId === cred.id}
-												class="px-2 py-1 border border-border-canvas-danger-dark rounded text-sm text-error-light hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-border-canvas-danger-dark rounded text-sm text-danger hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												{deletingId === cred.id ? '…' : 'Yes'}
 											</button>
@@ -861,7 +861,7 @@
 											class="p-2 transition-colors cursor-pointer bg-transparent border-none rounded
 												{credentials.length <= 1
 													? 'text-subtle cursor-not-allowed'
-													: 'text-subtle hover:text-error-light'}"
+													: 'text-subtle hover:text-danger'}"
 										>
 											<Trash2 size={14} strokeWidth={1.75} />
 										</button>

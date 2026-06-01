@@ -221,7 +221,7 @@
 		<div class="w-full max-w-100">
 			{#if prfError}
 				<div
-					class="p-5 border border-danger-text rounded-xl bg-danger-dark text-error-muted text-base"
+					class="p-5 border border-danger-text rounded-xl bg-danger-dark text-danger-dim text-base"
 				>
 					<strong>Unsupported browser or device</strong>
 					<p class="mt-2">{prfError}</p>
@@ -338,7 +338,7 @@
 						{#if usernameStatus === "available"}
 							<span class="block text-success text-sm leading-5">Looks good!</span>
 						{:else if usernameStatus === "taken"}
-							<span class="block text-error text-sm leading-5">Username taken</span>
+							<span class="block text-danger text-sm leading-5">Username taken</span>
 						{/if}
 					</div>
 
@@ -367,7 +367,7 @@
 					</label>
 
 					{#if registerError}
-						<p class="text-error text-sm mb-3">{registerError}</p>
+						<p class="text-danger text-sm mb-3">{registerError}</p>
 					{/if}
 
 					<button
@@ -392,7 +392,7 @@
 					</p>
 
 					{#if registerError}
-						<p class="text-error text-sm mb-3">{registerError}</p>
+						<p class="text-danger text-sm mb-3">{registerError}</p>
 					{/if}
 
 					<button
@@ -459,7 +459,7 @@
 							{verifyError ? '!border-danger-text' : ''}"
 					/>
 					{#if verifyError}
-						<span class="text-error text-sm block mb-2"
+						<span class="text-danger text-sm block mb-2"
 							>Does not match — check what you pasted</span
 						>
 					{/if}
@@ -497,7 +497,7 @@
 					/>
 
 					{#if workspaceError}
-						<p class="text-error text-sm mb-3">{workspaceError}</p>
+						<p class="text-danger text-sm mb-3">{workspaceError}</p>
 					{/if}
 
 					<button

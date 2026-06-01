@@ -77,7 +77,7 @@
 			</button>
 
 			{#if error}
-				<p class="text-error text-xs mt-3 text-center">{error}</p>
+				<p class="text-danger text-xs mt-3 text-center">{error}</p>
 			{/if}
 		</div>
 

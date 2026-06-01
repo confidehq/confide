@@ -157,7 +157,7 @@
 					/>
 				</div>
 				{#if errorMsg}
-					<p class="text-error-light text-xs m-0">{errorMsg}</p>
+					<p class="text-danger text-xs m-0">{errorMsg}</p>
 				{/if}
 				<button
 					onclick={handleCodeSubmit}
@@ -217,7 +217,7 @@
 
 		{:else if stage === 'error'}
 			<div class="flex flex-col gap-4">
-				<p class="text-error-light text-sm m-0">{errorMsg}</p>
+				<p class="text-danger text-sm m-0">{errorMsg}</p>
 				<button
 					onclick={reset}
 					class="px-4 py-2 bg-transparent border border-border rounded text-sm text-subtle hover:text-subtle transition-colors cursor-pointer font-mono self-start"

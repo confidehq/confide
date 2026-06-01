@@ -123,7 +123,7 @@
 		<p>Loading form…</p>
 	</div>
 {:else if loadError}
-	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-error-light gap-4">
+	<div class="font-mono flex flex-col items-center justify-center flex-1 bg-canvas text-danger gap-4">
 		<p>{loadError}</p>
 		<a href="/forms" class="text-subtle text-sm no-underline">← Back to forms</a>
 	</div>

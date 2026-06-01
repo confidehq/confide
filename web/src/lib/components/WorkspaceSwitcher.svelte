@@ -137,7 +137,7 @@
 						{workspacesStore.active.plan === 'pro'
 							? workspacesStore.active.planStatus === 'active' || workspacesStore.active.planStatus === 'canceling'
 								? 'text-success'
-								: 'text-error-light'
+								: 'text-danger'
 							: 'text-subtle'}">
 						{planLabel(workspacesStore.active.plan, workspacesStore.active.planStatus)}
 					</span>
@@ -178,7 +178,7 @@
 					autofocus
 				/>
 				{#if createError}
-					<p class="m-0 mb-2 text-sm text-error-muted">{createError}</p>
+					<p class="m-0 mb-2 text-sm text-danger-dim">{createError}</p>
 				{/if}
 				<div class="flex gap-2">
 					<button

@@ -97,8 +97,46 @@
   --color-brand-accent-hover: #BAD8FF;
 }
 
-/* Light theme — placeholder for future color definitions */
+/* Light theme — blue-navy vibe, inverted from dark */
 [data-theme="light"] {
+  --color-base:    #DEE7F5;
+  --color-canvas:  #EEF3FB;
+  --color-surface: #F8FAFC;
+
+  --color-danger-dark:  #FEE2E2;
+  --color-danger-dim:   #DC2626;
+  --color-danger:       #B91C1C;
+  --color-info-dark:    #DBEAFE;
+  --color-info-dim:     #2563EB;
+  --color-info:         #1D4ED8;
+  --color-success-dark: #DCFCE7;
+  --color-success-dim:  #16A34A;
+  --color-success:      #15803D;
+  --color-warn-dark:    #FEF9C3;
+  --color-warn-dim:     #CA8A04;
+  --color-warn:         #854D0E;
+
+  --color-purple:        #7C3AED;
+  --color-purple-dim:    #EDE9FE;
+  --color-blue:          #2563EB;
+  --color-blue-dim:      #DBEAFE;
+
+  --color-text:   #111C35;
+  --color-subtle: #3D5070;
+  --color-muted:  #6B7A96;
+
+  --color-highlight-low:  #E5EBF7;
+  --color-highlight-mid:  #D0DBEE;
+  --color-highlight-high: #B0BFD9;
+
+  --color-overlay:       rgba(0, 0, 0, 0.5);
+  --color-overlay-light: rgba(0, 0, 0, 0.25);
+
+  --color-brand-bg:           #EFF5FF;
+  --color-brand-text:         #111C35;
+  --color-brand-text-mid:     #3D5480;
+  --color-brand-accent:       #2563EB;
+  --color-brand-accent-hover: #1D4ED8;
 }
 
 html,

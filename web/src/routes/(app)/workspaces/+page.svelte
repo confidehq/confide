@@ -211,7 +211,7 @@
 			/>
 
 			{#if createError}
-				<p class="m-0 text-base text-error-muted">{createError}</p>
+				<p class="m-0 text-base text-danger-dim">{createError}</p>
 			{/if}
 
 			<div class="flex gap-2">
@@ -232,7 +232,7 @@
 	{#if loading}
 		<p class="text-subtle text-base">Loading…</p>
 	{:else if error}
-		<p class="text-error-light text-base">{error}</p>
+		<p class="text-danger text-base">{error}</p>
 	{:else if workspaces.length === 0}
 		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 text-subtle text-base">No workspaces found</p>
@@ -295,7 +295,7 @@
 										{#if ws.role === 'owner'}
 											<button
 												onclick={() => { openMenuId = null; deleteTarget = ws; deleteError = ''; }}
-												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
 											>
 												<Trash2 size={13} strokeWidth={1.75} />
 												Delete workspace…
@@ -303,7 +303,7 @@
 										{:else}
 											<button
 												onclick={() => { openMenuId = null; leaveTarget = ws; leaveError = ''; }}
-												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
 											>
 												<LogOut size={13} strokeWidth={1.75} />
 												Leave workspace…

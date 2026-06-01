@@ -81,7 +81,7 @@
 
 		{:else if pageState === 'error'}
 			<div class="bg-canvas border border-border rounded-xl p-6">
-				<p class="text-error text-sm text-center">{errorMsg}</p>
+				<p class="text-danger text-sm text-center">{errorMsg}</p>
 			</div>
 			<p class="text-xs text-subtle text-center mt-4">
 				<a href="/login" class="text-text hover:underline">Sign in</a>

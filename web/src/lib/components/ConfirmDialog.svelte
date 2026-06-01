@@ -78,7 +78,7 @@
 
 			<!-- Error -->
 			{#if error}
-				<p class="m-0 text-sm text-error-light">{error}</p>
+				<p class="m-0 text-sm text-danger">{error}</p>
 			{/if}
 
 			<!-- Divider -->

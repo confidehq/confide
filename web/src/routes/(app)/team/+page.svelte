@@ -381,7 +381,7 @@
 					{/if}
 				</p>
 			{:else if inviteError}
-				<p class="mt-3 mb-0 text-xs text-error-muted">{inviteError}</p>
+				<p class="mt-3 mb-0 text-xs text-danger-dim">{inviteError}</p>
 			{/if}
 			{#if inviteSuccess}
 				<p class="mt-3 mb-0 text-xs text-success">{inviteSuccess}</p>
@@ -411,13 +411,13 @@
 	{/if}
 
 	{#if roleError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-dim bg-danger-hover">
 			{roleError}
 		</div>
 	{/if}
 
 	{#if grantError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-error-muted bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-dim bg-danger-hover">
 			{grantError}
 		</div>
 	{/if}
@@ -425,7 +425,7 @@
 	{#if loading && members.length === 0}
 		<p class="text-subtle text-base">Loading…</p>
 	{:else if error}
-		<p class="text-error-light text-base">{error}</p>
+		<p class="text-danger text-base">{error}</p>
 	{:else if members.length === 0}
 		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 text-subtle text-base">No members found</p>
@@ -482,7 +482,7 @@
 										{/if}
 										<button
 											onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
-											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
 										>
 											<UserMinus size={13} strokeWidth={1.75} class="shrink-0" />
 											Remove member
@@ -635,7 +635,7 @@
 												{/if}
 												<button
 													onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
-													class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-error-light text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+													class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
 												>
 													<UserMinus size={13} strokeWidth={1.75} class="shrink-0" />
 													Remove member
@@ -675,7 +675,7 @@
 						<button
 							onclick={() => handleRevoke(inv)}
 							disabled={revokingId === inv.id}
-							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 						>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 					</div>
 				{/each}
@@ -712,7 +712,7 @@
 									<button
 										onclick={() => handleRevoke(inv)}
 										disabled={revokingId === inv.id}
-										class="px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-error-light hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 									>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 								</td>
 							</tr>

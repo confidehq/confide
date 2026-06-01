@@ -161,7 +161,7 @@
 	{:else if formsStore.loading && !formsStore.loaded}
 		<p class="text-subtle text-base">Loading…</p>
 	{:else if formsStore.error}
-		<p class="text-error-light text-base">{formsStore.error}</p>
+		<p class="text-danger text-base">{formsStore.error}</p>
 	{:else if formsStore.forms.length === 0}
 		<div class="py-12 border border-dashed border-border-canvas rounded-lg text-center">
 			<p class="m-0 mb-1 text-subtle text-base">No forms yet</p>

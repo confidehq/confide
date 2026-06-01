@@ -170,7 +170,7 @@ async function load() {
 	{#if loading}
 		<p class="text-subtle text-base">Loading…</p>
 	{:else if error}
-		<p class="text-error-light text-base">{error}</p>
+		<p class="text-danger text-base">{error}</p>
 	{:else}
 		<!-- Header -->
 		<div class="flex items-center justify-between mb-8 gap-4">
@@ -237,7 +237,7 @@ async function load() {
 							>{form.status === 'open' ? 'Close' : 'Open'}</button>
 							<button
 								onclick={() => handleDelete(form)}
-								class="px-3 py-1.5 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
 							>Delete</button>
 						</div>
 					</div>
@@ -282,7 +282,7 @@ async function load() {
 									>{form.status === 'open' ? 'Close' : 'Open'}</button>
 									<button
 										onclick={() => handleDelete(form)}
-										class="px-3 py-1.5 bg-transparent text-error-light border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
 									>Delete</button>
 								</div>
 							</td>
@@ -319,7 +319,7 @@ async function load() {
 						class="px-4 py-1.5 bg-primary text-white border-none rounded cursor-pointer font-mono text-base hover:bg-primary-hover transition-colors duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
 					>{legalTextSaving ? 'Saving…' : legalTextSaved ? 'Saved' : 'Save'}</button>
 					{#if legalTextError}
-						<p class="m-0 text-base text-error-light">{legalTextError}</p>
+						<p class="m-0 text-base text-danger">{legalTextError}</p>
 					{/if}
 				</div>
 			</div>

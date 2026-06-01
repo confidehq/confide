@@ -148,7 +148,7 @@
 							autofocus
 						/>
 						{#if createError}
-							<p class="m-0 mb-2 text-sm text-error-muted">{createError}</p>
+							<p class="m-0 mb-2 text-sm text-danger-dim">{createError}</p>
 						{/if}
 						<div class="flex gap-2">
 							<button
@@ -254,7 +254,7 @@
 
 				<button
 					onclick={handleLogout}
-					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-error-light hover:bg-danger-hover transition-colors duration-100"
+					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-danger hover:bg-danger-hover transition-colors duration-100"
 				>
 					<LogOut size={18} strokeWidth={1.75} class="shrink-0" />
 					<span class="text-sm">Sign out</span>

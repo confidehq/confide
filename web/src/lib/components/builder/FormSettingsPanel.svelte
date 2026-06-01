@@ -285,7 +285,7 @@
 							</div>
 						{/if}
 						{#if qrError}
-							<p class="m-0 text-xs text-error">{qrError}</p>
+							<p class="m-0 text-xs text-danger">{qrError}</p>
 						{/if}
 						<p class="m-0 text-xs text-subtle">QR code stays valid when you edit your form. Rotating your link will require a new QR code.</p>
 					</div>
@@ -612,7 +612,7 @@
 							<button
 								onclick={() => { confirmRemoveLocale = locale; }}
 								class="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none cursor-pointer
-									text-subtle hover:text-error-light hover:bg-danger-bg-dark transition-colors duration-100"
+									text-subtle hover:text-danger hover:bg-danger-bg-dark transition-colors duration-100"
 								aria-label="Remove {languageName(locale)}"
 							>
 								<X size={12} strokeWidth={2} />
@@ -639,7 +639,7 @@
 		{#if expirationSaving}
 			<p class="m-0 text-xs text-subtle">Saving…</p>
 		{:else if expirationError}
-			<p class="m-0 text-xs text-error">{expirationError}</p>
+			<p class="m-0 text-xs text-danger">{expirationError}</p>
 		{/if}
 	</div>
 
@@ -666,7 +666,7 @@
 	<!-- Sticky publish button -->
 	<div class="shrink-0 p-3 border-t border-border bg-base">
 		{#if publishError}
-			<p class="m-0 mb-2 text-xs text-error-light">{publishError}</p>
+			<p class="m-0 mb-2 text-xs text-danger">{publishError}</p>
 		{/if}
 		<button
 			onclick={handlePublish}
