@@ -70,7 +70,7 @@
 			</p>
 
 			{#if reauthError}
-				<div class="text-danger-dim text-sm mb-3">{reauthError}</div>
+				<div class="text-danger-light text-sm mb-3">{reauthError}</div>
 			{/if}
 
 			<button

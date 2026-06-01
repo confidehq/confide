@@ -161,7 +161,7 @@
 				{/if}
 				<button
 					onclick={handleCodeSubmit}
-					class="px-4 py-2 bg-info-dim border border-canvas rounded text-sm text-text hover:bg-info transition-colors cursor-pointer font-mono"
+					class="px-4 py-2 bg-info-light border border-canvas rounded text-sm text-text hover:bg-info transition-colors cursor-pointer font-mono"
 				>
 					Continue
 				</button>

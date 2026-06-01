@@ -51,7 +51,7 @@
 			<!-- Header -->
 			<div class="flex items-start justify-between gap-3">
 				<div class="flex items-center gap-2.5 min-w-0">
-					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-danger-dark border border-danger-dim">
+					<span class="shrink-0 flex items-center justify-center w-7 h-7 rounded-md bg-danger-dark border border-danger-light">
 						<TriangleAlert size={14} strokeWidth={1.75} class="text-danger" />
 					</span>
 					<h2
@@ -99,7 +99,7 @@
 					class="px-4 py-2 border-none rounded cursor-pointer font-mono text-sm transition-colors duration-100
 						{loading
 							? 'bg-muted text-subtle cursor-not-allowed'
-							: 'bg-danger-dark text-danger hover:bg-danger-dim hover:text-base'}"
+							: 'bg-danger-dark text-danger hover:bg-danger-light hover:text-base'}"
 				>{loading ? (loadingLabel ?? 'Deleting…') : confirmLabel}</button>
 			</div>
 		</div>

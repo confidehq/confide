@@ -148,7 +148,7 @@
 							autofocus
 						/>
 						{#if createError}
-							<p class="m-0 mb-2 text-sm text-danger-dim">{createError}</p>
+							<p class="m-0 mb-2 text-sm text-danger-light">{createError}</p>
 						{/if}
 						<div class="flex gap-2">
 							<button

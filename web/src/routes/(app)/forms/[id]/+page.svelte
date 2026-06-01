@@ -473,7 +473,7 @@
 	// ── Derived ───────────────────────────────────────────────────────────────
 	const statusColor = $derived(
 		record?.status === 'open' ? 'bg-success'
-		: record?.status === 'draft' ? 'bg-warn-dim'
+		: record?.status === 'draft' ? 'bg-warn-light'
 		: 'bg-muted'
 	);
 	const selectedRecord = $derived(responses.find(r => r.id === selectedId));
@@ -690,7 +690,7 @@
 						<button
 							onclick={() => selectResponse(resp.id)}
 							class="block w-full px-3 py-2.5 text-left bg-transparent border-none border-b border-border-canvas cursor-pointer transition-[background] duration-100 hover:bg-surface
-								{selectedId === resp.id ? 'bg-highlight-low border-l-2 border-l-info-dim !pl-2.5' : ''}"
+								{selectedId === resp.id ? 'bg-highlight-low border-l-2 border-l-info-light !pl-2.5' : ''}"
 						>
 							<div class="flex items-start gap-2.5">
 								<div
@@ -702,7 +702,7 @@
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center justify-between gap-1.5">
 										<span class="text-xs font-semibold truncate {selectedId === resp.id ? 'text-text' : 'text-subtle'}">
-											{#if !isDecrypted}<span class="inline-block w-1.5 h-1.5 rounded-full bg-info-dim align-middle mr-1 -mt-px"></span>{/if}{displayName}
+											{#if !isDecrypted}<span class="inline-block w-1.5 h-1.5 rounded-full bg-info-light align-middle mr-1 -mt-px"></span>{/if}{displayName}
 										</span>
 										<span class="text-sm text-muted shrink-0">{formatDateShort(resp.receivedAt)}</span>
 									</div>
@@ -762,14 +762,14 @@
 									<!-- Status pill -->
 									<div class="flex items-center gap-1.5 px-3 py-1 rounded-full shrink-0 border
 										{record.status === 'open'
-											? 'bg-success-dark border-success-dim/30'
+											? 'bg-success-dark border-success-light/30'
 											: record.status === 'closed'
-												? 'bg-info-dark border-info-dim/30'
+												? 'bg-info-dark border-info-light/30'
 												: 'bg-highlight-low border-border-canvas'}">
 										<span class="w-1.5 h-1.5 rounded-full shrink-0
-											{record.status === 'open' ? 'bg-success-dim animate-pulse' : record.status === 'closed' ? 'bg-info-dim' : record.status === 'draft' ? 'bg-warn-dim' : 'bg-muted'}"></span>
+											{record.status === 'open' ? 'bg-success-light animate-pulse' : record.status === 'closed' ? 'bg-info-light' : record.status === 'draft' ? 'bg-warn-light' : 'bg-muted'}"></span>
 										<span class="text-sm font-bold uppercase tracking-wider
-											{record.status === 'open' ? 'text-success-dim' : record.status === 'closed' ? 'text-info-dim' : 'text-muted'}">{record.status}</span>
+											{record.status === 'open' ? 'text-success-light' : record.status === 'closed' ? 'text-info-light' : 'text-muted'}">{record.status}</span>
 									</div>
 								</div>
 
@@ -781,7 +781,7 @@
 									</div>
 									{#if unreadCount > 0}
 										<div class="flex flex-col gap-0.5 px-6 border-l border-border-canvas">
-											<span class="text-2xl font-semibold tabular-nums text-info-dim">{unreadCount}</span>
+											<span class="text-2xl font-semibold tabular-nums text-info-light">{unreadCount}</span>
 											<span class="text-sm font-bold uppercase tracking-wider text-muted">Unread</span>
 										</div>
 									{/if}
@@ -793,7 +793,7 @@
 										<a
 											href="/forms/{formId}/edit"
 											class="px-3 py-1.5 text-sm font-mono border rounded no-underline transition-colors duration-100
-												bg-transparent text-info-dim border-info-dim/50 hover:bg-info-dark hover:border-info-dim"
+												bg-transparent text-info-light border-info-light/50 hover:bg-info-dark hover:border-info-light"
 										>Publish</a>
 									{:else}
 										<button
@@ -803,8 +803,8 @@
 												{statusSaving
 													? 'bg-transparent text-muted border-border-canvas cursor-not-allowed'
 													: record.status === 'open'
-														? 'bg-transparent text-danger-dim border-danger-dim/50 hover:bg-danger-dark hover:border-danger-dim'
-														: 'bg-transparent text-success-dim border-success-dim/50 hover:bg-success-dark hover:border-success-dim'}"
+														? 'bg-transparent text-danger border-danger-dark hover:bg-danger-light hover:border-danger-dark'
+														: 'bg-transparent text-success border-success-dark hover:bg-success-light hover:border-success-dark'}"
 										>{statusSaving ? '…' : record.status === 'open' ? 'Close form' : 'Reopen form'}</button>
 									{/if}
 								</div>
@@ -917,7 +917,7 @@
 												onclick={copyShareUrl}
 												class="shrink-0 px-2.5 py-1.5 rounded font-mono transition-all duration-150 border
 													{copied
-														? 'border-success-dim/40 text-success-dim bg-success-dark cursor-default'
+														? 'border-success-light/40 text-success-light bg-success-dark cursor-default'
 														: 'border-border-canvas text-white bg-primary hover:border-border hover:text-text cursor-pointer'}"
 											>
 												{#if copied}
@@ -932,7 +932,7 @@
 										{#if record.status === 'closed' || record.hasUnpublishedChanges || (customDomainInfo?.enabled && customDomainInfo.domain)}
 											<div class="px-4 py-2.5 border-t border-border-canvas bg-surface/50">
 												{#if record.status === 'closed'}
-													<p class="m-0 text-sm text-info-dim">Form is closed — link is active but not accepting responses.</p>
+													<p class="m-0 text-sm text-info-light">Form is closed — link is active but not accepting responses.</p>
 												{:else if record.hasUnpublishedChanges}
 													<p class="m-0 text-sm text-warn">Showing last published version. <a href="/forms/{formId}/edit" class="text-text underline">Edit</a> to publish latest changes.</p>
 												{/if}
@@ -1108,7 +1108,7 @@
 												<p class="m-0 text-text font-medium">Email forwarding</p>
 												<p class="m-0 text-sm text-muted mt-0.5">Forward encrypted responses to an email address via PGP.</p>
 												{#if !emailEnabled}
-													<p class="m-0 text-sm text-warn-dim mt-1">Email is not configured on this server.</p>
+													<p class="m-0 text-sm text-warn-light mt-1">Email is not configured on this server.</p>
 												{/if}
 											</div>
 											<button
@@ -1165,7 +1165,7 @@
 												<!-- PGP key -->
 												<div>
 													<p class="m-0 mb-1.5 text-xs text-subtle uppercase tracking-[0.08em]">PGP Public Key</p>
-													<div class="border rounded overflow-hidden {pgpKeyError ? 'border-danger-dim' : 'border-border-canvas'}">
+													<div class="border rounded overflow-hidden {pgpKeyError ? 'border-danger-light' : 'border-border-canvas'}">
 														<textarea
 															placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"
 															value={pgpPublicKey}
@@ -1174,7 +1174,7 @@
 															class="w-full px-3 py-2.5 bg-transparent border-none outline-none text-xs text-text placeholder:text-muted font-mono resize-y block"
 														></textarea>
 													</div>
-													<p class="m-0 mt-1.5 text-xs {pgpKeyError ? 'text-danger' : pgpKeyFingerprint ? 'text-success-dim font-mono tracking-wide' : 'text-muted'}">
+													<p class="m-0 mt-1.5 text-xs {pgpKeyError ? 'text-danger' : pgpKeyFingerprint ? 'text-success-light font-mono tracking-wide' : 'text-muted'}">
 														{#if pgpKeyError}
 															{pgpKeyError}
 														{:else if pgpKeyFingerprint}
@@ -1203,7 +1203,7 @@
 										{settingsSaving ? 'Saving…' : 'Save settings'}
 									</button>
 									{#if settingsSaved}
-										<span class="text-success-dim flex items-center gap-1.5">
+										<span class="text-success-light flex items-center gap-1.5">
 											<Check size={11} strokeWidth={2.5} />
 											Saved
 										</span>
@@ -1217,7 +1217,7 @@
 							<!-- Danger zone -->
 							<section class="flex flex-col gap-3">
 								<h2 class="m-0 font-bold tracking-[0.12em] uppercase text-muted mb-1">Danger zone</h2>
-								<div class="border border-danger-dim/30 rounded-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
+								<div class="border border-danger-light/30 rounded-lg px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
 									<div class="min-w-0">
 										<p class="m-0 text-text font-medium">Delete this form</p>
 										<p class="m-0 mt-1 text-sm text-muted">
@@ -1226,8 +1226,8 @@
 									</div>
 									<button
 										onclick={() => { pendingDeleteForm = true; }}
-										class="sm:shrink-0 px-4 py-2 bg-transparent text-danger-dim border border-danger-dim/50 rounded cursor-pointer font-mono text-sm
-											hover:bg-danger-dark hover:border-danger-dim transition-colors duration-100"
+										class="sm:shrink-0 px-4 py-2 bg-transparent text-danger-light border border-danger-light/50 rounded cursor-pointer font-mono text-sm
+											hover:bg-danger-dark hover:border-danger-light transition-colors duration-100"
 									>Delete form</button>
 								</div>
 							</section>
@@ -1265,7 +1265,7 @@
 							<div class="flex items-center gap-2 shrink-0">
 								<button
 									onclick={() => (confirmDeleteResponse = selectedRecord.id)}
-									class="px-3 py-1.5 bg-transparent text-danger-dim border border-danger-dim/50 rounded cursor-pointer font-mono text-xs transition-colors duration-100 hover:bg-danger-dark hover:border-danger-dim"
+									class="px-3 py-1.5 bg-transparent text-danger-light border border-danger-light/50 rounded cursor-pointer font-mono text-xs transition-colors duration-100 hover:bg-danger-dark hover:border-danger-light"
 								>Delete</button>
 							</div>
 						</div>
@@ -1276,7 +1276,7 @@
 								<Clock size={11} strokeWidth={2} />
 								{formatDateLong(selectedRecord.receivedAt)}
 							</div>
-							<div class="flex items-center gap-1.5 text-success-dim">
+							<div class="flex items-center gap-1.5 text-success-light">
 								<Lock size={11} strokeWidth={2} />
 								End-to-end encrypted
 							</div>

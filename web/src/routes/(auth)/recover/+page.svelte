@@ -120,7 +120,7 @@
 		{:else if step === 'rekey'}
 			<!-- Form card -->
 			<div class="bg-canvas border border-border rounded-xl p-6">
-				<div class="p-4 border border-success-dim rounded-lg bg-success-dark mb-5">
+				<div class="p-4 border border-success-light rounded-lg bg-success-dark mb-5">
 					<p class="text-success text-xs m-0">
 						Recovery code verified. Now register a new passkey on this device.
 					</p>
@@ -143,7 +143,7 @@
 
 		{:else if step === 'success'}
 			<div class="bg-canvas border border-border rounded-xl p-6">
-				<div class="p-4 border border-success-dim rounded-lg bg-success-dark text-success text-xs text-center">
+				<div class="p-4 border border-success-light rounded-lg bg-success-dark text-success text-xs text-center">
 					New passkey registered. Redirecting to dashboard…
 				</div>
 			</div>

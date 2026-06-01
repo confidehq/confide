@@ -99,7 +99,7 @@
 			</div>
 
 		{:else if pageState === 'pending'}
-			<div class="bg-canvas border border-success-dim rounded-xl p-6">
+			<div class="bg-canvas border border-success-light rounded-xl p-6">
 				<p class="text-success text-sm font-medium">You've joined {preview?.workspaceName}.</p>
 				<p class="text-sm text-subtle mt-2">
 					Your access is pending approval from a workspace admin. You'll be able to view workspace content once they grant you access.

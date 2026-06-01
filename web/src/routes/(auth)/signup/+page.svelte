@@ -221,7 +221,7 @@
 		<div class="w-full max-w-100">
 			{#if prfError}
 				<div
-					class="p-5 border border-danger-text rounded-xl bg-danger-dark text-danger-dim text-base"
+					class="p-5 border border-danger-text rounded-xl bg-danger-dark text-danger-light text-base"
 				>
 					<strong>Unsupported browser or device</strong>
 					<p class="mt-2">{prfError}</p>
@@ -246,7 +246,7 @@
 	{:else if step === "success"}
 		<div class="w-full max-w-100">
 			<div
-				class="p-6 border border-success-dim rounded-xl bg-success-dark text-success text-base text-center"
+				class="p-6 border border-success-light rounded-xl bg-success-dark text-success text-base text-center"
 			>
 				Account created. Redirecting…
 			</div>
@@ -329,7 +329,7 @@
 							placeholder="Username"
 							onkeydown={(e) => e.key === "Enter" && continueToPasskey()}
 							class="input-base w-full mb-1 text-base py-2.5 pl-8 pr-3
-							{usernameStatus === 'available' ? '!border-success-dim' : ''}
+							{usernameStatus === 'available' ? '!border-success-light' : ''}
 							{usernameStatus === 'taken' ? '!border-danger-text' : ''}"
 						/>
 					</div>
@@ -440,7 +440,7 @@
 						onclick={copyCode}
 						class="px-3 py-1.5 border rounded cursor-pointer font-mono text-sm mb-5 transition-colors duration-100
 							{codeCopied
-							? 'bg-success-dark border-success-dim text-success'
+							? 'bg-success-dark border-success-light text-success'
 							: 'bg-canvas text-subtle border-border hover:text-text'}"
 					>
 						{codeCopied ? "✓ Copied" : "Copy code"}

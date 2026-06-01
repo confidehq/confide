@@ -439,7 +439,7 @@
 						onclick={copyCode}
 						class="flex items-center justify-center gap-2 w-full py-2 text-sm font-medium rounded border cursor-pointer font-mono transition-colors duration-100
 							{codeCopied
-								? 'bg-success-dark border-success-dim text-success'
+								? 'bg-success-dark border-success-light text-success'
 								: 'bg-transparent border-border-canvas text-subtle hover:text-text hover:border-border-canvas'}"
 					>
 						{#if codeCopied}
@@ -570,7 +570,7 @@
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
 									? 'text-subtle border-border-canvas cursor-not-allowed'
-									: 'text-danger border-danger-dim hover:bg-danger-dark'}"
+									: 'text-danger border-danger-light hover:bg-danger-dark'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
 						</button>
@@ -612,7 +612,7 @@
 									class="shrink-0 px-3 py-1.5 bg-transparent border rounded cursor-pointer font-mono text-base transition-[color,border-color] duration-100
 										{revoking === session.id || sessions.length <= 1
 											? 'text-subtle border-border-canvas cursor-not-allowed'
-											: 'text-danger border-danger-dim hover:bg-danger-dark'}"
+											: 'text-danger border-danger-light hover:bg-danger-dark'}"
 								>
 									{revoking === session.id ? '…' : 'Revoke'}
 								</button>
@@ -703,7 +703,7 @@
 							<button
 								onclick={confirmPairing}
 								disabled={pairConfirming}
-								class="px-4 py-2 bg-success-dim border border-border-canvas-success-dark rounded text-success hover:bg-success transition-colors cursor-pointer font-mono disabled:opacity-50"
+								class="px-4 py-2 bg-success-light border border-border-canvas-success-dark rounded text-success hover:bg-success transition-colors cursor-pointer font-mono disabled:opacity-50"
 							>
 								{pairConfirming ? 'Approving…' : 'Yes, these match'}
 							</button>
@@ -716,7 +716,7 @@
 						</div>
 					</div>
 				{:else if pairStep === 'done'}
-					<div class="mb-3 p-3 border border-success-dark rounded-lg bg-success-dim">
+					<div class="mb-3 p-3 border border-success-dark rounded-lg bg-success-light">
 						<p class="text-success m-0">New device successfully added.</p>
 					</div>
 				{:else if pairStep === 'error'}
@@ -811,7 +811,7 @@
 										<div class="flex items-center gap-2 flex-wrap">
 											<span class="text-base text-text">{cred.name || 'Unnamed passkey'}</span>
 											{#if cred.isCurrentSession}
-												<span class="text-[10px] px-1.5 py-0.5 bg-success-dim border border-success-dark rounded text-success leading-none shrink-0">
+												<span class="text-[10px] px-1.5 py-0.5 bg-success-light border border-success-dark rounded text-success leading-none shrink-0">
 													This session
 												</span>
 											{/if}
@@ -905,14 +905,14 @@
 	<!-- ─── Danger zone ─────────────────────────────────────────────────────── -->
 	<div class="mt-10 pt-8 border-t border-border-canvas">
 		<h2 class="m-0 mb-4 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-		<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
+		<div class="border border-danger-light rounded-lg px-4 py-4 flex items-center justify-between gap-4 max-w-2xl">
 			<div>
 				<p class="m-0 text-base text-text">Delete account</p>
 				<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete your account and all its data.</p>
 			</div>
 			<button
 				onclick={() => { showDeleteAccountConfirm = true; deleteAccountError = ''; }}
-				class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+				class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-light rounded
 					cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 			>
 				Delete account

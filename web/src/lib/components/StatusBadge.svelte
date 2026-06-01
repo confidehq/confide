@@ -14,7 +14,7 @@
   const colors: Record<Status, string> = {
     open:   'bg-open-bg text-open-text border-open-border',
     closed: 'bg-closed-bg text-closed-text border-closed-border',
-    draft:  'bg-warn-dark text-warn border-warn-dim',
+    draft:  'bg-warn-dark text-warn border-warn-light',
   };
 </script>
 

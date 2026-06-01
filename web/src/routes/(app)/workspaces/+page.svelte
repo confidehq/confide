@@ -211,7 +211,7 @@
 			/>
 
 			{#if createError}
-				<p class="m-0 text-base text-danger-dim">{createError}</p>
+				<p class="m-0 text-base text-danger-light">{createError}</p>
 			{/if}
 
 			<div class="flex gap-2">

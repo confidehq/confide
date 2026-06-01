@@ -326,7 +326,7 @@
 								onclick={() => (inviteRole = role)}
 								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border-canvas last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
-										? 'bg-info-dim text-text border-b-2 border-b-info-border'
+										? 'bg-info-light text-text border-b-2 border-b-info-border'
 										: 'bg-transparent text-subtle hover:text-subtle hover:bg-info'}"
 							>{role}</button>
 						{/each}
@@ -360,7 +360,7 @@
 							onclick={copyLink}
 							class="shrink-0 flex items-center gap-1.5 px-3 py-2 border rounded cursor-pointer font-mono text-xs transition-colors duration-100
 								{linkCopied
-									? 'bg-success-dark text-success border-success-dim'
+									? 'bg-success-dark text-success border-success-light'
 									: 'bg-transparent text-subtle border-border-canvas hover:text-text hover:border-border-canvas'}"
 						>
 							{#if linkCopied}
@@ -381,7 +381,7 @@
 					{/if}
 				</p>
 			{:else if inviteError}
-				<p class="mt-3 mb-0 text-xs text-danger-dim">{inviteError}</p>
+				<p class="mt-3 mb-0 text-xs text-danger-light">{inviteError}</p>
 			{/if}
 			{#if inviteSuccess}
 				<p class="mt-3 mb-0 text-xs text-success">{inviteSuccess}</p>
@@ -411,13 +411,13 @@
 	{/if}
 
 	{#if roleError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-dim bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-light bg-danger-hover">
 			{roleError}
 		</div>
 	{/if}
 
 	{#if grantError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-dim bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-light bg-danger-hover">
 			{grantError}
 		</div>
 	{/if}
@@ -497,7 +497,7 @@
 					<div class="mt-2.5 flex items-center gap-2 text-xs text-subtle">
 						<span class="inline-flex items-center gap-1">
 							<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success' : 'bg-warning-indicator'}"></span>
-							<span class="{member.status === 'active' ? 'text-subtle' : 'text-warn-dim'} capitalize">
+							<span class="{member.status === 'active' ? 'text-subtle' : 'text-warn-light'} capitalize">
 								{member.status === 'pending' && !identityKeys.has(member.accountId) ? 'Awaiting setup' : member.status === 'active' ? 'Active' : member.status}
 							</span>
 						</span>
@@ -511,7 +511,7 @@
 							<button
 								onclick={() => handleGrant(member)}
 								disabled={grantingId === member.accountId}
-								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success text-success border border-success-dim rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success text-success border border-success-light rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 							>
 								<KeyRound size={11} strokeWidth={1.75} />
 								{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
@@ -571,13 +571,13 @@
 											class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-mono border transition-colors duration-100 cursor-pointer
 												{grantingId === member.accountId
 													? 'bg-transparent text-subtle border-border-canvas cursor-not-allowed'
-													: 'bg-success text-success border-success-dim hover:bg-success-dark'}"
+													: 'bg-success text-success border-success-light hover:bg-success-dark'}"
 										>
 											<KeyRound size={11} strokeWidth={1.75} />
 											{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
 										</button>
 									{:else}
-										<span class="inline-flex items-center gap-1.5 text-xs text-warn-dim">
+										<span class="inline-flex items-center gap-1.5 text-xs text-warn-light">
 											<span class="w-1.5 h-1.5 rounded-full bg-warning-indicator"></span>
 											Awaiting setup
 										</span>
@@ -585,7 +585,7 @@
 								{:else}
 									<span class="inline-flex items-center gap-1.5 text-xs">
 										<span class="w-1.5 h-1.5 rounded-full {member.status === 'active' ? 'bg-success' : 'bg-warning-indicator'}"></span>
-										<span class="{member.status === 'active' ? 'text-subtle' : 'text-warn-dim'} capitalize">{member.status}</span>
+										<span class="{member.status === 'active' ? 'text-subtle' : 'text-warn-light'} capitalize">{member.status}</span>
 									</span>
 								{/if}
 							</td>
@@ -675,7 +675,7 @@
 						<button
 							onclick={() => handleRevoke(inv)}
 							disabled={revokingId === inv.id}
-							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 						>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 					</div>
 				{/each}
@@ -712,7 +712,7 @@
 									<button
 										onclick={() => handleRevoke(inv)}
 										disabled={revokingId === inv.id}
-										class="px-3 py-1.5 bg-transparent border text-danger border-danger-dim hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 									>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 								</td>
 							</tr>

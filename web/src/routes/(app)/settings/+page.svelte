@@ -626,7 +626,7 @@
 		{:else}
 			<!-- Upgraded success banner -->
 			{#if showUpgradedBanner}
-				<div class="mb-6 px-4 py-3 rounded-lg border border-success-dim bg-success-dark flex items-center justify-between gap-3">
+				<div class="mb-6 px-4 py-3 rounded-lg border border-success-light bg-success-dark flex items-center justify-between gap-3">
 					<div class="flex items-center gap-2">
 						<Check size={14} strokeWidth={2} class="text-success shrink-0" />
 						<p class="m-0 text-sm text-success font-medium">You're now on Pro — welcome!</p>
@@ -641,7 +641,7 @@
 
 			<!-- Past-due banner -->
 			{#if billingInfo?.planStatus === 'past_due'}
-				<div class="mb-6 px-4 py-3 rounded-lg border border-warn-dim bg-warn-dark flex items-center justify-between gap-3">
+				<div class="mb-6 px-4 py-3 rounded-lg border border-warn-light bg-warn-dark flex items-center justify-between gap-3">
 					<div class="flex items-center gap-2">
 						<AlertTriangle size={14} strokeWidth={1.75} class="text-warn shrink-0" />
 						<p class="m-0 text-sm text-warn">Payment failed — update your payment method to keep Pro access.</p>
@@ -649,7 +649,7 @@
 					<button
 						onclick={handleOpenPortal}
 						disabled={portalLoading}
-						class="shrink-0 px-3 py-1.5 text-sm font-medium text-warn border border-warn-dim rounded
+						class="shrink-0 px-3 py-1.5 text-sm font-medium text-warn border border-warn-light rounded
 							cursor-pointer bg-transparent hover:bg-warn-dark transition-colors duration-100 font-mono
 							disabled:opacity-50 disabled:cursor-not-allowed"
 					>{portalLoading ? 'Opening…' : 'Update payment →'}</button>
@@ -991,14 +991,14 @@
 			{#if access.isOwner}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-danger-light rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Delete workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Permanently delete this workspace and all its data.</p>
 					</div>
 					<button
 						onclick={() => { showDeleteConfirm = true; deleteError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-light rounded
 							cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 					>
 						Delete
@@ -1008,14 +1008,14 @@
 			{:else}
 			<div class="mt-4">
 				<h2 class="m-0 mb-3 text-base font-semibold tracking-[0.08em] uppercase text-subtle">Danger zone</h2>
-				<div class="border border-danger-dim rounded-lg px-4 py-4 flex items-center justify-between gap-4">
+				<div class="border border-danger-light rounded-lg px-4 py-4 flex items-center justify-between gap-4">
 					<div>
 						<p class="m-0 text-base text-text">Leave workspace</p>
 						<p class="m-0 mt-0.5 text-sm text-subtle">Remove yourself from this workspace. You'll need an invitation to rejoin.</p>
 					</div>
 					<button
 						onclick={() => { showLeaveConfirm = true; leaveError = ''; }}
-						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-dim rounded
+						class="shrink-0 px-4 py-2 bg-transparent text-danger border border-danger-light rounded
 							cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 					>
 						Leave
