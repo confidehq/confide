@@ -7,13 +7,13 @@
  */
 
 import {
-	listMembers,
 	listInvitations,
 	listMemberIdentityKeys,
-	type WorkspaceMember,
+	listMembers,
+	type MemberIdentityKey,
 	type WorkspaceInvitation,
-	type MemberIdentityKey
-} from '$lib/workspaces';
+	type WorkspaceMember,
+} from "$lib/workspaces";
 
 let _workspaceId = $state<string | null>(null);
 let _members = $state<WorkspaceMember[]>([]);
@@ -21,7 +21,7 @@ let _invitations = $state<WorkspaceInvitation[]>([]);
 let _identityKeys = $state<Map<string, string>>(new Map());
 let _loaded = $state(false);
 let _loading = $state(false);
-let _error = $state('');
+let _error = $state("");
 
 export const teamStore = {
 	get members() {
@@ -53,35 +53,41 @@ export const teamStore = {
 		_workspaceId = workspaceId;
 		_loaded = false;
 		_loading = true;
-		_error = '';
+		_error = "";
 		_members = [];
 		_invitations = [];
 		_identityKeys = new Map();
 
-		const tasks: Promise<unknown>[] = [listMembers(workspaceId), listInvitations(workspaceId)];
+		const tasks: Promise<unknown>[] = [
+			listMembers(workspaceId),
+			listInvitations(workspaceId),
+		];
 		if (isAdmin) tasks.push(listMemberIdentityKeys(workspaceId));
 
-		const [membersResult, invitationsResult, keysResult] = await Promise.allSettled(tasks);
+		const [membersResult, invitationsResult, keysResult] =
+			await Promise.allSettled(tasks);
 
 		// Guard against a concurrent workspace switch overtaking this load
 		if (_workspaceId !== workspaceId) return;
 
-		if (membersResult.status === 'fulfilled') {
+		if (membersResult.status === "fulfilled") {
 			_members = membersResult.value as WorkspaceMember[];
 		} else {
 			_error =
 				membersResult.reason instanceof Error
 					? membersResult.reason.message
-					: 'Failed to load members';
+					: "Failed to load members";
 		}
 
-		if (invitationsResult.status === 'fulfilled') {
+		if (invitationsResult.status === "fulfilled") {
 			_invitations = invitationsResult.value as WorkspaceInvitation[];
 		}
 
-		if (keysResult?.status === 'fulfilled') {
+		if (keysResult?.status === "fulfilled") {
 			const keyList = keysResult.value as MemberIdentityKey[];
-			_identityKeys = new Map(keyList.map((k) => [k.accountId, k.identityPublicKey]));
+			_identityKeys = new Map(
+				keyList.map((k) => [k.accountId, k.identityPublicKey]),
+			);
 		}
 
 		_loaded = true;
@@ -94,7 +100,9 @@ export const teamStore = {
 	},
 
 	updateMember(accountId: string, patch: Partial<WorkspaceMember>) {
-		_members = _members.map((m) => (m.accountId === accountId ? { ...m, ...patch } : m));
+		_members = _members.map((m) =>
+			m.accountId === accountId ? { ...m, ...patch } : m,
+		);
 	},
 
 	removeMember(accountId: string) {
@@ -123,6 +131,6 @@ export const teamStore = {
 		_identityKeys = new Map();
 		_loaded = false;
 		_loading = false;
-		_error = '';
-	}
+		_error = "";
+	},
 };

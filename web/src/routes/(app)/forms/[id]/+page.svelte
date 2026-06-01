@@ -1,557 +1,725 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { formsStore } from '$lib/stores/forms.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import {
-		getForm,
-		updateFormStatus,
-		updateFormExpiration,
-		updateFormPGPNotification,
-		validatePGPKey,
-		deleteForm,
-		publishForm,
-		rotateRenderKey,
-		deriveShareUrl,
-		listResponses,
-		decryptResponseRecord,
-		deleteResponse,
-		getSchemaVersion,
-		type FormRecord,
-		type EncryptedResponseRecord
-	} from '$lib/forms';
-	import { getAppConfig } from '$lib/config';
-	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
-	import type { BuilderSchema, BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, RatingConfig } from '$lib/types/builder';
-	import { RefreshCw, Copy, Check, ExternalLink, Pencil, Link, QrCode, Download, Search, Clock, Lock } from '@lucide/svelte';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import QRCode from 'qrcode';
+import {
+	Check,
+	Clock,
+	Copy,
+	Download,
+	ExternalLink,
+	Link,
+	Lock,
+	Pencil,
+	QrCode,
+	RefreshCw,
+	Search,
+} from "@lucide/svelte";
+import QRCode from "qrcode";
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import Breadcrumb from "$lib/components/Breadcrumb.svelte";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import { getAppConfig } from "$lib/config";
+import {
+	decryptResponseRecord,
+	deleteForm,
+	deleteResponse,
+	deriveShareUrl,
+	type EncryptedResponseRecord,
+	type FormRecord,
+	getForm,
+	getSchemaVersion,
+	listResponses,
+	publishForm,
+	rotateRenderKey,
+	updateFormExpiration,
+	updateFormPGPNotification,
+	updateFormStatus,
+	validatePGPKey,
+} from "$lib/forms";
+import { auth } from "$lib/stores/auth.svelte";
+import { formsStore } from "$lib/stores/forms.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import type {
+	BuilderField,
+	BuilderSchema,
+	CheckboxesConfig,
+	DropdownConfig,
+	MultipleChoiceConfig,
+	RatingConfig,
+} from "$lib/types/builder";
+import { type CustomDomainInfo, getCustomDomain } from "$lib/workspaces";
 
-	type AnswerValue = string | string[] | number | null | undefined;
+type AnswerValue = string | string[] | number | null | undefined;
 
-	interface DecryptedResponse {
-		submittedAt: string;
-		locale: string;
-		answers: Record<string, AnswerValue>;
-		schema: BuilderSchema;
+interface DecryptedResponse {
+	submittedAt: string;
+	locale: string;
+	answers: Record<string, AnswerValue>;
+	schema: BuilderSchema;
+}
+
+const formId = $page.params.id ?? "";
+
+// Navigate to /forms if the workspace changes while viewing this form
+const mountedWorkspaceId = workspacesStore.active?.id;
+$effect(() => {
+	const id = workspacesStore.active?.id;
+	if (id !== undefined && id !== mountedWorkspaceId) goto("/forms");
+});
+
+// ── Form ──────────────────────────────────────────────────────────────────
+let record = $state<FormRecord | null>(null);
+let resolvedFormKey = $state<CryptoKey | null>(null);
+const formName = $derived(formsStore.formNames.get(formId) ?? "");
+let formDescription = $state(formsStore.formDescriptions.get(formId) ?? "");
+let loading = $state(true);
+let loadError = $state("");
+
+let statusSaving = $state(false);
+
+let expiresAt = $state("");
+let responseLimit = $state("");
+let responseTtlDays = $state("");
+let burnAfterReading = $state(false);
+let settingsSaving = $state(false);
+let settingsSaved = $state(false);
+let settingsError = $state("");
+
+let notificationEmail = $state("");
+let pgpPublicKey = $state("");
+let notificationFrom = $state("");
+let notificationSubject = $state("");
+let pgpPending = $state(false);
+const pgpOpen = $derived(!!notificationEmail || pgpPending);
+let emailEnabled = $state(false);
+let smtpSender = $state("");
+let pgpKeyFingerprint = $state("");
+let pgpKeyError = $state("");
+
+async function handlePGPKeyInput(value: string) {
+	pgpPublicKey = value;
+	pgpKeyFingerprint = "";
+	pgpKeyError = "";
+	if (!value.trim()) return;
+	try {
+		pgpKeyFingerprint = await validatePGPKey(value);
+	} catch (e) {
+		pgpKeyError = e instanceof Error ? e.message : "Invalid PGP key";
 	}
+}
 
-	const formId = $page.params.id ?? '';
+let closeOnDatePending = $state(false);
+let limitResponsesPending = $state(false);
+let autoDeletePending = $state(false);
+const closeOnDateOpen = $derived(!!expiresAt || closeOnDatePending);
+const limitResponsesOpen = $derived(!!responseLimit || limitResponsesPending);
+const settingsLifetimePolicy = $derived<"none" | "burn" | "ttl">(
+	burnAfterReading ? "burn" : responseTtlDays ? "ttl" : "none",
+);
+const autoDeleteOpen = $derived(
+	settingsLifetimePolicy !== "none" || autoDeletePending,
+);
 
-	// Navigate to /forms if the workspace changes while viewing this form
-	const mountedWorkspaceId = workspacesStore.active?.id;
-	$effect(() => {
-		const id = workspacesStore.active?.id;
-		if (id !== undefined && id !== mountedWorkspaceId) goto('/forms');
-	});
+let shareUrl = $state("");
+let shareUrlLoading = $state(false);
+let publishing = $state(false);
+let publishError = $state("");
+let copied = $state(false);
+let confirmRotate = $state(false);
+let customDomainInfo = $state<CustomDomainInfo | null>(null);
+let qrCanvas = $state<HTMLCanvasElement | null>(null);
+let qrVisible = $state(false);
+let qrError = $state("");
 
-	// ── Form ──────────────────────────────────────────────────────────────────
-	let record = $state<FormRecord | null>(null);
-	let resolvedFormKey = $state<CryptoKey | null>(null);
-	const formName = $derived(formsStore.formNames.get(formId) ?? '');
-	let formDescription = $state(formsStore.formDescriptions.get(formId) ?? '');
-	let loading = $state(true);
-	let loadError = $state('');
+let pendingDeleteForm = $state(false);
+let deleteFormLoading = $state(false);
+let deleteFormError = $state("");
 
-	let statusSaving = $state(false);
+// ── Responses ─────────────────────────────────────────────────────────────
+let responses = $state<EncryptedResponseRecord[]>([]);
+let nextCursor = $state<string | undefined>(undefined);
+let hasMore = $state(false);
+let responsesLoading = $state(true);
+let loadingMore = $state(false);
+let responsesError = $state("");
 
-	let expiresAt = $state('');
-	let responseLimit = $state('');
-	let responseTtlDays = $state('');
-	let burnAfterReading = $state(false);
-	let settingsSaving = $state(false);
-	let settingsSaved = $state(false);
-	let settingsError = $state('');
+// null means "details view"; a string means a response ID is selected
+let selectedId = $state<string | null>(null);
+let decrypted = $state<Map<string, DecryptedResponse>>(new Map());
+const unreadCount = $derived(
+	record ? Math.max(0, record.responseCount - decrypted.size) : 0,
+);
+let decrypting = $state<Set<string>>(new Set());
+let decryptErrors = $state<Map<string, string>>(new Map());
 
-	let notificationEmail = $state('');
-	let pgpPublicKey = $state('');
-	let notificationFrom = $state('');
-	let notificationSubject = $state('');
-	let pgpPending = $state(false);
-	const pgpOpen = $derived(!!notificationEmail || pgpPending);
-	let emailEnabled = $state(false);
-	let smtpSender = $state('');
-	let pgpKeyFingerprint = $state('');
-	let pgpKeyError = $state('');
+let schemaCache = $state<Map<number, BuilderSchema>>(new Map());
 
-	async function handlePGPKeyInput(value: string) {
-		pgpPublicKey = value;
-		pgpKeyFingerprint = '';
-		pgpKeyError = '';
-		if (!value.trim()) return;
-		try {
-			pgpKeyFingerprint = await validatePGPKey(value);
-		} catch (e) {
-			pgpKeyError = e instanceof Error ? e.message : 'Invalid PGP key';
-		}
+let confirmDeleteResponse = $state<string | null>(null);
+let deletingResponses = $state<Set<string>>(new Set());
+
+// ── Init ─────────────────────────────────────────────────────────────────
+onMount(async () => {
+	if (!auth.masterKey) {
+		goto("/login");
+		return;
 	}
+	getAppConfig()
+		.then((c) => {
+			emailEnabled = c.emailEnabled;
+			smtpSender = c.smtpSender;
+		})
+		.catch(() => {});
+	await Promise.all([loadForm(), loadResponses()]);
+});
 
-	let closeOnDatePending = $state(false);
-	let limitResponsesPending = $state(false);
-	let autoDeletePending = $state(false);
-	const closeOnDateOpen = $derived(!!expiresAt || closeOnDatePending);
-	const limitResponsesOpen = $derived(!!responseLimit || limitResponsesPending);
-	const settingsLifetimePolicy = $derived<'none' | 'burn' | 'ttl'>(
-		burnAfterReading ? 'burn' : responseTtlDays ? 'ttl' : 'none'
-	);
-	const autoDeleteOpen = $derived(settingsLifetimePolicy !== 'none' || autoDeletePending);
-
-	let shareUrl = $state('');
-	let shareUrlLoading = $state(false);
-	let publishing = $state(false);
-	let publishError = $state('');
-	let copied = $state(false);
-	let confirmRotate = $state(false);
-	let customDomainInfo = $state<CustomDomainInfo | null>(null);
-	let qrCanvas = $state<HTMLCanvasElement | null>(null);
-	let qrVisible = $state(false);
-	let qrError = $state('');
-
-	let pendingDeleteForm = $state(false);
-	let deleteFormLoading = $state(false);
-	let deleteFormError = $state('');
-
-	// ── Responses ─────────────────────────────────────────────────────────────
-	let responses = $state<EncryptedResponseRecord[]>([]);
-	let nextCursor = $state<string | undefined>(undefined);
-	let hasMore = $state(false);
-	let responsesLoading = $state(true);
-	let loadingMore = $state(false);
-	let responsesError = $state('');
-
-	// null means "details view"; a string means a response ID is selected
-	let selectedId = $state<string | null>(null);
-	let decrypted = $state<Map<string, DecryptedResponse>>(new Map());
-	const unreadCount = $derived(record ? Math.max(0, record.responseCount - decrypted.size) : 0);
-	let decrypting = $state<Set<string>>(new Set());
-	let decryptErrors = $state<Map<string, string>>(new Map());
-
-	let schemaCache = $state<Map<number, BuilderSchema>>(new Map());
-
-	let confirmDeleteResponse = $state<string | null>(null);
-	let deletingResponses = $state<Set<string>>(new Set());
-
-	// ── Init ─────────────────────────────────────────────────────────────────
-	onMount(async () => {
-		if (!auth.masterKey) { goto('/login'); return; }
-		getAppConfig().then(c => { emailEnabled = c.emailEnabled; smtpSender = c.smtpSender; }).catch(() => {});
-		await Promise.all([loadForm(), loadResponses()]);
-	});
-
-	// ── Form functions ────────────────────────────────────────────────────────
-	async function loadForm() {
-		if (!auth.masterKey) return;
-		loading = true;
-		loadError = '';
-		try {
-			const { schema, record: r, formKey } = await getForm(auth.masterKey, formId);
-			record = r;
-			resolvedFormKey = formKey;
-			const title = schema.translations[schema.defaultLocale]?.formTitle;
-			if (title) formsStore.updateName(formId, title);
-			const desc = schema.translations[schema.defaultLocale]?.formDescription;
-			if (desc) formDescription = desc;
-			if (r.renderKeySalt && r.status !== 'draft') {
-				const cached = formsStore.shareUrls.get(formId);
-				if (cached) {
-					shareUrl = cached;
-				} else {
-					shareUrlLoading = true;
-					if (r.workspaceId) {
-						getCustomDomain(r.workspaceId).then(async d => {
+// ── Form functions ────────────────────────────────────────────────────────
+async function loadForm() {
+	if (!auth.masterKey) return;
+	loading = true;
+	loadError = "";
+	try {
+		const {
+			schema,
+			record: r,
+			formKey,
+		} = await getForm(auth.masterKey, formId);
+		record = r;
+		resolvedFormKey = formKey;
+		const title = schema.translations[schema.defaultLocale]?.formTitle;
+		if (title) formsStore.updateName(formId, title);
+		const desc = schema.translations[schema.defaultLocale]?.formDescription;
+		if (desc) formDescription = desc;
+		if (r.renderKeySalt && r.status !== "draft") {
+			const cached = formsStore.shareUrls.get(formId);
+			if (cached) {
+				shareUrl = cached;
+			} else {
+				shareUrlLoading = true;
+				if (r.workspaceId) {
+					getCustomDomain(r.workspaceId)
+						.then(async (d) => {
 							customDomainInfo = d;
-							const base = d?.enabled && d.domain ? `https://${d.domain}` : undefined;
-							shareUrl = await deriveShareUrl(formId, r.renderKeySalt!, formKey, base);
-						}).catch(() => {}).finally(() => { shareUrlLoading = false; });
-					} else {
-						deriveShareUrl(formId, r.renderKeySalt, formKey).then(u => { shareUrl = u; }).catch(() => {}).finally(() => { shareUrlLoading = false; });
-					}
+							const base =
+								d?.enabled && d.domain ? `https://${d.domain}` : undefined;
+							shareUrl = await deriveShareUrl(
+								formId,
+								r.renderKeySalt!,
+								formKey,
+								base,
+							);
+						})
+						.catch(() => {})
+						.finally(() => {
+							shareUrlLoading = false;
+						});
+				} else {
+					deriveShareUrl(formId, r.renderKeySalt, formKey)
+						.then((u) => {
+							shareUrl = u;
+						})
+						.catch(() => {})
+						.finally(() => {
+							shareUrlLoading = false;
+						});
 				}
 			}
-			expiresAt = r.expiresAt ?? '';
-			responseLimit = r.responseLimit != null ? String(r.responseLimit) : '';
-			responseTtlDays = r.responseTtlDays != null ? String(r.responseTtlDays) : '';
-			burnAfterReading = r.burnAfterReading ?? false;
-			notificationEmail = r.notificationEmail ?? '';
-			pgpPublicKey = r.pgpPublicKey ?? '';
-			notificationFrom = r.notificationFrom ?? '';
-			notificationSubject = r.notificationSubject ?? '';
-			pgpPending = false;
-			pgpKeyFingerprint = '';
-			pgpKeyError = '';
-			if (pgpPublicKey) {
-				try { pgpKeyFingerprint = await validatePGPKey(pgpPublicKey); } catch { /* stored key shown as-is */ }
+		}
+		expiresAt = r.expiresAt ?? "";
+		responseLimit = r.responseLimit != null ? String(r.responseLimit) : "";
+		responseTtlDays =
+			r.responseTtlDays != null ? String(r.responseTtlDays) : "";
+		burnAfterReading = r.burnAfterReading ?? false;
+		notificationEmail = r.notificationEmail ?? "";
+		pgpPublicKey = r.pgpPublicKey ?? "";
+		notificationFrom = r.notificationFrom ?? "";
+		notificationSubject = r.notificationSubject ?? "";
+		pgpPending = false;
+		pgpKeyFingerprint = "";
+		pgpKeyError = "";
+		if (pgpPublicKey) {
+			try {
+				pgpKeyFingerprint = await validatePGPKey(pgpPublicKey);
+			} catch {
+				/* stored key shown as-is */
 			}
-		} catch (e) {
-			loadError = e instanceof Error ? e.message : 'Failed to load form';
-		} finally {
-			loading = false;
 		}
+	} catch (e) {
+		loadError = e instanceof Error ? e.message : "Failed to load form";
+	} finally {
+		loading = false;
 	}
+}
 
-	async function toggleStatus() {
-		if (!record) return;
-		statusSaving = true;
-		const next = record.status === 'open' ? 'closed' : 'open';
-		try {
-			await updateFormStatus(formId, next);
-			record = { ...record, status: next };
-		} finally {
-			statusSaving = false;
+async function toggleStatus() {
+	if (!record) return;
+	statusSaving = true;
+	const next = record.status === "open" ? "closed" : "open";
+	try {
+		await updateFormStatus(formId, next);
+		record = { ...record, status: next };
+	} finally {
+		statusSaving = false;
+	}
+}
+
+async function saveSettings() {
+	if (pgpOpen && !notificationEmail.trim()) {
+		settingsError =
+			"A recipient email address is required for email forwarding.";
+		return;
+	}
+	if (pgpOpen && !pgpPublicKey.trim()) {
+		settingsError = "A PGP public key is required for email forwarding.";
+		return;
+	}
+	if (pgpPublicKey && pgpKeyError) {
+		settingsError = pgpKeyError;
+		return;
+	}
+	settingsSaving = true;
+	settingsError = "";
+	settingsSaved = false;
+	try {
+		await Promise.all([
+			updateFormExpiration(
+				formId,
+				expiresAt || null,
+				responseLimit ? parseInt(responseLimit) : null,
+				responseTtlDays ? parseInt(responseTtlDays) : null,
+				burnAfterReading,
+			),
+			updateFormPGPNotification(
+				formId,
+				notificationEmail,
+				pgpPublicKey,
+				notificationFrom,
+				notificationSubject,
+			),
+		]);
+		if (record) {
+			record = {
+				...record,
+				expiresAt: expiresAt || null,
+				responseLimit: responseLimit ? parseInt(responseLimit) : null,
+				responseTtlDays: responseTtlDays ? parseInt(responseTtlDays) : null,
+				burnAfterReading,
+			};
 		}
+		settingsSaved = true;
+		setTimeout(() => {
+			settingsSaved = false;
+		}, 2500);
+	} catch (e) {
+		settingsError = e instanceof Error ? e.message : "Failed to save settings";
+	} finally {
+		settingsSaving = false;
 	}
+}
 
-	async function saveSettings() {
-		if (pgpOpen && !notificationEmail.trim()) {
-			settingsError = 'A recipient email address is required for email forwarding.';
-			return;
+async function handlePublish() {
+	if (!auth.masterKey || !record) return;
+	publishing = true;
+	publishError = "";
+	try {
+		const salt = record.renderKeySalt
+			? Uint8Array.from(atob(record.renderKeySalt), (c) => c.charCodeAt(0))
+			: null;
+		const { schema, formKey } = await getForm(
+			auth.masterKey,
+			formId,
+			undefined,
+		);
+		const base =
+			customDomainBase() ??
+			(await getAppConfig().then((c) =>
+				c.formsDomain ? `https://${c.formsDomain}` : undefined,
+			));
+		const result = await publishForm(
+			auth.masterKey,
+			formId,
+			schema as any,
+			salt,
+			formKey,
+			base,
+		);
+		shareUrl = result.shareUrl;
+		// publishForm atomically sets status='open' on the server
+		record = { ...record, status: "open", hasUnpublishedChanges: false };
+		formsStore.updateStatus(formId, "open");
+	} catch (e) {
+		publishError = e instanceof Error ? e.message : "Publish failed";
+	} finally {
+		publishing = false;
+	}
+}
+
+async function copyShareUrl() {
+	if (!shareUrl) return;
+	await navigator.clipboard.writeText(shareUrl);
+	copied = true;
+	setTimeout(() => {
+		copied = false;
+	}, 2000);
+}
+
+function customDomainBase(): string | undefined {
+	if (customDomainInfo?.enabled && customDomainInfo.domain)
+		return `https://${customDomainInfo.domain}`;
+	return undefined;
+}
+
+async function handleRotateKey() {
+	if (!auth.masterKey || !record) return;
+	publishing = true;
+	publishError = "";
+	confirmRotate = false;
+	try {
+		const { schema, formKey } = await getForm(
+			auth.masterKey,
+			formId,
+			undefined,
+		);
+		const result = await rotateRenderKey(
+			auth.masterKey,
+			formId,
+			schema as any,
+			formKey,
+			customDomainBase(),
+		);
+		shareUrl = result.shareUrl;
+		record = {
+			...record,
+			renderKeySalt: btoa(String.fromCharCode(...result.renderKeySalt)),
+		};
+		qrVisible = false;
+	} catch (e) {
+		publishError = e instanceof Error ? e.message : "Key rotation failed";
+	} finally {
+		publishing = false;
+	}
+}
+
+async function showQRCode() {
+	if (!shareUrl) return;
+	qrVisible = true;
+	qrError = "";
+	await new Promise((r) => setTimeout(r, 0));
+	try {
+		if (qrCanvas)
+			await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
+	} catch {
+		qrError = "Failed to generate QR code";
+	}
+}
+
+function downloadQR() {
+	if (!qrCanvas) return;
+	const a = document.createElement("a");
+	a.href = qrCanvas.toDataURL("image/png");
+	a.download = `form-qr-${formId}.png`;
+	a.click();
+}
+
+async function confirmDeleteForm() {
+	deleteFormLoading = true;
+	deleteFormError = "";
+	try {
+		await deleteForm(formId);
+		goto("/forms");
+	} catch (e) {
+		deleteFormError = e instanceof Error ? e.message : "Failed to delete form";
+	} finally {
+		deleteFormLoading = false;
+	}
+}
+
+// ── Response functions ────────────────────────────────────────────────────
+async function loadResponses(cursor?: string) {
+	if (!auth.masterKey) return;
+	if (cursor) loadingMore = true;
+	else responsesLoading = true;
+	responsesError = "";
+	try {
+		const result = await listResponses(formId, cursor, 25);
+		responses = cursor ? [...responses, ...result.responses] : result.responses;
+		nextCursor = result.nextCursor;
+		hasMore = !!result.nextCursor;
+	} catch (err) {
+		responsesError =
+			err instanceof Error ? err.message : "Failed to load responses";
+	} finally {
+		responsesLoading = false;
+		loadingMore = false;
+	}
+}
+
+async function selectResponse(id: string) {
+	selectedId = id;
+	const rec = responses.find((r) => r.id === id);
+	if (rec && !decrypted.has(id) && !decrypting.has(id)) {
+		await handleDecrypt(rec);
+	}
+}
+
+async function handleDecrypt(rec: EncryptedResponseRecord) {
+	if (!auth.masterKey || decrypted.has(rec.id)) return;
+	decrypting = new Set([...decrypting, rec.id]);
+	const errs = new Map(decryptErrors);
+	errs.delete(rec.id);
+	decryptErrors = errs;
+	try {
+		let schema = schemaCache.get(rec.schemaVersion);
+		if (!schema) {
+			schema = await getSchemaVersion(
+				auth.masterKey,
+				formId,
+				rec.schemaVersion,
+				resolvedFormKey ?? undefined,
+			);
+			schemaCache = new Map([...schemaCache, [rec.schemaVersion, schema]]);
 		}
-		if (pgpOpen && !pgpPublicKey.trim()) {
-			settingsError = 'A PGP public key is required for email forwarding.';
-			return;
+		const payload = await decryptResponseRecord(
+			auth.masterKey,
+			formId,
+			rec,
+			resolvedFormKey ?? undefined,
+		);
+		decrypted = new Map([
+			...decrypted,
+			[
+				rec.id,
+				{
+					submittedAt: payload.submittedAt,
+					locale: payload.locale,
+					answers: payload.answers as Record<string, AnswerValue>,
+					schema,
+				},
+			],
+		]);
+	} catch (err) {
+		decryptErrors = new Map([
+			...decryptErrors,
+			[rec.id, err instanceof Error ? err.message : "Decryption failed"],
+		]);
+	} finally {
+		const d = new Set(decrypting);
+		d.delete(rec.id);
+		decrypting = d;
+	}
+}
+
+async function handleDeleteResponse(responseId: string) {
+	deletingResponses = new Set([...deletingResponses, responseId]);
+	try {
+		await deleteResponse(formId, responseId);
+		responses = responses.filter((r) => r.id !== responseId);
+		const nd = new Map(decrypted);
+		nd.delete(responseId);
+		decrypted = nd;
+		confirmDeleteResponse = null;
+		if (selectedId === responseId) {
+			selectedId = null;
 		}
-		if (pgpPublicKey && pgpKeyError) {
-			settingsError = pgpKeyError;
-			return;
+		// Update response count on the record
+		if (record)
+			record = {
+				...record,
+				responseCount: Math.max(0, record.responseCount - 1),
+			};
+	} catch {
+		// keep confirm open
+	} finally {
+		const d = new Set(deletingResponses);
+		d.delete(responseId);
+		deletingResponses = d;
+	}
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function renderAnswer(field: BuilderField, d: DecryptedResponse): string {
+	const value = d.answers[field.id];
+	const t = (
+		d.schema.translations[d.locale] ??
+		d.schema.translations[d.schema.defaultLocale]
+	)?.fields[field.id];
+	if (value === null || value === undefined) return "—";
+	switch (field.type) {
+		case "short_text":
+		case "long_text":
+			return String(value);
+		case "multiple_choice": {
+			const str = String(value);
+			if (str.startsWith("other:")) return `Other: ${str.slice(6)}`;
+			const cfg = field.config as MultipleChoiceConfig;
+			const idx = cfg.options.findIndex((o) => o.id === str);
+			return t?.options?.[idx] ?? str;
 		}
-		settingsSaving = true;
-		settingsError = '';
-		settingsSaved = false;
-		try {
-			await Promise.all([
-				updateFormExpiration(
-					formId,
-					expiresAt || null,
-					responseLimit ? parseInt(responseLimit) : null,
-					responseTtlDays ? parseInt(responseTtlDays) : null,
-					burnAfterReading
-				),
-				updateFormPGPNotification(formId, notificationEmail, pgpPublicKey, notificationFrom, notificationSubject)
-			]);
-			if (record) {
-				record = {
-					...record,
-					expiresAt: expiresAt || null,
-					responseLimit: responseLimit ? parseInt(responseLimit) : null,
-					responseTtlDays: responseTtlDays ? parseInt(responseTtlDays) : null,
-					burnAfterReading
-				};
-			}
-			settingsSaved = true;
-			setTimeout(() => { settingsSaved = false; }, 2500);
-		} catch (e) {
-			settingsError = e instanceof Error ? e.message : 'Failed to save settings';
-		} finally {
-			settingsSaving = false;
-		}
-	}
-
-	async function handlePublish() {
-		if (!auth.masterKey || !record) return;
-		publishing = true;
-		publishError = '';
-		try {
-			const salt = record.renderKeySalt
-				? Uint8Array.from(atob(record.renderKeySalt), c => c.charCodeAt(0))
-				: null;
-			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
-			const base = customDomainBase() ?? (await getAppConfig().then(c => c.formsDomain ? `https://${c.formsDomain}` : undefined));
-			const result = await publishForm(auth.masterKey, formId, schema as any, salt, formKey, base);
-			shareUrl = result.shareUrl;
-			// publishForm atomically sets status='open' on the server
-			record = { ...record, status: 'open', hasUnpublishedChanges: false };
-			formsStore.updateStatus(formId, 'open');
-		} catch (e) {
-			publishError = e instanceof Error ? e.message : 'Publish failed';
-		} finally {
-			publishing = false;
-		}
-	}
-
-	async function copyShareUrl() {
-		if (!shareUrl) return;
-		await navigator.clipboard.writeText(shareUrl);
-		copied = true;
-		setTimeout(() => { copied = false; }, 2000);
-	}
-
-	function customDomainBase(): string | undefined {
-		if (customDomainInfo?.enabled && customDomainInfo.domain) return `https://${customDomainInfo.domain}`;
-		return undefined;
-	}
-
-	async function handleRotateKey() {
-		if (!auth.masterKey || !record) return;
-		publishing = true;
-		publishError = '';
-		confirmRotate = false;
-		try {
-			const { schema, formKey } = await getForm(auth.masterKey, formId, undefined);
-			const result = await rotateRenderKey(auth.masterKey, formId, schema as any, formKey, customDomainBase());
-			shareUrl = result.shareUrl;
-			record = { ...record, renderKeySalt: btoa(String.fromCharCode(...result.renderKeySalt)) };
-			qrVisible = false;
-		} catch (e) {
-			publishError = e instanceof Error ? e.message : 'Key rotation failed';
-		} finally {
-			publishing = false;
-		}
-	}
-
-	async function showQRCode() {
-		if (!shareUrl) return;
-		qrVisible = true;
-		qrError = '';
-		await new Promise(r => setTimeout(r, 0));
-		try {
-			if (qrCanvas) await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
-		} catch {
-			qrError = 'Failed to generate QR code';
-		}
-	}
-
-	function downloadQR() {
-		if (!qrCanvas) return;
-		const a = document.createElement('a');
-		a.href = qrCanvas.toDataURL('image/png');
-		a.download = `form-qr-${formId}.png`;
-		a.click();
-	}
-
-	async function confirmDeleteForm() {
-		deleteFormLoading = true;
-		deleteFormError = '';
-		try {
-			await deleteForm(formId);
-			goto('/forms');
-		} catch (e) {
-			deleteFormError = e instanceof Error ? e.message : 'Failed to delete form';
-		} finally {
-			deleteFormLoading = false;
-		}
-	}
-
-	// ── Response functions ────────────────────────────────────────────────────
-	async function loadResponses(cursor?: string) {
-		if (!auth.masterKey) return;
-		if (cursor) loadingMore = true;
-		else responsesLoading = true;
-		responsesError = '';
-		try {
-			const result = await listResponses(formId, cursor, 25);
-			responses = cursor ? [...responses, ...result.responses] : result.responses;
-			nextCursor = result.nextCursor;
-			hasMore = !!result.nextCursor;
-		} catch (err) {
-			responsesError = err instanceof Error ? err.message : 'Failed to load responses';
-		} finally {
-			responsesLoading = false;
-			loadingMore = false;
-		}
-	}
-
-	async function selectResponse(id: string) {
-		selectedId = id;
-		const rec = responses.find(r => r.id === id);
-		if (rec && !decrypted.has(id) && !decrypting.has(id)) {
-			await handleDecrypt(rec);
-		}
-	}
-
-	async function handleDecrypt(rec: EncryptedResponseRecord) {
-		if (!auth.masterKey || decrypted.has(rec.id)) return;
-		decrypting = new Set([...decrypting, rec.id]);
-		const errs = new Map(decryptErrors);
-		errs.delete(rec.id);
-		decryptErrors = errs;
-		try {
-			let schema = schemaCache.get(rec.schemaVersion);
-			if (!schema) {
-				schema = await getSchemaVersion(auth.masterKey, formId, rec.schemaVersion, resolvedFormKey ?? undefined);
-				schemaCache = new Map([...schemaCache, [rec.schemaVersion, schema]]);
-			}
-			const payload = await decryptResponseRecord(auth.masterKey, formId, rec, resolvedFormKey ?? undefined);
-			decrypted = new Map([...decrypted, [rec.id, {
-				submittedAt: payload.submittedAt,
-				locale: payload.locale,
-				answers: payload.answers as Record<string, AnswerValue>,
-				schema
-			}]]);
-		} catch (err) {
-			decryptErrors = new Map([...decryptErrors, [rec.id, err instanceof Error ? err.message : 'Decryption failed']]);
-		} finally {
-			const d = new Set(decrypting);
-			d.delete(rec.id);
-			decrypting = d;
-		}
-	}
-
-	async function handleDeleteResponse(responseId: string) {
-		deletingResponses = new Set([...deletingResponses, responseId]);
-		try {
-			await deleteResponse(formId, responseId);
-			responses = responses.filter(r => r.id !== responseId);
-			const nd = new Map(decrypted);
-			nd.delete(responseId);
-			decrypted = nd;
-			confirmDeleteResponse = null;
-			if (selectedId === responseId) {
-				selectedId = null;
-			}
-			// Update response count on the record
-			if (record) record = { ...record, responseCount: Math.max(0, record.responseCount - 1) };
-		} catch {
-			// keep confirm open
-		} finally {
-			const d = new Set(deletingResponses);
-			d.delete(responseId);
-			deletingResponses = d;
-		}
-	}
-
-	// ── Helpers ───────────────────────────────────────────────────────────────
-	function renderAnswer(field: BuilderField, d: DecryptedResponse): string {
-		const value = d.answers[field.id];
-		const t = (d.schema.translations[d.locale] ?? d.schema.translations[d.schema.defaultLocale])?.fields[field.id];
-		if (value === null || value === undefined) return '—';
-		switch (field.type) {
-			case 'short_text':
-			case 'long_text':
-				return String(value);
-			case 'multiple_choice': {
-				const str = String(value);
-				if (str.startsWith('other:')) return `Other: ${str.slice(6)}`;
-				const cfg = field.config as MultipleChoiceConfig;
-				const idx = cfg.options.findIndex(o => o.id === str);
-				return t?.options?.[idx] ?? str;
-			}
-			case 'checkboxes': {
-				const arr = value as string[];
-				const cfg = field.config as CheckboxesConfig;
-				return arr.map(id => {
-					const idx = cfg.options.findIndex(o => o.id === id);
+		case "checkboxes": {
+			const arr = value as string[];
+			const cfg = field.config as CheckboxesConfig;
+			return arr
+				.map((id) => {
+					const idx = cfg.options.findIndex((o) => o.id === id);
 					return t?.options?.[idx] ?? id;
-				}).join(', ');
-			}
-			case 'dropdown': {
-				const cfg = field.config as DropdownConfig;
-				const idx = cfg.options.findIndex(o => o.id === String(value));
-				return t?.options?.[idx] ?? String(value);
-			}
-			case 'date_time':
-				return String(value);
-			case 'rating': {
-				const cfg = field.config as RatingConfig;
-				return `${value} / ${cfg.scale}`;
-			}
-			default:
-				return String(value);
+				})
+				.join(", ");
 		}
+		case "dropdown": {
+			const cfg = field.config as DropdownConfig;
+			const idx = cfg.options.findIndex((o) => o.id === String(value));
+			return t?.options?.[idx] ?? String(value);
+		}
+		case "date_time":
+			return String(value);
+		case "rating": {
+			const cfg = field.config as RatingConfig;
+			return `${value} / ${cfg.scale}`;
+		}
+		default:
+			return String(value);
 	}
+}
 
-	function formatDate(iso: string): string {
-		try {
-			return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-		} catch { return iso; }
+function formatDate(iso: string): string {
+	try {
+		return new Date(iso).toLocaleDateString(undefined, {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	} catch {
+		return iso;
 	}
+}
 
-	function formatDateShort(iso: string): string {
-		try {
-			return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-		} catch { return iso; }
+function formatDateShort(iso: string): string {
+	try {
+		return new Date(iso).toLocaleString(undefined, {
+			month: "short",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+		});
+	} catch {
+		return iso;
 	}
+}
 
-	function formatDateLong(iso: string): string {
-		try {
-			return new Date(iso).toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-		} catch { return iso; }
+function formatDateLong(iso: string): string {
+	try {
+		return new Date(iso).toLocaleString(undefined, {
+			year: "numeric",
+			month: "long",
+			day: "numeric",
+			hour: "2-digit",
+			minute: "2-digit",
+			second: "2-digit",
+		});
+	} catch {
+		return iso;
 	}
+}
 
-	// ── Derived ───────────────────────────────────────────────────────────────
-	const statusColor = $derived(
-		record?.status === 'open' ? 'bg-success'
-		: record?.status === 'draft' ? 'bg-warn-light'
-		: 'bg-muted'
-	);
-	const selectedRecord = $derived(responses.find(r => r.id === selectedId));
-	const selectedDecrypted = $derived(selectedId ? decrypted.get(selectedId) : undefined);
-	const isDecryptingSelected = $derived(selectedId ? decrypting.has(selectedId) : false);
-	const selectedDecryptError = $derived(selectedId ? decryptErrors.get(selectedId) : undefined);
+// ── Derived ───────────────────────────────────────────────────────────────
+const statusColor = $derived(
+	record?.status === "open"
+		? "bg-success"
+		: record?.status === "draft"
+			? "bg-warn-light"
+			: "bg-muted",
+);
+const selectedRecord = $derived(responses.find((r) => r.id === selectedId));
+const selectedDecrypted = $derived(
+	selectedId ? decrypted.get(selectedId) : undefined,
+);
+const isDecryptingSelected = $derived(
+	selectedId ? decrypting.has(selectedId) : false,
+);
+const selectedDecryptError = $derived(
+	selectedId ? decryptErrors.get(selectedId) : undefined,
+);
 
-	// ── Search / filter ───────────────────────────────────────────────────────
-	let searchQuery = $state('');
-	let activeTab = $state<'All' | 'Unread'>('All');
+// ── Search / filter ───────────────────────────────────────────────────────
+let searchQuery = $state("");
+let activeTab = $state<"All" | "Unread">("All");
 
-	const filteredResponses = $derived(responses.filter(resp => {
-		if (activeTab === 'Unread' && decrypted.has(resp.id)) return false;
+const filteredResponses = $derived(
+	responses.filter((resp) => {
+		if (activeTab === "Unread" && decrypted.has(resp.id)) return false;
 		const q = searchQuery.trim().toLowerCase();
 		if (!q) return true;
 		if (resp.id.toLowerCase().includes(q)) return true;
 		const d = decrypted.get(resp.id);
 		if (d) {
 			for (const v of Object.values(d.answers)) {
-				if (String(v ?? '').toLowerCase().includes(q)) return true;
+				if (
+					String(v ?? "")
+						.toLowerCase()
+						.includes(q)
+				)
+					return true;
 			}
 		}
 		return false;
-	}));
+	}),
+);
 
-	// ── Avatar helpers ────────────────────────────────────────────────────────
-	const AVATAR_COLORS = [
-		{ bg: '#1D2739', color: '#7191CA' },
-		{ bg: '#1D391E', color: '#58AE5B' },
-		{ bg: '#39341D', color: '#B7A449' },
-		{ bg: '#391D1D', color: '#C37D7D' },
-		{ bg: '#2D1F3D', color: '#A78BFA' },
-		{ bg: '#1D2D39', color: '#5AAFCA' },
-	];
+// ── Avatar helpers ────────────────────────────────────────────────────────
+const AVATAR_COLORS = [
+	{ bg: "#1D2739", color: "#7191CA" },
+	{ bg: "#1D391E", color: "#58AE5B" },
+	{ bg: "#39341D", color: "#B7A449" },
+	{ bg: "#391D1D", color: "#C37D7D" },
+	{ bg: "#2D1F3D", color: "#A78BFA" },
+	{ bg: "#1D2D39", color: "#5AAFCA" },
+];
 
-	function getInitials(d: DecryptedResponse | undefined): string {
-		if (!d) return '?';
-		const firstShort = d.schema.fields.find(f => f.type === 'short_text');
-		if (firstShort) {
-			const val = String(d.answers[firstShort.id] ?? '').trim();
-			const parts = val.split(/\s+/);
-			if (parts.length >= 2 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase();
-			if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
-		}
-		return '?';
+function getInitials(d: DecryptedResponse | undefined): string {
+	if (!d) return "?";
+	const firstShort = d.schema.fields.find((f) => f.type === "short_text");
+	if (firstShort) {
+		const val = String(d.answers[firstShort.id] ?? "").trim();
+		const parts = val.split(/\s+/);
+		if (parts.length >= 2 && parts[0] && parts[1])
+			return (parts[0][0] + parts[1][0]).toUpperCase();
+		if (parts[0]?.length >= 2) return parts[0].slice(0, 2).toUpperCase();
 	}
+	return "?";
+}
 
-	function getDisplayName(d: DecryptedResponse | undefined, idx: number): string {
-		if (!d) return `Response #${idx + 1}`;
-		const firstShort = d.schema.fields.find(f => f.type === 'short_text');
-		if (firstShort) {
-			const val = String(d.answers[firstShort.id] ?? '').trim();
-			if (val) return val;
-		}
-		return `Response #${idx + 1}`;
+function getDisplayName(d: DecryptedResponse | undefined, idx: number): string {
+	if (!d) return `Response #${idx + 1}`;
+	const firstShort = d.schema.fields.find((f) => f.type === "short_text");
+	if (firstShort) {
+		const val = String(d.answers[firstShort.id] ?? "").trim();
+		if (val) return val;
 	}
+	return `Response #${idx + 1}`;
+}
 
-	function getPreviewText(d: DecryptedResponse | undefined): string {
-		if (!d) return '';
-		const longField = d.schema.fields.find(f => f.type === 'long_text');
-		if (longField) {
-			const val = String(d.answers[longField.id] ?? '').trim();
-			if (val) return val.slice(0, 90);
-		}
-		for (const f of d.schema.fields.filter(f => f.type === 'short_text').slice(1)) {
-			const val = String(d.answers[f.id] ?? '').trim();
-			if (val) return val;
-		}
-		return '';
+function getPreviewText(d: DecryptedResponse | undefined): string {
+	if (!d) return "";
+	const longField = d.schema.fields.find((f) => f.type === "long_text");
+	if (longField) {
+		const val = String(d.answers[longField.id] ?? "").trim();
+		if (val) return val.slice(0, 90);
 	}
+	for (const f of d.schema.fields
+		.filter((f) => f.type === "short_text")
+		.slice(1)) {
+		const val = String(d.answers[f.id] ?? "").trim();
+		if (val) return val;
+	}
+	return "";
+}
 
-	function avatarColorForIdx(idx: number) {
-		return AVATAR_COLORS[idx % AVATAR_COLORS.length];
-	}
+function avatarColorForIdx(idx: number) {
+	return AVATAR_COLORS[idx % AVATAR_COLORS.length];
+}
 
-	function responseIndexInFull(id: string): number {
-		return responses.findIndex(r => r.id === id);
-	}
+function responseIndexInFull(id: string): number {
+	return responses.findIndex((r) => r.id === id);
+}
 </script>
 
 <svelte:head>

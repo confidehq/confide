@@ -5,8 +5,13 @@
  * Switching workspaces resets the cache and triggers a fresh load.
  */
 
-import { listForms, getForm, deriveShareUrl, type FormSummary } from '$lib/forms';
-import { getAppConfig } from '$lib/config';
+import { getAppConfig } from "$lib/config";
+import {
+	deriveShareUrl,
+	type FormSummary,
+	getForm,
+	listForms,
+} from "$lib/forms";
 
 let _workspaceId = $state<string | null>(null);
 let _forms = $state<FormSummary[]>([]);
@@ -15,7 +20,7 @@ let _formDescriptions = $state<Map<string, string>>(new Map());
 let _shareUrls = $state<Map<string, string>>(new Map());
 let _loaded = $state(false);
 let _loading = $state(false);
-let _error = $state('');
+let _error = $state("");
 
 export const formsStore = {
 	get forms() {
@@ -51,7 +56,7 @@ export const formsStore = {
 		_workspaceId = workspaceId;
 		_loaded = false;
 		_loading = true;
-		_error = '';
+		_error = "";
 		_forms = [];
 		_formNames = new Map();
 		_formDescriptions = new Map();
@@ -65,7 +70,7 @@ export const formsStore = {
 			_loaded = true;
 		} catch (err) {
 			if (_workspaceId !== workspaceId) return;
-			_error = err instanceof Error ? err.message : 'Failed to load forms';
+			_error = err instanceof Error ? err.message : "Failed to load forms";
 		} finally {
 			if (_workspaceId === workspaceId) _loading = false;
 		}
@@ -75,26 +80,35 @@ export const formsStore = {
 			const snap = _forms;
 			const [results, config] = await Promise.all([
 				Promise.allSettled(snap.map((f) => getForm(masterKey, f.formId))),
-				getAppConfig().catch(() => ({ formsDomain: '' }))
+				getAppConfig().catch(() => ({ formsDomain: "" })),
 			]);
 			if (_workspaceId !== workspaceId) return; // stale
-			const formsBase = config.formsDomain ? `https://${config.formsDomain}` : undefined;
+			const formsBase = config.formsDomain
+				? `https://${config.formsDomain}`
+				: undefined;
 			const names = new Map(_formNames);
 			const descriptions = new Map(_formDescriptions);
 			const urlEntries: Array<Promise<void>> = [];
 			results.forEach((r, i) => {
-				if (r.status === 'fulfilled') {
+				if (r.status === "fulfilled") {
 					const { schema, record, formKey } = r.value;
 					const t = schema.translations[schema.defaultLocale];
 					const name = t?.formTitle;
 					if (name) names.set(snap[i].formId, name);
 					const desc = t?.formDescription;
 					if (desc) descriptions.set(snap[i].formId, desc);
-					if (record.renderKeySalt && snap[i].status !== 'draft') {
+					if (record.renderKeySalt && snap[i].status !== "draft") {
 						urlEntries.push(
-							deriveShareUrl(snap[i].formId, record.renderKeySalt, formKey, formsBase).then(url => {
-								_shareUrls = new Map([..._shareUrls, [snap[i].formId, url]]);
-							}).catch(() => {})
+							deriveShareUrl(
+								snap[i].formId,
+								record.renderKeySalt,
+								formKey,
+								formsBase,
+							)
+								.then((url) => {
+									_shareUrls = new Map([..._shareUrls, [snap[i].formId, url]]);
+								})
+								.catch(() => {}),
 						);
 					}
 				}
@@ -119,7 +133,7 @@ export const formsStore = {
 		_formNames = names;
 	},
 
-	updateStatus(formId: string, status: 'draft' | 'open' | 'closed') {
+	updateStatus(formId: string, status: "draft" | "open" | "closed") {
 		_forms = _forms.map((f) => (f.formId === formId ? { ...f, status } : f));
 	},
 
@@ -145,6 +159,6 @@ export const formsStore = {
 		_shareUrls = new Map();
 		_loaded = false;
 		_loading = false;
-		_error = '';
-	}
+		_error = "";
+	},
 };

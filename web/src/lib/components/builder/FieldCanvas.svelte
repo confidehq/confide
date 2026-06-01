@@ -1,195 +1,298 @@
 <script lang="ts">
-	import { dndzone } from 'svelte-dnd-action';
-	import type { createBuilderStore } from '$lib/stores/builder.svelte';
-	import type { BuilderField, MultipleChoiceConfig, CheckboxesConfig, DropdownConfig, ChoiceOption, RatingConfig, FieldType } from '$lib/types/builder';
-	import { getOrderedFields } from '$lib/types/builder';
-	import FormPreview from '$lib/components/form/FormPreview.svelte';
-	import type { Component } from 'svelte';
-	import {
-		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
-		Calendar, Clock, Star, Minus, Heading1, ChevronRight, AlertCircle, Plus, TriangleAlert, Trash2, GripVertical, Copy,
-		Shield, Lock, CircleCheck, Info, Bell, Zap
-	} from '@lucide/svelte';
-	import type { AccentIcon } from '$lib/types/builder';
+import {
+	AlertCircle,
+	AlignLeft,
+	Bell,
+	Calendar,
+	CheckSquare,
+	ChevronDown,
+	ChevronRight,
+	CircleCheck,
+	CircleDot,
+	Clock,
+	Copy,
+	GripVertical,
+	Heading1,
+	Info,
+	Lock,
+	Minus,
+	Plus,
+	Shield,
+	Star,
+	Trash2,
+	TriangleAlert,
+	Type,
+	Zap,
+} from "@lucide/svelte";
+import type { Component } from "svelte";
+import { dndzone } from "svelte-dnd-action";
+import FormPreview from "$lib/components/form/FormPreview.svelte";
+import type { createBuilderStore } from "$lib/stores/builder.svelte";
+import type {
+	AccentIcon,
+	BuilderField,
+	CheckboxesConfig,
+	ChoiceOption,
+	DropdownConfig,
+	FieldType,
+	MultipleChoiceConfig,
+	RatingConfig,
+} from "$lib/types/builder";
+import { getOrderedFields } from "$lib/types/builder";
 
-	const submitIconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
-	import RichEditable from './RichEditable.svelte';
+const submitIconMap: Record<AccentIcon, typeof Lock> = {
+	lock: Lock,
+	shield: Shield,
+	check: CircleCheck,
+	info: Info,
+	alert: TriangleAlert,
+	star: Star,
+	bell: Bell,
+	zap: Zap,
+};
 
-	const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> = [
-		{ type: 'short_text', label: 'Short text', icon: Type },
-		{ type: 'long_text', label: 'Long text', icon: AlignLeft },
-		{ type: 'multiple_choice', label: 'Multiple choice', icon: CircleDot },
-		{ type: 'checkboxes', label: 'Checkboxes', icon: CheckSquare },
-		{ type: 'dropdown', label: 'Dropdown', icon: ChevronDown },
-		{ type: 'date_time', label: 'Date / time', icon: Calendar },
-		{ type: 'rating', label: 'Rating', icon: Star },
-		{ type: 'section_break', label: 'Section break', icon: Minus },
-		{ type: 'heading', label: 'Heading', icon: Heading1 },
-		{ type: 'accordion', label: 'Accordion', icon: ChevronRight },
-		{ type: 'accent', label: 'Accent block', icon: AlertCircle }
+import RichEditable from "./RichEditable.svelte";
+
+const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> =
+	[
+		{ type: "short_text", label: "Short text", icon: Type },
+		{ type: "long_text", label: "Long text", icon: AlignLeft },
+		{ type: "multiple_choice", label: "Multiple choice", icon: CircleDot },
+		{ type: "checkboxes", label: "Checkboxes", icon: CheckSquare },
+		{ type: "dropdown", label: "Dropdown", icon: ChevronDown },
+		{ type: "date_time", label: "Date / time", icon: Calendar },
+		{ type: "rating", label: "Rating", icon: Star },
+		{ type: "section_break", label: "Section break", icon: Minus },
+		{ type: "heading", label: "Heading", icon: Heading1 },
+		{ type: "accordion", label: "Accordion", icon: ChevronRight },
+		{ type: "accent", label: "Accent block", icon: AlertCircle },
 	];
 
-	let insertSlot = $state<number | null>(null);
-	let popoverAnchor = $state<{ top: number; left: number } | null>(null);
-	let ratingHover = $state<{ fieldId: string; value: number } | null>(null);
+let insertSlot = $state<number | null>(null);
+let popoverAnchor = $state<{ top: number; left: number } | null>(null);
+let ratingHover = $state<{ fieldId: string; value: number } | null>(null);
 
-	function openSlot(e: MouseEvent, afterIndex: number, anchor: 'left' | 'above' = 'left') {
-		e.stopPropagation();
-		const btn = e.currentTarget as HTMLElement;
-		const rect = btn.getBoundingClientRect();
-		const popoverH = 230;
-		const popoverW = 288;
-		const margin = 8;
-		let left: number, top: number;
-		if (anchor === 'above') {
-			left = Math.max(margin, Math.min(rect.left + rect.width / 2 - popoverW / 2, window.innerWidth - popoverW - margin));
-			top = rect.top - popoverH - 8 > margin ? rect.top - popoverH - 8 : rect.bottom + 8;
-		} else {
-			left = Math.max(margin, rect.left - popoverW - 8);
-			top = Math.max(margin, Math.min(
+function openSlot(
+	e: MouseEvent,
+	afterIndex: number,
+	anchor: "left" | "above" = "left",
+) {
+	e.stopPropagation();
+	const btn = e.currentTarget as HTMLElement;
+	const rect = btn.getBoundingClientRect();
+	const popoverH = 230;
+	const popoverW = 288;
+	const margin = 8;
+	let left: number, top: number;
+	if (anchor === "above") {
+		left = Math.max(
+			margin,
+			Math.min(
+				rect.left + rect.width / 2 - popoverW / 2,
+				window.innerWidth - popoverW - margin,
+			),
+		);
+		top =
+			rect.top - popoverH - 8 > margin
+				? rect.top - popoverH - 8
+				: rect.bottom + 8;
+	} else {
+		left = Math.max(margin, rect.left - popoverW - 8);
+		top = Math.max(
+			margin,
+			Math.min(
 				rect.top + rect.height / 2 - popoverH / 2,
-				window.innerHeight - popoverH - margin
-			));
-		}
-		insertSlot = afterIndex;
-		popoverAnchor = { top, left };
+				window.innerHeight - popoverH - margin,
+			),
+		);
 	}
+	insertSlot = afterIndex;
+	popoverAnchor = { top, left };
+}
 
-	function closeSlot() {
-		insertSlot = null;
-		popoverAnchor = null;
-	}
+function closeSlot() {
+	insertSlot = null;
+	popoverAnchor = null;
+}
 
-	function pickField(type: FieldType) {
-		if (insertSlot === null) return;
-		store.addFieldAt(type, insertSlot);
-		closeSlot();
-	}
+function pickField(type: FieldType) {
+	if (insertSlot === null) return;
+	store.addFieldAt(type, insertSlot);
+	closeSlot();
+}
 
-	interface Props {
-		store: ReturnType<typeof createBuilderStore>;
-	}
+interface Props {
+	store: ReturnType<typeof createBuilderStore>;
+}
 
-	const { store }: Props = $props();
+const { store }: Props = $props();
 
-	const FIELD_TYPE_LABELS: Record<string, string> = {
-		short_text: 'Short text',
-		long_text: 'Long text',
-		multiple_choice: 'Multiple choice',
-		checkboxes: 'Checkboxes',
-		dropdown: 'Dropdown',
-		date_time: 'Date / time',
-		rating: 'Rating',
-		section_break: 'Section break',
-		heading: 'Heading',
-		accordion: 'Accordion',
-		accent: 'Accent block'
+const FIELD_TYPE_LABELS: Record<string, string> = {
+	short_text: "Short text",
+	long_text: "Long text",
+	multiple_choice: "Multiple choice",
+	checkboxes: "Checkboxes",
+	dropdown: "Dropdown",
+	date_time: "Date / time",
+	rating: "Rating",
+	section_break: "Section break",
+	heading: "Heading",
+	accordion: "Accordion",
+	accent: "Accent block",
+};
+
+// Local state for dnd — holds shadow items during drag without touching the store.
+// Synced from the store via $effect; committed back only on finalize.
+let fields = $state<BuilderField[]>([]);
+
+$effect(() => {
+	fields = getOrderedFields(store.schema, store.activeLocale);
+});
+
+function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
+	fields = e.detail.items;
+}
+
+function handleDndFinalize(e: CustomEvent<{ items: BuilderField[] }>) {
+	store.reorderFields(e.detail.items);
+}
+
+function getLabel(fieldId: string): string {
+	return (
+		store.schema.translations[store.activeLocale]?.fields[fieldId]?.label ?? ""
+	);
+}
+
+function getHelpText(fieldId: string): string {
+	return (
+		store.schema.translations[store.activeLocale]?.fields[fieldId]?.helpText ??
+		""
+	);
+}
+
+function getDefaultLabel(fieldId: string): string {
+	if (store.activeLocale === store.schema.defaultLocale) return "";
+	return (
+		store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]
+			?.label ?? ""
+	);
+}
+
+function getDefaultHelpText(fieldId: string): string {
+	if (store.activeLocale === store.schema.defaultLocale) return "";
+	return (
+		store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]
+			?.helpText ?? ""
+	);
+}
+
+function getPlaceholder(fieldId: string): string {
+	return (
+		store.schema.translations[store.activeLocale]?.fields[fieldId]
+			?.placeholder ?? ""
+	);
+}
+
+function getDefaultPlaceholder(fieldId: string): string {
+	if (store.activeLocale === store.schema.defaultLocale) return "";
+	return (
+		store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]
+			?.placeholder ?? ""
+	);
+}
+
+function autoGrow(el: HTMLTextAreaElement) {
+	el.style.height = "auto";
+	el.style.height = el.scrollHeight + "px";
+}
+
+function growable(el: HTMLTextAreaElement, value: string) {
+	autoGrow(el);
+	return {
+		update() {
+			autoGrow(el);
+		},
 	};
-
-	// Local state for dnd — holds shadow items during drag without touching the store.
-	// Synced from the store via $effect; committed back only on finalize.
-	let fields = $state<BuilderField[]>([]);
-
-	$effect(() => {
-		fields = getOrderedFields(store.schema, store.activeLocale);
-	});
-
-	function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
-		fields = e.detail.items;
-	}
-
-	function handleDndFinalize(e: CustomEvent<{ items: BuilderField[] }>) {
-		store.reorderFields(e.detail.items);
-	}
-
-	function getLabel(fieldId: string): string {
-		return store.schema.translations[store.activeLocale]?.fields[fieldId]?.label ?? '';
-	}
-
-	function getHelpText(fieldId: string): string {
-		return store.schema.translations[store.activeLocale]?.fields[fieldId]?.helpText ?? '';
-	}
-
-	function getDefaultLabel(fieldId: string): string {
-		if (store.activeLocale === store.schema.defaultLocale) return '';
-		return store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]?.label ?? '';
-	}
-
-	function getDefaultHelpText(fieldId: string): string {
-		if (store.activeLocale === store.schema.defaultLocale) return '';
-		return store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]?.helpText ?? '';
-	}
-
-	function getPlaceholder(fieldId: string): string {
-		return store.schema.translations[store.activeLocale]?.fields[fieldId]?.placeholder ?? '';
-	}
-
-	function getDefaultPlaceholder(fieldId: string): string {
-		if (store.activeLocale === store.schema.defaultLocale) return '';
-		return store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]?.placeholder ?? '';
-	}
-
-	function autoGrow(el: HTMLTextAreaElement) {
-		el.style.height = 'auto';
-		el.style.height = el.scrollHeight + 'px';
-	}
-
-	function growable(el: HTMLTextAreaElement, value: string) {
-		autoGrow(el);
-		return { update() { autoGrow(el); } };
-	}
+}
 
 function getOptionLabels(fieldId: string): string[] {
-		const field = store.schema.fields.find((f) => f.id === fieldId);
-		if (!field) return [];
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const count = cfg.options?.length ?? 0;
-		const translated = store.schema.translations[store.activeLocale]?.fields[fieldId]?.options;
-		return Array.from({ length: count }, (_, i) => translated?.[i] ?? '');
-	}
+	const field = store.schema.fields.find((f) => f.id === fieldId);
+	if (!field) return [];
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const count = cfg.options?.length ?? 0;
+	const translated =
+		store.schema.translations[store.activeLocale]?.fields[fieldId]?.options;
+	return Array.from({ length: count }, (_, i) => translated?.[i] ?? "");
+}
 
-	function getDefaultOptionLabel(fieldId: string, index: number): string {
-		if (store.activeLocale === store.schema.defaultLocale) return '';
-		return store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]?.options?.[index] ?? '';
-	}
+function getDefaultOptionLabel(fieldId: string, index: number): string {
+	if (store.activeLocale === store.schema.defaultLocale) return "";
+	return (
+		store.schema.translations[store.schema.defaultLocale]?.fields[fieldId]
+			?.options?.[index] ?? ""
+	);
+}
 
-	function setOptionLabel(fieldId: string, index: number, value: string) {
-		const field = store.schema.fields.find((f) => f.id === fieldId);
-		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const count = cfg.options?.length ?? 0;
-		const current = store.schema.translations[store.activeLocale]?.fields[fieldId]?.options ?? Array(count).fill('');
-		const updated = [...current];
-		while (updated.length <= index) updated.push('');
-		updated[index] = value;
-		store.updateTranslation(fieldId, 'options', updated as unknown as string);
-	}
+function setOptionLabel(fieldId: string, index: number, value: string) {
+	const field = store.schema.fields.find((f) => f.id === fieldId);
+	if (!field) return;
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const count = cfg.options?.length ?? 0;
+	const current =
+		store.schema.translations[store.activeLocale]?.fields[fieldId]?.options ??
+		Array(count).fill("");
+	const updated = [...current];
+	while (updated.length <= index) updated.push("");
+	updated[index] = value;
+	store.updateTranslation(fieldId, "options", updated as unknown as string);
+}
 
-	function addOption(fieldId: string) {
-		const field = store.schema.fields.find((f) => f.id === fieldId);
-		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const options = cfg.options ?? [];
-		const newOpt: ChoiceOption = { id: crypto.randomUUID(), order: options.length };
-		store.updateFieldConfig(fieldId, { options: [...options, newOpt] } as Partial<MultipleChoiceConfig>);
-	}
+function addOption(fieldId: string) {
+	const field = store.schema.fields.find((f) => f.id === fieldId);
+	if (!field) return;
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const options = cfg.options ?? [];
+	const newOpt: ChoiceOption = {
+		id: crypto.randomUUID(),
+		order: options.length,
+	};
+	store.updateFieldConfig(fieldId, {
+		options: [...options, newOpt],
+	} as Partial<MultipleChoiceConfig>);
+}
 
-	function removeOption(fieldId: string, optId: string) {
-		const field = store.schema.fields.find((f) => f.id === fieldId);
-		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const removedIndex = (cfg.options ?? []).findIndex((o) => o.id === optId);
-		const options = (cfg.options ?? [])
-			.filter((o) => o.id !== optId)
-			.map((o, i) => ({ ...o, order: i }));
-		store.updateFieldConfig(fieldId, { options } as Partial<MultipleChoiceConfig>);
-		// Trim the translation options array to match
-		if (removedIndex !== -1) {
-			const current = store.schema.translations[store.activeLocale]?.fields[fieldId]?.options ?? [];
-			const updated = current.filter((_, i) => i !== removedIndex);
-			store.updateTranslation(fieldId, 'options', updated as unknown as string);
-		}
+function removeOption(fieldId: string, optId: string) {
+	const field = store.schema.fields.find((f) => f.id === fieldId);
+	if (!field) return;
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const removedIndex = (cfg.options ?? []).findIndex((o) => o.id === optId);
+	const options = (cfg.options ?? [])
+		.filter((o) => o.id !== optId)
+		.map((o, i) => ({ ...o, order: i }));
+	store.updateFieldConfig(fieldId, {
+		options,
+	} as Partial<MultipleChoiceConfig>);
+	// Trim the translation options array to match
+	if (removedIndex !== -1) {
+		const current =
+			store.schema.translations[store.activeLocale]?.fields[fieldId]?.options ??
+			[];
+		const updated = current.filter((_, i) => i !== removedIndex);
+		store.updateTranslation(fieldId, "options", updated as unknown as string);
 	}
+}
 </script>
 
 <main

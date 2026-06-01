@@ -1,14 +1,14 @@
 <script lang="ts">
-	import type { BuilderField, HeadingConfig } from '$lib/types/builder';
+import type { BuilderField, HeadingConfig } from "$lib/types/builder";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string };
-	}
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string };
+}
 
-	const { field, translation }: Props = $props();
+const { field, translation }: Props = $props();
 
-	const level = $derived((field.config as HeadingConfig).level ?? 2);
+const level = $derived((field.config as HeadingConfig).level ?? 2);
 </script>
 
 {#if level === 0}

@@ -1,87 +1,96 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { getPublicSchema, importRenderKey, ApiError } from '$lib/forms';
-	import type { FormSchema } from '$lib/forms';
-	import ScrollRenderer from '$lib/components/form/ScrollRenderer.svelte';
-	import StepsRenderer from '$lib/components/form/StepsRenderer.svelte';
-	import { ShieldCheck } from '@lucide/svelte';
+import { ShieldCheck } from "@lucide/svelte";
+import { onMount } from "svelte";
+import { page } from "$app/stores";
+import ScrollRenderer from "$lib/components/form/ScrollRenderer.svelte";
+import StepsRenderer from "$lib/components/form/StepsRenderer.svelte";
+import type { FormSchema } from "$lib/forms";
+import { ApiError, getPublicSchema, importRenderKey } from "$lib/forms";
 
-	type FormState = 'loading' | 'ready' | 'submitted' | 'closed' | 'invalid' | 'error';
+type FormState =
+	| "loading"
+	| "ready"
+	| "submitted"
+	| "closed"
+	| "invalid"
+	| "error";
 
-	let formState = $state<FormState>('loading');
-	let errorMessage = $state('');
+let formState = $state<FormState>("loading");
+let errorMessage = $state("");
 
-	let schema = $state<FormSchema | null>(null);
-	let publicFormKey = $state<ArrayBuffer | null>(null);
-	let pgpPublicKey = $state<string | null>(null);
-	let schemaVersion = $state(0);
-	let locale = $state('en');
-	let honeypotFields = $state<string[]>([]);
-	let loadToken = $state('');
+let schema = $state<FormSchema | null>(null);
+let publicFormKey = $state<ArrayBuffer | null>(null);
+let pgpPublicKey = $state<string | null>(null);
+let schemaVersion = $state(0);
+let locale = $state("en");
+let honeypotFields = $state<string[]>([]);
+let loadToken = $state("");
 
-	const locales = $derived(schema ? (schema.locales ?? [schema.defaultLocale]) : []);
+const locales = $derived(
+	schema ? (schema.locales ?? [schema.defaultLocale]) : [],
+);
 
-	onMount(async () => {
-		const formId = $page.params.id ?? '';
+onMount(async () => {
+	const formId = $page.params.id ?? "";
 
-		// Parse #rk=<base64url> from the URL fragment.
-		// The fragment is never sent to the server by the browser.
-		const hash = window.location.hash.slice(1);
-		const params = new URLSearchParams(hash);
-		const rkParam = params.get('rk');
+	// Parse #rk=<base64url> from the URL fragment.
+	// The fragment is never sent to the server by the browser.
+	const hash = window.location.hash.slice(1);
+	const params = new URLSearchParams(hash);
+	const rkParam = params.get("rk");
 
-		if (!rkParam || !formId) {
-			formState = 'invalid';
+	if (!rkParam || !formId) {
+		formState = "invalid";
+		return;
+	}
+
+	// Parse ?locale= from query string, fallback applied after schema loads
+	const queryLocale = new URLSearchParams(window.location.search).get("locale");
+
+	try {
+		const renderKey = await importRenderKey(rkParam);
+		const result = await getPublicSchema(formId, renderKey);
+
+		if (result.status === "closed") {
+			formState = "closed";
 			return;
 		}
 
-		// Parse ?locale= from query string, fallback applied after schema loads
-		const queryLocale = new URLSearchParams(window.location.search).get('locale');
+		schema = result.schema;
+		publicFormKey = result.publicFormKey;
+		pgpPublicKey = result.pgpPublicKey;
+		schemaVersion = result.schemaVersion;
+		honeypotFields = result.honeypotFields;
+		loadToken = result.loadToken;
 
-		try {
-			const renderKey = await importRenderKey(rkParam);
-			const result = await getPublicSchema(formId, renderKey);
-
-			if (result.status === 'closed') {
-				formState = 'closed';
-				return;
-			}
-
-			schema = result.schema;
-			publicFormKey = result.publicFormKey;
-			pgpPublicKey = result.pgpPublicKey;
-			schemaVersion = result.schemaVersion;
-			honeypotFields = result.honeypotFields;
-			loadToken = result.loadToken;
-
-			// Use requested locale if the form supports it, else default
-			const supported = result.schema.locales ?? [result.schema.defaultLocale];
-			locale = queryLocale && supported.includes(queryLocale)
+		// Use requested locale if the form supports it, else default
+		const supported = result.schema.locales ?? [result.schema.defaultLocale];
+		locale =
+			queryLocale && supported.includes(queryLocale)
 				? queryLocale
 				: result.schema.defaultLocale;
 
-			formState = 'ready';
+		formState = "ready";
 
-			// Warm the openpgp module cache in the background while the user fills the form
-			if (result.pgpPublicKey) import('openpgp');
-		} catch (err) {
-			if (err instanceof ApiError && err.status === 404) {
-				formState = 'invalid';
-			} else {
-				errorMessage = err instanceof Error ? err.message : 'Unknown error';
-				formState = 'error';
-			}
+		// Warm the openpgp module cache in the background while the user fills the form
+		if (result.pgpPublicKey) import("openpgp");
+	} catch (err) {
+		if (err instanceof ApiError && err.status === 404) {
+			formState = "invalid";
+		} else {
+			errorMessage = err instanceof Error ? err.message : "Unknown error";
+			formState = "error";
 		}
-	});
-
-	function handleSubmitted() {
-		formState = 'submitted';
 	}
+});
 
-	function switchLocale(code: string) {
-		locale = code;
-	}
+function handleSubmitted() {
+	formState = "submitted";
+}
+
+function switchLocale(code: string) {
+	locale = code;
+}
 </script>
 
 <svelte:head>

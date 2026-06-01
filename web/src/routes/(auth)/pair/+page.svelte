@@ -1,132 +1,141 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import { auth } from '$lib/stores/auth.svelte';
-	import {
-		lookupPairingByCode,
-		requestPairing,
-		pollPairing,
-		completePairing,
-		type PairingRequestResult
-	} from '$lib/auth';
-	import { pairingFingerprint } from '$lib/crypto';
-	import { base64ToBytes } from '$lib/encoding';
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import {
+	completePairing,
+	lookupPairingByCode,
+	type PairingRequestResult,
+	pollPairing,
+	requestPairing,
+} from "$lib/auth";
+import { pairingFingerprint } from "$lib/crypto";
+import { base64ToBytes } from "$lib/encoding";
+import { auth } from "$lib/stores/auth.svelte";
 
-	type Stage =
-		| 'entry'        // waiting for QR scan or code entry
-		| 'fingerprint'  // show fingerprint, waiting for existing device to confirm
-		| 'waiting'      // state = requested, waiting for fulfill
-		| 'registering'  // calling startRegistration
-		| 'done'
-		| 'error';
+type Stage =
+	| "entry" // waiting for QR scan or code entry
+	| "fingerprint" // show fingerprint, waiting for existing device to confirm
+	| "waiting" // state = requested, waiting for fulfill
+	| "registering" // calling startRegistration
+	| "done"
+	| "error";
 
-	let stage = $state<Stage>('entry');
-	let errorMsg = $state('');
-	let codeInput = $state('');
-	let fingerprint = $state('');
+let stage = $state<Stage>("entry");
+let errorMsg = $state("");
+let codeInput = $state("");
+let fingerprint = $state("");
 
-	// Held in memory between requestPairing and completePairing
-	let pairingReq = $state<PairingRequestResult | null>(null);
-	let pairingToken = $state('');
-	let pollTimer: ReturnType<typeof setInterval> | null = null;
+// Held in memory between requestPairing and completePairing
+let pairingReq = $state<PairingRequestResult | null>(null);
+let pairingToken = $state("");
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 
-	// On mount, check URL params for a pre-scanned token
-	$effect(() => {
-		const t = page.url.searchParams.get('t');
-		if (t) {
-			pairingToken = t;
-			startRequest(t);
-		}
-	});
-
-	function stopPolling() {
-		if (pollTimer !== null) {
-			clearInterval(pollTimer);
-			pollTimer = null;
-		}
+// On mount, check URL params for a pre-scanned token
+$effect(() => {
+	const t = page.url.searchParams.get("t");
+	if (t) {
+		pairingToken = t;
+		startRequest(t);
 	}
+});
 
-	async function startRequest(token: string) {
+function stopPolling() {
+	if (pollTimer !== null) {
+		clearInterval(pollTimer);
+		pollTimer = null;
+	}
+}
+
+async function startRequest(token: string) {
+	try {
+		const req = await requestPairing(token);
+		pairingReq = req;
+		// Compute and display fingerprint from our own public key
+		fingerprint = await pairingFingerprint(req.publicKeyBytes);
+		stage = "fingerprint";
+		startPolling(token);
+	} catch (err: unknown) {
+		const e = err as { code?: string; message?: string };
+		if (e.code === "pairing_claimed") {
+			errorMsg = "This pairing request was already accepted by another device.";
+		} else if (e.code === "pairing_not_found") {
+			errorMsg = "Pairing expired. Please start over on your other device.";
+		} else {
+			errorMsg = e.message ?? "Failed to start pairing.";
+		}
+		stage = "error";
+	}
+}
+
+function startPolling(token: string) {
+	stopPolling();
+	pollTimer = setInterval(async () => {
 		try {
-			const req = await requestPairing(token);
-			pairingReq = req;
-			// Compute and display fingerprint from our own public key
-			fingerprint = await pairingFingerprint(req.publicKeyBytes);
-			stage = 'fingerprint';
-			startPolling(token);
-		} catch (err: unknown) {
-			const e = err as { code?: string; message?: string };
-			if (e.code === 'pairing_claimed') {
-				errorMsg = 'This pairing request was already accepted by another device.';
-			} else if (e.code === 'pairing_not_found') {
-				errorMsg = 'Pairing expired. Please start over on your other device.';
-			} else {
-				errorMsg = e.message ?? 'Failed to start pairing.';
+			const status = await pollPairing(token);
+			if (status.state === "expired") {
+				stopPolling();
+				errorMsg = "Pairing expired. Please start over on your other device.";
+				stage = "error";
+				return;
 			}
-			stage = 'error';
-		}
-	}
-
-	function startPolling(token: string) {
-		stopPolling();
-		pollTimer = setInterval(async () => {
-			try {
-				const status = await pollPairing(token);
-				if (status.state === 'expired') {
-					stopPolling();
-					errorMsg = 'Pairing expired. Please start over on your other device.';
-					stage = 'error';
-					return;
+			if (
+				status.state === "fulfilled" &&
+				status.wrappedMasterKey &&
+				pairingReq
+			) {
+				stopPolling();
+				stage = "registering";
+				try {
+					const { masterKey, accountId, credentialId } = await completePairing(
+						token,
+						pairingReq,
+						status.wrappedMasterKey,
+					);
+					auth.setSession(masterKey, accountId, credentialId);
+					stage = "done";
+					setTimeout(() => goto("/dashboard"), 800);
+				} catch (err: unknown) {
+					errorMsg =
+						err instanceof Error ? err.message : "Failed to complete pairing.";
+					stage = "error";
 				}
-				if (status.state === 'fulfilled' && status.wrappedMasterKey && pairingReq) {
-					stopPolling();
-					stage = 'registering';
-					try {
-						const { masterKey, accountId, credentialId } = await completePairing(
-							token,
-							pairingReq,
-							status.wrappedMasterKey
-						);
-						auth.setSession(masterKey, accountId, credentialId);
-						stage = 'done';
-						setTimeout(() => goto('/dashboard'), 800);
-					} catch (err: unknown) {
-						errorMsg = err instanceof Error ? err.message : 'Failed to complete pairing.';
-						stage = 'error';
-					}
-				}
-			} catch {
-				// transient network errors — keep polling
 			}
-		}, 2000);
-	}
-
-	async function handleCodeSubmit() {
-		const code = codeInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-		if (code.length < 6) {
-			errorMsg = 'Please enter the full code shown on your other device.';
-			return;
+		} catch {
+			// transient network errors — keep polling
 		}
-		errorMsg = '';
-		try {
-			const token = await lookupPairingByCode(code);
-			pairingToken = token;
-			await startRequest(token);
-		} catch (err: unknown) {
-			errorMsg = err instanceof Error ? err.message : 'Code not found or expired.';
-			stage = 'error';
-		}
-	}
+	}, 2000);
+}
 
-	function reset() {
-		stopPolling();
-		stage = 'entry';
-		errorMsg = '';
-		codeInput = '';
-		pairingReq = null;
-		pairingToken = '';
-		fingerprint = '';
+async function handleCodeSubmit() {
+	const code = codeInput
+		.trim()
+		.toUpperCase()
+		.replace(/[^A-Z0-9]/g, "");
+	if (code.length < 6) {
+		errorMsg = "Please enter the full code shown on your other device.";
+		return;
 	}
+	errorMsg = "";
+	try {
+		const token = await lookupPairingByCode(code);
+		pairingToken = token;
+		await startRequest(token);
+	} catch (err: unknown) {
+		errorMsg =
+			err instanceof Error ? err.message : "Code not found or expired.";
+		stage = "error";
+	}
+}
+
+function reset() {
+	stopPolling();
+	stage = "entry";
+	errorMsg = "";
+	codeInput = "";
+	pairingReq = null;
+	pairingToken = "";
+	fingerprint = "";
+}
 </script>
 
 <svelte:head>

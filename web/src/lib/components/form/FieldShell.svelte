@@ -1,15 +1,15 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+import type { Snippet } from "svelte";
 
-	interface Props {
-		label: string;
-		required?: boolean;
-		helpText?: string;
-		error?: string | null;
-		children: Snippet;
-	}
+interface Props {
+	label: string;
+	required?: boolean;
+	helpText?: string;
+	error?: string | null;
+	children: Snippet;
+}
 
-	const { label, required, helpText, error, children }: Props = $props();
+const { label, required, helpText, error, children }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-1.5 w-full">

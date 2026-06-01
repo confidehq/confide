@@ -1,33 +1,42 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+import type { Snippet } from "svelte";
 
-	interface Props {
-		trigger: Snippet<[{ onclick: (e: MouseEvent) => void; 'aria-expanded': boolean; 'aria-haspopup': true }]>;
-		children: Snippet<[{ close: () => void }]>;
-		align?: 'start' | 'end';
-	}
+interface Props {
+	trigger: Snippet<
+		[
+			{
+				onclick: (e: MouseEvent) => void;
+				"aria-expanded": boolean;
+				"aria-haspopup": true;
+			},
+		]
+	>;
+	children: Snippet<[{ close: () => void }]>;
+	align?: "start" | "end";
+}
 
-	let { trigger, children, align = 'end' }: Props = $props();
+let { trigger, children, align = "end" }: Props = $props();
 
-	let open = $state(false);
-	let pos = $state<{ top: number; left: number } | null>(null);
+let open = $state(false);
+let pos = $state<{ top: number; left: number } | null>(null);
 
-	function toggle(e: MouseEvent) {
-		if (open) {
-			close();
-		} else {
-			const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-			pos = align === 'end'
+function toggle(e: MouseEvent) {
+	if (open) {
+		close();
+	} else {
+		const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+		pos =
+			align === "end"
 				? { top: rect.bottom + 6, left: rect.right }
 				: { top: rect.bottom + 6, left: rect.left };
-			open = true;
-		}
+		open = true;
 	}
+}
 
-	function close() {
-		open = false;
-		pos = null;
-	}
+function close() {
+	open = false;
+	pos = null;
+}
 </script>
 
 {@render trigger({ onclick: toggle, 'aria-expanded': open, 'aria-haspopup': true })}

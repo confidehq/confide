@@ -92,19 +92,19 @@ export interface PairingByCodeResponse {
 
 export interface PairingRequestResponse {
 	options: unknown; // PublicKeyCredentialCreationOptionsJSON
-	prfSalt: string;  // base64 standard
+	prfSalt: string; // base64 standard
 }
 
 export interface PairingPollResponse {
-	state: 'created' | 'requested' | 'fulfilled' | 'completed' | 'expired';
+	state: "created" | "requested" | "fulfilled" | "completed" | "expired";
 	newDevicePublicKey?: string; // base64 standard — present when state = requested or fulfilled
-	wrappedMasterKey?: string;   // base64 standard — present when state = fulfilled
+	wrappedMasterKey?: string; // base64 standard — present when state = fulfilled
 }
 
 export interface PairingCompleteResponse {
 	accountId: string;
 	sessionToken: string;
 	sessionId: string;
-	credentialId: string;     // base64 standard
+	credentialId: string; // base64 standard
 	wrappedMasterKey: string; // base64 standard
 }

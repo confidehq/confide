@@ -1,151 +1,171 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { listForms, getForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, createWorkspace, deleteWorkspace, leaveWorkspace, type Workspace, WorkspaceError } from '$lib/workspaces';
-	import { ArrowRight, Building2, MoreHorizontal, Trash2, LogOut, X } from '@lucide/svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+import {
+	ArrowRight,
+	Building2,
+	LogOut,
+	MoreHorizontal,
+	Trash2,
+	X,
+} from "@lucide/svelte";
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import StatusBadge from "$lib/components/StatusBadge.svelte";
+import { type FormSummary, getForm, listForms } from "$lib/forms";
+import { auth } from "$lib/stores/auth.svelte";
+import {
+	createWorkspace,
+	deleteWorkspace,
+	leaveWorkspace,
+	listWorkspaces,
+	type Workspace,
+	WorkspaceError,
+} from "$lib/workspaces";
 
-	let workspaces = $state<Workspace[]>([]);
-	let loading = $state(true);
-	let error = $state('');
+let workspaces = $state<Workspace[]>([]);
+let loading = $state(true);
+let error = $state("");
 
-	// forms and names keyed by workspace ID
-	let workspaceForms = $state<Map<string, FormSummary[]>>(new Map());
-	let workspaceNames = $state<Map<string, Map<string, string>>>(new Map());
+// forms and names keyed by workspace ID
+let workspaceForms = $state<Map<string, FormSummary[]>>(new Map());
+let workspaceNames = $state<Map<string, Map<string, string>>>(new Map());
 
-	// New workspace form
-	let showCreate = $state(false);
-	let newName = $state('');
-	let creating = $state(false);
-	let createError = $state('');
+// New workspace form
+let showCreate = $state(false);
+let newName = $state("");
+let creating = $state(false);
+let createError = $state("");
 
-	// Dropdown menu
-	let openMenuId = $state<string | null>(null);
+// Dropdown menu
+let openMenuId = $state<string | null>(null);
 
-	// Delete confirm
-	let deleteTarget = $state<Workspace | null>(null);
-	let deleting = $state(false);
-	let deleteError = $state('');
+// Delete confirm
+let deleteTarget = $state<Workspace | null>(null);
+let deleting = $state(false);
+let deleteError = $state("");
 
-	// Leave confirm
-	let leaveTarget = $state<Workspace | null>(null);
-	let leaving = $state(false);
-	let leaveError = $state('');
+// Leave confirm
+let leaveTarget = $state<Workspace | null>(null);
+let leaving = $state(false);
+let leaveError = $state("");
 
-	function formsFor(wsId: string): FormSummary[] {
-		return workspaceForms.get(wsId) ?? [];
+function formsFor(wsId: string): FormSummary[] {
+	return workspaceForms.get(wsId) ?? [];
+}
+
+function formName(wsId: string, formId: string): string {
+	return workspaceNames.get(wsId)?.get(formId) ?? "—";
+}
+
+function planLabel(ws: Workspace): string {
+	if (ws.plan === "pro") {
+		if (ws.planStatus === "past_due") return "Pro · past due";
+		if (ws.planStatus === "canceled") return "Pro · canceled";
+		if (ws.planStatus === "canceling") return "Pro · cancels at period end";
+		return "Pro";
 	}
+	return "Free";
+}
 
-	function formName(wsId: string, formId: string): string {
-		return workspaceNames.get(wsId)?.get(formId) ?? '—';
+// ─── New workspace ────────────────────────────────────────────────────────
+
+async function handleCreate() {
+	const name = newName.trim();
+	if (!name) return;
+	if (!auth.masterKey) {
+		createError = "Session expired — please re-authenticate.";
+		return;
 	}
-
-	function planLabel(ws: Workspace): string {
-		if (ws.plan === 'pro') {
-			if (ws.planStatus === 'past_due') return 'Pro · past due';
-			if (ws.planStatus === 'canceled') return 'Pro · canceled';
-			if (ws.planStatus === 'canceling') return 'Pro · cancels at period end';
-			return 'Pro';
-		}
-		return 'Free';
-	}
-
-	// ─── New workspace ────────────────────────────────────────────────────────
-
-	async function handleCreate() {
-		const name = newName.trim();
-		if (!name) return;
-		if (!auth.masterKey) { createError = 'Session expired — please re-authenticate.'; return; }
-		creating = true;
-		createError = '';
-		try {
-			const ws = await createWorkspace(name, auth.masterKey);
-			workspaces = [...workspaces, ws];
-			loadWorkspaceForms(ws); // non-blocking — populates empty list immediately
-			newName = '';
-			showCreate = false;
-		} catch (e) {
-			if (e instanceof WorkspaceError && e.code === 'plan_limit') {
-				createError = 'Free plan allows only one workspace. Upgrade to create more.';
-			} else {
-				createError = e instanceof Error ? e.message : 'Failed to create workspace.';
-			}
-		} finally {
-			creating = false;
-		}
-	}
-
-	function cancelCreate() {
+	creating = true;
+	createError = "";
+	try {
+		const ws = await createWorkspace(name, auth.masterKey);
+		workspaces = [...workspaces, ws];
+		loadWorkspaceForms(ws); // non-blocking — populates empty list immediately
+		newName = "";
 		showCreate = false;
-		newName = '';
-		createError = '';
-	}
-
-	// ─── Delete workspace ─────────────────────────────────────────────────────
-
-	async function handleDelete() {
-		if (!deleteTarget) return;
-		deleting = true;
-		deleteError = '';
-		try {
-			await deleteWorkspace(deleteTarget.id);
-			workspaces = workspaces.filter(w => w.id !== deleteTarget!.id);
-			deleteTarget = null;
-		} catch (e) {
-			deleteError = e instanceof Error ? e.message : 'Failed to delete workspace.';
-		} finally {
-			deleting = false;
+	} catch (e) {
+		if (e instanceof WorkspaceError && e.code === "plan_limit") {
+			createError =
+				"Free plan allows only one workspace. Upgrade to create more.";
+		} else {
+			createError =
+				e instanceof Error ? e.message : "Failed to create workspace.";
 		}
+	} finally {
+		creating = false;
 	}
+}
 
-	async function handleLeave() {
-		if (!leaveTarget || !auth.accountId) return;
-		leaving = true;
-		leaveError = '';
-		try {
-			await leaveWorkspace(leaveTarget.id, auth.accountId);
-			workspaces = workspaces.filter(w => w.id !== leaveTarget!.id);
-			leaveTarget = null;
-		} catch (e) {
-			leaveError = e instanceof Error ? e.message : 'Failed to leave workspace.';
-		} finally {
-			leaving = false;
-		}
+function cancelCreate() {
+	showCreate = false;
+	newName = "";
+	createError = "";
+}
+
+// ─── Delete workspace ─────────────────────────────────────────────────────
+
+async function handleDelete() {
+	if (!deleteTarget) return;
+	deleting = true;
+	deleteError = "";
+	try {
+		await deleteWorkspace(deleteTarget.id);
+		workspaces = workspaces.filter((w) => w.id !== deleteTarget!.id);
+		deleteTarget = null;
+	} catch (e) {
+		deleteError =
+			e instanceof Error ? e.message : "Failed to delete workspace.";
+	} finally {
+		deleting = false;
 	}
+}
 
-	async function loadWorkspaceForms(ws: Workspace) {
-		const forms = await listForms(ws.id);
-		workspaceForms = new Map(workspaceForms).set(ws.id, forms);
-
-		if (auth.masterKey && forms.length > 0) {
-			const results = await Promise.allSettled(
-				forms.map(f => getForm(auth.masterKey!, f.formId))
-			);
-			const names = new Map<string, string>();
-			results.forEach((r, i) => {
-				if (r.status === 'fulfilled') {
-					const { schema } = r.value;
-					const name = schema.translations[schema.defaultLocale]?.formTitle;
-					if (name) names.set(forms[i].formId, name);
-				}
-			});
-			workspaceNames = new Map(workspaceNames).set(ws.id, names);
-		}
+async function handleLeave() {
+	if (!leaveTarget || !auth.accountId) return;
+	leaving = true;
+	leaveError = "";
+	try {
+		await leaveWorkspace(leaveTarget.id, auth.accountId);
+		workspaces = workspaces.filter((w) => w.id !== leaveTarget!.id);
+		leaveTarget = null;
+	} catch (e) {
+		leaveError = e instanceof Error ? e.message : "Failed to leave workspace.";
+	} finally {
+		leaving = false;
 	}
+}
 
-	onMount(async () => {
-		try {
-			workspaces = await listWorkspaces();
-			await Promise.all(workspaces.map(loadWorkspaceForms));
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load workspaces';
-		} finally {
-			loading = false;
-		}
-	});
+async function loadWorkspaceForms(ws: Workspace) {
+	const forms = await listForms(ws.id);
+	workspaceForms = new Map(workspaceForms).set(ws.id, forms);
+
+	if (auth.masterKey && forms.length > 0) {
+		const results = await Promise.allSettled(
+			forms.map((f) => getForm(auth.masterKey!, f.formId)),
+		);
+		const names = new Map<string, string>();
+		results.forEach((r, i) => {
+			if (r.status === "fulfilled") {
+				const { schema } = r.value;
+				const name = schema.translations[schema.defaultLocale]?.formTitle;
+				if (name) names.set(forms[i].formId, name);
+			}
+		});
+		workspaceNames = new Map(workspaceNames).set(ws.id, names);
+	}
+}
+
+onMount(async () => {
+	try {
+		workspaces = await listWorkspaces();
+		await Promise.all(workspaces.map(loadWorkspaceForms));
+	} catch (e) {
+		error = e instanceof Error ? e.message : "Failed to load workspaces";
+	} finally {
+		loading = false;
+	}
+});
 </script>
 
 <svelte:head>

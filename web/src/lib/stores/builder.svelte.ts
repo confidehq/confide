@@ -5,13 +5,19 @@
  * Pass the returned store object into child components via setContext/getContext.
  */
 
-import { updateFormSchema, updateFormExpiration, getForm } from '$lib/forms';
-import type { FormRecord } from '$lib/forms';
-import type { BuilderSchema, BuilderField, FieldType, FieldConfig, TranslationMap } from '$lib/types/builder';
-import { getOrderedFields } from '$lib/types/builder';
-import { formsStore } from '$lib/stores/forms.svelte';
+import type { FormRecord } from "$lib/forms";
+import { getForm, updateFormExpiration, updateFormSchema } from "$lib/forms";
+import { formsStore } from "$lib/stores/forms.svelte";
+import type {
+	BuilderField,
+	BuilderSchema,
+	FieldConfig,
+	FieldType,
+	TranslationMap,
+} from "$lib/types/builder";
+import { getOrderedFields } from "$lib/types/builder";
 
-export type BuilderMode = 'edit' | 'preview';
+export type BuilderMode = "edit" | "preview";
 
 export interface BuilderStore {
 	// State (readable)
@@ -51,16 +57,21 @@ export interface BuilderStore {
 	updateTranslation(fieldId: string | null, key: string, value: string): void;
 	addLocale(locale: string): void;
 	removeLocale(locale: string): void;
-	setLayout(layout: BuilderSchema['layout']): void;
+	setLayout(layout: BuilderSchema["layout"]): void;
 	setActiveLocale(locale: string): void;
 	setSelectedField(id: string | null): void;
 	setSubmitButtonSelected(v: boolean): void;
 	setMode(mode: BuilderMode): void;
 	setConvoAllowEdit(allow: boolean): void;
 	setShowWatermark(show: boolean): void;
-	setSubmitButtonIcon(icon: BuilderSchema['submitButtonIcon']): void;
+	setSubmitButtonIcon(icon: BuilderSchema["submitButtonIcon"]): void;
 	setLegalText(text: string | undefined): void;
-	setExpiration(expiresAt: string | null, responseLimit: number | null, responseTtlDays: number | null, burnAfterReading: boolean): Promise<void>;
+	setExpiration(
+		expiresAt: string | null,
+		responseLimit: number | null,
+		responseTtlDays: number | null,
+		burnAfterReading: boolean,
+	): Promise<void>;
 	load(): Promise<FormRecord>;
 	save(): Promise<void>;
 	flushSave(): Promise<void>;
@@ -69,62 +80,65 @@ export interface BuilderStore {
 export function emptySchema(): BuilderSchema {
 	return {
 		version: 1,
-		defaultLocale: 'en',
-		locales: ['en'],
-		layout: 'scroll',
+		defaultLocale: "en",
+		locales: ["en"],
+		layout: "scroll",
 		fields: [],
 		translations: {
 			en: {
-				formTitle: '',
-				formDescription: '',
-				fields: {}
-			}
-		}
+				formTitle: "",
+				formDescription: "",
+				fields: {},
+			},
+		},
 	};
 }
 
 function defaultConfigForType(type: FieldType): FieldConfig {
 	switch (type) {
-		case 'short_text':
+		case "short_text":
 			return {};
-		case 'long_text':
+		case "long_text":
 			return { minRows: 3 };
-		case 'multiple_choice':
+		case "multiple_choice":
 			return { options: [{ id: crypto.randomUUID(), order: 0 }] };
-		case 'checkboxes':
+		case "checkboxes":
 			return { options: [{ id: crypto.randomUUID(), order: 0 }] };
-		case 'dropdown':
+		case "dropdown":
 			return { options: [{ id: crypto.randomUUID(), order: 0 }] };
-		case 'date_time':
-			return { mode: 'date' };
-		case 'rating':
-			return { scale: 5, shape: 'star' };
-		case 'section_break':
+		case "date_time":
+			return { mode: "date" };
+		case "rating":
+			return { scale: 5, shape: "star" };
+		case "section_break":
 			return {};
-		case 'heading':
+		case "heading":
 			return { level: 2 };
-		case 'accordion':
+		case "accordion":
 			return {};
-		case 'accent':
-			return { variant: 'note' };
+		case "accent":
+			return { variant: "note" };
 	}
 }
 
-export function createBuilderStore(masterKey: CryptoKey, formId: string): BuilderStore {
+export function createBuilderStore(
+	masterKey: CryptoKey,
+	formId: string,
+): BuilderStore {
 	let schema = $state<BuilderSchema>(emptySchema());
 	let saving = $state(false);
 	let lastSaved = $state<Date | null>(null);
 	let dirty = $state(false);
-	let activeLocale = $state('en');
+	let activeLocale = $state("en");
 	let selectedFieldId = $state<string | null>(null);
 	let submitButtonSelected = $state(false);
-	let mode = $state<BuilderMode>('edit');
+	let mode = $state<BuilderMode>("edit");
 	let expiresAt = $state<string | null>(null);
 	let responseLimit = $state<number | null>(null);
 	let responseTtlDays = $state<number | null>(null);
 	let burnAfterReading = $state(false);
 	let showFormSettings = $state(false);
-	let formStatus = $state('draft');
+	let formStatus = $state("draft");
 	let hasUnpublishedChanges = $state(true);
 
 	// Debounce timer handle
@@ -160,11 +174,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 				translations: {
 					...schema.translations,
 					[locale]: {
-						formTitle: '',
-						formDescription: '',
-						fields: {}
-					}
-				}
+						formTitle: "",
+						formDescription: "",
+						fields: {},
+					},
+				},
 			};
 		}
 	}
@@ -181,10 +195,10 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 						...t,
 						fields: {
 							...t.fields,
-							[fieldId]: { label: '' }
-						}
-					}
-				}
+							[fieldId]: { label: "" },
+						},
+					},
+				},
 			};
 		}
 	}
@@ -197,21 +211,25 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			type,
 			required: false,
 			order,
-			config: defaultConfigForType(type)
+			config: defaultConfigForType(type),
 		};
 
 		// Ensure translation slots exist for all locales
 		const updatedTranslations = { ...schema.translations };
 		for (const locale of schema.locales) {
 			if (!updatedTranslations[locale]) {
-				updatedTranslations[locale] = { formTitle: '', formDescription: '', fields: {} };
+				updatedTranslations[locale] = {
+					formTitle: "",
+					formDescription: "",
+					fields: {},
+				};
 			}
 			updatedTranslations[locale] = {
 				...updatedTranslations[locale],
 				fields: {
 					...updatedTranslations[locale].fields,
-					[id]: { label: '' }
-				}
+					[id]: { label: "" },
+				},
 			};
 		}
 
@@ -227,7 +245,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			...schema,
 			fields: [...schema.fields, newField],
 			translations: updatedTranslations,
-			...(schema.fieldOrders ? { fieldOrders: updatedFieldOrders } : {})
+			...(schema.fieldOrders ? { fieldOrders: updatedFieldOrders } : {}),
 		};
 		markDirty();
 	}
@@ -240,17 +258,21 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			type,
 			required: false,
 			order: schema.fields.length,
-			config: defaultConfigForType(type)
+			config: defaultConfigForType(type),
 		};
 
 		const updatedTranslations = { ...schema.translations };
 		for (const locale of schema.locales) {
 			if (!updatedTranslations[locale]) {
-				updatedTranslations[locale] = { formTitle: '', formDescription: '', fields: {} };
+				updatedTranslations[locale] = {
+					formTitle: "",
+					formDescription: "",
+					fields: {},
+				};
 			}
 			updatedTranslations[locale] = {
 				...updatedTranslations[locale],
-				fields: { ...updatedTranslations[locale].fields, [id]: { label: '' } }
+				fields: { ...updatedTranslations[locale].fields, [id]: { label: "" } },
 			};
 		}
 
@@ -262,7 +284,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			if (locale === activeLocale) {
 				updatedFieldOrders[locale] = baseIds;
 			} else {
-				const existing = schema.fieldOrders?.[locale] ?? getOrderedFields(schema, locale).map((f) => f.id);
+				const existing =
+					schema.fieldOrders?.[locale] ??
+					getOrderedFields(schema, locale).map((f) => f.id);
 				updatedFieldOrders[locale] = [...existing, id];
 			}
 		}
@@ -271,24 +295,28 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			...schema,
 			fields: [...schema.fields, newField],
 			translations: updatedTranslations,
-			fieldOrders: updatedFieldOrders
+			fieldOrders: updatedFieldOrders,
 		};
 		markDirty();
 	}
 
 	function removeField(id: string): void {
-		const updatedFieldOrders: Record<string, string[]> | undefined = schema.fieldOrders
-			? Object.fromEntries(
-					Object.entries(schema.fieldOrders).map(([loc, ids]) => [loc, ids.filter((fid) => fid !== id)])
-				)
-			: undefined;
+		const updatedFieldOrders: Record<string, string[]> | undefined =
+			schema.fieldOrders
+				? Object.fromEntries(
+						Object.entries(schema.fieldOrders).map(([loc, ids]) => [
+							loc,
+							ids.filter((fid) => fid !== id),
+						]),
+					)
+				: undefined;
 
 		schema = {
 			...schema,
 			fields: schema.fields
 				.filter((f) => f.id !== id)
 				.map((f, i) => ({ ...f, order: i })),
-			...(updatedFieldOrders ? { fieldOrders: updatedFieldOrders } : {})
+			...(updatedFieldOrders ? { fieldOrders: updatedFieldOrders } : {}),
 		};
 		if (selectedFieldId === id) selectedFieldId = null;
 		markDirty();
@@ -306,7 +334,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			...original,
 			id: newId,
 			order: schema.fields.length,
-			config: JSON.parse(JSON.stringify(original.config))
+			config: JSON.parse(JSON.stringify(original.config)),
 		};
 
 		const updatedTranslations = { ...schema.translations };
@@ -316,8 +344,10 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 				...updatedTranslations[locale],
 				fields: {
 					...updatedTranslations[locale]?.fields,
-					[newId]: fieldTranslation ? JSON.parse(JSON.stringify(fieldTranslation)) : { label: '' }
-				}
+					[newId]: fieldTranslation
+						? JSON.parse(JSON.stringify(fieldTranslation))
+						: { label: "" },
+				},
 			};
 		}
 
@@ -329,7 +359,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			if (locale === activeLocale) {
 				updatedFieldOrders[locale] = baseIds;
 			} else {
-				const existing = schema.fieldOrders?.[locale] ?? getOrderedFields(schema, locale).map((f) => f.id);
+				const existing =
+					schema.fieldOrders?.[locale] ??
+					getOrderedFields(schema, locale).map((f) => f.id);
 				updatedFieldOrders[locale] = [...existing, newId];
 			}
 		}
@@ -338,7 +370,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			...schema,
 			fields: [...schema.fields, newField],
 			translations: updatedTranslations,
-			fieldOrders: updatedFieldOrders
+			fieldOrders: updatedFieldOrders,
 		};
 		markDirty();
 	}
@@ -349,12 +381,12 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			// Update the canonical order on each field AND sync the default-locale entry in fieldOrders
 			const updatedFieldOrders: Record<string, string[]> = {
 				...(schema.fieldOrders ?? {}),
-				[schema.defaultLocale]: newIds
+				[schema.defaultLocale]: newIds,
 			};
 			schema = {
 				...schema,
 				fields: newOrder.map((f, i) => ({ ...f, order: i })),
-				fieldOrders: updatedFieldOrders
+				fieldOrders: updatedFieldOrders,
 			};
 		} else {
 			// Only write a locale-specific order; leave field.order (default order) untouched
@@ -362,8 +394,8 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 				...schema,
 				fieldOrders: {
 					...(schema.fieldOrders ?? {}),
-					[activeLocale]: newIds
-				}
+					[activeLocale]: newIds,
+				},
 			};
 		}
 		markDirty();
@@ -372,7 +404,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	function updateField(id: string, patch: Partial<BuilderField>): void {
 		schema = {
 			...schema,
-			fields: schema.fields.map((f) => (f.id === id ? { ...f, ...patch } : f))
+			fields: schema.fields.map((f) => (f.id === id ? { ...f, ...patch } : f)),
 		};
 		markDirty();
 	}
@@ -381,13 +413,17 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		schema = {
 			...schema,
 			fields: schema.fields.map((f) =>
-				f.id === id ? { ...f, config: { ...f.config, ...patch } } : f
-			)
+				f.id === id ? { ...f, config: { ...f.config, ...patch } } : f,
+			),
 		};
 		markDirty();
 	}
 
-	function updateTranslation(fieldId: string | null, key: string, value: string): void {
+	function updateTranslation(
+		fieldId: string | null,
+		key: string,
+		value: string,
+	): void {
 		const locale = activeLocale;
 		ensureLocaleTranslation(locale);
 		const t = schema.translations[locale];
@@ -399,9 +435,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 					...schema.translations,
 					[locale]: {
 						...t,
-						[key]: value
-					}
-				}
+						[key]: value,
+					},
+				},
 			};
 		} else {
 			// Field-level translation
@@ -417,11 +453,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 							...updatedT.fields,
 							[fieldId]: {
 								...updatedT.fields[fieldId],
-								[key]: value
-							}
-						}
-					}
-				}
+								[key]: value,
+							},
+						},
+					},
+				},
 			};
 		}
 		markDirty();
@@ -429,7 +465,9 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function addLocale(locale: string): void {
 		if (schema.locales.includes(locale)) return;
-		const defaultOrder = getOrderedFields(schema, schema.defaultLocale).map((f) => f.id);
+		const defaultOrder = getOrderedFields(schema, schema.defaultLocale).map(
+			(f) => f.id,
+		);
 		const defaultTranslation = schema.translations[schema.defaultLocale];
 		schema = {
 			...schema,
@@ -439,14 +477,17 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 				[locale]: {
 					...defaultTranslation,
 					fields: Object.fromEntries(
-						Object.entries(defaultTranslation.fields).map(([id, ft]) => [id, { ...ft }])
-					)
-				}
+						Object.entries(defaultTranslation.fields).map(([id, ft]) => [
+							id,
+							{ ...ft },
+						]),
+					),
+				},
 			},
 			fieldOrders: {
 				...(schema.fieldOrders ?? { [schema.defaultLocale]: defaultOrder }),
-				[locale]: [...defaultOrder]
-			}
+				[locale]: [...defaultOrder],
+			},
 		};
 		markDirty();
 	}
@@ -454,18 +495,20 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	function removeLocale(locale: string): void {
 		if (locale === schema.defaultLocale) return;
 		const { [locale]: _removed, ...remaining } = schema.translations;
-		const { [locale]: _removedOrder, ...remainingOrders } = schema.fieldOrders ?? {};
+		const { [locale]: _removedOrder, ...remainingOrders } =
+			schema.fieldOrders ?? {};
 		schema = {
 			...schema,
 			locales: schema.locales.filter((l) => l !== locale),
 			translations: remaining,
-			fieldOrders: Object.keys(remainingOrders).length > 0 ? remainingOrders : undefined
+			fieldOrders:
+				Object.keys(remainingOrders).length > 0 ? remainingOrders : undefined,
 		};
 		if (activeLocale === locale) activeLocale = schema.defaultLocale;
 		markDirty();
 	}
 
-	function setLayout(layout: BuilderSchema['layout']): void {
+	function setLayout(layout: BuilderSchema["layout"]): void {
 		schema = { ...schema, layout };
 		markDirty();
 	}
@@ -476,17 +519,26 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function setSelectedField(id: string | null): void {
 		selectedFieldId = id;
-		if (id !== null) { showFormSettings = false; submitButtonSelected = false; }
+		if (id !== null) {
+			showFormSettings = false;
+			submitButtonSelected = false;
+		}
 	}
 
 	function setSubmitButtonSelected(v: boolean): void {
 		submitButtonSelected = v;
-		if (v) { selectedFieldId = null; showFormSettings = false; }
+		if (v) {
+			selectedFieldId = null;
+			showFormSettings = false;
+		}
 	}
 
 	function setShowFormSettings(show: boolean): void {
 		showFormSettings = show;
-		if (show) { selectedFieldId = null; submitButtonSelected = false; }
+		if (show) {
+			selectedFieldId = null;
+			submitButtonSelected = false;
+		}
 	}
 
 	function setMode(m: BuilderMode): void {
@@ -503,7 +555,7 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markDirty();
 	}
 
-	function setSubmitButtonIcon(icon: BuilderSchema['submitButtonIcon']): void {
+	function setSubmitButtonIcon(icon: BuilderSchema["submitButtonIcon"]): void {
 		schema = { ...schema, submitButtonIcon: icon };
 		markDirty();
 	}
@@ -513,8 +565,19 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markDirty();
 	}
 
-	async function setExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newResponseTtlDays: number | null, newBurnAfterReading: boolean): Promise<void> {
-		await updateFormExpiration(formId, newExpiresAt, newResponseLimit, newResponseTtlDays, newBurnAfterReading);
+	async function setExpiration(
+		newExpiresAt: string | null,
+		newResponseLimit: number | null,
+		newResponseTtlDays: number | null,
+		newBurnAfterReading: boolean,
+	): Promise<void> {
+		await updateFormExpiration(
+			formId,
+			newExpiresAt,
+			newResponseLimit,
+			newResponseTtlDays,
+			newBurnAfterReading,
+		);
 		expiresAt = newExpiresAt;
 		responseLimit = newResponseLimit;
 		responseTtlDays = newResponseTtlDays;
@@ -522,7 +585,11 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 	}
 
 	async function load(): Promise<FormRecord> {
-		const { schema: loaded, record, formKey } = await getForm(masterKey, formId);
+		const {
+			schema: loaded,
+			record,
+			formKey,
+		} = await getForm(masterKey, formId);
 		resolvedFormKey = formKey;
 		const s = loaded as BuilderSchema;
 		schema = s;
@@ -549,15 +616,20 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 
 	function markPublished(): void {
 		hasUnpublishedChanges = false;
-		formStatus = 'open';
-		formsStore.updateStatus(formId, 'open');
+		formStatus = "open";
+		formsStore.updateStatus(formId, "open");
 	}
 
 	async function save(): Promise<void> {
 		if (saving) return;
 		saving = true;
 		try {
-			await updateFormSchema(masterKey, formId, schema, resolvedFormKey ?? undefined);
+			await updateFormSchema(
+				masterKey,
+				formId,
+				schema,
+				resolvedFormKey ?? undefined,
+			);
 			lastSaved = new Date();
 			dirty = false;
 			hasUnpublishedChanges = true;
@@ -634,7 +706,10 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 			return schema.fields.find((f) => f.id === selectedFieldId) ?? null;
 		},
 		get activeTranslation() {
-			return schema.translations[activeLocale] ?? schema.translations[schema.defaultLocale];
+			return (
+				schema.translations[activeLocale] ??
+				schema.translations[schema.defaultLocale]
+			);
 		},
 		addField,
 		addFieldAt,
@@ -661,6 +736,6 @@ export function createBuilderStore(masterKey: CryptoKey, formId: string): Builde
 		markPublished,
 		load,
 		save,
-		flushSave
+		flushSave,
 	};
 }

@@ -5,13 +5,13 @@
  * accountId and credentialId persist in localStorage.
  */
 
-import { browser } from '$app/environment';
-import { formsStore } from './forms.svelte';
-import { teamStore } from './team.svelte';
-import { workspacesStore } from './workspaces.svelte';
+import { browser } from "$app/environment";
+import { formsStore } from "./forms.svelte";
+import { teamStore } from "./team.svelte";
+import { workspacesStore } from "./workspaces.svelte";
 
-const ACCOUNT_ID_KEY = 'confide.accountId';
-const CREDENTIAL_ID_KEY = 'confide.credentialId';
+const ACCOUNT_ID_KEY = "confide.accountId";
+const CREDENTIAL_ID_KEY = "confide.credentialId";
 
 function readStorage(key: string): string | null {
 	if (!browser) return null;
@@ -80,5 +80,5 @@ export const auth = {
 		formsStore.clear();
 		teamStore.clear();
 		workspacesStore.clear();
-	}
+	},
 };

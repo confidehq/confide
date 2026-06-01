@@ -1,64 +1,71 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { recover, rekey } from '$lib/auth';
-	import faviconSvg from '$lib/assets/favicon.svg?raw';
+import { goto } from "$app/navigation";
+import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { recover, rekey } from "$lib/auth";
+import { auth } from "$lib/stores/auth.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
 
-	type Step = 'enter-code' | 'rekey' | 'success';
+type Step = "enter-code" | "rekey" | "success";
 
-	let step = $state<Step>('enter-code');
-	let error = $state<string | null>(null);
-	let loading = $state(false);
+let step = $state<Step>("enter-code");
+let error = $state<string | null>(null);
+let loading = $state(false);
 
-	let username = $state('');
-	let recoveryCode = $state('');
+let username = $state("");
+let recoveryCode = $state("");
 
-	// Held between steps
-	let recoveredMasterKey = $state<CryptoKey | null>(null);
-	let recoveredAccountId = $state('');
-	let rekeyToken = $state('');
+// Held between steps
+let recoveredMasterKey = $state<CryptoKey | null>(null);
+let recoveredAccountId = $state("");
+let rekeyToken = $state("");
 
-	async function handleRecover() {
-		error = null;
-		if (!username.trim()) {
-			error = 'Username is required.';
-			return;
-		}
-		if (!recoveryCode.trim()) {
-			error = 'Recovery code is required.';
-			return;
-		}
-		loading = true;
-		try {
-			const result = await recover(username.trim(), recoveryCode.trim());
-			recoveredMasterKey = result.masterKey;
-			recoveredAccountId = result.accountId;
-			rekeyToken = result.rekeyToken;
-			step = 'rekey';
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Recovery failed. Check your username and code.';
-		} finally {
-			loading = false;
-		}
+async function handleRecover() {
+	error = null;
+	if (!username.trim()) {
+		error = "Username is required.";
+		return;
 	}
-
-	async function handleRekey() {
-		if (!recoveredMasterKey) return;
-		error = null;
-		loading = true;
-		try {
-			const result = await rekey(recoveredMasterKey, rekeyToken);
-			workspacesStore.clear();
-			auth.setSession(recoveredMasterKey, recoveredAccountId, result.credentialId);
-			step = 'success';
-			setTimeout(() => goto('/dashboard'), 1500);
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Rekey failed.';
-		} finally {
-			loading = false;
-		}
+	if (!recoveryCode.trim()) {
+		error = "Recovery code is required.";
+		return;
 	}
+	loading = true;
+	try {
+		const result = await recover(username.trim(), recoveryCode.trim());
+		recoveredMasterKey = result.masterKey;
+		recoveredAccountId = result.accountId;
+		rekeyToken = result.rekeyToken;
+		step = "rekey";
+	} catch (err) {
+		error =
+			err instanceof Error
+				? err.message
+				: "Recovery failed. Check your username and code.";
+	} finally {
+		loading = false;
+	}
+}
+
+async function handleRekey() {
+	if (!recoveredMasterKey) return;
+	error = null;
+	loading = true;
+	try {
+		const result = await rekey(recoveredMasterKey, rekeyToken);
+		workspacesStore.clear();
+		auth.setSession(
+			recoveredMasterKey,
+			recoveredAccountId,
+			result.credentialId,
+		);
+		step = "success";
+		setTimeout(() => goto("/dashboard"), 1500);
+	} catch (err) {
+		error = err instanceof Error ? err.message : "Rekey failed.";
+	} finally {
+		loading = false;
+	}
+}
 </script>
 
 <svelte:head>

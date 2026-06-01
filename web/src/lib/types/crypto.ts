@@ -6,7 +6,7 @@
  * so callers use the strongly-typed form; the crypto functions remain agnostic.
  */
 
-export type { BuilderSchema as FormSchema } from './builder';
+export type { BuilderSchema as FormSchema } from "./builder";
 
 export interface Field {
 	id: string;

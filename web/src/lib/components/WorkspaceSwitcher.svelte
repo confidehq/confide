@@ -1,95 +1,100 @@
 <script lang="ts">
-	import { sidebar } from '$lib/stores/sidebar.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { access } from '$lib/stores/access.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { createWorkspace, createProWorkspace, WorkspaceError } from '$lib/workspaces';
-	import { ChevronsUpDown, Check, Plus } from '@lucide/svelte';
+import { Check, ChevronsUpDown, Plus } from "@lucide/svelte";
+import { access } from "$lib/stores/access.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { sidebar } from "$lib/stores/sidebar.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import {
+	createProWorkspace,
+	createWorkspace,
+	WorkspaceError,
+} from "$lib/workspaces";
 
-	let dropdownOpen = $state(false);
-	let showCreate = $state(false);
-	let newName = $state('');
-	let creating = $state(false);
-	let createError = $state('');
+let dropdownOpen = $state(false);
+let showCreate = $state(false);
+let newName = $state("");
+let creating = $state(false);
+let createError = $state("");
 
-	// Fixed-position dropdown coords (escapes sidebar's overflow-hidden)
-	let triggerEl = $state<HTMLButtonElement | null>(null);
-	let dropdownPos = $state({ left: 0, top: 0, width: 0 });
+// Fixed-position dropdown coords (escapes sidebar's overflow-hidden)
+let triggerEl = $state<HTMLButtonElement | null>(null);
+let dropdownPos = $state({ left: 0, top: 0, width: 0 });
 
-	function initials(name: string): string {
-		const words = name.trim().split(/\s+/);
-		if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-		return (words[0][0] + words[1][0]).toUpperCase();
+function initials(name: string): string {
+	const words = name.trim().split(/\s+/);
+	if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+	return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function planLabel(plan: string, status: string): string {
+	if (plan === "pro") {
+		if (status === "past_due") return "past due";
+		if (status === "canceled") return "canceled";
+		if (status === "canceling") return "cancels at period end";
+		return "pro";
 	}
+	return "free";
+}
 
-	function planLabel(plan: string, status: string): string {
-		if (plan === 'pro') {
-			if (status === 'past_due') return 'past due';
-			if (status === 'canceled') return 'canceled';
-			if (status === 'canceling') return 'cancels at period end';
-			return 'pro';
-		}
-		return 'free';
+function openDropdown() {
+	if (sidebar.collapsed) {
+		sidebar.toggle();
+		return;
 	}
-
-	function openDropdown() {
-		if (sidebar.collapsed) {
-			sidebar.toggle();
-			return;
-		}
-		if (dropdownOpen) {
-			closeDropdown();
-			return;
-		}
-		if (triggerEl) {
-			const rect = triggerEl.getBoundingClientRect();
-			dropdownPos = { left: rect.left, top: rect.bottom + 4, width: rect.width };
-		}
-		dropdownOpen = true;
-	}
-
-	function closeDropdown() {
-		dropdownOpen = false;
-		showCreate = false;
-		newName = '';
-		createError = '';
-	}
-
-	function selectWorkspace(id: string) {
-		workspacesStore.switchTo(id);
+	if (dropdownOpen) {
 		closeDropdown();
+		return;
 	}
+	if (triggerEl) {
+		const rect = triggerEl.getBoundingClientRect();
+		dropdownPos = { left: rect.left, top: rect.bottom + 4, width: rect.width };
+	}
+	dropdownOpen = true;
+}
 
-	async function handleCreate() {
-		const name = newName.trim();
-		if (!name || !auth.masterKey) return;
-		creating = true;
-		createError = '';
-		try {
-			if (access.atWorkspaceLimit) {
-				const { workspace, checkoutUrl } = await createProWorkspace(
-					name,
-					auth.masterKey,
-					`${window.location.origin}/settings?tab=billing&upgraded=true`,
-					`${window.location.origin}/forms`
-				);
-				workspacesStore.add(workspace);
-				if (checkoutUrl) {
-					window.location.href = checkoutUrl;
-				} else {
-					closeDropdown();
-				}
+function closeDropdown() {
+	dropdownOpen = false;
+	showCreate = false;
+	newName = "";
+	createError = "";
+}
+
+function selectWorkspace(id: string) {
+	workspacesStore.switchTo(id);
+	closeDropdown();
+}
+
+async function handleCreate() {
+	const name = newName.trim();
+	if (!name || !auth.masterKey) return;
+	creating = true;
+	createError = "";
+	try {
+		if (access.atWorkspaceLimit) {
+			const { workspace, checkoutUrl } = await createProWorkspace(
+				name,
+				auth.masterKey,
+				`${window.location.origin}/settings?tab=billing&upgraded=true`,
+				`${window.location.origin}/forms`,
+			);
+			workspacesStore.add(workspace);
+			if (checkoutUrl) {
+				window.location.href = checkoutUrl;
 			} else {
-				const ws = await createWorkspace(name, auth.masterKey);
-				workspacesStore.add(ws);
 				closeDropdown();
 			}
-		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create workspace.';
-		} finally {
-			creating = false;
+		} else {
+			const ws = await createWorkspace(name, auth.masterKey);
+			workspacesStore.add(ws);
+			closeDropdown();
 		}
+	} catch (e) {
+		createError =
+			e instanceof Error ? e.message : "Failed to create workspace.";
+	} finally {
+		creating = false;
 	}
+}
 </script>
 
 <!-- Click-outside overlay -->

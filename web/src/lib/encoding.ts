@@ -13,7 +13,7 @@
 // ── Standard base64 (RFC 4648 §4, padding, + /) ──────────────────────────────
 
 export function bytesToBase64(bytes: Uint8Array): string {
-	let binary = '';
+	let binary = "";
 	for (const b of bytes) binary += String.fromCharCode(b);
 	return btoa(binary);
 }
@@ -28,12 +28,15 @@ export function base64ToBytes(b64: string): Uint8Array {
 // ── Base64url (RFC 4648 §5, no padding, - _) ─────────────────────────────────
 
 export function bytesToBase64url(bytes: Uint8Array): string {
-	return bytesToBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+	return bytesToBase64(bytes)
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
 }
 
 export function base64urlToBytes(b64url: string): Uint8Array {
 	const pad = (4 - (b64url.length % 4)) % 4;
-	const b64 = b64url.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(pad);
+	const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat(pad);
 	return base64ToBytes(b64);
 }
 
@@ -58,5 +61,7 @@ export function base64urlToBuf(b64url: string): ArrayBuffer {
 // ── Random ────────────────────────────────────────────────────────────────────
 
 export function randomBase64url(byteCount: number): string {
-	return bufToBase64url(crypto.getRandomValues(new Uint8Array(byteCount)).buffer as ArrayBuffer);
+	return bufToBase64url(
+		crypto.getRandomValues(new Uint8Array(byteCount)).buffer as ArrayBuffer,
+	);
 }

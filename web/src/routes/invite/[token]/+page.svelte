@@ -1,63 +1,87 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { resolveInvitation, acceptInvitation, ensureIdentityKey, WorkspaceError, type InvitePreview } from '$lib/workspaces';
-	import { getAppConfig } from '$lib/config';
-	import faviconSvg from '$lib/assets/favicon.svg?raw';
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { getAppConfig } from "$lib/config";
+import { auth } from "$lib/stores/auth.svelte";
+import {
+	acceptInvitation,
+	ensureIdentityKey,
+	type InvitePreview,
+	resolveInvitation,
+	WorkspaceError,
+} from "$lib/workspaces";
 
-	type PageState = 'loading' | 'preview' | 'accepting' | 'pending' | 'already_member' | 'error';
+type PageState =
+	| "loading"
+	| "preview"
+	| "accepting"
+	| "pending"
+	| "already_member"
+	| "error";
 
-	let pageState = $state<PageState>('loading');
-	let preview = $state<InvitePreview | null>(null);
-	let errorMsg = $state('');
-	let registrationOpen = $state(true);
+let pageState = $state<PageState>("loading");
+let preview = $state<InvitePreview | null>(null);
+let errorMsg = $state("");
+let registrationOpen = $state(true);
 
-	const token = $derived(page.params.token as string);
-	const isLoggedIn = $derived(auth.masterKey !== null);
-	const autoAccept = $derived(page.url.searchParams.get('auto_accept') === '1');
+const token = $derived(page.params.token as string);
+const isLoggedIn = $derived(auth.masterKey !== null);
+const autoAccept = $derived(page.url.searchParams.get("auto_accept") === "1");
 
-	onMount(async () => {
-		getAppConfig().then(c => { registrationOpen = c.registrationOpen; }).catch(() => {});
-		try {
-			preview = await resolveInvitation(token);
-			if (isLoggedIn && autoAccept) {
-				await accept();
-				return;
-			}
-			pageState = 'preview';
-		} catch (err) {
-			errorMsg = err instanceof Error ? err.message : 'Invitation not found or expired.';
-			pageState = 'error';
+onMount(async () => {
+	getAppConfig()
+		.then((c) => {
+			registrationOpen = c.registrationOpen;
+		})
+		.catch(() => {});
+	try {
+		preview = await resolveInvitation(token);
+		if (isLoggedIn && autoAccept) {
+			await accept();
+			return;
 		}
+		pageState = "preview";
+	} catch (err) {
+		errorMsg =
+			err instanceof Error ? err.message : "Invitation not found or expired.";
+		pageState = "error";
+	}
+});
+
+async function accept() {
+	pageState = "accepting";
+	try {
+		await acceptInvitation(token);
+		// Ensure an identity keypair exists so the admin can grant the workspace key
+		if (auth.masterKey) await ensureIdentityKey(auth.masterKey);
+		pageState = "pending";
+	} catch (err) {
+		if (err instanceof WorkspaceError && err.code === "conflict") {
+			pageState = "already_member";
+			return;
+		}
+		if (err instanceof WorkspaceError && err.code === "unauthorized") {
+			goto(
+				`/login?next=${encodeURIComponent(`/invite/${token}?auto_accept=1`)}`,
+			);
+			return;
+		}
+		errorMsg =
+			err instanceof Error ? err.message : "Failed to accept invitation.";
+		pageState = "error";
+	}
+}
+
+function formatExpiry(iso: string): string {
+	const d = new Date(iso);
+	return d.toLocaleDateString(undefined, {
+		month: "long",
+		day: "numeric",
+		year: "numeric",
 	});
-
-	async function accept() {
-		pageState = 'accepting';
-		try {
-			await acceptInvitation(token);
-			// Ensure an identity keypair exists so the admin can grant the workspace key
-			if (auth.masterKey) await ensureIdentityKey(auth.masterKey);
-			pageState = 'pending';
-		} catch (err) {
-			if (err instanceof WorkspaceError && err.code === 'conflict') {
-				pageState = 'already_member';
-				return;
-			}
-			if (err instanceof WorkspaceError && err.code === 'unauthorized') {
-				goto(`/login?next=${encodeURIComponent(`/invite/${token}?auto_accept=1`)}`);
-				return;
-			}
-			errorMsg = err instanceof Error ? err.message : 'Failed to accept invitation.';
-			pageState = 'error';
-		}
-	}
-
-	function formatExpiry(iso: string): string {
-		const d = new Date(iso);
-		return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
-	}
+}
 </script>
 
 <svelte:head>

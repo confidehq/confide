@@ -1,15 +1,15 @@
 <script lang="ts">
-	export interface BreadcrumbItem {
-		label: string;
-		href?: string;
-		onclick?: () => void;
-	}
+export interface BreadcrumbItem {
+	label: string;
+	href?: string;
+	onclick?: () => void;
+}
 
-	interface Props {
-		items: BreadcrumbItem[];
-	}
+interface Props {
+	items: BreadcrumbItem[];
+}
 
-	let { items }: Props = $props();
+let { items }: Props = $props();
 </script>
 
 <nav aria-label="Breadcrumb" class="flex items-center gap-0 min-w-0 overflow-hidden">

@@ -1,48 +1,57 @@
 <script lang="ts">
-	import { auth } from '$lib/stores/auth.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { formsStore } from '$lib/stores/forms.svelte';
-	import { goto } from '$app/navigation';
-	import { ArrowRight, Building2 } from '@lucide/svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+import { ArrowRight, Building2 } from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import StatusBadge from "$lib/components/StatusBadge.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { formsStore } from "$lib/stores/forms.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
 
-	function planLabel(plan: string, planStatus: string): string {
-		if (plan === 'pro') {
-			if (planStatus === 'past_due') return 'Pro · past due';
-			if (planStatus === 'canceled') return 'Pro · canceled';
-			if (planStatus === 'canceling') return 'Pro · cancels at period end';
-			return 'Pro';
-		}
-		return 'Free';
+function planLabel(plan: string, planStatus: string): string {
+	if (plan === "pro") {
+		if (planStatus === "past_due") return "Pro · past due";
+		if (planStatus === "canceled") return "Pro · canceled";
+		if (planStatus === "canceling") return "Pro · cancels at period end";
+		return "Pro";
 	}
+	return "Free";
+}
 
-	$effect(() => {
-		const workspace = workspacesStore.active;
-		const masterKey = auth.masterKey;
-		if (masterKey && workspace && workspace.status === 'active') {
-			formsStore.load(masterKey, workspace.id);
-		}
-	});
-
-	const sortedForms = $derived(
-		[...formsStore.forms].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-	);
-
-	const totalForms = $derived(sortedForms.length);
-	const openForms = $derived(sortedForms.filter(f => f.status === 'open').length);
-	const totalResponses = $derived(sortedForms.reduce((sum, f) => sum + f.responseCount, 0));
-	const recentForms = $derived(sortedForms.slice(0, 5));
-
-	const stats = $derived([
-		{ label: 'Forms', value: formsStore.loading ? '…' : String(totalForms) },
-		{ label: 'Open', value: formsStore.loading ? '…' : String(openForms) },
-		{ label: 'Responses', value: formsStore.loading ? '…' : String(totalResponses) },
-	]);
-
-	function newFormHref(): string {
-		const ws = workspacesStore.active;
-		return ws ? `/forms/new?workspaceId=${ws.id}` : '/forms/new';
+$effect(() => {
+	const workspace = workspacesStore.active;
+	const masterKey = auth.masterKey;
+	if (masterKey && workspace && workspace.status === "active") {
+		formsStore.load(masterKey, workspace.id);
 	}
+});
+
+const sortedForms = $derived(
+	[...formsStore.forms].sort(
+		(a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+	),
+);
+
+const totalForms = $derived(sortedForms.length);
+const openForms = $derived(
+	sortedForms.filter((f) => f.status === "open").length,
+);
+const totalResponses = $derived(
+	sortedForms.reduce((sum, f) => sum + f.responseCount, 0),
+);
+const recentForms = $derived(sortedForms.slice(0, 5));
+
+const stats = $derived([
+	{ label: "Forms", value: formsStore.loading ? "…" : String(totalForms) },
+	{ label: "Open", value: formsStore.loading ? "…" : String(openForms) },
+	{
+		label: "Responses",
+		value: formsStore.loading ? "…" : String(totalResponses),
+	},
+]);
+
+function newFormHref(): string {
+	const ws = workspacesStore.active;
+	return ws ? `/forms/new?workspaceId=${ws.id}` : "/forms/new";
+}
 </script>
 
 <svelte:head>

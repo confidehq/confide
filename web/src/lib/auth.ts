@@ -11,27 +11,27 @@
  *   - PRF outputs from simplewebauthn are Base64URLString.
  */
 
-import {
-	startRegistration,
-	startAuthentication
-} from '@simplewebauthn/browser';
 import type {
+	AuthenticationResponseJSON,
 	RegistrationResponseJSON,
-	AuthenticationResponseJSON
-} from '@simplewebauthn/browser';
+} from "@simplewebauthn/browser";
+import {
+	startAuthentication,
+	startRegistration,
+} from "@simplewebauthn/browser";
 
 import {
-	wrapKey,
-	unwrapKey,
 	deriveRecoveryKey,
-	hashForVerification,
-	generateRecoveryCode,
-	parseRecoveryCode,
 	generatePairingKeypair,
+	generateRecoveryCode,
+	hashForVerification,
+	parseRecoveryCode,
+	unwrapKey,
+	unwrapMasterKeyFromPairing,
+	wrapKey,
 	wrapMasterKeyForPairing,
-	unwrapMasterKeyFromPairing
-} from '$lib/crypto';
-import { clearWorkspaceKeyCache } from '$lib/workspaces';
+} from "$lib/crypto";
+import { clearWorkspaceKeyCache } from "$lib/workspaces";
 
 /**
  * Returns true for any error that means the user cancelled or the browser
@@ -43,31 +43,37 @@ import { clearWorkspaceKeyCache } from '$lib/workspaces';
 export function isPasskeyCancelled(err: unknown): boolean {
 	if (!(err instanceof Error)) return false;
 	return (
-		err.name === 'NotAllowedError' ||
-		err.name === 'AbortError' ||
-		(err.name === 'TypeError' && err.message.includes('CredentialsContainer'))
+		err.name === "NotAllowedError" ||
+		err.name === "AbortError" ||
+		(err.name === "TypeError" && err.message.includes("CredentialsContainer"))
 	);
 }
-import { bytesToBase64, base64ToBytes, base64urlToBytes, bufToBase64 } from '$lib/encoding';
+
+import {
+	base64ToBytes,
+	base64urlToBytes,
+	bufToBase64,
+	bytesToBase64,
+} from "$lib/encoding";
 
 import type {
-	RegisterBeginResponse,
-	LoginBeginResponse,
-	LoginFinishResponse,
-	ReauthBeginResponse,
-	ReauthFinishResponse,
-	RecoverResponse,
-	RekeyBeginResponse,
-	RekeyFinishResponse,
 	AddCredentialBeginResponse,
 	AddCredentialFinishResponse,
 	CredentialSummary,
-	PairingCreateResponse,
+	LoginBeginResponse,
+	LoginFinishResponse,
 	PairingByCodeResponse,
-	PairingRequestResponse,
+	PairingCompleteResponse,
+	PairingCreateResponse,
 	PairingPollResponse,
-	PairingCompleteResponse
-} from '$lib/types/auth';
+	PairingRequestResponse,
+	ReauthBeginResponse,
+	ReauthFinishResponse,
+	RecoverResponse,
+	RegisterBeginResponse,
+	RekeyBeginResponse,
+	RekeyFinishResponse,
+} from "$lib/types/auth";
 
 // ─── PRF Key Derivation ───────────────────────────────────────────────────────
 
@@ -90,9 +96,9 @@ interface PRFExtensionResults {
  * The PRF output is already pseudorandom; it is used directly as key material.
  */
 async function prfToKek(prfBytes: ArrayBuffer): Promise<CryptoKey> {
-	return crypto.subtle.importKey('raw', prfBytes, { name: 'AES-KW' }, false, [
-		'wrapKey',
-		'unwrapKey'
+	return crypto.subtle.importKey("raw", prfBytes, { name: "AES-KW" }, false, [
+		"wrapKey",
+		"unwrapKey",
 	]);
 }
 
@@ -100,8 +106,10 @@ async function prfToKek(prfBytes: ArrayBuffer): Promise<CryptoKey> {
  * Normalise a PRF output value (string | ArrayBuffer | ArrayBufferView) to ArrayBuffer.
  * simplewebauthn v13 passes the browser's raw ArrayBuffer; older versions used base64url strings.
  */
-function prfOutputToBuffer(value: string | ArrayBuffer | ArrayBufferView | number[]): ArrayBuffer {
-	if (typeof value === 'string') {
+function prfOutputToBuffer(
+	value: string | ArrayBuffer | ArrayBufferView | number[],
+): ArrayBuffer {
+	if (typeof value === "string") {
 		return base64urlToBytes(value).buffer as ArrayBuffer;
 	}
 	if (value instanceof ArrayBuffer) {
@@ -112,29 +120,36 @@ function prfOutputToBuffer(value: string | ArrayBuffer | ArrayBufferView | numbe
 		return Uint8Array.from(value).buffer;
 	}
 	// ArrayBufferView (Uint8Array etc.) — slice to respect byteOffset/byteLength
-	return value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer;
+	return value.buffer.slice(
+		value.byteOffset,
+		value.byteOffset + value.byteLength,
+	) as ArrayBuffer;
 }
 
 /** Extract PRF output from a registration response and import as AES-KW KEK. */
-async function extractRegistrationKek(credential: RegistrationResponseJSON): Promise<CryptoKey> {
+async function extractRegistrationKek(
+	credential: RegistrationResponseJSON,
+): Promise<CryptoKey> {
 	const exts = credential.clientExtensionResults as PRFExtensionResults;
 	const first = exts?.prf?.results?.first;
 	if (first == null) {
 		throw new Error(
-			'PRF output absent. Your browser or authenticator does not support WebAuthn PRF. ' +
-				'Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator.'
+			"PRF output absent. Your browser or authenticator does not support WebAuthn PRF. " +
+				"Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator.",
 		);
 	}
 	return prfToKek(prfOutputToBuffer(first));
 }
 
 /** Extract PRF output from an authentication response and import as AES-KW KEK. */
-async function extractAuthenticationKek(credential: AuthenticationResponseJSON): Promise<CryptoKey> {
+async function extractAuthenticationKek(
+	credential: AuthenticationResponseJSON,
+): Promise<CryptoKey> {
 	const exts = credential.clientExtensionResults as PRFExtensionResults;
 	const first = exts?.prf?.results?.first;
 	if (first == null) {
 		throw new Error(
-			'PRF output absent. Your browser or authenticator does not support WebAuthn PRF.'
+			"PRF output absent. Your browser or authenticator does not support WebAuthn PRF.",
 		);
 	}
 	return prfToKek(prfOutputToBuffer(first));
@@ -153,32 +168,38 @@ function unwrapPublicKey<T>(options: unknown): T {
 
 async function apiPost<T>(path: string, body: unknown): Promise<T> {
 	const res = await fetch(path, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		credentials: 'include',
-		body: JSON.stringify(body)
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(body),
 	});
 	const data = await res.json();
 	if (!res.ok) {
-		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	}
 	return data as T;
 }
 
 async function apiGet<T>(path: string): Promise<T> {
-	const res = await fetch(path, { credentials: 'include' });
+	const res = await fetch(path, { credentials: "include" });
 	const data = await res.json();
 	if (!res.ok) {
-		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	}
 	return data as T;
 }
 
 async function apiDelete(path: string): Promise<void> {
-	const res = await fetch(path, { method: 'DELETE', credentials: 'include' });
+	const res = await fetch(path, { method: "DELETE", credentials: "include" });
 	if (!res.ok && res.status !== 204) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	}
 }
 
@@ -193,18 +214,18 @@ export interface RegisterResult {
 
 function deviceName(): string {
 	const ua = navigator.userAgent;
-	let browser = 'Browser';
-	if (ua.includes('Firefox/')) browser = 'Firefox';
-	else if (ua.includes('Edg/')) browser = 'Edge';
-	else if (ua.includes('Chrome/')) browser = 'Chrome';
-	else if (ua.includes('Safari/')) browser = 'Safari';
+	let browser = "Browser";
+	if (ua.includes("Firefox/")) browser = "Firefox";
+	else if (ua.includes("Edg/")) browser = "Edge";
+	else if (ua.includes("Chrome/")) browser = "Chrome";
+	else if (ua.includes("Safari/")) browser = "Safari";
 
-	let os = 'Device';
-	if (ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
-	else if (ua.includes('Android')) os = 'Android';
-	else if (ua.includes('Win')) os = 'Windows';
-	else if (ua.includes('Mac')) os = 'macOS';
-	else if (ua.includes('Linux')) os = 'Linux';
+	let os = "Device";
+	if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+	else if (ua.includes("Android")) os = "Android";
+	else if (ua.includes("Win")) os = "Windows";
+	else if (ua.includes("Mac")) os = "macOS";
+	else if (ua.includes("Linux")) os = "Linux";
 
 	return `${browser} on ${os}`;
 }
@@ -221,22 +242,31 @@ function deviceName(): string {
  */
 export async function register(username: string): Promise<RegisterResult> {
 	// Step 1: begin
-	const begin = await apiPost<RegisterBeginResponse>('/api/auth/register/begin', { username });
+	const begin = await apiPost<RegisterBeginResponse>(
+		"/api/auth/register/begin",
+		{ username },
+	);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startRegistration>[0]["optionsJSON"]
+	>(begin.options);
+	const prf = (
+		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startRegistration({ optionsJSON });
 
 	// Step 3: PRF → KEK → wrap new master key
 	const kek = await extractRegistrationKek(credential);
 	const masterKey = await crypto.subtle.generateKey(
-		{ name: 'AES-GCM', length: 256 },
+		{ name: "AES-GCM", length: 256 },
 		true,
-		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+		["encrypt", "decrypt", "wrapKey", "unwrapKey"],
 	);
 	const wrappedMasterKey = await wrapKey(masterKey, kek);
 
@@ -248,31 +278,36 @@ export async function register(username: string): Promise<RegisterResult> {
 
 	// Compute recovery verifier: SHA-256 of all segments joined
 	const enc = new TextEncoder();
-	const recoveryVerifier = await hashForVerification(enc.encode(segments.join('')));
+	const recoveryVerifier = await hashForVerification(
+		enc.encode(segments.join("")),
+	);
 
 	// Compute per-segment hashes for server storage (one per segment)
 	const codeHashes = await Promise.all(
-		segments.map((seg) => hashForVerification(enc.encode(seg)))
+		segments.map((seg) => hashForVerification(enc.encode(seg))),
 	);
 
 	// Step 5: finish registration
-	const finish = await apiPost<{ accountId: string }>('/api/auth/register/finish', {
-		accountId: begin.accountId,
-		username,
-		name: deviceName(),
-		prfSalt: begin.prfSalt,
-		wrappedMasterKey: bufToBase64(wrappedMasterKey),
-		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
-		recoveryVerifier: bufToBase64(recoveryVerifier),
-		recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
-		credential
-	});
+	const finish = await apiPost<{ accountId: string }>(
+		"/api/auth/register/finish",
+		{
+			accountId: begin.accountId,
+			username,
+			name: deviceName(),
+			prfSalt: begin.prfSalt,
+			wrappedMasterKey: bufToBase64(wrappedMasterKey),
+			recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
+			recoveryVerifier: bufToBase64(recoveryVerifier),
+			recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
+			credential,
+		},
+	);
 
 	return {
 		masterKey,
 		accountId: finish.accountId,
 		credentialId: credential.id,
-		recoveryCode
+		recoveryCode,
 	};
 }
 
@@ -294,43 +329,71 @@ export interface LoginResult {
  *
  * Always returns credentialId from the assertion so the caller can repopulate localStorage.
  */
-export async function login(credentialId?: string | null, username?: string): Promise<LoginResult> {
+export async function login(
+	credentialId?: string | null,
+	username?: string,
+): Promise<LoginResult> {
 	// Step 1: begin — prefer username (server looks up correct PRF salt); fall back to credentialId
 	let body: Record<string, string> = {};
 	if (username) {
 		body = { username };
 	} else if (credentialId) {
-		body = { credentialIdBase64: bytesToBase64(base64urlToBytes(credentialId)) };
+		body = {
+			credentialIdBase64: bytesToBase64(base64urlToBytes(credentialId)),
+		};
 	}
-	const begin = await apiPost<LoginBeginResponse>('/api/auth/login/begin', body);
+	const begin = await apiPost<LoginBeginResponse>(
+		"/api/auth/login/begin",
+		body,
+	);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt strings → ArrayBuffer
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown }; evalByCredential?: Record<string, { first?: unknown }> } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startAuthentication>[0]["optionsJSON"]
+	>(begin.options);
+	const prf = (
+		optionsJSON.extensions as {
+			prf?: {
+				eval?: { first?: unknown };
+				evalByCredential?: Record<string, { first?: unknown }>;
+			};
+		}
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
 		// Targeted mode: convert eval.first
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	} else if (prf?.evalByCredential) {
 		// Discoverable mode: convert each entry in evalByCredential
 		for (const entry of Object.values(prf.evalByCredential)) {
-			if (entry?.first && typeof entry.first === 'string') {
-				(entry as { first: ArrayBuffer }).first = base64urlToBytes(entry.first as string).buffer as ArrayBuffer;
+			if (entry?.first && typeof entry.first === "string") {
+				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
+					entry.first as string,
+				).buffer as ArrayBuffer;
 			}
 		}
 	}
 	const credential = await startAuthentication({ optionsJSON });
 
 	// Step 3: finish — challengeKey replaces credentialIdBase64
-	const finish = await apiPost<LoginFinishResponse>('/api/auth/login/finish', {
+	const finish = await apiPost<LoginFinishResponse>("/api/auth/login/finish", {
 		challengeKey: begin.challengeKey,
-		credential
+		credential,
 	});
 
 	// Step 4: PRF → KEK; unwrap master key
 	const kek = await extractAuthenticationKek(credential);
-	const masterKey = await unwrapKey(base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer, kek);
+	const masterKey = await unwrapKey(
+		base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer,
+		kek,
+	);
 
-	return { masterKey, accountId: finish.accountId, credentialId: credential.id };
+	return {
+		masterKey,
+		accountId: finish.accountId,
+		credentialId: credential.id,
+	};
 }
 
 /**
@@ -342,27 +405,46 @@ export async function login(credentialId?: string | null, username?: string): Pr
  */
 export async function reauthenticate(): Promise<LoginResult> {
 	// Step 1: begin — server reads accountID from session cookie, no body needed
-	const begin = await apiPost<ReauthBeginResponse>('/api/auth/reauth/begin', {});
+	const begin = await apiPost<ReauthBeginResponse>(
+		"/api/auth/reauth/begin",
+		{},
+	);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startAuthentication>[0]["optionsJSON"]
+	>(begin.options);
+	const prf = (
+		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startAuthentication({ optionsJSON });
 
 	// Step 3: finish — verify assertion server-side, return wrappedMasterKey
-	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
-		challengeKey: begin.challengeKey,
-		credential
-	});
+	const finish = await apiPost<ReauthFinishResponse>(
+		"/api/auth/reauth/finish",
+		{
+			challengeKey: begin.challengeKey,
+			credential,
+		},
+	);
 
 	// Step 4: PRF → KEK; unwrap master key
 	const kek = await extractAuthenticationKek(credential);
-	const masterKey = await unwrapKey(base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer, kek);
+	const masterKey = await unwrapKey(
+		base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer,
+		kek,
+	);
 
-	return { masterKey, accountId: finish.accountId, credentialId: credential.id };
+	return {
+		masterKey,
+		accountId: finish.accountId,
+		credentialId: credential.id,
+	};
 }
 
 // ─── Recovery ─────────────────────────────────────────────────────────────────
@@ -385,21 +467,24 @@ export interface RecoverResult {
  * Backend requirement: /api/auth/recover must accept `codeHash` (base64 SHA-256)
  * instead of `code` (plaintext) and match it against the stored per-segment hashes.
  */
-export async function recover(username: string, recoveryCode: string): Promise<RecoverResult> {
+export async function recover(
+	username: string,
+	recoveryCode: string,
+): Promise<RecoverResult> {
 	const segments = parseRecoveryCode(recoveryCode);
 
 	const enc = new TextEncoder();
 	const segmentHash = await hashForVerification(enc.encode(segments[0]));
 
-	const res = await apiPost<RecoverResponse>('/api/auth/recover', {
+	const res = await apiPost<RecoverResponse>("/api/auth/recover", {
 		username,
-		codeHash: bufToBase64(segmentHash)
+		codeHash: bufToBase64(segmentHash),
 	});
 
 	const recoveryKey = await deriveRecoveryKey(segments);
 	const masterKey = await unwrapKey(
 		base64ToBytes(res.recoveryWrappedMasterKey).buffer as ArrayBuffer,
-		recoveryKey
+		recoveryKey,
 	);
 
 	return { masterKey, accountId: res.accountId, rekeyToken: res.rekeyToken };
@@ -417,15 +502,27 @@ export interface RekeyResult {
  * Requires a valid rekeyToken (issued by /auth/recover).
  * Generates a fresh PRF salt and wraps the existing master key under the new credential.
  */
-export async function rekey(masterKey: CryptoKey, rekeyToken: string): Promise<RekeyResult> {
+export async function rekey(
+	masterKey: CryptoKey,
+	rekeyToken: string,
+): Promise<RekeyResult> {
 	// Step 1: begin rekey registration
-	const begin = await apiPost<RekeyBeginResponse>('/api/auth/recover/rekey/begin', { rekeyToken });
+	const begin = await apiPost<RekeyBeginResponse>(
+		"/api/auth/recover/rekey/begin",
+		{ rekeyToken },
+	);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
-	const rekeyOptionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
-	const rekeyPrf = (rekeyOptionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (rekeyPrf?.eval?.first && typeof rekeyPrf.eval.first === 'string') {
-		(rekeyPrf.eval as { first: ArrayBuffer }).first = base64urlToBytes(rekeyPrf.eval.first).buffer as ArrayBuffer;
+	const rekeyOptionsJSON = unwrapPublicKey<
+		Parameters<typeof startRegistration>[0]["optionsJSON"]
+	>(begin.options);
+	const rekeyPrf = (
+		rekeyOptionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (rekeyPrf?.eval?.first && typeof rekeyPrf.eval.first === "string") {
+		(rekeyPrf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			rekeyPrf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startRegistration({ optionsJSON: rekeyOptionsJSON });
 
@@ -440,23 +537,25 @@ export async function rekey(masterKey: CryptoKey, rekeyToken: string): Promise<R
 	const recoveryWrappedMasterKey = await wrapKey(masterKey, recoveryKey);
 
 	const enc = new TextEncoder();
-	const recoveryVerifier = await hashForVerification(enc.encode(segments.join('')));
+	const recoveryVerifier = await hashForVerification(
+		enc.encode(segments.join("")),
+	);
 	const codeHashes = await Promise.all(
-		segments.map((seg) => hashForVerification(enc.encode(seg)))
+		segments.map((seg) => hashForVerification(enc.encode(seg))),
 	);
 
 	// Use the PRF salt the server embedded in the registration options (must match).
 	const prfSalt = begin.prfSalt;
 
 	// Step 4: finish rekey
-	await apiPost<RekeyFinishResponse>('/api/auth/recover/rekey/finish', {
+	await apiPost<RekeyFinishResponse>("/api/auth/recover/rekey/finish", {
 		rekeyToken,
 		prfSalt,
 		wrappedMasterKey: bufToBase64(wrappedMasterKey),
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
 		recoveryVerifier: bufToBase64(recoveryVerifier),
 		recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
-		credential
+		credential,
 	});
 
 	return { credentialId: credential.id };
@@ -471,7 +570,7 @@ export interface SessionInfo {
 }
 
 export async function listSessions(): Promise<SessionInfo[]> {
-	return apiGet<SessionInfo[]>('/api/auth/sessions');
+	return apiGet<SessionInfo[]>("/api/auth/sessions");
 }
 
 export async function revokeSession(sessionId: string): Promise<void> {
@@ -479,16 +578,19 @@ export async function revokeSession(sessionId: string): Promise<void> {
 }
 
 export async function revokeOtherSessions(): Promise<void> {
-	return apiDelete('/api/auth/sessions');
+	return apiDelete("/api/auth/sessions");
 }
 
 export async function logout(): Promise<void> {
 	clearWorkspaceKeyCache();
-	await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+	await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
 }
 
-export async function getMe(): Promise<{ accountId: string; username?: string }> {
-	return apiGet<{ accountId: string; username?: string }>('/api/auth/me');
+export async function getMe(): Promise<{
+	accountId: string;
+	username?: string;
+}> {
+	return apiGet<{ accountId: string; username?: string }>("/api/auth/me");
 }
 
 // ─── Reauth for Add Credential ────────────────────────────────────────────────
@@ -500,23 +602,35 @@ export async function getMe(): Promise<{ accountId: string; username?: string }>
  * Returns the addCredentialToken to pass to addCredential().
  */
 export async function reauthenticateForAddCredential(): Promise<string> {
-	const begin = await apiPost<ReauthBeginResponse>('/api/auth/reauth/begin', {});
+	const begin = await apiPost<ReauthBeginResponse>(
+		"/api/auth/reauth/begin",
+		{},
+	);
 
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startAuthentication>[0]['optionsJSON']>(begin.options);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startAuthentication>[0]["optionsJSON"]
+	>(begin.options);
+	const prf = (
+		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startAuthentication({ optionsJSON });
 
-	const finish = await apiPost<ReauthFinishResponse>('/api/auth/reauth/finish', {
-		challengeKey: begin.challengeKey,
-		credential,
-		purpose: 'add-credential'
-	});
+	const finish = await apiPost<ReauthFinishResponse>(
+		"/api/auth/reauth/finish",
+		{
+			challengeKey: begin.challengeKey,
+			credential,
+			purpose: "add-credential",
+		},
+	);
 
 	if (!finish.addCredentialToken) {
-		throw new Error('Server did not return an add-credential token');
+		throw new Error("Server did not return an add-credential token");
 	}
 	return finish.addCredentialToken;
 }
@@ -533,18 +647,27 @@ export async function reauthenticateForAddCredential(): Promise<string> {
 export async function addCredential(
 	masterKey: CryptoKey,
 	addCredentialToken: string,
-	name: string
+	name: string,
 ): Promise<AddCredentialFinishResponse> {
 	// Step 1: begin — server generates a fresh PRF salt
-	const begin = await apiPost<AddCredentialBeginResponse>('/api/auth/credentials/add/begin', {
-		addCredentialToken
-	});
+	const begin = await apiPost<AddCredentialBeginResponse>(
+		"/api/auth/credentials/add/begin",
+		{
+			addCredentialToken,
+		},
+	);
 
 	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(begin.options);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startRegistration>[0]["optionsJSON"]
+	>(begin.options);
+	const prf = (
+		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startRegistration({ optionsJSON });
 
@@ -553,31 +676,39 @@ export async function addCredential(
 	const wrappedMasterKey = await wrapKey(masterKey, kek);
 
 	// Step 4: finish
-	return apiPost<AddCredentialFinishResponse>('/api/auth/credentials/add/finish', {
-		addCredentialToken,
-		prfSalt: begin.prfSalt,
-		wrappedMasterKey: bufToBase64(wrappedMasterKey),
-		name,
-		credential
-	});
+	return apiPost<AddCredentialFinishResponse>(
+		"/api/auth/credentials/add/finish",
+		{
+			addCredentialToken,
+			prfSalt: begin.prfSalt,
+			wrappedMasterKey: bufToBase64(wrappedMasterKey),
+			name,
+			credential,
+		},
+	);
 }
 
 // ─── Credential Management ────────────────────────────────────────────────────
 
 export async function listCredentials(): Promise<CredentialSummary[]> {
-	return apiGet<CredentialSummary[]>('/api/auth/credentials');
+	return apiGet<CredentialSummary[]>("/api/auth/credentials");
 }
 
-export async function renameCredential(id: string, name: string): Promise<void> {
+export async function renameCredential(
+	id: string,
+	name: string,
+): Promise<void> {
 	const res = await fetch(`/api/auth/credentials/${id}`, {
-		method: 'PATCH',
-		headers: { 'Content-Type': 'application/json' },
-		credentials: 'include',
-		body: JSON.stringify({ name })
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify({ name }),
 	});
 	if (!res.ok && res.status !== 204) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	}
 }
 
@@ -586,7 +717,7 @@ export async function deleteCredential(id: string): Promise<void> {
 }
 
 export async function deleteAccount(): Promise<void> {
-	return apiDelete('/api/auth/account');
+	return apiDelete("/api/auth/account");
 }
 
 // ─── Device Pairing — existing device (authenticated) ────────────────────────
@@ -599,12 +730,14 @@ export interface PairingSession {
 
 /** Create a new pairing session from the logged-in device. */
 export async function createPairingSession(): Promise<PairingSession> {
-	return apiPost<PairingCreateResponse>('/api/auth/pairing', {});
+	return apiPost<PairingCreateResponse>("/api/auth/pairing", {});
 }
 
 /** Poll the pairing session state. Called by both devices. */
 export async function pollPairing(token: string): Promise<PairingPollResponse> {
-	return apiGet<PairingPollResponse>(`/api/auth/pairing/${encodeURIComponent(token)}`);
+	return apiGet<PairingPollResponse>(
+		`/api/auth/pairing/${encodeURIComponent(token)}`,
+	);
 }
 
 /**
@@ -614,29 +747,37 @@ export async function pollPairing(token: string): Promise<PairingPollResponse> {
 export async function fulfillPairing(
 	token: string,
 	masterKey: CryptoKey,
-	newDevicePubKeyBase64: string
+	newDevicePubKeyBase64: string,
 ): Promise<void> {
-	const newDevicePubKeyBytes = base64ToBytes(newDevicePubKeyBase64).buffer as ArrayBuffer;
-	const { wrappedMasterKey, ephemeralPublicKey } = await wrapMasterKeyForPairing(
-		masterKey,
-		newDevicePubKeyBytes
-	);
+	const newDevicePubKeyBytes = base64ToBytes(newDevicePubKeyBase64)
+		.buffer as ArrayBuffer;
+	const { wrappedMasterKey, ephemeralPublicKey } =
+		await wrapMasterKeyForPairing(masterKey, newDevicePubKeyBytes);
 
 	// Encode as JSON: wrappedMasterKey = [ephemeralPublicKey (32 bytes)][IV (12 bytes)][ciphertext]
 	// We send them as separate fields so the new device can use them independently.
-	const combined = new Uint8Array(ephemeralPublicKey.byteLength + wrappedMasterKey.byteLength);
+	const combined = new Uint8Array(
+		ephemeralPublicKey.byteLength + wrappedMasterKey.byteLength,
+	);
 	combined.set(new Uint8Array(ephemeralPublicKey), 0);
 	combined.set(new Uint8Array(wrappedMasterKey), ephemeralPublicKey.byteLength);
 
-	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/fulfill`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		credentials: 'include',
-		body: JSON.stringify({ wrappedMasterKey: bufToBase64(combined.buffer as ArrayBuffer) })
-	});
+	const res = await fetch(
+		`/api/auth/pairing/${encodeURIComponent(token)}/fulfill`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			credentials: "include",
+			body: JSON.stringify({
+				wrappedMasterKey: bufToBase64(combined.buffer as ArrayBuffer),
+			}),
+		},
+	);
 	if (!res.ok) {
 		const data = await res.json().catch(() => ({}));
-		throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	}
 }
 
@@ -646,7 +787,10 @@ export async function fulfillPairing(
 export async function lookupPairingByCode(code: string): Promise<string> {
 	const res = await fetch(`/api/auth/pairing/code/${encodeURIComponent(code)}`);
 	const data = await res.json().catch(() => ({}));
-	if (!res.ok) throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+	if (!res.ok)
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 	return (data as PairingByCodeResponse).token;
 }
 
@@ -666,23 +810,33 @@ export interface PairingRequestResult {
  * the WebAuthn registration ceremony. The caller must hold onto privateKey
  * in memory until completePairing() is called.
  */
-export async function requestPairing(token: string): Promise<PairingRequestResult> {
+export async function requestPairing(
+	token: string,
+): Promise<PairingRequestResult> {
 	const { privateKey, publicKeyBytes } = await generatePairingKeypair();
 
-	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/request`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ ephemeralPublicKey: bufToBase64(publicKeyBytes) })
-	});
+	const res = await fetch(
+		`/api/auth/pairing/${encodeURIComponent(token)}/request`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ ephemeralPublicKey: bufToBase64(publicKeyBytes) }),
+		},
+	);
 	const data = await res.json().catch(() => ({}));
 	if (!res.ok) {
 		throw Object.assign(
 			new Error((data as { message?: string }).message ?? `HTTP ${res.status}`),
-			{ code: (data as { code?: string }).code }
+			{ code: (data as { code?: string }).code },
 		);
 	}
 	const body = data as PairingRequestResponse;
-	return { privateKey, publicKeyBytes, options: body.options, prfSalt: body.prfSalt };
+	return {
+		privateKey,
+		publicKeyBytes,
+		options: body.options,
+		prfSalt: body.prfSalt,
+	};
 }
 
 /**
@@ -693,7 +847,7 @@ export async function requestPairing(token: string): Promise<PairingRequestResul
 export async function completePairing(
 	token: string,
 	pairingRequest: PairingRequestResult,
-	wrappedMasterKeyFromServer: string
+	wrappedMasterKeyFromServer: string,
 ): Promise<{ masterKey: CryptoKey; accountId: string; credentialId: string }> {
 	// Parse the combined blob: [ephemeralPublicKey (32 bytes)][IV+ciphertext]
 	const combined = base64ToBytes(wrappedMasterKeyFromServer);
@@ -704,16 +858,20 @@ export async function completePairing(
 	const masterKey = await unwrapMasterKeyFromPairing(
 		wrappedKeyBytes,
 		ephemeralPubKeyBytes,
-		pairingRequest.privateKey
+		pairingRequest.privateKey,
 	);
 
 	// Start WebAuthn registration ceremony
-	const optionsJSON = unwrapPublicKey<Parameters<typeof startRegistration>[0]['optionsJSON']>(
-		pairingRequest.options
-	);
-	const prf = (optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } })?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === 'string') {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(prf.eval.first).buffer as ArrayBuffer;
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startRegistration>[0]["optionsJSON"]
+	>(pairingRequest.options);
+	const prf = (
+		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+	)?.prf;
+	if (prf?.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
 	}
 	const credential = await startRegistration({ optionsJSON });
 
@@ -721,21 +879,31 @@ export async function completePairing(
 	const kek = await extractRegistrationKek(credential);
 	const wrappedMasterKeyForPasskey = await wrapKey(masterKey, kek);
 
-	const res = await fetch(`/api/auth/pairing/${encodeURIComponent(token)}/complete`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({
-			prfSalt: pairingRequest.prfSalt,
-			wrappedMasterKey: bufToBase64(wrappedMasterKeyForPasskey),
-			name: '',
-			credential
-		})
-	});
+	const res = await fetch(
+		`/api/auth/pairing/${encodeURIComponent(token)}/complete`,
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				prfSalt: pairingRequest.prfSalt,
+				wrappedMasterKey: bufToBase64(wrappedMasterKeyForPasskey),
+				name: "",
+				credential,
+			}),
+		},
+	);
 	const data = await res.json().catch(() => ({}));
-	if (!res.ok) throw new Error((data as { message?: string }).message ?? `HTTP ${res.status}`);
+	if (!res.ok)
+		throw new Error(
+			(data as { message?: string }).message ?? `HTTP ${res.status}`,
+		);
 
 	const complete = data as PairingCompleteResponse;
-	return { masterKey, accountId: complete.accountId, credentialId: credential.id };
+	return {
+		masterKey,
+		accountId: complete.accountId,
+		credentialId: credential.id,
+	};
 }
 
 // ─── Recovery Code Rotation ───────────────────────────────────────────────────
@@ -745,22 +913,26 @@ export async function completePairing(
  * The existing recovery codes are invalidated and replaced atomically.
  * Returns the new GHRK-XXXX-…-XXXX recovery code string for the caller to save.
  */
-export async function rotateRecoveryCode(masterKey: CryptoKey): Promise<string> {
+export async function rotateRecoveryCode(
+	masterKey: CryptoKey,
+): Promise<string> {
 	const recoveryCode = generateRecoveryCode();
 	const segments = parseRecoveryCode(recoveryCode);
 	const recoveryKey = await deriveRecoveryKey(segments);
 	const recoveryWrappedMasterKey = await wrapKey(masterKey, recoveryKey);
 
 	const enc = new TextEncoder();
-	const recoveryVerifier = await hashForVerification(enc.encode(segments.join('')));
+	const recoveryVerifier = await hashForVerification(
+		enc.encode(segments.join("")),
+	);
 	const codeHashes = await Promise.all(
-		segments.map((seg) => hashForVerification(enc.encode(seg)))
+		segments.map((seg) => hashForVerification(enc.encode(seg))),
 	);
 
-	await apiPost<Record<string, never>>('/api/auth/recovery-code/rotate', {
+	await apiPost<Record<string, never>>("/api/auth/recovery-code/rotate", {
 		recoveryWrappedMasterKey: bufToBase64(recoveryWrappedMasterKey),
 		recoveryVerifier: bufToBase64(recoveryVerifier),
-		recoveryCodes: codeHashes.map((h) => bufToBase64(h))
+		recoveryCodes: codeHashes.map((h) => bufToBase64(h)),
 	});
 
 	return recoveryCode;

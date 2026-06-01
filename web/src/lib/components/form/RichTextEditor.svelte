@@ -1,84 +1,92 @@
 <script lang="ts">
-	import { Bold, Italic, List, Link2, Check, X } from '@lucide/svelte';
+import { Bold, Check, Italic, Link2, List, X } from "@lucide/svelte";
 
-	interface Props {
-		value?: string;
-		placeholder?: string;
-		minRows?: number;
-		onchange: (v: string) => void;
+interface Props {
+	value?: string;
+	placeholder?: string;
+	minRows?: number;
+	onchange: (v: string) => void;
+}
+
+const { value = "", placeholder = "", minRows = 4, onchange }: Props = $props();
+
+let editorEl = $state<HTMLDivElement | undefined>();
+let focused = $state(false);
+let showLinkBar = $state(false);
+let linkUrl = $state("");
+let savedRange: Range | null = null;
+let initialized = false;
+let linkInputEl = $state<HTMLInputElement | undefined>();
+
+$effect(() => {
+	if (showLinkBar && linkInputEl) {
+		linkInputEl.focus();
 	}
+});
 
-	const { value = '', placeholder = '', minRows = 4, onchange }: Props = $props();
-
-	let editorEl = $state<HTMLDivElement | undefined>();
-	let focused = $state(false);
-	let showLinkBar = $state(false);
-	let linkUrl = $state('');
-	let savedRange: Range | null = null;
-	let initialized = false;
-	let linkInputEl = $state<HTMLInputElement | undefined>();
-
-	$effect(() => {
-		if (showLinkBar && linkInputEl) {
-			linkInputEl.focus();
-		}
-	});
-
-	$effect(() => {
-		if (editorEl && !initialized) {
-			editorEl.innerHTML = value ?? '';
-			initialized = true;
-		}
-	});
-
-	function exec(cmd: string, arg?: string) {
-		document.execCommand(cmd, false, arg);
-		editorEl?.focus();
+$effect(() => {
+	if (editorEl && !initialized) {
+		editorEl.innerHTML = value ?? "";
+		initialized = true;
 	}
+});
 
-	function handleInput() {
-		onchange(editorEl?.innerHTML ?? '');
+function exec(cmd: string, arg?: string) {
+	document.execCommand(cmd, false, arg);
+	editorEl?.focus();
+}
+
+function handleInput() {
+	onchange(editorEl?.innerHTML ?? "");
+}
+
+function onToolbarMousedown(e: MouseEvent) {
+	// Prevent toolbar clicks from stealing focus from the editor
+	e.preventDefault();
+}
+
+function openLinkBar() {
+	const sel = window.getSelection();
+	if (sel && sel.rangeCount > 0) {
+		savedRange = sel.getRangeAt(0).cloneRange();
 	}
+	showLinkBar = true;
+	linkUrl = "";
+}
 
-	function onToolbarMousedown(e: MouseEvent) {
-		// Prevent toolbar clicks from stealing focus from the editor
-		e.preventDefault();
+function confirmLink() {
+	if (!linkUrl.trim()) {
+		showLinkBar = false;
+		return;
 	}
-
-	function openLinkBar() {
+	const url = /^https?:\/\//i.test(linkUrl) ? linkUrl : `https://${linkUrl}`;
+	if (savedRange) {
 		const sel = window.getSelection();
-		if (sel && sel.rangeCount > 0) {
-			savedRange = sel.getRangeAt(0).cloneRange();
-		}
-		showLinkBar = true;
-		linkUrl = '';
+		sel?.removeAllRanges();
+		sel?.addRange(savedRange);
 	}
+	exec("createLink", url);
+	showLinkBar = false;
+	savedRange = null;
+	linkUrl = "";
+}
 
-	function confirmLink() {
-		if (!linkUrl.trim()) { showLinkBar = false; return; }
-		const url = /^https?:\/\//i.test(linkUrl) ? linkUrl : `https://${linkUrl}`;
-		if (savedRange) {
-			const sel = window.getSelection();
-			sel?.removeAllRanges();
-			sel?.addRange(savedRange);
-		}
-		exec('createLink', url);
-		showLinkBar = false;
-		savedRange = null;
-		linkUrl = '';
-	}
+function cancelLink() {
+	showLinkBar = false;
+	savedRange = null;
+	linkUrl = "";
+	editorEl?.focus();
+}
 
-	function cancelLink() {
-		showLinkBar = false;
-		savedRange = null;
-		linkUrl = '';
-		editorEl?.focus();
+function handleLinkKeydown(e: KeyboardEvent) {
+	if (e.key === "Enter") {
+		e.preventDefault();
+		confirmLink();
 	}
-
-	function handleLinkKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') { e.preventDefault(); confirmLink(); }
-		if (e.key === 'Escape') { cancelLink(); }
+	if (e.key === "Escape") {
+		cancelLink();
 	}
+}
 </script>
 
 <div class="rich-editor" class:focused>

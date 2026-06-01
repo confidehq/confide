@@ -1,63 +1,69 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { reauthenticate, getMe, isPasskeyCancelled } from '$lib/auth';
-	import { sidebar } from '$lib/stores/sidebar.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import Sidebar from '$lib/components/Sidebar.svelte';
-	import BottomNav from '$lib/components/BottomNav.svelte';
-	import type { Snippet } from 'svelte';
+import type { Snippet } from "svelte";
+import { goto } from "$app/navigation";
+import { getMe, isPasskeyCancelled, reauthenticate } from "$lib/auth";
+import BottomNav from "$lib/components/BottomNav.svelte";
+import Sidebar from "$lib/components/Sidebar.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { sidebar } from "$lib/stores/sidebar.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
 
-	let { children }: { children: Snippet } = $props();
+let { children }: { children: Snippet } = $props();
 
-	let showReauth = $state(false);
-	let reauthError = $state<string | null>(null);
-	let reauthLoading = $state(false);
+let showReauth = $state(false);
+let reauthError = $state<string | null>(null);
+let reauthLoading = $state(false);
 
-	$effect(() => {
-		if (auth.masterKey === null && auth.credentialId !== null) {
-			// Verify the server session is still alive before showing the reauth overlay.
-			// If it's expired, clear stored credentials and send to /login.
-			getMe()
-				.then(() => { showReauth = true; })
-				.catch(() => {
-					auth.clearAll();
-					goto('/login');
-				});
-		} else if (auth.masterKey === null && auth.credentialId === null) {
-			goto('/login');
-		}
-	});
-
-	// Load workspaces eagerly — only needs a valid session cookie, no masterKey
-	$effect(() => {
-		if (auth.credentialId !== null) {
-			workspacesStore.load().catch(() => {});
-		}
-	});
-
-	// Fetch username once on session start
-	$effect(() => {
-		if (auth.credentialId !== null && auth.username === null) {
-			getMe().then((me) => auth.setUsername(me.username ?? null)).catch(() => {});
-		}
-	});
-
-	async function handleReauth() {
-		reauthError = null;
-		reauthLoading = true;
-		try {
-			const result = await reauthenticate();
-			auth.setSession(result.masterKey, result.accountId, result.credentialId);
-			showReauth = false;
-		} catch (err) {
-			reauthError = isPasskeyCancelled(err)
-				? 'Authentication was cancelled or timed out. Unlock your passkey manager and try again.'
-				: err instanceof Error ? err.message : 'Authentication failed.';
-		} finally {
-			reauthLoading = false;
-		}
+$effect(() => {
+	if (auth.masterKey === null && auth.credentialId !== null) {
+		// Verify the server session is still alive before showing the reauth overlay.
+		// If it's expired, clear stored credentials and send to /login.
+		getMe()
+			.then(() => {
+				showReauth = true;
+			})
+			.catch(() => {
+				auth.clearAll();
+				goto("/login");
+			});
+	} else if (auth.masterKey === null && auth.credentialId === null) {
+		goto("/login");
 	}
+});
+
+// Load workspaces eagerly — only needs a valid session cookie, no masterKey
+$effect(() => {
+	if (auth.credentialId !== null) {
+		workspacesStore.load().catch(() => {});
+	}
+});
+
+// Fetch username once on session start
+$effect(() => {
+	if (auth.credentialId !== null && auth.username === null) {
+		getMe()
+			.then((me) => auth.setUsername(me.username ?? null))
+			.catch(() => {});
+	}
+});
+
+async function handleReauth() {
+	reauthError = null;
+	reauthLoading = true;
+	try {
+		const result = await reauthenticate();
+		auth.setSession(result.masterKey, result.accountId, result.credentialId);
+		showReauth = false;
+	} catch (err) {
+		reauthError = isPasskeyCancelled(err)
+			? "Authentication was cancelled or timed out. Unlock your passkey manager and try again."
+			: err instanceof Error
+				? err.message
+				: "Authentication failed.";
+	} finally {
+		reauthLoading = false;
+	}
+}
 </script>
 
 {#if showReauth}

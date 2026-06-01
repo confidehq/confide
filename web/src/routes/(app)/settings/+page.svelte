@@ -1,370 +1,408 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { get } from 'svelte/store';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import {
-		renameWorkspace,
-		deleteWorkspace,
-		leaveWorkspace,
-		WorkspaceError,
-		getBillingInfo,
-		getWorkspaceUsage,
-		type WorkspaceUsage,
-		subscribe,
-		openBillingPortal,
-		getCustomDomain,
-		setCustomDomain,
-		clearCustomDomain,
-		verifyCustomDomain,
-		type BillingInfo,
-		type CustomDomainInfo
-	} from '$lib/workspaces';
-	import { Settings, BarChart2, Mail, CreditCard, Check, ExternalLink, AlertTriangle } from '@lucide/svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
-	import UsageCard from '$lib/components/UsageCard.svelte';
-	import FormField from '$lib/components/FormField.svelte';
-	import { planLabel } from '$lib/utils/plan';
-	import { access } from '$lib/stores/access.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+import {
+	AlertTriangle,
+	BarChart2,
+	Check,
+	CreditCard,
+	ExternalLink,
+	Mail,
+	Settings,
+} from "@lucide/svelte";
+import { get } from "svelte/store";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import FormField from "$lib/components/FormField.svelte";
+import StatusBadge from "$lib/components/StatusBadge.svelte";
+import UsageCard from "$lib/components/UsageCard.svelte";
+import WorkspaceHeader from "$lib/components/WorkspaceHeader.svelte";
+import { access } from "$lib/stores/access.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import { planLabel } from "$lib/utils/plan";
+import {
+	type BillingInfo,
+	type CustomDomainInfo,
+	clearCustomDomain,
+	deleteWorkspace,
+	getBillingInfo,
+	getCustomDomain,
+	getWorkspaceUsage,
+	leaveWorkspace,
+	openBillingPortal,
+	renameWorkspace,
+	setCustomDomain,
+	subscribe,
+	verifyCustomDomain,
+	WorkspaceError,
+	type WorkspaceUsage,
+} from "$lib/workspaces";
 
-	// ─── Tab init from URL ────────────────────────────────────────────────────────
+// ─── Tab init from URL ────────────────────────────────────────────────────────
 
-	type Tab = 'usage' | 'billing' | 'workspace' | 'smtp';
-	const _urlTab = get(page).url.searchParams.get('tab') as Tab | null;
-	const _validTabs: Tab[] = ['usage', 'billing', 'workspace', 'smtp'];
-	let activeTab = $state<Tab>(_urlTab && _validTabs.includes(_urlTab) ? _urlTab : 'workspace');
+type Tab = "usage" | "billing" | "workspace" | "smtp";
+const _urlTab = get(page).url.searchParams.get("tab") as Tab | null;
+const _validTabs: Tab[] = ["usage", "billing", "workspace", "smtp"];
+let activeTab = $state<Tab>(
+	_urlTab && _validTabs.includes(_urlTab) ? _urlTab : "workspace",
+);
 
-	// Show success banner when returning from Stripe checkout
-	const _upgraded = get(page).url.searchParams.get('upgraded') === 'true';
-	let showUpgradedBanner = $state(_upgraded);
-	if (_upgraded) {
-		goto('/settings?tab=billing', { replaceState: true });
-		setTimeout(() => { showUpgradedBanner = false; }, 6000);
+// Show success banner when returning from Stripe checkout
+const _upgraded = get(page).url.searchParams.get("upgraded") === "true";
+let showUpgradedBanner = $state(_upgraded);
+if (_upgraded) {
+	goto("/settings?tab=billing", { replaceState: true });
+	setTimeout(() => {
+		showUpgradedBanner = false;
+	}, 6000);
+}
+
+// ─── Billing info (shared by Usage and Billing tabs) ─────────────────────────
+
+let billingInfo = $state<BillingInfo | null>(null);
+let billingLoading = $state(false);
+let billingError = $state("");
+let billingLoaded = $state(false);
+
+async function loadBillingInfo() {
+	const ws = workspacesStore.active;
+	if (!ws || !access.isOwner || billingLoaded || billingLoading) return;
+	billingLoading = true;
+	billingError = "";
+	try {
+		billingInfo = await getBillingInfo(ws.id);
+		billingLoaded = true;
+	} catch (e) {
+		billingError =
+			e instanceof WorkspaceError ? e.message : "Failed to load billing info";
+	} finally {
+		billingLoading = false;
 	}
+}
 
-	// ─── Billing info (shared by Usage and Billing tabs) ─────────────────────────
-
-	let billingInfo = $state<BillingInfo | null>(null);
-	let billingLoading = $state(false);
-	let billingError = $state('');
-	let billingLoaded = $state(false);
-
-	async function loadBillingInfo() {
-		const ws = workspacesStore.active;
-		if (!ws || !access.isOwner || billingLoaded || billingLoading) return;
-		billingLoading = true;
-		billingError = '';
-		try {
-			billingInfo = await getBillingInfo(ws.id);
-			billingLoaded = true;
-		} catch (e) {
-			billingError = e instanceof WorkspaceError ? e.message : 'Failed to load billing info';
-		} finally {
-			billingLoading = false;
-		}
+// Reset billing + usage cache when workspace changes
+let _lastWsId = $state<string | null>(null);
+$effect(() => {
+	const wsId = workspacesStore.active?.id ?? null;
+	if (wsId !== _lastWsId) {
+		_lastWsId = wsId;
+		billingLoaded = false;
+		billingInfo = null;
+		billingError = "";
+		usageLoaded = false;
+		usageInfo = null;
+		customDomain = null;
+		domainInput = "";
+		domainError = "";
 	}
+});
 
-	// Reset billing + usage cache when workspace changes
-	let _lastWsId = $state<string | null>(null);
-	$effect(() => {
-		const wsId = workspacesStore.active?.id ?? null;
-		if (wsId !== _lastWsId) {
-			_lastWsId = wsId;
-			billingLoaded = false;
-			billingInfo = null;
-			billingError = '';
-			usageLoaded = false;
-			usageInfo = null;
-			customDomain = null;
-			domainInput = '';
-			domainError = '';
-		}
+$effect(() => {
+	if (activeTab === "billing") {
+		loadBillingInfo();
+	}
+	if (activeTab === "usage") {
+		loadUsageInfo();
+	}
+});
+
+// ─── Usage state ─────────────────────────────────────────────────────────────
+
+let usageInfo = $state<WorkspaceUsage | null>(null);
+let usageLoading = $state(false);
+let usageLoaded = $state(false);
+
+async function loadUsageInfo() {
+	const ws = workspacesStore.active;
+	if (!ws || usageLoaded || usageLoading) return;
+	usageLoading = true;
+	try {
+		usageInfo = await getWorkspaceUsage(ws.id);
+		usageLoaded = true;
+	} catch {
+		/* non-fatal */
+	} finally {
+		usageLoading = false;
+	}
+}
+
+// ─── Custom domain state ──────────────────────────────────────────────────────
+
+let customDomain = $state<CustomDomainInfo | null>(null);
+let domainInput = $state("");
+let domainSaving = $state(false);
+let domainError = $state("");
+let domainRemoving = $state(false);
+
+async function loadCustomDomain() {
+	const ws = workspacesStore.active;
+	if (!ws || !access.isAdmin) return;
+	try {
+		customDomain = await getCustomDomain(ws.id);
+	} catch {
+		// non-critical
+	}
+}
+
+let domainChecking = $state(false);
+
+async function saveDomain() {
+	const ws = workspacesStore.active;
+	if (!ws || !domainInput.trim()) return;
+	domainSaving = true;
+	domainError = "";
+	try {
+		customDomain = await setCustomDomain(ws.id, domainInput.trim());
+		domainInput = "";
+	} catch (e) {
+		domainError = e instanceof Error ? e.message : "Failed to save domain";
+	} finally {
+		domainSaving = false;
+	}
+}
+
+async function removeDomain() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	domainRemoving = true;
+	domainError = "";
+	try {
+		await clearCustomDomain(ws.id);
+		customDomain = await getCustomDomain(ws.id);
+	} catch (e) {
+		domainError = e instanceof Error ? e.message : "Failed to remove domain";
+	} finally {
+		domainRemoving = false;
+	}
+}
+
+async function checkDomainNow() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	domainChecking = true;
+	domainError = "";
+	try {
+		customDomain = await verifyCustomDomain(ws.id);
+	} catch (e) {
+		domainError = e instanceof Error ? e.message : "Verification check failed";
+	} finally {
+		domainChecking = false;
+	}
+}
+
+$effect(() => {
+	if (activeTab === "workspace") {
+		loadCustomDomain();
+	}
+});
+
+// ─── Workspace tab state ──────────────────────────────────────────────────────
+
+let workspaceName = $state("");
+let workspaceSaving = $state(false);
+let workspaceSaved = $state(false);
+let workspaceSaveError = $state("");
+
+$effect(() => {
+	if (workspacesStore.active) {
+		workspaceName = workspacesStore.active.name;
+	}
+});
+
+async function saveWorkspace() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	workspaceSaving = true;
+	workspaceSaved = false;
+	workspaceSaveError = "";
+	try {
+		await renameWorkspace(ws.id, workspaceName.trim());
+		workspacesStore.update(ws.id, { name: workspaceName.trim() });
+		workspaceSaved = true;
+		setTimeout(() => (workspaceSaved = false), 2000);
+	} catch (e) {
+		workspaceSaveError =
+			e instanceof WorkspaceError ? e.message : "Failed to save";
+	} finally {
+		workspaceSaving = false;
+	}
+}
+
+// ─── Delete workspace state ───────────────────────────────────────────────────
+
+let showDeleteConfirm = $state(false);
+let deleting = $state(false);
+let deleteError = $state("");
+
+// ─── Leave workspace state ────────────────────────────────────────────────────
+
+let showLeaveConfirm = $state(false);
+let leaving = $state(false);
+let leaveError = $state("");
+
+async function handleLeave() {
+	const ws = workspacesStore.active;
+	if (!ws || !auth.accountId) return;
+	leaving = true;
+	leaveError = "";
+	try {
+		await leaveWorkspace(ws.id, auth.accountId);
+		workspacesStore.remove(ws.id);
+		await goto("/workspaces");
+	} catch (e) {
+		leaveError =
+			e instanceof WorkspaceError ? e.message : "Failed to leave workspace.";
+	} finally {
+		leaving = false;
+	}
+}
+
+async function handleDelete() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	deleting = true;
+	deleteError = "";
+	try {
+		await deleteWorkspace(ws.id);
+		workspacesStore.remove(ws.id);
+		await goto("/workspaces");
+	} catch (e) {
+		deleteError =
+			e instanceof WorkspaceError ? e.message : "Failed to delete workspace.";
+	} finally {
+		deleting = false;
+	}
+}
+
+// ─── SMTP tab state ───────────────────────────────────────────────────────────
+
+let smtpHost = $state("");
+let smtpPort = $state("587");
+let smtpUser = $state("");
+let smtpPass = $state("");
+let smtpFrom = $state("");
+let smtpSaving = $state(false);
+let smtpSaved = $state(false);
+
+async function saveSMTP() {
+	smtpSaving = true;
+	smtpSaved = false;
+	try {
+		await new Promise((r) => setTimeout(r, 600));
+		smtpSaved = true;
+		setTimeout(() => (smtpSaved = false), 2000);
+	} finally {
+		smtpSaving = false;
+	}
+}
+
+// ─── Billing tab actions ──────────────────────────────────────────────────────
+
+let upgrading = $state(false);
+let upgradeError = $state("");
+let portalLoading = $state(false);
+let showDowngradeModal = $state(false);
+
+async function handleUpgrade() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	upgrading = true;
+	upgradeError = "";
+	try {
+		const checkoutUrl = await subscribe(
+			ws.id,
+			"pro",
+			`${window.location.origin}/settings?tab=billing&upgraded=true`,
+			`${window.location.origin}/settings?tab=billing`,
+		);
+		window.location.href = checkoutUrl;
+	} catch (e) {
+		upgradeError =
+			e instanceof WorkspaceError ? e.message : "Failed to start checkout";
+		upgrading = false;
+	}
+}
+
+async function handleOpenPortal() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	portalLoading = true;
+	try {
+		const portalUrl = await openBillingPortal(
+			ws.id,
+			`${window.location.origin}/settings?tab=billing`,
+		);
+		window.location.href = portalUrl;
+	} catch (e) {
+		portalLoading = false;
+	}
+}
+
+function handleDowngradeClick() {
+	const hasExtraMembers = billingInfo && billingInfo.memberCount > 1;
+	const hasExtraWorkspaces = workspacesStore.workspaces.length > 1;
+	if (hasExtraMembers || hasExtraWorkspaces) {
+		showDowngradeModal = true;
+	} else {
+		handleOpenPortal();
+	}
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const tabs: {
+	id: Tab;
+	label: string;
+	icon: typeof Settings;
+	disabled?: boolean;
+	ownerOnly?: boolean;
+	managedOnly?: boolean;
+}[] = [
+	{ id: "workspace", label: "General", icon: Settings },
+	{ id: "usage", label: "Usage", icon: BarChart2 },
+	{
+		id: "billing",
+		label: "Billing",
+		icon: CreditCard,
+		ownerOnly: true,
+		managedOnly: true,
+	},
+	{ id: "smtp", label: "SMTP", icon: Mail, disabled: true },
+];
+
+const planBadge: Record<string, { label: string; color: string }> = {
+	pro: { label: "Pro", color: "var(--color-warning-border)" },
+	org: { label: "Org", color: "var(--color-text)" },
+	free: { label: "Free", color: "var(--color-subtle)" },
+};
+
+function formatDate(iso: string): string {
+	return new Date(iso).toLocaleDateString(undefined, {
+		year: "numeric",
+		month: "long",
+		day: "numeric",
 	});
+}
 
-	$effect(() => {
-		if (activeTab === 'billing') {
-			loadBillingInfo();
-		}
-		if (activeTab === 'usage') {
-			loadUsageInfo();
-		}
-	});
+const proFeatures: { label: string; enabled: boolean }[] = [
+	{ label: "Unlimited workspaces", enabled: true },
+	{ label: "Up to 10 members", enabled: true },
+	{ label: "10,000 responses / month", enabled: true },
+	{ label: "100,000 stored responses", enabled: true },
+	{ label: "Custom domain", enabled: true },
+	{ label: "5 GB file storage", enabled: false },
+	{ label: "Remove branding", enabled: false },
+	{ label: "Form customization", enabled: false },
+	{ label: "CSV export", enabled: false },
+];
 
-	// ─── Usage state ─────────────────────────────────────────────────────────────
-
-	let usageInfo = $state<WorkspaceUsage | null>(null);
-	let usageLoading = $state(false);
-	let usageLoaded = $state(false);
-
-	async function loadUsageInfo() {
-		const ws = workspacesStore.active;
-		if (!ws || usageLoaded || usageLoading) return;
-		usageLoading = true;
-		try {
-			usageInfo = await getWorkspaceUsage(ws.id);
-			usageLoaded = true;
-		} catch { /* non-fatal */ } finally {
-			usageLoading = false;
-		}
-	}
-
-	// ─── Custom domain state ──────────────────────────────────────────────────────
-
-	let customDomain = $state<CustomDomainInfo | null>(null);
-	let domainInput = $state('');
-	let domainSaving = $state(false);
-	let domainError = $state('');
-	let domainRemoving = $state(false);
-
-
-	async function loadCustomDomain() {
-		const ws = workspacesStore.active;
-		if (!ws || !access.isAdmin) return;
-		try {
-			customDomain = await getCustomDomain(ws.id);
-		} catch {
-			// non-critical
-		}
-	}
-
-	let domainChecking = $state(false);
-
-	async function saveDomain() {
-		const ws = workspacesStore.active;
-		if (!ws || !domainInput.trim()) return;
-		domainSaving = true;
-		domainError = '';
-		try {
-			customDomain = await setCustomDomain(ws.id, domainInput.trim());
-			domainInput = '';
-		} catch (e) {
-			domainError = e instanceof Error ? e.message : 'Failed to save domain';
-		} finally {
-			domainSaving = false;
-		}
-	}
-
-	async function removeDomain() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		domainRemoving = true;
-		domainError = '';
-		try {
-			await clearCustomDomain(ws.id);
-			customDomain = await getCustomDomain(ws.id);
-		} catch (e) {
-			domainError = e instanceof Error ? e.message : 'Failed to remove domain';
-		} finally {
-			domainRemoving = false;
-		}
-	}
-
-	async function checkDomainNow() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		domainChecking = true;
-		domainError = '';
-		try {
-			customDomain = await verifyCustomDomain(ws.id);
-		} catch (e) {
-			domainError = e instanceof Error ? e.message : 'Verification check failed';
-		} finally {
-			domainChecking = false;
-		}
-	}
-
-	$effect(() => {
-		if (activeTab === 'workspace') {
-			loadCustomDomain();
-		}
-	});
-
-	// ─── Workspace tab state ──────────────────────────────────────────────────────
-
-	let workspaceName = $state('');
-	let workspaceSaving = $state(false);
-	let workspaceSaved = $state(false);
-	let workspaceSaveError = $state('');
-
-	$effect(() => {
-		if (workspacesStore.active) {
-			workspaceName = workspacesStore.active.name;
-		}
-	});
-
-	async function saveWorkspace() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		workspaceSaving = true;
-		workspaceSaved = false;
-		workspaceSaveError = '';
-		try {
-			await renameWorkspace(ws.id, workspaceName.trim());
-			workspacesStore.update(ws.id, { name: workspaceName.trim() });
-			workspaceSaved = true;
-			setTimeout(() => (workspaceSaved = false), 2000);
-		} catch (e) {
-			workspaceSaveError = e instanceof WorkspaceError ? e.message : 'Failed to save';
-		} finally {
-			workspaceSaving = false;
-		}
-	}
-
-	// ─── Delete workspace state ───────────────────────────────────────────────────
-
-	let showDeleteConfirm = $state(false);
-	let deleting = $state(false);
-	let deleteError = $state('');
-
-	// ─── Leave workspace state ────────────────────────────────────────────────────
-
-	let showLeaveConfirm = $state(false);
-	let leaving = $state(false);
-	let leaveError = $state('');
-
-	async function handleLeave() {
-		const ws = workspacesStore.active;
-		if (!ws || !auth.accountId) return;
-		leaving = true;
-		leaveError = '';
-		try {
-			await leaveWorkspace(ws.id, auth.accountId);
-			workspacesStore.remove(ws.id);
-			await goto('/workspaces');
-		} catch (e) {
-			leaveError = e instanceof WorkspaceError ? e.message : 'Failed to leave workspace.';
-		} finally {
-			leaving = false;
-		}
-	}
-
-	async function handleDelete() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		deleting = true;
-		deleteError = '';
-		try {
-			await deleteWorkspace(ws.id);
-			workspacesStore.remove(ws.id);
-			await goto('/workspaces');
-		} catch (e) {
-			deleteError = e instanceof WorkspaceError ? e.message : 'Failed to delete workspace.';
-		} finally {
-			deleting = false;
-		}
-	}
-
-	// ─── SMTP tab state ───────────────────────────────────────────────────────────
-
-	let smtpHost = $state('');
-	let smtpPort = $state('587');
-	let smtpUser = $state('');
-	let smtpPass = $state('');
-	let smtpFrom = $state('');
-	let smtpSaving = $state(false);
-	let smtpSaved = $state(false);
-
-	async function saveSMTP() {
-		smtpSaving = true;
-		smtpSaved = false;
-		try {
-			await new Promise(r => setTimeout(r, 600));
-			smtpSaved = true;
-			setTimeout(() => (smtpSaved = false), 2000);
-		} finally {
-			smtpSaving = false;
-		}
-	}
-
-	// ─── Billing tab actions ──────────────────────────────────────────────────────
-
-	let upgrading = $state(false);
-	let upgradeError = $state('');
-	let portalLoading = $state(false);
-	let showDowngradeModal = $state(false);
-
-	async function handleUpgrade() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		upgrading = true;
-		upgradeError = '';
-		try {
-			const checkoutUrl = await subscribe(
-				ws.id,
-				'pro',
-				`${window.location.origin}/settings?tab=billing&upgraded=true`,
-				`${window.location.origin}/settings?tab=billing`
-			);
-			window.location.href = checkoutUrl;
-		} catch (e) {
-			upgradeError = e instanceof WorkspaceError ? e.message : 'Failed to start checkout';
-			upgrading = false;
-		}
-	}
-
-	async function handleOpenPortal() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		portalLoading = true;
-		try {
-			const portalUrl = await openBillingPortal(ws.id, `${window.location.origin}/settings?tab=billing`);
-			window.location.href = portalUrl;
-		} catch (e) {
-			portalLoading = false;
-		}
-	}
-
-	function handleDowngradeClick() {
-		const hasExtraMembers = billingInfo && billingInfo.memberCount > 1;
-		const hasExtraWorkspaces = workspacesStore.workspaces.length > 1;
-		if (hasExtraMembers || hasExtraWorkspaces) {
-			showDowngradeModal = true;
-		} else {
-			handleOpenPortal();
-		}
-	}
-
-	// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-	const tabs: { id: Tab; label: string; icon: typeof Settings; disabled?: boolean; ownerOnly?: boolean; managedOnly?: boolean }[] = [
-		{ id: 'workspace', label: 'General',   icon: Settings                                             },
-		{ id: 'usage',     label: 'Usage',     icon: BarChart2                                            },
-		{ id: 'billing',   label: 'Billing',   icon: CreditCard, ownerOnly: true, managedOnly: true       },
-		{ id: 'smtp',      label: 'SMTP',       icon: Mail,       disabled: true                          },
-	];
-
-	const planBadge: Record<string, { label: string; color: string }> = {
-		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
-		org:  { label: 'Org',  color: 'var(--color-text)'      },
-		free: { label: 'Free', color: 'var(--color-subtle)'      },
-	};
-
-	function formatDate(iso: string): string {
-		return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-	}
-
-	const proFeatures: { label: string; enabled: boolean }[] = [
-		{ label: 'Unlimited workspaces',       enabled: true  },
-		{ label: 'Up to 10 members',           enabled: true  },
-		{ label: '10,000 responses / month',   enabled: true  },
-		{ label: '100,000 stored responses',   enabled: true  },
-		{ label: 'Custom domain',              enabled: true  },
-		{ label: '5 GB file storage',          enabled: false },
-		{ label: 'Remove branding',            enabled: false },
-		{ label: 'Form customization',         enabled: false },
-		{ label: 'CSV export',                 enabled: false },
-	];
-
-	const freeFeatures: { label: string; enabled: boolean }[] = [
-		{ label: 'Up to 2 members',          enabled: true },
-		{ label: 'Unlimited forms',          enabled: true },
-		{ label: '250 responses / month',    enabled: true },
-		{ label: '2,000 stored responses',   enabled: true },
-		{ label: '100 MB file storage',      enabled: true },
-	];
+const freeFeatures: { label: string; enabled: boolean }[] = [
+	{ label: "Up to 2 members", enabled: true },
+	{ label: "Unlimited forms", enabled: true },
+	{ label: "250 responses / month", enabled: true },
+	{ label: "2,000 stored responses", enabled: true },
+	{ label: "100 MB file storage", enabled: true },
+];
 </script>
 
 <svelte:head>

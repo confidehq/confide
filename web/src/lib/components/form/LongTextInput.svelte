@@ -1,18 +1,18 @@
 <script lang="ts">
-	import FieldShell from './FieldShell.svelte';
-	import type { BuilderField, LongTextConfig } from '$lib/types/builder';
-	import type { AnswerValue } from '$lib/validation';
+import type { BuilderField, LongTextConfig } from "$lib/types/builder";
+import type { AnswerValue } from "$lib/validation";
+import FieldShell from "./FieldShell.svelte";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string; placeholder?: string };
-		value: AnswerValue;
-		error?: string | null;
-		onchange: (v: AnswerValue) => void;
-	}
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string; placeholder?: string };
+	value: AnswerValue;
+	error?: string | null;
+	onchange: (v: AnswerValue) => void;
+}
 
-	const { field, translation, value, error, onchange }: Props = $props();
-	const cfg = field.config as LongTextConfig;
+const { field, translation, value, error, onchange }: Props = $props();
+const cfg = field.config as LongTextConfig;
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>

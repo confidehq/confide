@@ -1,22 +1,22 @@
 <script lang="ts">
-	import FieldShell from './FieldShell.svelte';
-	import type { BuilderField, DropdownConfig } from '$lib/types/builder';
-	import type { AnswerValue } from '$lib/validation';
+import type { BuilderField, DropdownConfig } from "$lib/types/builder";
+import type { AnswerValue } from "$lib/validation";
+import FieldShell from "./FieldShell.svelte";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string; options?: string[] };
-		value: AnswerValue;
-		error?: string | null;
-		onchange: (v: AnswerValue) => void;
-	}
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string; options?: string[] };
+	value: AnswerValue;
+	error?: string | null;
+	onchange: (v: AnswerValue) => void;
+}
 
-	const { field, translation, value, error, onchange }: Props = $props();
-	const cfg = field.config as DropdownConfig;
+const { field, translation, value, error, onchange }: Props = $props();
+const cfg = field.config as DropdownConfig;
 
-	function getLabel(idx: number): string {
-		return translation.options?.[idx] ?? `Option ${idx + 1}`;
-	}
+function getLabel(idx: number): string {
+	return translation.options?.[idx] ?? `Option ${idx + 1}`;
+}
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>

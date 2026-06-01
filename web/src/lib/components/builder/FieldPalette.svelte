@@ -1,31 +1,40 @@
 <script lang="ts">
-	import type { createBuilderStore } from '$lib/stores/builder.svelte';
-	import type { FieldType } from '$lib/types/builder';
-	import type { Component } from 'svelte';
-	import {
-		Type, AlignLeft, CircleDot, CheckSquare, ChevronDown,
-		Calendar, Star, Minus, Heading1, ChevronRight, AlertCircle
-	} from '@lucide/svelte';
+import {
+	AlertCircle,
+	AlignLeft,
+	Calendar,
+	CheckSquare,
+	ChevronDown,
+	ChevronRight,
+	CircleDot,
+	Heading1,
+	Minus,
+	Star,
+	Type,
+} from "@lucide/svelte";
+import type { Component } from "svelte";
+import type { createBuilderStore } from "$lib/stores/builder.svelte";
+import type { FieldType } from "$lib/types/builder";
 
-	interface Props {
-		store: ReturnType<typeof createBuilderStore>;
-	}
+interface Props {
+	store: ReturnType<typeof createBuilderStore>;
+}
 
-	const { store }: Props = $props();
+const { store }: Props = $props();
 
-	const fieldTypes: Array<{ type: FieldType; label: string; icon: Component }> = [
-		{ type: 'short_text', label: 'Short text', icon: Type },
-		{ type: 'long_text', label: 'Long text', icon: AlignLeft },
-		{ type: 'multiple_choice', label: 'Multiple choice', icon: CircleDot },
-		{ type: 'checkboxes', label: 'Checkboxes', icon: CheckSquare },
-		{ type: 'dropdown', label: 'Dropdown', icon: ChevronDown },
-		{ type: 'date_time', label: 'Date / time', icon: Calendar },
-		{ type: 'rating', label: 'Rating', icon: Star },
-		{ type: 'section_break', label: 'Section break', icon: Minus },
-		{ type: 'heading', label: 'Heading', icon: Heading1 },
-		{ type: 'accordion', label: 'Accordion', icon: ChevronRight },
-		{ type: 'accent', label: 'Accent block', icon: AlertCircle }
-	];
+const fieldTypes: Array<{ type: FieldType; label: string; icon: Component }> = [
+	{ type: "short_text", label: "Short text", icon: Type },
+	{ type: "long_text", label: "Long text", icon: AlignLeft },
+	{ type: "multiple_choice", label: "Multiple choice", icon: CircleDot },
+	{ type: "checkboxes", label: "Checkboxes", icon: CheckSquare },
+	{ type: "dropdown", label: "Dropdown", icon: ChevronDown },
+	{ type: "date_time", label: "Date / time", icon: Calendar },
+	{ type: "rating", label: "Rating", icon: Star },
+	{ type: "section_break", label: "Section break", icon: Minus },
+	{ type: "heading", label: "Heading", icon: Heading1 },
+	{ type: "accordion", label: "Accordion", icon: ChevronRight },
+	{ type: "accent", label: "Accent block", icon: AlertCircle },
+];
 </script>
 
 <aside class="hidden xl:flex w-[240px] bg-base border border-border-canvas rounded-xl my-2 ml-2 p-4 overflow-y-auto shrink-0 flex-col">

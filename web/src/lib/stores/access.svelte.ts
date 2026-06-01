@@ -5,30 +5,30 @@
  * features. Components read from this store instead of inlining string comparisons.
  */
 
-import { workspacesStore } from './workspaces.svelte';
-import { getAppConfig } from '$lib/config';
+import { getAppConfig } from "$lib/config";
+import { workspacesStore } from "./workspaces.svelte";
 
 // Feature names match Go's permission.Feature constants exactly.
 export type Feature =
-	| 'custom_styles'
-	| 'whitelabel'
-	| 'custom_domains'
-	| 'advanced_analytics'
-	| 'partial_submissions'
-	| 'version_history'
-	| 'extended_email_forwarding';
+	| "custom_styles"
+	| "whitelabel"
+	| "custom_domains"
+	| "advanced_analytics"
+	| "partial_submissions"
+	| "version_history"
+	| "extended_email_forwarding";
 
 const PRO_FEATURES = new Set<Feature>([
-	'custom_styles',
-	'whitelabel',
-	'custom_domains',
-	'advanced_analytics',
-	'partial_submissions',
-	'version_history',
-	'extended_email_forwarding',
+	"custom_styles",
+	"whitelabel",
+	"custom_domains",
+	"advanced_analytics",
+	"partial_submissions",
+	"version_history",
+	"extended_email_forwarding",
 ]);
 
-let _edition = $state('');
+let _edition = $state("");
 
 // Fetch once — getAppConfig is cached after the first call.
 getAppConfig().then((c) => {
@@ -40,7 +40,7 @@ export const access = {
 
 	/** True when running as the managed cloud service (Stripe billing active). */
 	get managed(): boolean {
-		return _edition !== 'community';
+		return _edition !== "community";
 	},
 
 	// ── Plan ──────────────────────────────────────────────────────────────────
@@ -51,14 +51,14 @@ export const access = {
 	 * community (self-hosted) instance, where all features are unlocked.
 	 */
 	get isPro(): boolean {
-		return workspacesStore.active?.plan === 'pro' || _edition === 'community';
+		return workspacesStore.active?.plan === "pro" || _edition === "community";
 	},
 
 	// ── Role ──────────────────────────────────────────────────────────────────
 
 	/** True when the current user is the workspace owner. */
 	get isOwner(): boolean {
-		return workspacesStore.active?.role === 'owner';
+		return workspacesStore.active?.role === "owner";
 	},
 
 	/**
@@ -67,7 +67,7 @@ export const access = {
 	 */
 	get isAdmin(): boolean {
 		const role = workspacesStore.active?.role;
-		return role === 'owner' || role === 'admin';
+		return role === "owner" || role === "admin";
 	},
 
 	/**
@@ -76,7 +76,7 @@ export const access = {
 	 */
 	get canManageForms(): boolean {
 		const role = workspacesStore.active?.role;
-		return role === 'owner' || role === 'admin' || role === 'member';
+		return role === "owner" || role === "admin" || role === "member";
 	},
 
 	// ── Feature flags ─────────────────────────────────────────────────────────
@@ -99,7 +99,7 @@ export const access = {
 	get atWorkspaceLimit(): boolean {
 		if (!this.managed) return false;
 		return workspacesStore.workspaces.some(
-			(w) => w.plan === 'free' && w.role === 'owner'
+			(w) => w.plan === "free" && w.role === "owner",
 		);
 	},
 };

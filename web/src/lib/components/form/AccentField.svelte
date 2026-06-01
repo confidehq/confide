@@ -1,26 +1,62 @@
 <script lang="ts">
-	import type { BuilderField, AccentConfig } from '$lib/types/builder';
-	import { Shield, Lock, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
+import {
+	Bell,
+	CircleCheck,
+	Info,
+	Lock,
+	Shield,
+	Star,
+	TriangleAlert,
+	Zap,
+} from "@lucide/svelte";
+import type { AccentConfig, BuilderField } from "$lib/types/builder";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string };
-	}
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string };
+}
 
-	const { field, translation }: Props = $props();
+const { field, translation }: Props = $props();
 
-	const cfg = $derived(field.config as AccentConfig);
-	const variant = $derived(cfg.variant ?? 'note');
+const cfg = $derived(field.config as AccentConfig);
+const variant = $derived(cfg.variant ?? "note");
 
-	const styles = $derived({
-		note:    { border: 'var(--color-info-border)',    bg: 'var(--color-info-bg)',    color: 'var(--color-info-text)' },
-		warning: { border: 'var(--color-warning-border)', bg: 'var(--color-warning-bg)', color: 'var(--color-warning-text)' },
-		danger:  { border: 'var(--color-danger-border)',  bg: 'var(--color-danger-bg)',  color: 'var(--color-danger-text)' },
-		success: { border: 'var(--color-success-border)', bg: 'var(--color-success-bg)', color: 'var(--color-success-text)' },
-	}[variant]);
+const styles = $derived(
+	{
+		note: {
+			border: "var(--color-info-border)",
+			bg: "var(--color-info-bg)",
+			color: "var(--color-info-text)",
+		},
+		warning: {
+			border: "var(--color-warning-border)",
+			bg: "var(--color-warning-bg)",
+			color: "var(--color-warning-text)",
+		},
+		danger: {
+			border: "var(--color-danger-border)",
+			bg: "var(--color-danger-bg)",
+			color: "var(--color-danger-text)",
+		},
+		success: {
+			border: "var(--color-success-border)",
+			bg: "var(--color-success-bg)",
+			color: "var(--color-success-text)",
+		},
+	}[variant],
+);
 
-	const iconMap = { shield: Shield, lock: Lock, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
-	const IconComponent = $derived(cfg.icon ? iconMap[cfg.icon] : null);
+const iconMap = {
+	shield: Shield,
+	lock: Lock,
+	check: CircleCheck,
+	info: Info,
+	alert: TriangleAlert,
+	star: Star,
+	bell: Bell,
+	zap: Zap,
+};
+const IconComponent = $derived(cfg.icon ? iconMap[cfg.icon] : null);
 </script>
 
 <div

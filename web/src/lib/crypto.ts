@@ -20,16 +20,20 @@
  *     cannot zero memory.  Accepted per design §2.5.
  */
 
-import type { FormSchema, ResponsePayload, EncryptedResponse } from './types/crypto.ts';
+import type {
+	EncryptedResponse,
+	FormSchema,
+	ResponsePayload,
+} from "./types/crypto.ts";
 
 // ---------------------------------------------------------------------------
 // Internal constants
 // ---------------------------------------------------------------------------
 
-const AES_ALGORITHM = 'AES-GCM' as const;
+const AES_ALGORITHM = "AES-GCM" as const;
 const AES_KEY_LENGTH = 256;
 const AES_IV_BYTES = 12;
-const HKDF_HASH = 'SHA-256' as const;
+const HKDF_HASH = "SHA-256" as const;
 
 /**
  * HKDF info strings — must be exact and consistent across all deployments.
@@ -40,12 +44,12 @@ const encode = (s: string) => encoder.encode(s);
 
 const INFO = {
 	formKey: (formId: string) => encode(`wisp-form-key-v1:${formId}`),
-	keypairSeed: () => encode('wisp-form-keypair-seed-v1'),
-	recoveryKey: () => encode('wisp-recovery-key-v1'),
-	responseEncKey: () => encode('wisp-response-enc-key-v1'),
-	renderKey: () => encode('wisp-render-key-v1'),
-	workspaceKey: () => encode('confide-workspace-key-v1'),
-	pairingKey: () => encode('confide-pairing-key-v1')
+	keypairSeed: () => encode("wisp-form-keypair-seed-v1"),
+	recoveryKey: () => encode("wisp-recovery-key-v1"),
+	responseEncKey: () => encode("wisp-response-enc-key-v1"),
+	renderKey: () => encode("wisp-render-key-v1"),
+	workspaceKey: () => encode("confide-workspace-key-v1"),
+	pairingKey: () => encode("confide-pairing-key-v1"),
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -61,15 +65,21 @@ const INFO = {
  * API constraint, not a security weakness — see extractability notes below).
  */
 async function toHkdfIkm(key: CryptoKey): Promise<CryptoKey> {
-	const rawBytes = await crypto.subtle.exportKey('raw', key);
-	return crypto.subtle.importKey('raw', rawBytes, 'HKDF', false, ['deriveKey', 'deriveBits']);
+	const rawBytes = await crypto.subtle.exportKey("raw", key);
+	return crypto.subtle.importKey("raw", rawBytes, "HKDF", false, [
+		"deriveKey",
+		"deriveBits",
+	]);
 }
 
 /**
  * Import raw bytes as an HKDF IKM key (for non-CryptoKey sources).
  */
 async function importHkdfIkm(ikm: BufferSource): Promise<CryptoKey> {
-	return crypto.subtle.importKey('raw', ikm, 'HKDF', false, ['deriveKey', 'deriveBits']);
+	return crypto.subtle.importKey("raw", ikm, "HKDF", false, [
+		"deriveKey",
+		"deriveBits",
+	]);
 }
 
 /**
@@ -82,19 +92,19 @@ async function hkdfDeriveAesKey(
 	hkdfKey: CryptoKey,
 	info: Uint8Array<ArrayBuffer>,
 	usages: KeyUsage[],
-	extractable: boolean
+	extractable: boolean,
 ): Promise<CryptoKey> {
 	return crypto.subtle.deriveKey(
 		{
-			name: 'HKDF',
+			name: "HKDF",
 			hash: HKDF_HASH,
 			salt: new ArrayBuffer(0),
-			info
+			info,
 		},
 		hkdfKey,
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		extractable,
-		usages
+		usages,
 	);
 }
 
@@ -102,7 +112,10 @@ async function hkdfDeriveAesKey(
  * Build AES-GCM algorithm params, optionally binding a context via AAD.
  * Pass additionalData to prevent cross-context ciphertext substitution.
  */
-function aesGcmParams(iv: Uint8Array<ArrayBuffer>, additionalData?: BufferSource): AesGcmParams {
+function aesGcmParams(
+	iv: Uint8Array<ArrayBuffer>,
+	additionalData?: BufferSource,
+): AesGcmParams {
 	const params: AesGcmParams = { name: AES_ALGORITHM, iv, tagLength: 128 };
 	if (additionalData !== undefined) params.additionalData = additionalData;
 	return params;
@@ -111,16 +124,20 @@ function aesGcmParams(iv: Uint8Array<ArrayBuffer>, additionalData?: BufferSource
 /**
  * Derive raw bits via HKDF from an HKDF IKM key.
  */
-async function hkdfDeriveBits(hkdfKey: CryptoKey, info: Uint8Array<ArrayBuffer>, bits: number): Promise<ArrayBuffer> {
+async function hkdfDeriveBits(
+	hkdfKey: CryptoKey,
+	info: Uint8Array<ArrayBuffer>,
+	bits: number,
+): Promise<ArrayBuffer> {
 	return crypto.subtle.deriveBits(
 		{
-			name: 'HKDF',
+			name: "HKDF",
 			hash: HKDF_HASH,
 			salt: new ArrayBuffer(0),
-			info
+			info,
 		},
 		hkdfKey,
-		bits
+		bits,
 	);
 }
 
@@ -145,13 +162,16 @@ async function hkdfDeriveBits(hkdfKey: CryptoKey, info: Uint8Array<ArrayBuffer>,
  *   The raw bytes are never persisted; they live only in-memory during derivation.
  *   Security is preserved because formKey is always re-derivable from masterKey.
  */
-export async function deriveFormKey(masterKey: CryptoKey, formId: string): Promise<CryptoKey> {
+export async function deriveFormKey(
+	masterKey: CryptoKey,
+	formId: string,
+): Promise<CryptoKey> {
 	const hkdfKey = await toHkdfIkm(masterKey);
 	return hkdfDeriveAesKey(
 		hkdfKey,
 		INFO.formKey(formId),
-		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey'],
-		true // SECURITY NOTE: extractable required for deriveFormKeypair — see above
+		["encrypt", "decrypt", "wrapKey", "unwrapKey"],
+		true, // SECURITY NOTE: extractable required for deriveFormKeypair — see above
 	);
 }
 
@@ -163,19 +183,22 @@ export async function deriveFormKey(masterKey: CryptoKey, formId: string): Promi
  * The derived key is extractable so it can be exported for the share URL fragment.
  * Changing renderKeySalt produces a completely different key (key rotation).
  */
-export async function deriveRenderKey(formKey: CryptoKey, renderKeySalt: ArrayBuffer): Promise<CryptoKey> {
+export async function deriveRenderKey(
+	formKey: CryptoKey,
+	renderKeySalt: ArrayBuffer,
+): Promise<CryptoKey> {
 	const hkdfKey = await toHkdfIkm(formKey);
 	return crypto.subtle.deriveKey(
 		{
-			name: 'HKDF',
+			name: "HKDF",
 			hash: HKDF_HASH,
 			salt: renderKeySalt,
-			info: INFO.renderKey()
+			info: INFO.renderKey(),
 		},
 		hkdfKey,
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true, // extractable — needed to export for the share URL fragment
-		['encrypt', 'decrypt']
+		["encrypt", "decrypt"],
 	);
 }
 
@@ -195,8 +218,8 @@ export async function deriveRenderKey(formKey: CryptoKey, renderKeySalt: ArrayBu
  * (raw format is reserved for public keys).
  */
 const X25519_PKCS8_PREFIX = new Uint8Array([
-	0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06,
-	0x03, 0x2b, 0x65, 0x6e, 0x04, 0x22, 0x04, 0x20
+	0x30, 0x2e, 0x02, 0x01, 0x00, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x6e, 0x04,
+	0x22, 0x04, 0x20,
 ]);
 
 /**
@@ -214,7 +237,9 @@ const X25519_PKCS8_PREFIX = new Uint8Array([
  *   can be extracted in step 4. The raw private key is never serialised to
  *   storage; it exists only in-memory during derivation.
  */
-export async function deriveFormKeypair(formKey: CryptoKey): Promise<CryptoKeyPair> {
+export async function deriveFormKeypair(
+	formKey: CryptoKey,
+): Promise<CryptoKeyPair> {
 	// Step 1: export formKey raw bytes → HKDF IKM
 	// SECURITY NOTE: formKey must be extractable; raw bytes are never persisted
 	const hkdfKey = await toHkdfIkm(formKey);
@@ -230,21 +255,24 @@ export async function deriveFormKeypair(formKey: CryptoKey): Promise<CryptoKeyPa
 
 	// SECURITY NOTE: extractable=true required to extract public key via JWK export
 	const privateKey = await crypto.subtle.importKey(
-		'pkcs8',
+		"pkcs8",
 		pkcs8,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		true,
-		['deriveKey', 'deriveBits']
+		["deriveKey", "deriveBits"],
 	);
 
 	// Step 4-5: export JWK to get public key 'x' component, then import as public key
-	const jwk = await crypto.subtle.exportKey('jwk', privateKey) as JsonWebKey & { x: string };
+	const jwk = (await crypto.subtle.exportKey(
+		"jwk",
+		privateKey,
+	)) as JsonWebKey & { x: string };
 	const publicKey = await crypto.subtle.importKey(
-		'jwk',
-		{ kty: 'OKP', crv: 'X25519', x: jwk.x },
-		{ name: 'X25519' },
+		"jwk",
+		{ kty: "OKP", crv: "X25519", x: jwk.x },
+		{ name: "X25519" },
 		true, // public key must be extractable for upload to server
-		[]
+		[],
 	);
 
 	return { privateKey, publicKey };
@@ -257,19 +285,19 @@ export async function deriveFormKeypair(formKey: CryptoKey): Promise<CryptoKeyPa
  * Order-sensitive: [A, B] ≠ [B, A].
  */
 export async function deriveRecoveryKey(codes: string[]): Promise<CryptoKey> {
-	const ikmBytes = encode(codes.join(''));
+	const ikmBytes = encode(codes.join(""));
 	const ikmKey = await importHkdfIkm(ikmBytes);
 	return crypto.subtle.deriveKey(
 		{
-			name: 'HKDF',
+			name: "HKDF",
 			hash: HKDF_HASH,
 			salt: new Uint8Array(0),
-			info: INFO.recoveryKey()
+			info: INFO.recoveryKey(),
 		},
 		ikmKey,
-		{ name: 'AES-KW', length: AES_KEY_LENGTH },
+		{ name: "AES-KW", length: AES_KEY_LENGTH },
 		false, // recoveryKey is only used for wrap/unwrap; never exported
-		['wrapKey', 'unwrapKey']
+		["wrapKey", "unwrapKey"],
 	);
 }
 
@@ -283,8 +311,11 @@ export async function deriveRecoveryKey(codes: string[]): Promise<CryptoKey> {
  * AES-KW is deterministic and authenticated; it adds 8 bytes of overhead.
  * No IV management required (AES-KW does not use an IV).
  */
-export async function wrapKey(key: CryptoKey, kek: CryptoKey): Promise<ArrayBuffer> {
-	return crypto.subtle.wrapKey('raw', key, kek, 'AES-KW');
+export async function wrapKey(
+	key: CryptoKey,
+	kek: CryptoKey,
+): Promise<ArrayBuffer> {
+	return crypto.subtle.wrapKey("raw", key, kek, "AES-KW");
 }
 
 /**
@@ -293,15 +324,18 @@ export async function wrapKey(key: CryptoKey, kek: CryptoKey): Promise<ArrayBuff
  *
  * SECURITY: unwrapped masterKey is extractable — see deriveFormKey comment.
  */
-export async function unwrapKey(wrapped: ArrayBuffer, kek: CryptoKey): Promise<CryptoKey> {
+export async function unwrapKey(
+	wrapped: ArrayBuffer,
+	kek: CryptoKey,
+): Promise<CryptoKey> {
 	return crypto.subtle.unwrapKey(
-		'raw',
+		"raw",
 		wrapped,
 		kek,
-		'AES-KW',
+		"AES-KW",
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true, // masterKey MUST be extractable — see design §6.3 and deriveFormKey comment
-		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+		["encrypt", "decrypt", "wrapKey", "unwrapKey"],
 	);
 }
 
@@ -315,14 +349,18 @@ export async function unwrapKey(wrapped: ArrayBuffer, kek: CryptoKey): Promise<C
  * Output layout: [12B random IV][ciphertext + 16B GCM tag]
  * Total overhead: 28 bytes (12 IV + 16 tag).
  */
-export async function encryptSchema(schema: FormSchema, key: CryptoKey, additionalData?: BufferSource): Promise<ArrayBuffer> {
+export async function encryptSchema(
+	schema: FormSchema,
+	key: CryptoKey,
+	additionalData?: BufferSource,
+): Promise<ArrayBuffer> {
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const plaintext = encode(JSON.stringify(schema));
 
 	const ciphertext = await crypto.subtle.encrypt(
 		aesGcmParams(iv, additionalData),
 		key,
-		plaintext
+		plaintext,
 	);
 
 	const blob = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
@@ -335,7 +373,11 @@ export async function encryptSchema(schema: FormSchema, key: CryptoKey, addition
  * Decrypt a FormSchema blob encrypted with encryptSchema.
  * Throws DOMException on authentication failure (wrong key, tampered data).
  */
-export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey, additionalData?: BufferSource): Promise<FormSchema> {
+export async function decryptSchema(
+	blob: ArrayBuffer,
+	key: CryptoKey,
+	additionalData?: BufferSource,
+): Promise<FormSchema> {
 	const bytes = new Uint8Array(blob);
 	const iv = bytes.slice(0, AES_IV_BYTES);
 	const ciphertext = bytes.slice(AES_IV_BYTES);
@@ -343,7 +385,7 @@ export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey, additiona
 	const plaintext = await crypto.subtle.decrypt(
 		aesGcmParams(iv, additionalData),
 		key,
-		ciphertext
+		ciphertext,
 	);
 
 	return JSON.parse(new TextDecoder().decode(plaintext)) as FormSchema;
@@ -369,32 +411,32 @@ export async function decryptSchema(blob: ArrayBuffer, key: CryptoKey, additiona
 export async function encryptResponse(
 	payload: ResponsePayload,
 	recipientPublicKey: CryptoKey,
-	additionalData?: BufferSource
+	additionalData?: BufferSource,
 ): Promise<EncryptedResponse> {
 	// Step 1: ephemeral keypair
 	const ephemeral = (await crypto.subtle.generateKey(
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		true, // extractable so we can export the public key
-		['deriveKey', 'deriveBits']
+		["deriveKey", "deriveBits"],
 	)) as CryptoKeyPair;
 
 	// Step 2: ECDH shared secret
 	// NOTE: X25519 uses { name: "X25519" }, NOT "ECDH" — "ECDH" is only for
 	// P-256/P-384/P-521 named curves.
 	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: recipientPublicKey },
+		{ name: "X25519", public: recipientPublicKey },
 		ephemeral.privateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
 
 	// Step 3: HKDF → AES-256-GCM encryption key
 	const encryptionKey = await hkdfDeriveAesKey(
 		sharedSecret,
 		INFO.responseEncKey(),
-		['encrypt'],
-		false
+		["encrypt"],
+		false,
 	);
 
 	// Step 4: AES-GCM encrypt
@@ -403,7 +445,7 @@ export async function encryptResponse(
 	const ciphertext = await crypto.subtle.encrypt(
 		aesGcmParams(iv, additionalData),
 		encryptionKey,
-		plaintext
+		plaintext,
 	);
 
 	const encryptedData = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
@@ -411,7 +453,10 @@ export async function encryptResponse(
 	encryptedData.set(new Uint8Array(ciphertext), AES_IV_BYTES);
 
 	// Step 5: export ephemeral public key (raw X25519 = 32 bytes)
-	const ephemeralPublicKey = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+	const ephemeralPublicKey = await crypto.subtle.exportKey(
+		"raw",
+		ephemeral.publicKey,
+	);
 
 	return { encryptedData: encryptedData.buffer, ephemeralPublicKey };
 }
@@ -424,32 +469,32 @@ export async function decryptResponse(
 	encryptedData: ArrayBuffer,
 	ephemeralPublicKey: ArrayBuffer,
 	formPrivateKey: CryptoKey,
-	additionalData?: BufferSource
+	additionalData?: BufferSource,
 ): Promise<ResponsePayload> {
 	// Import ephemeral public key
 	const ephemeralPubKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		ephemeralPublicKey,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		true,
-		[]
+		[],
 	);
 
 	// ECDH shared secret
 	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: ephemeralPubKey },
+		{ name: "X25519", public: ephemeralPubKey },
 		formPrivateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
 
 	// HKDF → AES-256-GCM decryption key
 	const decryptionKey = await hkdfDeriveAesKey(
 		sharedSecret,
 		INFO.responseEncKey(),
-		['decrypt'],
-		false
+		["decrypt"],
+		false,
 	);
 
 	// AES-GCM decrypt
@@ -460,7 +505,7 @@ export async function decryptResponse(
 	const plaintext = await crypto.subtle.decrypt(
 		aesGcmParams(iv, additionalData),
 		decryptionKey,
-		ciphertext
+		ciphertext,
 	);
 
 	return JSON.parse(new TextDecoder().decode(plaintext)) as ResponsePayload;
@@ -474,8 +519,10 @@ export async function decryptResponse(
  * SHA-256 hash for integrity verification (NIST FIPS 180-4).
  * Accepts any BufferSource (ArrayBuffer, TypedArray, DataView).
  */
-export async function hashForVerification(data: BufferSource): Promise<ArrayBuffer> {
-	return crypto.subtle.digest('SHA-256', data);
+export async function hashForVerification(
+	data: BufferSource,
+): Promise<ArrayBuffer> {
+	return crypto.subtle.digest("SHA-256", data);
 }
 
 // ---------------------------------------------------------------------------
@@ -492,58 +539,70 @@ export async function hashForVerification(data: BufferSource): Promise<ArrayBuff
  */
 export async function generateAndWrapWorkspaceKey(
 	recipientPublicKeyBytes: ArrayBuffer,
-	additionalData?: BufferSource
-): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
+	additionalData?: BufferSource,
+): Promise<{
+	wrappedWorkspaceKey: ArrayBuffer;
+	ephemeralPublicKey: ArrayBuffer;
+}> {
 	// Generate workspace AES-256-GCM key and export raw bytes
 	const workspaceKey = await crypto.subtle.generateKey(
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true,
-		['encrypt', 'decrypt']
+		["encrypt", "decrypt"],
 	);
-	const workspaceKeyRaw = await crypto.subtle.exportKey('raw', workspaceKey);
+	const workspaceKeyRaw = await crypto.subtle.exportKey("raw", workspaceKey);
 
 	// Import recipient identity public key as X25519
 	const recipientKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		recipientPublicKeyBytes,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false,
-		[]
+		[],
 	);
 
 	// Ephemeral X25519 keypair for ECIES
-	const ephemeral = (await crypto.subtle.generateKey(
-		{ name: 'X25519' },
-		true,
-		['deriveKey', 'deriveBits']
-	)) as CryptoKeyPair;
+	const ephemeral = (await crypto.subtle.generateKey({ name: "X25519" }, true, [
+		"deriveKey",
+		"deriveBits",
+	])) as CryptoKeyPair;
 
 	// ECDH → HKDF → AES-256-GCM encryption key
 	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: recipientKey },
+		{ name: "X25519", public: recipientKey },
 		ephemeral.privateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
-	const encKey = await hkdfDeriveAesKey(sharedSecret, INFO.workspaceKey(), ['encrypt'], false);
+	const encKey = await hkdfDeriveAesKey(
+		sharedSecret,
+		INFO.workspaceKey(),
+		["encrypt"],
+		false,
+	);
 
 	// AES-GCM encrypt the raw workspace key bytes → [IV][ciphertext]
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
 		aesGcmParams(iv, additionalData),
 		encKey,
-		workspaceKeyRaw
+		workspaceKeyRaw,
 	);
-	const wrappedWorkspaceKey = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
+	const wrappedWorkspaceKey = new Uint8Array(
+		AES_IV_BYTES + ciphertext.byteLength,
+	);
 	wrappedWorkspaceKey.set(iv, 0);
 	wrappedWorkspaceKey.set(new Uint8Array(ciphertext), AES_IV_BYTES);
 
-	const ephemeralPublicKey = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+	const ephemeralPublicKey = await crypto.subtle.exportKey(
+		"raw",
+		ephemeral.publicKey,
+	);
 
 	return {
 		wrappedWorkspaceKey: wrappedWorkspaceKey.buffer as ArrayBuffer,
-		ephemeralPublicKey: ephemeralPublicKey as ArrayBuffer
+		ephemeralPublicKey: ephemeralPublicKey as ArrayBuffer,
 	};
 }
 
@@ -559,7 +618,7 @@ export async function generateAndWrapWorkspaceKey(
  */
 export async function unwrapIdentityPrivateKey(
 	blob: ArrayBuffer,
-	masterKey: CryptoKey
+	masterKey: CryptoKey,
 ): Promise<CryptoKey> {
 	const bytes = new Uint8Array(blob);
 	const iv = bytes.slice(0, AES_IV_BYTES);
@@ -568,16 +627,13 @@ export async function unwrapIdentityPrivateKey(
 	const pkcs8 = await crypto.subtle.decrypt(
 		{ name: AES_ALGORITHM, iv, tagLength: 128 },
 		masterKey,
-		ciphertext
+		ciphertext,
 	);
 
-	return crypto.subtle.importKey(
-		'pkcs8',
-		pkcs8,
-		{ name: 'X25519' },
-		true,
-		['deriveKey', 'deriveBits']
-	);
+	return crypto.subtle.importKey("pkcs8", pkcs8, { name: "X25519" }, true, [
+		"deriveKey",
+		"deriveBits",
+	]);
 }
 
 /**
@@ -592,17 +648,28 @@ export async function decryptWorkspaceKey(
 	wrappedKey: ArrayBuffer,
 	ephPubBytes: ArrayBuffer,
 	identityPrivKey: CryptoKey,
-	additionalData?: BufferSource
+	additionalData?: BufferSource,
 ): Promise<CryptoKey> {
-	const ephPubKey = await crypto.subtle.importKey('raw', ephPubBytes, { name: 'X25519' }, false, []);
-	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: ephPubKey },
-		identityPrivKey,
-		{ name: 'HKDF' },
+	const ephPubKey = await crypto.subtle.importKey(
+		"raw",
+		ephPubBytes,
+		{ name: "X25519" },
 		false,
-		['deriveKey']
+		[],
 	);
-	const decKey = await hkdfDeriveAesKey(sharedSecret, INFO.workspaceKey(), ['decrypt'], false);
+	const sharedSecret = await crypto.subtle.deriveKey(
+		{ name: "X25519", public: ephPubKey },
+		identityPrivKey,
+		{ name: "HKDF" },
+		false,
+		["deriveKey"],
+	);
+	const decKey = await hkdfDeriveAesKey(
+		sharedSecret,
+		INFO.workspaceKey(),
+		["decrypt"],
+		false,
+	);
 
 	const wrappedBytes = new Uint8Array(wrappedKey);
 	const iv = wrappedBytes.slice(0, AES_IV_BYTES);
@@ -610,15 +677,15 @@ export async function decryptWorkspaceKey(
 	const rawWorkspaceKey = await crypto.subtle.decrypt(
 		aesGcmParams(iv, additionalData),
 		decKey,
-		ciphertext
+		ciphertext,
 	);
 
 	return crypto.subtle.importKey(
-		'raw',
+		"raw",
 		rawWorkspaceKey,
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true,
-		['encrypt', 'decrypt']
+		["encrypt", "decrypt"],
 	);
 }
 
@@ -636,26 +703,34 @@ export async function rewrapWorkspaceKey(
 	ephPubBytes: ArrayBuffer,
 	identityPrivKey: CryptoKey,
 	recipientPubKeyBytes: ArrayBuffer,
-	additionalData?: BufferSource
-): Promise<{ wrappedWorkspaceKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
+	additionalData?: BufferSource,
+): Promise<{
+	wrappedWorkspaceKey: ArrayBuffer;
+	ephemeralPublicKey: ArrayBuffer;
+}> {
 	// ── Decrypt ──────────────────────────────────────────────────────────────
 
 	const ephPubKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		ephPubBytes,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false,
-		[]
+		[],
 	);
 
 	const decShared = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: ephPubKey },
+		{ name: "X25519", public: ephPubKey },
 		identityPrivKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
-	const decKey = await hkdfDeriveAesKey(decShared, INFO.workspaceKey(), ['decrypt'], false);
+	const decKey = await hkdfDeriveAesKey(
+		decShared,
+		INFO.workspaceKey(),
+		["decrypt"],
+		false,
+	);
 
 	const wrappedBytes = new Uint8Array(wrappedKey);
 	const decIv = wrappedBytes.slice(0, AES_IV_BYTES);
@@ -663,49 +738,53 @@ export async function rewrapWorkspaceKey(
 	const rawWorkspaceKey = await crypto.subtle.decrypt(
 		aesGcmParams(decIv, additionalData),
 		decKey,
-		decCiphertext
+		decCiphertext,
 	);
 
 	// ── Re-encrypt for recipient ──────────────────────────────────────────────
 
 	const recipientPubKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		recipientPubKeyBytes,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false,
-		[]
+		[],
 	);
 
-	const ephemeral = (await crypto.subtle.generateKey(
-		{ name: 'X25519' },
-		true,
-		['deriveKey', 'deriveBits']
-	)) as CryptoKeyPair;
+	const ephemeral = (await crypto.subtle.generateKey({ name: "X25519" }, true, [
+		"deriveKey",
+		"deriveBits",
+	])) as CryptoKeyPair;
 
 	const encShared = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: recipientPubKey },
+		{ name: "X25519", public: recipientPubKey },
 		ephemeral.privateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
-	const encKey = await hkdfDeriveAesKey(encShared, INFO.workspaceKey(), ['encrypt'], false);
+	const encKey = await hkdfDeriveAesKey(
+		encShared,
+		INFO.workspaceKey(),
+		["encrypt"],
+		false,
+	);
 
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
 		aesGcmParams(iv, additionalData),
 		encKey,
-		rawWorkspaceKey
+		rawWorkspaceKey,
 	);
 
 	const out = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
 	out.set(iv, 0);
 	out.set(new Uint8Array(ciphertext), AES_IV_BYTES);
 
-	const newEphPub = await crypto.subtle.exportKey('raw', ephemeral.publicKey);
+	const newEphPub = await crypto.subtle.exportKey("raw", ephemeral.publicKey);
 	return {
 		wrappedWorkspaceKey: out.buffer as ArrayBuffer,
-		ephemeralPublicKey: newEphPub as ArrayBuffer
+		ephemeralPublicKey: newEphPub as ArrayBuffer,
 	};
 }
 
@@ -722,14 +801,14 @@ export async function rewrapWorkspaceKey(
 export async function wrapFormKey(
 	formKey: CryptoKey,
 	workspaceKey: CryptoKey,
-	additionalData?: BufferSource
+	additionalData?: BufferSource,
 ): Promise<ArrayBuffer> {
-	const rawFormKey = await crypto.subtle.exportKey('raw', formKey);
+	const rawFormKey = await crypto.subtle.exportKey("raw", formKey);
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
 	const ciphertext = await crypto.subtle.encrypt(
 		aesGcmParams(iv, additionalData),
 		workspaceKey,
-		rawFormKey
+		rawFormKey,
 	);
 	const out = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
 	out.set(iv, 0);
@@ -745,7 +824,7 @@ export async function wrapFormKey(
 export async function unwrapFormKey(
 	blob: ArrayBuffer,
 	workspaceKey: CryptoKey,
-	additionalData?: BufferSource
+	additionalData?: BufferSource,
 ): Promise<CryptoKey> {
 	const bytes = new Uint8Array(blob);
 	const iv = bytes.slice(0, AES_IV_BYTES);
@@ -753,14 +832,14 @@ export async function unwrapFormKey(
 	const rawFormKey = await crypto.subtle.decrypt(
 		aesGcmParams(iv, additionalData),
 		workspaceKey,
-		ciphertext
+		ciphertext,
 	);
 	return crypto.subtle.importKey(
-		'raw',
+		"raw",
 		rawFormKey,
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true, // extractable — same requirement as deriveFormKey
-		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+		["encrypt", "decrypt", "wrapKey", "unwrapKey"],
 	);
 }
 
@@ -773,12 +852,12 @@ export async function unwrapFormKey(
  * Rejection sampling: bytes ≥ 252 are discarded to eliminate modulo bias.
  * floor(256 / 36) * 36 = 252 — the rejection threshold.
  */
-const RECOVERY_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const RECOVERY_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const RECOVERY_CHARSET_LEN = RECOVERY_CHARSET.length; // 36
 const REJECTION_THRESHOLD = 252; // 7 * 36 = 252
 
 function generateCodeSegment(length: number): string {
-	let result = '';
+	let result = "";
 	while (result.length < length) {
 		const bytes = crypto.getRandomValues(new Uint8Array(length * 2));
 		for (const byte of bytes) {
@@ -800,7 +879,7 @@ function generateCodeSegment(length: number): string {
  */
 export function generateRecoveryCode(): string {
 	const segments = Array.from({ length: 12 }, () => generateCodeSegment(4));
-	return `GHRK-${segments.join('-')}`;
+	return `GHRK-${segments.join("-")}`;
 }
 
 /**
@@ -809,9 +888,11 @@ export function generateRecoveryCode(): string {
  * Throws if the format is invalid.
  */
 export function parseRecoveryCode(code: string): string[] {
-	const parts = code.toUpperCase().replace(/\s/g, '').split('-');
-	if (parts[0] !== 'GHRK' || parts.length !== 13) {
-		throw new Error('Invalid recovery code — expected GHRK-XXXX-XXXX-...-XXXX (12 segments)');
+	const parts = code.toUpperCase().replace(/\s/g, "").split("-");
+	if (parts[0] !== "GHRK" || parts.length !== 13) {
+		throw new Error(
+			"Invalid recovery code — expected GHRK-XXXX-XXXX-...-XXXX (12 segments)",
+		);
 	}
 	return parts.slice(1);
 }
@@ -825,52 +906,280 @@ export function parseRecoveryCode(code: string): string[] {
  * Fingerprint = SHA-256(pubKey)[0:4] → 4 words joined with '-'.
  */
 const FINGERPRINT_WORDS: readonly string[] = [
-	'able','acid','aged','also','arch','army','aunt','away',
-	'back','bald','ball','band','barn','base','bath','beam',
-	'bean','bear','beat','been','bell','best','bird','blow',
-	'blue','bolt','bond','bone','book','born','both','bowl',
-	'brew','brow','bull','burn','cafe','cage','cake','call',
-	'calm','came','camp','card','care','cart','case','cash',
-	'cave','cell','chat','chip','cite','city','clam','clap',
-	'clay','clip','club','clue','coal','coat','code','coil',
-	'coin','cold','comb','come','cool','cope','copy','cord',
-	'core','corn','cost','cozy','crab','crew','crop','crow',
-	'cube','cult','curb','cure','dark','dart','dash','data',
-	'date','dawn','deal','dean','debt','deck','deed','deep',
-	'deny','desk','dial','dice','diet','dirt','disk','dock',
-	'dome','door','dose','dove','down','drag','draw','drip',
-	'drop','drum','dual','dull','dump','dune','dust','duty',
-	'each','earn','ease','edge','emit','epic','even','exam',
-	'exit','fact','fade','fail','fair','fall','fame','fare',
-	'farm','fast','fate','fear','feed','feel','fell','fern',
-	'fill','film','find','fire','firm','fish','fist','flag',
-	'flat','flew','flip','flow','foam','fold','folk','font',
-	'food','fool','ford','fork','form','fort','foul','four',
-	'free','from','fuel','full','fume','fund','fuse','gain',
-	'gale','game','gate','gave','gaze','gear','germ','gift',
-	'give','glad','glow','glue','goal','gone','good','gown',
-	'grab','gram','gray','grew','grin','grip','grow','gulf',
-	'gust','half','hall','halt','hand','hang','hard','harm',
-	'hash','haze','head','heal','heap','heat','heel','held',
-	'helm','help','herb','here','hero','hide','high','hill',
-	'hint','hire','hold','hole','holy','home','hood','hook',
-	'hope','horn','host','hour','howl','hull','hunt','hurt',
-	'icon','idea','idle','iris','iron','isle','item','jade',
-	'jail','jest','jolt','jump','just','keep','kelp','knot',
+	"able",
+	"acid",
+	"aged",
+	"also",
+	"arch",
+	"army",
+	"aunt",
+	"away",
+	"back",
+	"bald",
+	"ball",
+	"band",
+	"barn",
+	"base",
+	"bath",
+	"beam",
+	"bean",
+	"bear",
+	"beat",
+	"been",
+	"bell",
+	"best",
+	"bird",
+	"blow",
+	"blue",
+	"bolt",
+	"bond",
+	"bone",
+	"book",
+	"born",
+	"both",
+	"bowl",
+	"brew",
+	"brow",
+	"bull",
+	"burn",
+	"cafe",
+	"cage",
+	"cake",
+	"call",
+	"calm",
+	"came",
+	"camp",
+	"card",
+	"care",
+	"cart",
+	"case",
+	"cash",
+	"cave",
+	"cell",
+	"chat",
+	"chip",
+	"cite",
+	"city",
+	"clam",
+	"clap",
+	"clay",
+	"clip",
+	"club",
+	"clue",
+	"coal",
+	"coat",
+	"code",
+	"coil",
+	"coin",
+	"cold",
+	"comb",
+	"come",
+	"cool",
+	"cope",
+	"copy",
+	"cord",
+	"core",
+	"corn",
+	"cost",
+	"cozy",
+	"crab",
+	"crew",
+	"crop",
+	"crow",
+	"cube",
+	"cult",
+	"curb",
+	"cure",
+	"dark",
+	"dart",
+	"dash",
+	"data",
+	"date",
+	"dawn",
+	"deal",
+	"dean",
+	"debt",
+	"deck",
+	"deed",
+	"deep",
+	"deny",
+	"desk",
+	"dial",
+	"dice",
+	"diet",
+	"dirt",
+	"disk",
+	"dock",
+	"dome",
+	"door",
+	"dose",
+	"dove",
+	"down",
+	"drag",
+	"draw",
+	"drip",
+	"drop",
+	"drum",
+	"dual",
+	"dull",
+	"dump",
+	"dune",
+	"dust",
+	"duty",
+	"each",
+	"earn",
+	"ease",
+	"edge",
+	"emit",
+	"epic",
+	"even",
+	"exam",
+	"exit",
+	"fact",
+	"fade",
+	"fail",
+	"fair",
+	"fall",
+	"fame",
+	"fare",
+	"farm",
+	"fast",
+	"fate",
+	"fear",
+	"feed",
+	"feel",
+	"fell",
+	"fern",
+	"fill",
+	"film",
+	"find",
+	"fire",
+	"firm",
+	"fish",
+	"fist",
+	"flag",
+	"flat",
+	"flew",
+	"flip",
+	"flow",
+	"foam",
+	"fold",
+	"folk",
+	"font",
+	"food",
+	"fool",
+	"ford",
+	"fork",
+	"form",
+	"fort",
+	"foul",
+	"four",
+	"free",
+	"from",
+	"fuel",
+	"full",
+	"fume",
+	"fund",
+	"fuse",
+	"gain",
+	"gale",
+	"game",
+	"gate",
+	"gave",
+	"gaze",
+	"gear",
+	"germ",
+	"gift",
+	"give",
+	"glad",
+	"glow",
+	"glue",
+	"goal",
+	"gone",
+	"good",
+	"gown",
+	"grab",
+	"gram",
+	"gray",
+	"grew",
+	"grin",
+	"grip",
+	"grow",
+	"gulf",
+	"gust",
+	"half",
+	"hall",
+	"halt",
+	"hand",
+	"hang",
+	"hard",
+	"harm",
+	"hash",
+	"haze",
+	"head",
+	"heal",
+	"heap",
+	"heat",
+	"heel",
+	"held",
+	"helm",
+	"help",
+	"herb",
+	"here",
+	"hero",
+	"hide",
+	"high",
+	"hill",
+	"hint",
+	"hire",
+	"hold",
+	"hole",
+	"holy",
+	"home",
+	"hood",
+	"hook",
+	"hope",
+	"horn",
+	"host",
+	"hour",
+	"howl",
+	"hull",
+	"hunt",
+	"hurt",
+	"icon",
+	"idea",
+	"idle",
+	"iris",
+	"iron",
+	"isle",
+	"item",
+	"jade",
+	"jail",
+	"jest",
+	"jolt",
+	"jump",
+	"just",
+	"keep",
+	"kelp",
+	"knot",
 ];
 
 /**
  * Derive a 4-word fingerprint from 32 bytes of an X25519 public key.
  * Uses SHA-256(pubKeyBytes)[0:4], one word per byte from FINGERPRINT_WORDS.
  */
-export async function pairingFingerprint(pubKeyBytes: ArrayBuffer): Promise<string> {
-	const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', pubKeyBytes));
+export async function pairingFingerprint(
+	pubKeyBytes: ArrayBuffer,
+): Promise<string> {
+	const hash = new Uint8Array(
+		await crypto.subtle.digest("SHA-256", pubKeyBytes),
+	);
 	return [
 		FINGERPRINT_WORDS[hash[0]],
 		FINGERPRINT_WORDS[hash[1]],
 		FINGERPRINT_WORDS[hash[2]],
 		FINGERPRINT_WORDS[hash[3]],
-	].join('-');
+	].join("-");
 }
 
 /**
@@ -882,11 +1191,14 @@ export async function generatePairingKeypair(): Promise<{
 	publicKeyBytes: ArrayBuffer;
 }> {
 	const keypair = (await crypto.subtle.generateKey(
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false, // private key stays non-extractable
-		['deriveKey', 'deriveBits']
+		["deriveKey", "deriveBits"],
 	)) as CryptoKeyPair;
-	const publicKeyBytes = (await crypto.subtle.exportKey('raw', keypair.publicKey)) as ArrayBuffer;
+	const publicKeyBytes = (await crypto.subtle.exportKey(
+		"raw",
+		keypair.publicKey,
+	)) as ArrayBuffer;
 	return { privateKey: keypair.privateKey, publicKeyBytes };
 }
 
@@ -901,42 +1213,56 @@ export async function generatePairingKeypair(): Promise<{
  */
 export async function wrapMasterKeyForPairing(
 	masterKey: CryptoKey,
-	newDevicePubKeyBytes: ArrayBuffer
+	newDevicePubKeyBytes: ArrayBuffer,
 ): Promise<{ wrappedMasterKey: ArrayBuffer; ephemeralPublicKey: ArrayBuffer }> {
-	const masterKeyRaw = await crypto.subtle.exportKey('raw', masterKey);
+	const masterKeyRaw = await crypto.subtle.exportKey("raw", masterKey);
 
 	const recipientKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		newDevicePubKeyBytes,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false,
-		[]
+		[],
 	);
 
-	const ephemeral = (await crypto.subtle.generateKey(
-		{ name: 'X25519' },
-		true,
-		['deriveKey', 'deriveBits']
-	)) as CryptoKeyPair;
+	const ephemeral = (await crypto.subtle.generateKey({ name: "X25519" }, true, [
+		"deriveKey",
+		"deriveBits",
+	])) as CryptoKeyPair;
 
 	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: recipientKey },
+		{ name: "X25519", public: recipientKey },
 		ephemeral.privateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
-	const encKey = await hkdfDeriveAesKey(sharedSecret, INFO.pairingKey(), ['encrypt'], false);
+	const encKey = await hkdfDeriveAesKey(
+		sharedSecret,
+		INFO.pairingKey(),
+		["encrypt"],
+		false,
+	);
 
 	const iv = crypto.getRandomValues(new Uint8Array(AES_IV_BYTES));
-	const ciphertext = await crypto.subtle.encrypt(aesGcmParams(iv), encKey, masterKeyRaw);
+	const ciphertext = await crypto.subtle.encrypt(
+		aesGcmParams(iv),
+		encKey,
+		masterKeyRaw,
+	);
 
 	const wrapped = new Uint8Array(AES_IV_BYTES + ciphertext.byteLength);
 	wrapped.set(iv);
 	wrapped.set(new Uint8Array(ciphertext), AES_IV_BYTES);
 
-	const ephemeralPubKeyRaw = (await crypto.subtle.exportKey('raw', ephemeral.publicKey)) as ArrayBuffer;
-	return { wrappedMasterKey: wrapped.buffer as ArrayBuffer, ephemeralPublicKey: ephemeralPubKeyRaw };
+	const ephemeralPubKeyRaw = (await crypto.subtle.exportKey(
+		"raw",
+		ephemeral.publicKey,
+	)) as ArrayBuffer;
+	return {
+		wrappedMasterKey: wrapped.buffer as ArrayBuffer,
+		ephemeralPublicKey: ephemeralPubKeyRaw,
+	};
 }
 
 /**
@@ -950,36 +1276,45 @@ export async function wrapMasterKeyForPairing(
 export async function unwrapMasterKeyFromPairing(
 	wrappedMasterKey: ArrayBuffer,
 	ephemeralPubKeyBytes: ArrayBuffer,
-	privateKey: CryptoKey
+	privateKey: CryptoKey,
 ): Promise<CryptoKey> {
 	const ephemeralPubKey = await crypto.subtle.importKey(
-		'raw',
+		"raw",
 		ephemeralPubKeyBytes,
-		{ name: 'X25519' },
+		{ name: "X25519" },
 		false,
-		[]
+		[],
 	);
 
 	const sharedSecret = await crypto.subtle.deriveKey(
-		{ name: 'X25519', public: ephemeralPubKey },
+		{ name: "X25519", public: ephemeralPubKey },
 		privateKey,
-		{ name: 'HKDF' },
+		{ name: "HKDF" },
 		false,
-		['deriveKey']
+		["deriveKey"],
 	);
-	const decKey = await hkdfDeriveAesKey(sharedSecret, INFO.pairingKey(), ['decrypt'], false);
+	const decKey = await hkdfDeriveAesKey(
+		sharedSecret,
+		INFO.pairingKey(),
+		["decrypt"],
+		false,
+	);
 
 	const bytes = new Uint8Array(wrappedMasterKey);
 	const iv = bytes.slice(0, AES_IV_BYTES);
 	const ciphertext = bytes.slice(AES_IV_BYTES);
 
-	const masterKeyRaw = await crypto.subtle.decrypt(aesGcmParams(iv), decKey, ciphertext);
+	const masterKeyRaw = await crypto.subtle.decrypt(
+		aesGcmParams(iv),
+		decKey,
+		ciphertext,
+	);
 
 	return crypto.subtle.importKey(
-		'raw',
+		"raw",
 		masterKeyRaw,
 		{ name: AES_ALGORITHM, length: AES_KEY_LENGTH },
 		true,
-		['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
+		["encrypt", "decrypt", "wrapKey", "unwrapKey"],
 	);
 }

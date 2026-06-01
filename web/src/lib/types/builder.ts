@@ -6,17 +6,17 @@
  */
 
 export type FieldType =
-	| 'short_text'
-	| 'long_text'
-	| 'multiple_choice'
-	| 'checkboxes'
-	| 'dropdown'
-	| 'date_time'
-	| 'rating'
-	| 'section_break'
-	| 'heading'
-	| 'accordion'
-	| 'accent';
+	| "short_text"
+	| "long_text"
+	| "multiple_choice"
+	| "checkboxes"
+	| "dropdown"
+	| "date_time"
+	| "rating"
+	| "section_break"
+	| "heading"
+	| "accordion"
+	| "accent";
 
 export interface ShortTextConfig {
 	maxLength?: number;
@@ -49,32 +49,36 @@ export interface DropdownConfig {
 }
 
 export interface DateTimeConfig {
-	mode: 'date' | 'time' | 'datetime';
+	mode: "date" | "time" | "datetime";
 	min?: string;
 	max?: string;
 }
 
 export interface RatingConfig {
 	scale: 5 | 10;
-	shape: 'star' | 'number';
+	shape: "star" | "number";
 }
 
-export interface SectionBreakConfig {
-	// no config
-}
+export type SectionBreakConfig = {};
 
 export interface HeadingConfig {
 	level: 0 | 1 | 2 | 3 | 4; // 0 = paragraph, 4 = subtext
 }
 
-export interface AccordionConfig {
-	// no config — title in translation.label, body in translation.helpText
-}
+export type AccordionConfig = {};
 
-export type AccentIcon = 'shield' | 'lock' | 'check' | 'info' | 'alert' | 'star' | 'bell' | 'zap';
+export type AccentIcon =
+	| "shield"
+	| "lock"
+	| "check"
+	| "info"
+	| "alert"
+	| "star"
+	| "bell"
+	| "zap";
 
 export interface AccentConfig {
-	variant: 'note' | 'warning' | 'danger' | 'success';
+	variant: "note" | "warning" | "danger" | "success";
 	icon?: AccentIcon;
 }
 
@@ -120,7 +124,7 @@ export interface BuilderSchema {
 	version: number;
 	defaultLocale: string;
 	locales: string[];
-	layout: 'scroll' | 'steps' | 'convo';
+	layout: "scroll" | "steps" | "convo";
 	convoAllowEdit?: boolean;
 	showWatermark?: boolean;
 	legalText?: string;
@@ -135,7 +139,10 @@ export interface BuilderSchema {
 
 /** Returns fields sorted for the given locale, using locale-specific ordering
  *  if available, otherwise the default-locale order, otherwise field.order. */
-export function getOrderedFields(schema: BuilderSchema, locale: string): BuilderField[] {
+export function getOrderedFields(
+	schema: BuilderSchema,
+	locale: string,
+): BuilderField[] {
 	const ids =
 		schema.fieldOrders?.[locale] ??
 		schema.fieldOrders?.[schema.defaultLocale] ??

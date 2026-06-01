@@ -1,153 +1,205 @@
 <script lang="ts">
-	import type { BuilderSchema, BuilderField, ChoiceOption } from '$lib/types/builder';
-	import { getOrderedFields } from '$lib/types/builder';
-	import type { ResponsePayload } from '$lib/types/crypto';
-	import { submitResponse } from '$lib/forms';
-	import { validateAnswer } from '$lib/validation';
-	import type { AnswerValue } from '$lib/validation';
-	import FieldRenderer from './FieldRenderer.svelte';
-	import { Languages, ShieldCheck, Lock, Shield, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
-	import type { AccentIcon } from '$lib/types/builder';
+import {
+	Bell,
+	CircleCheck,
+	Info,
+	Languages,
+	Lock,
+	Shield,
+	ShieldCheck,
+	Star,
+	TriangleAlert,
+	Zap,
+} from "@lucide/svelte";
+import { submitResponse } from "$lib/forms";
+import type {
+	AccentIcon,
+	BuilderField,
+	BuilderSchema,
+	ChoiceOption,
+} from "$lib/types/builder";
+import { getOrderedFields } from "$lib/types/builder";
+import type { ResponsePayload } from "$lib/types/crypto";
+import type { AnswerValue } from "$lib/validation";
+import { validateAnswer } from "$lib/validation";
+import FieldRenderer from "./FieldRenderer.svelte";
 
-	const iconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
+const iconMap: Record<AccentIcon, typeof Lock> = {
+	lock: Lock,
+	shield: Shield,
+	check: CircleCheck,
+	info: Info,
+	alert: TriangleAlert,
+	star: Star,
+	bell: Bell,
+	zap: Zap,
+};
 
-	interface Props {
-		schema: BuilderSchema;
-		formId: string;
-		publicFormKey: ArrayBuffer;
-		pgpPublicKey: string | null;
-		schemaVersion: number;
-		locale: string;
-		locales: string[];
-		honeypotFields: string[];
-		loadToken: string;
-		onsubmitted: () => void;
-		onlocalechange: (code: string) => void;
-	}
+interface Props {
+	schema: BuilderSchema;
+	formId: string;
+	publicFormKey: ArrayBuffer;
+	pgpPublicKey: string | null;
+	schemaVersion: number;
+	locale: string;
+	locales: string[];
+	honeypotFields: string[];
+	loadToken: string;
+	onsubmitted: () => void;
+	onlocalechange: (code: string) => void;
+}
 
-	const { schema, formId, publicFormKey, pgpPublicKey, schemaVersion, locale, locales, honeypotFields, loadToken, onsubmitted, onlocalechange }: Props = $props();
+const {
+	schema,
+	formId,
+	publicFormKey,
+	pgpPublicKey,
+	schemaVersion,
+	locale,
+	locales,
+	honeypotFields,
+	loadToken,
+	onsubmitted,
+	onlocalechange,
+}: Props = $props();
 
-	const translation = $derived(
-		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
-	);
+const translation = $derived(
+	schema.translations[locale] ?? schema.translations[schema.defaultLocale],
+);
 
-	// Split fields into steps: each section_break starts a new step
-	function computeSteps(fields: BuilderField[]): BuilderField[][] {
-		const groups: BuilderField[][] = [[]];
-		for (const field of fields) {
-			if (field.type === 'section_break') {
-				groups.push([field]);
-			} else {
-				groups[groups.length - 1].push(field);
-			}
-		}
-		return groups.filter((g) => g.length > 0);
-	}
-
-	const steps = $derived(computeSteps(getOrderedFields(schema, locale)));
-	const totalSteps = $derived(steps.length);
-
-	let currentStep = $state(0);
-	let answers = $state<Record<string, AnswerValue>>({});
-	let errors = $state<Record<string, string>>({});
-	let submitting = $state(false);
-	let submitError = $state<string | null>(null);
-	let honeypotValues = $state<Record<string, string>>({});
-
-	const isLastStep = $derived(currentStep === totalSteps - 1);
-	const currentFields = $derived(steps[currentStep] ?? []);
-
-	function fieldTranslation(fieldId: string) {
-		return translation?.fields[fieldId] ?? { label: fieldId };
-	}
-
-	function setAnswer(fieldId: string, v: AnswerValue) {
-		answers = { ...answers, [fieldId]: v };
-		if (errors[fieldId]) {
-			const next = { ...errors };
-			delete next[fieldId];
-			errors = next;
-		}
-	}
-
-	function validateCurrentStep(): boolean {
-		const stepErrors: Record<string, string> = {};
-		for (const field of currentFields) {
-			if (field.type === 'section_break') continue;
-			const err = validateAnswer(field, answers[field.id]);
-			if (err) stepErrors[field.id] = err;
-		}
-		errors = { ...errors, ...stepErrors };
-		return Object.keys(stepErrors).length === 0;
-	}
-
-	function handleNext() {
-		if (!validateCurrentStep()) return;
-		currentStep = Math.min(currentStep + 1, totalSteps - 1);
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function handleBack() {
-		currentStep = Math.max(currentStep - 1, 0);
-		window.scrollTo({ top: 0, behavior: 'smooth' });
-	}
-
-	function resolveChoiceLabel(field: BuilderField, optionId: string): string {
-		const config = field.config as { options: ChoiceOption[] };
-		const sorted = [...config.options].sort((a, b) => a.order - b.order);
-		const idx = sorted.findIndex((o) => o.id === optionId);
-		return translation?.fields[field.id]?.options?.[idx] ?? optionId;
-	}
-
-	function formatResponseForEmail(payload: ResponsePayload): string {
-		const lines: string[] = [
-			`Form response — ${new Date(payload.submittedAt).toLocaleString()}`,
-			'',
-		];
-		for (const field of getOrderedFields(schema, locale)) {
-			if (field.type === 'section_break' || field.type === 'heading') continue;
-			const label = translation?.fields[field.id]?.label ?? field.id;
-			const raw = payload.answers[field.id];
-			if (raw === undefined || raw === null) continue;
-			const isChoice =
-				field.type === 'multiple_choice' ||
-				field.type === 'checkboxes' ||
-				field.type === 'dropdown';
-			let value: string;
-			if (isChoice) {
-				const ids = Array.isArray(raw) ? raw : [String(raw)];
-				value = ids.map((id) => resolveChoiceLabel(field, id)).join(', ');
-			} else {
-				value = Array.isArray(raw) ? raw.join(', ') : String(raw);
-			}
-			lines.push(label);
-			lines.push(value);
-			lines.push('');
-		}
-		return lines.join('\n');
-	}
-
-	async function handleSubmit() {
-		if (!validateCurrentStep()) return;
-		submitting = true;
-		submitError = null;
-		try {
-			const payload: ResponsePayload = {
-				submittedAt: new Date().toISOString(),
-				locale,
-				answers: Object.fromEntries(
-					Object.entries(answers).filter(([, v]) => v !== undefined && v !== null)
-				) as ResponsePayload['answers']
-			};
-			const pgpPlaintext = pgpPublicKey ? formatResponseForEmail(payload) : undefined;
-			await submitResponse(formId, publicFormKey, payload, schemaVersion, loadToken, honeypotValues, pgpPublicKey, pgpPlaintext);
-			onsubmitted();
-		} catch (err) {
-			submitError = err instanceof Error ? err.message : 'Submission failed. Please try again.';
-		} finally {
-			submitting = false;
+// Split fields into steps: each section_break starts a new step
+function computeSteps(fields: BuilderField[]): BuilderField[][] {
+	const groups: BuilderField[][] = [[]];
+	for (const field of fields) {
+		if (field.type === "section_break") {
+			groups.push([field]);
+		} else {
+			groups[groups.length - 1].push(field);
 		}
 	}
+	return groups.filter((g) => g.length > 0);
+}
+
+const steps = $derived(computeSteps(getOrderedFields(schema, locale)));
+const totalSteps = $derived(steps.length);
+
+let currentStep = $state(0);
+let answers = $state<Record<string, AnswerValue>>({});
+let errors = $state<Record<string, string>>({});
+let submitting = $state(false);
+let submitError = $state<string | null>(null);
+let honeypotValues = $state<Record<string, string>>({});
+
+const isLastStep = $derived(currentStep === totalSteps - 1);
+const currentFields = $derived(steps[currentStep] ?? []);
+
+function fieldTranslation(fieldId: string) {
+	return translation?.fields[fieldId] ?? { label: fieldId };
+}
+
+function setAnswer(fieldId: string, v: AnswerValue) {
+	answers = { ...answers, [fieldId]: v };
+	if (errors[fieldId]) {
+		const next = { ...errors };
+		delete next[fieldId];
+		errors = next;
+	}
+}
+
+function validateCurrentStep(): boolean {
+	const stepErrors: Record<string, string> = {};
+	for (const field of currentFields) {
+		if (field.type === "section_break") continue;
+		const err = validateAnswer(field, answers[field.id]);
+		if (err) stepErrors[field.id] = err;
+	}
+	errors = { ...errors, ...stepErrors };
+	return Object.keys(stepErrors).length === 0;
+}
+
+function handleNext() {
+	if (!validateCurrentStep()) return;
+	currentStep = Math.min(currentStep + 1, totalSteps - 1);
+	window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function handleBack() {
+	currentStep = Math.max(currentStep - 1, 0);
+	window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resolveChoiceLabel(field: BuilderField, optionId: string): string {
+	const config = field.config as { options: ChoiceOption[] };
+	const sorted = [...config.options].sort((a, b) => a.order - b.order);
+	const idx = sorted.findIndex((o) => o.id === optionId);
+	return translation?.fields[field.id]?.options?.[idx] ?? optionId;
+}
+
+function formatResponseForEmail(payload: ResponsePayload): string {
+	const lines: string[] = [
+		`Form response — ${new Date(payload.submittedAt).toLocaleString()}`,
+		"",
+	];
+	for (const field of getOrderedFields(schema, locale)) {
+		if (field.type === "section_break" || field.type === "heading") continue;
+		const label = translation?.fields[field.id]?.label ?? field.id;
+		const raw = payload.answers[field.id];
+		if (raw === undefined || raw === null) continue;
+		const isChoice =
+			field.type === "multiple_choice" ||
+			field.type === "checkboxes" ||
+			field.type === "dropdown";
+		let value: string;
+		if (isChoice) {
+			const ids = Array.isArray(raw) ? raw : [String(raw)];
+			value = ids.map((id) => resolveChoiceLabel(field, id)).join(", ");
+		} else {
+			value = Array.isArray(raw) ? raw.join(", ") : String(raw);
+		}
+		lines.push(label);
+		lines.push(value);
+		lines.push("");
+	}
+	return lines.join("\n");
+}
+
+async function handleSubmit() {
+	if (!validateCurrentStep()) return;
+	submitting = true;
+	submitError = null;
+	try {
+		const payload: ResponsePayload = {
+			submittedAt: new Date().toISOString(),
+			locale,
+			answers: Object.fromEntries(
+				Object.entries(answers).filter(
+					([, v]) => v !== undefined && v !== null,
+				),
+			) as ResponsePayload["answers"],
+		};
+		const pgpPlaintext = pgpPublicKey
+			? formatResponseForEmail(payload)
+			: undefined;
+		await submitResponse(
+			formId,
+			publicFormKey,
+			payload,
+			schemaVersion,
+			loadToken,
+			honeypotValues,
+			pgpPublicKey,
+			pgpPlaintext,
+		);
+		onsubmitted();
+	} catch (err) {
+		submitError =
+			err instanceof Error
+				? err.message
+				: "Submission failed. Please try again.";
+	} finally {
+		submitting = false;
+	}
+}
 </script>
 
 <div class="w-full max-w-3xl mt-8 sm:mt-14 mx-auto pb-20 px-5 sm:px-0 font-[system-ui,sans-serif] text-form-text">

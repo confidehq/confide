@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { planLabel } from '$lib/utils/plan';
-	import { Building2 } from '@lucide/svelte';
+import { Building2 } from "@lucide/svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import { planLabel } from "$lib/utils/plan";
 </script>
 
 {#if workspacesStore.active}

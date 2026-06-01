@@ -5,14 +5,15 @@ export function tooltip(node: HTMLElement, text: string | null) {
 	function show() {
 		if (!text) return;
 		timer = setTimeout(() => {
-			el = document.createElement('div');
+			el = document.createElement("div");
 			el.textContent = text;
-			el.className = 'fixed z-[9999] px-2 py-1 text-xs font-mono rounded pointer-events-none whitespace-nowrap';
+			el.className =
+				"fixed z-[9999] px-2 py-1 text-xs font-mono rounded pointer-events-none whitespace-nowrap";
 			el.style.cssText += [
-				'background: var(--color-surface-card)',
-				'border: 1px solid var(--color-border)',
-				'color: var(--color-text-body)',
-			].join('; ');
+				"background: var(--color-surface-card)",
+				"border: 1px solid var(--color-border)",
+				"color: var(--color-text-body)",
+			].join("; ");
 			document.body.appendChild(el);
 
 			const rect = node.getBoundingClientRect();
@@ -27,9 +28,9 @@ export function tooltip(node: HTMLElement, text: string | null) {
 		el = null;
 	}
 
-	node.addEventListener('mouseenter', show);
-	node.addEventListener('mouseleave', hide);
-	node.addEventListener('click', hide);
+	node.addEventListener("mouseenter", show);
+	node.addEventListener("mouseleave", hide);
+	node.addEventListener("click", hide);
 
 	return {
 		update(newText: string | null) {
@@ -39,9 +40,9 @@ export function tooltip(node: HTMLElement, text: string | null) {
 		destroy() {
 			clearTimeout(timer);
 			el?.remove();
-			node.removeEventListener('mouseenter', show);
-			node.removeEventListener('mouseleave', hide);
-			node.removeEventListener('click', hide);
-		}
+			node.removeEventListener("mouseenter", show);
+			node.removeEventListener("mouseleave", hide);
+			node.removeEventListener("click", hide);
+		},
 	};
 }

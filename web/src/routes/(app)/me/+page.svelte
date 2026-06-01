@@ -1,379 +1,427 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
-	import QRCode from 'qrcode';
-	import {
-		KeyRound,
-		Plus,
-		Pencil,
-		Trash2,
-		ShieldCheck,
-		Smartphone,
-		Monitor,
-		LayoutGrid,
-		ShieldAlert,
-		Copy,
-		Check,
-		RefreshCw,
-		X
-	} from '@lucide/svelte';
-	import {
-		listCredentials,
-		renameCredential,
-		deleteCredential,
-		reauthenticateForAddCredential,
-		addCredential,
-		listSessions,
-		revokeSession,
-		revokeOtherSessions,
-		deleteAccount,
-		rotateRecoveryCode,
-		reauthenticate,
-		createPairingSession,
-		pollPairing,
-		fulfillPairing,
-		isPasskeyCancelled
-	} from '$lib/auth';
-	import type { CredentialSummary, SessionInfo } from '$lib/types/auth';
-	import { pairingFingerprint } from '$lib/crypto';
-	import { base64ToBytes } from '$lib/encoding';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { goto } from '$app/navigation';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
+import {
+	Check,
+	Copy,
+	KeyRound,
+	LayoutGrid,
+	Monitor,
+	Pencil,
+	Plus,
+	RefreshCw,
+	ShieldAlert,
+	ShieldCheck,
+	Smartphone,
+	Trash2,
+	X,
+} from "@lucide/svelte";
+import QRCode from "qrcode";
+import { onDestroy, onMount } from "svelte";
+import { goto } from "$app/navigation";
+import {
+	addCredential,
+	createPairingSession,
+	deleteAccount,
+	deleteCredential,
+	fulfillPairing,
+	isPasskeyCancelled,
+	listCredentials,
+	listSessions,
+	pollPairing,
+	reauthenticate,
+	reauthenticateForAddCredential,
+	renameCredential,
+	revokeOtherSessions,
+	revokeSession,
+	rotateRecoveryCode,
+} from "$lib/auth";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import { pairingFingerprint } from "$lib/crypto";
+import { base64ToBytes } from "$lib/encoding";
+import { auth } from "$lib/stores/auth.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import type { CredentialSummary, SessionInfo } from "$lib/types/auth";
 
-	// ─── Passkeys ────────────────────────────────────────────────────────────────
+// ─── Passkeys ────────────────────────────────────────────────────────────────
 
-	let credentials = $state<CredentialSummary[]>([]);
-	let credsLoading = $state(true);
-	let credsError = $state<string | null>(null);
+let credentials = $state<CredentialSummary[]>([]);
+let credsLoading = $state(true);
+let credsError = $state<string | null>(null);
 
-	let editingId = $state<string | null>(null);
-	let editingName = $state('');
-	let saving = $state(false);
+let editingId = $state<string | null>(null);
+let editingName = $state("");
+let saving = $state(false);
 
-	let deletingId = $state<string | null>(null);
-	let confirmDeleteId = $state<string | null>(null);
+let deletingId = $state<string | null>(null);
+let confirmDeleteId = $state<string | null>(null);
 
-	let addStep = $state<'idle' | 'naming' | 'reauth' | 'registering'>('idle');
-	let newName = $state('');
-	let addError = $state<string | null>(null);
+let addStep = $state<"idle" | "naming" | "reauth" | "registering">("idle");
+let newName = $state("");
+let addError = $state<string | null>(null);
 
-	// ─── Device pairing ──────────────────────────────────────────────────────────
+// ─── Device pairing ──────────────────────────────────────────────────────────
 
-	type PairStep = 'idle' | 'loading' | 'qr' | 'fingerprint' | 'done' | 'error';
-	let pairStep = $state<PairStep>('idle');
-	let pairToken = $state('');
-	let pairShortCode = $state('');
-	let pairQrDataUrl = $state('');
-	let pairFingerprint = $state('');
-	let pairNewDevicePubKey = $state('');
-	let pairError = $state<string | null>(null);
-	let pairConfirming = $state(false);
-	let pairPollTimer: ReturnType<typeof setInterval> | null = null;
+type PairStep = "idle" | "loading" | "qr" | "fingerprint" | "done" | "error";
+let pairStep = $state<PairStep>("idle");
+let pairToken = $state("");
+let pairShortCode = $state("");
+let pairQrDataUrl = $state("");
+let pairFingerprint = $state("");
+let pairNewDevicePubKey = $state("");
+let pairError = $state<string | null>(null);
+let pairConfirming = $state(false);
+let pairPollTimer: ReturnType<typeof setInterval> | null = null;
 
-	function stopPairPoll() {
-		if (pairPollTimer !== null) { clearInterval(pairPollTimer); pairPollTimer = null; }
+function stopPairPoll() {
+	if (pairPollTimer !== null) {
+		clearInterval(pairPollTimer);
+		pairPollTimer = null;
 	}
+}
 
-	onDestroy(stopPairPoll);
+onDestroy(stopPairPoll);
 
-	async function startPairing() {
-		pairStep = 'loading';
-		pairError = null;
+async function startPairing() {
+	pairStep = "loading";
+	pairError = null;
+	try {
+		const session = await createPairingSession();
+		pairToken = session.token;
+		pairShortCode = session.shortCode;
+		const pairUrl = `${window.location.origin}/pair?t=${encodeURIComponent(session.token)}`;
+		pairQrDataUrl = await QRCode.toDataURL(pairUrl, {
+			width: 200,
+			margin: 2,
+			color: { dark: "#e2e8f0", light: "#0d1117" },
+		});
+		pairStep = "qr";
+		startPairPoll();
+	} catch (err: unknown) {
+		pairError = err instanceof Error ? err.message : "Failed to start pairing.";
+		pairStep = "error";
+	}
+}
+
+function startPairPoll() {
+	stopPairPoll();
+	pairPollTimer = setInterval(async () => {
 		try {
-			const session = await createPairingSession();
-			pairToken = session.token;
-			pairShortCode = session.shortCode;
-			const pairUrl = `${window.location.origin}/pair?t=${encodeURIComponent(session.token)}`;
-			pairQrDataUrl = await QRCode.toDataURL(pairUrl, { width: 200, margin: 2, color: { dark: '#e2e8f0', light: '#0d1117' } });
-			pairStep = 'qr';
-			startPairPoll();
-		} catch (err: unknown) {
-			pairError = err instanceof Error ? err.message : 'Failed to start pairing.';
-			pairStep = 'error';
-		}
-	}
-
-	function startPairPoll() {
-		stopPairPoll();
-		pairPollTimer = setInterval(async () => {
-			try {
-				const status = await pollPairing(pairToken);
-				if (status.state === 'expired') {
-					stopPairPoll();
-					pairError = 'Pairing expired. Please try again.';
-					pairStep = 'error';
-					return;
-				}
-				if (status.state === 'requested' && status.newDevicePublicKey && pairStep === 'qr') {
-					stopPairPoll();
-					pairNewDevicePubKey = status.newDevicePublicKey;
-					const pubKeyBytes = base64ToBytes(status.newDevicePublicKey).buffer as ArrayBuffer;
-					pairFingerprint = await pairingFingerprint(pubKeyBytes);
-					pairStep = 'fingerprint';
-				}
-			} catch {
-				// transient — keep polling
+			const status = await pollPairing(pairToken);
+			if (status.state === "expired") {
+				stopPairPoll();
+				pairError = "Pairing expired. Please try again.";
+				pairStep = "error";
+				return;
 			}
-		}, 2000);
-	}
-
-	async function confirmPairing() {
-		const mk = auth.masterKey;
-		if (!mk) { pairError = 'Master key unavailable. Please re-authenticate.'; return; }
-		pairConfirming = true;
-		try {
-			await fulfillPairing(pairToken, mk, pairNewDevicePubKey);
-			pairStep = 'done';
-			await loadCredentials();
-		} catch (err: unknown) {
-			pairError = err instanceof Error ? err.message : 'Failed to approve pairing.';
-			pairStep = 'error';
-		} finally {
-			pairConfirming = false;
+			if (
+				status.state === "requested" &&
+				status.newDevicePublicKey &&
+				pairStep === "qr"
+			) {
+				stopPairPoll();
+				pairNewDevicePubKey = status.newDevicePublicKey;
+				const pubKeyBytes = base64ToBytes(status.newDevicePublicKey)
+					.buffer as ArrayBuffer;
+				pairFingerprint = await pairingFingerprint(pubKeyBytes);
+				pairStep = "fingerprint";
+			}
+		} catch {
+			// transient — keep polling
 		}
-	}
+	}, 2000);
+}
 
-	function cancelPairing() {
-		stopPairPoll();
-		pairStep = 'idle';
-		pairToken = '';
-		pairShortCode = '';
-		pairQrDataUrl = '';
-		pairFingerprint = '';
-		pairNewDevicePubKey = '';
-		pairError = null;
+async function confirmPairing() {
+	const mk = auth.masterKey;
+	if (!mk) {
+		pairError = "Master key unavailable. Please re-authenticate.";
+		return;
+	}
+	pairConfirming = true;
+	try {
+		await fulfillPairing(pairToken, mk, pairNewDevicePubKey);
+		pairStep = "done";
+		await loadCredentials();
+	} catch (err: unknown) {
+		pairError =
+			err instanceof Error ? err.message : "Failed to approve pairing.";
+		pairStep = "error";
+	} finally {
 		pairConfirming = false;
 	}
+}
 
-	// ─── Sessions ────────────────────────────────────────────────────────────────
+function cancelPairing() {
+	stopPairPoll();
+	pairStep = "idle";
+	pairToken = "";
+	pairShortCode = "";
+	pairQrDataUrl = "";
+	pairFingerprint = "";
+	pairNewDevicePubKey = "";
+	pairError = null;
+	pairConfirming = false;
+}
 
-	let sessions = $state<SessionInfo[]>([]);
-	let sessionsLoading = $state(true);
-	let sessionsError = $state<string | null>(null);
-	let revokingAll = $state(false);
-	let revoking = $state<string | null>(null);
+// ─── Sessions ────────────────────────────────────────────────────────────────
 
-	onMount(async () => {
-		await Promise.all([loadCredentials(), loadSessions()]);
-	});
+let sessions = $state<SessionInfo[]>([]);
+let sessionsLoading = $state(true);
+let sessionsError = $state<string | null>(null);
+let revokingAll = $state(false);
+let revoking = $state<string | null>(null);
 
-	// ─── Passkey functions ────────────────────────────────────────────────────────
+onMount(async () => {
+	await Promise.all([loadCredentials(), loadSessions()]);
+});
 
-	async function loadCredentials() {
-		credsLoading = true;
-		credsError = null;
-		try {
-			credentials = await listCredentials();
-		} catch (err) {
-			credsError = err instanceof Error ? err.message : 'Failed to load passkeys.';
-		} finally {
-			credsLoading = false;
-		}
+// ─── Passkey functions ────────────────────────────────────────────────────────
+
+async function loadCredentials() {
+	credsLoading = true;
+	credsError = null;
+	try {
+		credentials = await listCredentials();
+	} catch (err) {
+		credsError =
+			err instanceof Error ? err.message : "Failed to load passkeys.";
+	} finally {
+		credsLoading = false;
 	}
+}
 
-	function startEdit(cred: CredentialSummary) {
-		editingId = cred.id;
-		editingName = cred.name;
-	}
+function startEdit(cred: CredentialSummary) {
+	editingId = cred.id;
+	editingName = cred.name;
+}
 
-	function cancelEdit() {
+function cancelEdit() {
+	editingId = null;
+	editingName = "";
+}
+
+async function saveEdit(id: string) {
+	saving = true;
+	try {
+		await renameCredential(id, editingName);
+		credentials = credentials.map((c) =>
+			c.id === id ? { ...c, name: editingName } : c,
+		);
 		editingId = null;
-		editingName = '';
+	} catch (err) {
+		credsError =
+			err instanceof Error ? err.message : "Failed to rename passkey.";
+	} finally {
+		saving = false;
 	}
+}
 
-	async function saveEdit(id: string) {
-		saving = true;
-		try {
-			await renameCredential(id, editingName);
-			credentials = credentials.map((c) => (c.id === id ? { ...c, name: editingName } : c));
-			editingId = null;
-		} catch (err) {
-			credsError = err instanceof Error ? err.message : 'Failed to rename passkey.';
-		} finally {
-			saving = false;
+function promptDelete(id: string) {
+	confirmDeleteId = id;
+}
+
+function cancelDelete() {
+	confirmDeleteId = null;
+}
+
+async function confirmDelete(id: string) {
+	deletingId = id;
+	confirmDeleteId = null;
+	try {
+		await deleteCredential(id);
+		credentials = credentials.filter((c) => c.id !== id);
+	} catch (err) {
+		credsError =
+			err instanceof Error ? err.message : "Failed to delete passkey.";
+	} finally {
+		deletingId = null;
+	}
+}
+
+async function handleAddPasskey() {
+	addError = null;
+	addStep = "reauth";
+	try {
+		const token = await reauthenticateForAddCredential();
+		addStep = "registering";
+		const mk = auth.masterKey;
+		if (!mk)
+			throw new Error("Master key not available. Please re-authenticate.");
+		const result = await addCredential(mk, token, newName);
+		credentials = [
+			...credentials,
+			{
+				id: result.id,
+				name: result.name || newName,
+				createdAt: result.createdAt,
+				backupEligible: false,
+				isCurrentSession: false,
+			},
+		];
+		addStep = "idle";
+		newName = "";
+	} catch (err) {
+		if (isPasskeyCancelled(err)) {
+			addStep = "idle";
+		} else {
+			addError = err instanceof Error ? err.message : "Failed to add passkey.";
+			addStep = "naming";
 		}
 	}
+}
 
-	function promptDelete(id: string) {
-		confirmDeleteId = id;
+// ─── Session functions ────────────────────────────────────────────────────────
+
+async function loadSessions() {
+	sessionsLoading = true;
+	sessionsError = null;
+	try {
+		sessions = await listSessions();
+	} catch (err) {
+		sessionsError =
+			err instanceof Error ? err.message : "Failed to load sessions.";
+	} finally {
+		sessionsLoading = false;
 	}
+}
 
-	function cancelDelete() {
-		confirmDeleteId = null;
+async function handleRevoke(sessionId: string) {
+	revoking = sessionId;
+	try {
+		await revokeSession(sessionId);
+		sessions = sessions.filter((s) => s.id !== sessionId);
+	} catch (err) {
+		sessionsError =
+			err instanceof Error ? err.message : "Failed to revoke session.";
+	} finally {
+		revoking = null;
 	}
+}
 
-	async function confirmDelete(id: string) {
-		deletingId = id;
-		confirmDeleteId = null;
-		try {
-			await deleteCredential(id);
-			credentials = credentials.filter((c) => c.id !== id);
-		} catch (err) {
-			credsError = err instanceof Error ? err.message : 'Failed to delete passkey.';
-		} finally {
-			deletingId = null;
+async function handleRevokeAll() {
+	revokingAll = true;
+	try {
+		await revokeOtherSessions();
+		await loadSessions();
+	} catch (err) {
+		sessionsError =
+			err instanceof Error ? err.message : "Failed to revoke sessions.";
+	} finally {
+		revokingAll = false;
+	}
+}
+
+// ─── Account deletion ─────────────────────────────────────────────────────────
+
+let showDeleteAccountConfirm = $state(false);
+let deletingAccount = $state(false);
+let deleteAccountError = $state("");
+
+async function handleDeleteAccount() {
+	deletingAccount = true;
+	deleteAccountError = "";
+	try {
+		await deleteAccount();
+		auth.clearAll();
+		await goto("/login");
+	} catch (err) {
+		deleteAccountError =
+			err instanceof Error ? err.message : "Failed to delete account.";
+		deletingAccount = false;
+	}
+}
+
+// ─── Recovery codes ───────────────────────────────────────────────────────────
+
+let recoveryDialogOpen = $state(false);
+let recoveryCode = $state<string | null>(null);
+let generatingCode = $state(false);
+let codeGenError = $state<string | null>(null);
+let codeCopied = $state(false);
+
+async function handleGenerateRecoveryCode() {
+	generatingCode = true;
+	codeGenError = null;
+	try {
+		let mk = auth.masterKey;
+		if (!mk) {
+			const result = await reauthenticate();
+			mk = result.masterKey;
+			auth.setSession(mk, result.accountId, result.credentialId);
 		}
-	}
-
-	async function handleAddPasskey() {
-		addError = null;
-		addStep = 'reauth';
-		try {
-			const token = await reauthenticateForAddCredential();
-			addStep = 'registering';
-			const mk = auth.masterKey;
-			if (!mk) throw new Error('Master key not available. Please re-authenticate.');
-			const result = await addCredential(mk, token, newName);
-			credentials = [
-				...credentials,
-				{
-					id: result.id,
-					name: result.name || newName,
-					createdAt: result.createdAt,
-					backupEligible: false,
-					isCurrentSession: false
-				}
-			];
-			addStep = 'idle';
-			newName = '';
-		} catch (err) {
-			if (isPasskeyCancelled(err)) {
-				addStep = 'idle';
-			} else {
-				addError = err instanceof Error ? err.message : 'Failed to add passkey.';
-				addStep = 'naming';
-			}
+		recoveryCode = await rotateRecoveryCode(mk);
+	} catch (err) {
+		if (!isPasskeyCancelled(err)) {
+			codeGenError =
+				err instanceof Error
+					? err.message
+					: "Failed to generate recovery code.";
 		}
+	} finally {
+		generatingCode = false;
 	}
+}
 
-	// ─── Session functions ────────────────────────────────────────────────────────
+async function copyCode() {
+	if (!recoveryCode) return;
+	await navigator.clipboard.writeText(recoveryCode);
+	codeCopied = true;
+	setTimeout(() => (codeCopied = false), 2000);
+}
 
-	async function loadSessions() {
-		sessionsLoading = true;
-		sessionsError = null;
-		try {
-			sessions = await listSessions();
-		} catch (err) {
-			sessionsError = err instanceof Error ? err.message : 'Failed to load sessions.';
-		} finally {
-			sessionsLoading = false;
-		}
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function isMobile(ua: string | undefined): boolean {
+	if (!ua) return false;
+	return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
+}
+
+function formatDate(iso: string): string {
+	try {
+		return new Date(iso).toLocaleDateString(undefined, {
+			year: "numeric",
+			month: "short",
+			day: "numeric",
+		});
+	} catch {
+		return iso;
 	}
+}
 
-	async function handleRevoke(sessionId: string) {
-		revoking = sessionId;
-		try {
-			await revokeSession(sessionId);
-			sessions = sessions.filter((s) => s.id !== sessionId);
-		} catch (err) {
-			sessionsError = err instanceof Error ? err.message : 'Failed to revoke session.';
-		} finally {
-			revoking = null;
-		}
-	}
+function avatarInitials(): string {
+	const name = auth.username ?? auth.accountId ?? "";
+	return name.slice(0, 2).toUpperCase() || "??";
+}
 
-	async function handleRevokeAll() {
-		revokingAll = true;
-		try {
-			await revokeOtherSessions();
-			await loadSessions();
-		} catch (err) {
-			sessionsError = err instanceof Error ? err.message : 'Failed to revoke sessions.';
-		} finally {
-			revokingAll = false;
-		}
-	}
+const roleBadge: Record<
+	string,
+	{ label: string; color: string; border: string }
+> = {
+	owner: {
+		label: "owner",
+		color: "var(--color-role-owner)",
+		border: "var(--color-role-owner-border)",
+	},
+	admin: {
+		label: "admin",
+		color: "var(--color-role-admin)",
+		border: "var(--color-role-admin-border)",
+	},
+	member: {
+		label: "member",
+		color: "var(--color-subtle)",
+		border: "var(--color-border)",
+	},
+	viewer: {
+		label: "viewer",
+		color: "var(--color-subtle)",
+		border: "var(--color-border)",
+	},
+};
 
-	// ─── Account deletion ─────────────────────────────────────────────────────────
-
-	let showDeleteAccountConfirm = $state(false);
-	let deletingAccount = $state(false);
-	let deleteAccountError = $state('');
-
-	async function handleDeleteAccount() {
-		deletingAccount = true;
-		deleteAccountError = '';
-		try {
-			await deleteAccount();
-			auth.clearAll();
-			await goto('/login');
-		} catch (err) {
-			deleteAccountError = err instanceof Error ? err.message : 'Failed to delete account.';
-			deletingAccount = false;
-		}
-	}
-
-	// ─── Recovery codes ───────────────────────────────────────────────────────────
-
-	let recoveryDialogOpen = $state(false);
-	let recoveryCode = $state<string | null>(null);
-	let generatingCode = $state(false);
-	let codeGenError = $state<string | null>(null);
-	let codeCopied = $state(false);
-
-	async function handleGenerateRecoveryCode() {
-		generatingCode = true;
-		codeGenError = null;
-		try {
-			let mk = auth.masterKey;
-			if (!mk) {
-				const result = await reauthenticate();
-				mk = result.masterKey;
-				auth.setSession(mk, result.accountId, result.credentialId);
-			}
-			recoveryCode = await rotateRecoveryCode(mk);
-		} catch (err) {
-			if (!isPasskeyCancelled(err)) {
-				codeGenError = err instanceof Error ? err.message : 'Failed to generate recovery code.';
-			}
-		} finally {
-			generatingCode = false;
-		}
-	}
-
-	async function copyCode() {
-		if (!recoveryCode) return;
-		await navigator.clipboard.writeText(recoveryCode);
-		codeCopied = true;
-		setTimeout(() => (codeCopied = false), 2000);
-	}
-
-	// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-	function isMobile(ua: string | undefined): boolean {
-		if (!ua) return false;
-		return /Mobile|Android|iPhone|iPad|iPod/i.test(ua);
-	}
-
-	function formatDate(iso: string): string {
-		try {
-			return new Date(iso).toLocaleDateString(undefined, {
-				year: 'numeric',
-				month: 'short',
-				day: 'numeric'
-			});
-		} catch {
-			return iso;
-		}
-	}
-
-	function avatarInitials(): string {
-		const name = auth.username ?? auth.accountId ?? '';
-		return name.slice(0, 2).toUpperCase() || '??';
-	}
-
-	const roleBadge: Record<string, { label: string; color: string; border: string }> = {
-		owner:  { label: 'owner',  color: 'var(--color-role-owner)',  border: 'var(--color-role-owner-border)' },
-		admin:  { label: 'admin',  color: 'var(--color-role-admin)',  border: 'var(--color-role-admin-border)' },
-		member: { label: 'member', color: 'var(--color-subtle)',   border: 'var(--color-border)' },
-		viewer: { label: 'viewer', color: 'var(--color-subtle)',   border: 'var(--color-border)' }
-	};
-
-	const planBadge: Record<string, { label: string; color: string }> = {
-		pro:  { label: 'Pro',  color: 'var(--color-warning-border)' },
-		free: { label: 'Free', color: 'var(--color-subtle)' }
-	};
+const planBadge: Record<string, { label: string; color: string }> = {
+	pro: { label: "Pro", color: "var(--color-warning-border)" },
+	free: { label: "Free", color: "var(--color-subtle)" },
+};
 </script>
 
 <svelte:head>

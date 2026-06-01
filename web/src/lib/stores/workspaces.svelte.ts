@@ -5,17 +5,17 @@
  * Active workspace ID is persisted in localStorage so it survives refreshes.
  */
 
-import { listWorkspaces, type Workspace } from '$lib/workspaces';
+import { listWorkspaces, type Workspace } from "$lib/workspaces";
 
-const ACTIVE_WS_KEY = 'confide.activeWorkspaceId';
+const ACTIVE_WS_KEY = "confide.activeWorkspaceId";
 
 function readStoredId(): string | null {
-	if (typeof localStorage === 'undefined') return null;
+	if (typeof localStorage === "undefined") return null;
 	return localStorage.getItem(ACTIVE_WS_KEY);
 }
 
 function persistId(id: string | null) {
-	if (typeof localStorage === 'undefined') return;
+	if (typeof localStorage === "undefined") return;
 	if (id) localStorage.setItem(ACTIVE_WS_KEY, id);
 	else localStorage.removeItem(ACTIVE_WS_KEY);
 }
@@ -24,7 +24,7 @@ let _workspaces = $state<Workspace[]>([]);
 let _activeId = $state<string | null>(null);
 let _loaded = $state(false);
 let _loading = $state(false);
-let _error = $state('');
+let _error = $state("");
 
 export const workspacesStore = {
 	get workspaces() {
@@ -55,7 +55,7 @@ export const workspacesStore = {
 	async load() {
 		if (_loaded || _loading) return;
 		_loading = true;
-		_error = '';
+		_error = "";
 		try {
 			_workspaces = await listWorkspaces();
 			_loaded = true;
@@ -69,7 +69,7 @@ export const workspacesStore = {
 				persistId(_activeId);
 			}
 		} catch (err) {
-			_error = err instanceof Error ? err.message : 'Failed to load workspaces';
+			_error = err instanceof Error ? err.message : "Failed to load workspaces";
 		} finally {
 			_loading = false;
 		}
@@ -84,7 +84,9 @@ export const workspacesStore = {
 
 	/** Update fields on a workspace in the list (e.g. after rename). */
 	update(id: string, changes: Partial<Workspace>) {
-		_workspaces = _workspaces.map((w) => (w.id === id ? { ...w, ...changes } : w));
+		_workspaces = _workspaces.map((w) =>
+			w.id === id ? { ...w, ...changes } : w,
+		);
 	},
 
 	/** Call after deleting a workspace. */
@@ -103,7 +105,7 @@ export const workspacesStore = {
 		_activeId = null;
 		_loaded = false;
 		_loading = false;
-		_error = '';
+		_error = "";
 		persistId(null);
-	}
+	},
 };

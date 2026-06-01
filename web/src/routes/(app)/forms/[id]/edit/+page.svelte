@@ -1,117 +1,171 @@
 <script lang="ts">
-	import { onMount, setContext } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { createBuilderStore } from '$lib/stores/builder.svelte';
-	import { formsStore } from '$lib/stores/forms.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { getCustomDomain, type CustomDomainInfo } from '$lib/workspaces';
-	import { getAppConfig } from '$lib/config';
-	import FieldCanvas from '$lib/components/builder/FieldCanvas.svelte';
-	import PropertiesPanel from '$lib/components/builder/PropertiesPanel.svelte';
-	import FormSettingsPanel from '$lib/components/builder/FormSettingsPanel.svelte';
-	import { ChevronDown, Settings, ScrollText, LayoutList, MessageCircle, Loader, CloudOff, Check, Languages } from '@lucide/svelte';
-	import { publishForm } from '$lib/forms';
-	import Breadcrumb from '$lib/components/Breadcrumb.svelte';
-	import type { Component } from 'svelte';
+import {
+	Check,
+	ChevronDown,
+	CloudOff,
+	Languages,
+	LayoutList,
+	Loader,
+	MessageCircle,
+	ScrollText,
+	Settings,
+} from "@lucide/svelte";
+import type { Component } from "svelte";
+import { onMount, setContext } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import Breadcrumb from "$lib/components/Breadcrumb.svelte";
+import FieldCanvas from "$lib/components/builder/FieldCanvas.svelte";
+import FormSettingsPanel from "$lib/components/builder/FormSettingsPanel.svelte";
+import PropertiesPanel from "$lib/components/builder/PropertiesPanel.svelte";
+import { getAppConfig } from "$lib/config";
+import { publishForm } from "$lib/forms";
+import { auth } from "$lib/stores/auth.svelte";
+import { createBuilderStore } from "$lib/stores/builder.svelte";
+import { formsStore } from "$lib/stores/forms.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import { type CustomDomainInfo, getCustomDomain } from "$lib/workspaces";
 
-	type LayoutMode = 'scroll' | 'steps' | 'convo';
+type LayoutMode = "scroll" | "steps" | "convo";
 
-	const layoutModes: Array<{ value: LayoutMode; label: string; help: string; icon: Component }> = [
-		{ value: 'scroll', label: 'Scroll mode', help: 'All questions on a single page', icon: ScrollText },
-		{ value: 'steps', label: 'Steps mode', help: 'One question per step', icon: LayoutList },
-		{ value: 'convo', label: 'Convo mode', help: 'Chat-like conversational flow', icon: MessageCircle }
-	];
+const layoutModes: Array<{
+	value: LayoutMode;
+	label: string;
+	help: string;
+	icon: Component;
+}> = [
+	{
+		value: "scroll",
+		label: "Scroll mode",
+		help: "All questions on a single page",
+		icon: ScrollText,
+	},
+	{
+		value: "steps",
+		label: "Steps mode",
+		help: "One question per step",
+		icon: LayoutList,
+	},
+	{
+		value: "convo",
+		label: "Convo mode",
+		help: "Chat-like conversational flow",
+		icon: MessageCircle,
+	},
+];
 
-	let layoutOpen = $state(false);
+let layoutOpen = $state(false);
 
-	const formId = $page.params.id ?? '';
+const formId = $page.params.id ?? "";
 
-	// Navigate to /forms if the workspace changes while editing this form
-	const mountedWorkspaceId = workspacesStore.active?.id;
-	$effect(() => {
-		const id = workspacesStore.active?.id;
-		if (id !== undefined && id !== mountedWorkspaceId) goto('/forms');
-	});
+// Navigate to /forms if the workspace changes while editing this form
+const mountedWorkspaceId = workspacesStore.active?.id;
+$effect(() => {
+	const id = workspacesStore.active?.id;
+	if (id !== undefined && id !== mountedWorkspaceId) goto("/forms");
+});
 
-	// Must be created synchronously at component init time so $effect/$derived
-	// in the store have the correct Svelte component owner context.
-	// If masterKey is null, we redirect to /login in onMount.
-	const store = auth.masterKey ? createBuilderStore(auth.masterKey, formId) : null;
-	if (store) setContext('builder', store);
+// Must be created synchronously at component init time so $effect/$derived
+// in the store have the correct Svelte component owner context.
+// If masterKey is null, we redirect to /login in onMount.
+const store = auth.masterKey
+	? createBuilderStore(auth.masterKey, formId)
+	: null;
+if (store) setContext("builder", store);
 
-	let loading = $state(true);
-	let loadError = $state('');
+let loading = $state(true);
+let loadError = $state("");
 
-	// New locale input
-	let newLocaleInput = $state('');
-	let showLocaleInput = $state(false);
+// New locale input
+let newLocaleInput = $state("");
+let showLocaleInput = $state(false);
 
-	let workspaceDomain = $state<CustomDomainInfo | null>(null);
-	let workspaceId = $state<string | undefined>(undefined);
-	let formsBaseUrl = $state('');
+let workspaceDomain = $state<CustomDomainInfo | null>(null);
+let workspaceId = $state<string | undefined>(undefined);
+let formsBaseUrl = $state("");
 
-	onMount(async () => {
-		if (!auth.masterKey || !store) {
-			goto('/login');
-			return;
-		}
-		try {
-			const record = await store.load();
-			if (record.workspaceId) {
-				workspaceId = record.workspaceId;
-				getCustomDomain(record.workspaceId).then(d => { workspaceDomain = d; }).catch(() => {});
-			}
-			getAppConfig().then(c => { formsBaseUrl = c.formsDomain ? `https://${c.formsDomain}` : ''; }).catch(() => {});
-		} catch {
-			loadError = 'Form not found or could not be loaded.';
-		} finally {
-			loading = false;
-		}
-	});
-
-	function customDomainBase(): string | undefined {
-		if (workspaceDomain?.enabled && workspaceDomain.domain) {
-			return `https://${workspaceDomain.domain}`;
-		}
-		return formsBaseUrl || undefined;
+onMount(async () => {
+	if (!auth.masterKey || !store) {
+		goto("/login");
+		return;
 	}
-
-	function handleAddLocale() {
-		if (!store || !newLocaleInput.trim()) return;
-		store.addLocale(newLocaleInput.trim().toLowerCase());
-		newLocaleInput = '';
-		showLocaleInput = false;
-	}
-
-	let publishing = $state(false);
-
-	const publishButtonLabel = $derived(
-		!store ? 'Publish'
-		: publishing ? 'Publishing…'
-		: store.formStatus === 'draft' ? 'Publish'
-		: store.hasUnpublishedChanges ? 'Update'
-		: 'Up to date'
-	);
-	const publishButtonDisabled = $derived(
-		!store || store.saving || publishing || (store.formStatus !== 'draft' && !store.hasUnpublishedChanges)
-	);
-
-	async function handlePublish() {
-		if (!auth.masterKey || !store) return;
-		publishing = true;
-		try {
-			await store.flushSave();
-			const isFirstPublish = store.formStatus === 'draft';
-			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
-			store.setRenderKeySalt(result.renderKeySalt);
-			store.markPublished();
-			if (isFirstPublish) store.setShowFormSettings(true);
-		} finally {
-			publishing = false;
+	try {
+		const record = await store.load();
+		if (record.workspaceId) {
+			workspaceId = record.workspaceId;
+			getCustomDomain(record.workspaceId)
+				.then((d) => {
+					workspaceDomain = d;
+				})
+				.catch(() => {});
 		}
+		getAppConfig()
+			.then((c) => {
+				formsBaseUrl = c.formsDomain ? `https://${c.formsDomain}` : "";
+			})
+			.catch(() => {});
+	} catch {
+		loadError = "Form not found or could not be loaded.";
+	} finally {
+		loading = false;
 	}
+});
+
+function customDomainBase(): string | undefined {
+	if (workspaceDomain?.enabled && workspaceDomain.domain) {
+		return `https://${workspaceDomain.domain}`;
+	}
+	return formsBaseUrl || undefined;
+}
+
+function handleAddLocale() {
+	if (!store || !newLocaleInput.trim()) return;
+	store.addLocale(newLocaleInput.trim().toLowerCase());
+	newLocaleInput = "";
+	showLocaleInput = false;
+}
+
+let publishing = $state(false);
+
+const publishButtonLabel = $derived(
+	!store
+		? "Publish"
+		: publishing
+			? "Publishing…"
+			: store.formStatus === "draft"
+				? "Publish"
+				: store.hasUnpublishedChanges
+					? "Update"
+					: "Up to date",
+);
+const publishButtonDisabled = $derived(
+	!store ||
+		store.saving ||
+		publishing ||
+		(store.formStatus !== "draft" && !store.hasUnpublishedChanges),
+);
+
+async function handlePublish() {
+	if (!auth.masterKey || !store) return;
+	publishing = true;
+	try {
+		await store.flushSave();
+		const isFirstPublish = store.formStatus === "draft";
+		const result = await publishForm(
+			auth.masterKey,
+			formId,
+			store.schema,
+			store.renderKeySalt,
+			store.formKey ?? undefined,
+			customDomainBase(),
+		);
+		store.setRenderKeySalt(result.renderKeySalt);
+		store.markPublished();
+		if (isFirstPublish) store.setShowFormSettings(true);
+	} finally {
+		publishing = false;
+	}
+}
 </script>
 
 <svelte:head>

@@ -32,8 +32,8 @@ export interface PRFSupportResult {
 export async function detectPRFSupport(): Promise<PRFSupportResult> {
 	// Layer 1: WebAuthn API availability
 	const webAuthnSupported =
-		typeof window !== 'undefined' &&
-		typeof window.PublicKeyCredential !== 'undefined';
+		typeof window !== "undefined" &&
+		typeof window.PublicKeyCredential !== "undefined";
 
 	if (!webAuthnSupported) {
 		return {
@@ -41,8 +41,8 @@ export async function detectPRFSupport(): Promise<PRFSupportResult> {
 			webAuthnSupported: false,
 			platformAuthenticatorAvailable: false,
 			reason:
-				'WebAuthn is not supported in this browser. ' +
-				'Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+.'
+				"WebAuthn is not supported in this browser. " +
+				"Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+.",
 		};
 	}
 
@@ -62,8 +62,8 @@ export async function detectPRFSupport(): Promise<PRFSupportResult> {
 			webAuthnSupported: true,
 			platformAuthenticatorAvailable: false,
 			reason:
-				'No platform authenticator (Touch ID, Face ID, Windows Hello, etc.) ' +
-				'was detected. Confide requires a built-in authenticator for secure key derivation.'
+				"No platform authenticator (Touch ID, Face ID, Windows Hello, etc.) " +
+				"was detected. Confide requires a built-in authenticator for secure key derivation.",
 		};
 	}
 
@@ -73,7 +73,7 @@ export async function detectPRFSupport(): Promise<PRFSupportResult> {
 		supported: true,
 		webAuthnSupported: true,
 		platformAuthenticatorAvailable: true,
-		reason: null
+		reason: null,
 	};
 }
 
@@ -91,7 +91,7 @@ export function surfacePrfError(): PRFSupportResult {
 		webAuthnSupported: true,
 		platformAuthenticatorAvailable: true,
 		reason:
-			'Your browser or authenticator does not support WebAuthn PRF. ' +
-			'Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator.'
+			"Your browser or authenticator does not support WebAuthn PRF. " +
+			"Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator.",
 	};
 }

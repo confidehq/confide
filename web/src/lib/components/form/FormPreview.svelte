@@ -1,54 +1,78 @@
 <script lang="ts">
-	import type { BuilderSchema, BuilderField, AccentIcon } from '$lib/types/builder';
-	import { getOrderedFields } from '$lib/types/builder';
-	import type { AnswerValue } from '$lib/validation';
-	import FieldRenderer from './FieldRenderer.svelte';
-	import { Lock, Shield, CircleCheck, Info, TriangleAlert, Star, Bell, Zap } from '@lucide/svelte';
+import {
+	Bell,
+	CircleCheck,
+	Info,
+	Lock,
+	Shield,
+	Star,
+	TriangleAlert,
+	Zap,
+} from "@lucide/svelte";
+import type {
+	AccentIcon,
+	BuilderField,
+	BuilderSchema,
+} from "$lib/types/builder";
+import { getOrderedFields } from "$lib/types/builder";
+import type { AnswerValue } from "$lib/validation";
+import FieldRenderer from "./FieldRenderer.svelte";
 
-	const iconMap: Record<AccentIcon, typeof Lock> = { lock: Lock, shield: Shield, check: CircleCheck, info: Info, alert: TriangleAlert, star: Star, bell: Bell, zap: Zap };
+const iconMap: Record<AccentIcon, typeof Lock> = {
+	lock: Lock,
+	shield: Shield,
+	check: CircleCheck,
+	info: Info,
+	alert: TriangleAlert,
+	star: Star,
+	bell: Bell,
+	zap: Zap,
+};
 
-	interface Props {
-		schema: BuilderSchema;
-		locale: string;
-	}
+interface Props {
+	schema: BuilderSchema;
+	locale: string;
+}
 
-	const { schema, locale }: Props = $props();
+const { schema, locale }: Props = $props();
 
-	const translation = $derived(
-		schema.translations[locale] ?? schema.translations[schema.defaultLocale]
-	);
+const translation = $derived(
+	schema.translations[locale] ?? schema.translations[schema.defaultLocale],
+);
 
-	// Split fields into steps for 'steps' layout
-	function computeSteps(fields: BuilderField[]): BuilderField[][] {
-		const groups: BuilderField[][] = [[]];
-		for (const field of fields) {
-			if (field.type === 'section_break') {
-				groups.push([field]);
-			} else {
-				groups[groups.length - 1].push(field);
-			}
+// Split fields into steps for 'steps' layout
+function computeSteps(fields: BuilderField[]): BuilderField[][] {
+	const groups: BuilderField[][] = [[]];
+	for (const field of fields) {
+		if (field.type === "section_break") {
+			groups.push([field]);
+		} else {
+			groups[groups.length - 1].push(field);
 		}
-		return groups.filter((g) => g.length > 0);
 	}
+	return groups.filter((g) => g.length > 0);
+}
 
-	const isSteps = $derived(schema.layout === 'steps');
-	const orderedFields = $derived(getOrderedFields(schema, locale));
-	const steps = $derived(computeSteps(orderedFields));
-	const totalSteps = $derived(steps.length);
+const isSteps = $derived(schema.layout === "steps");
+const orderedFields = $derived(getOrderedFields(schema, locale));
+const steps = $derived(computeSteps(orderedFields));
+const totalSteps = $derived(steps.length);
 
-	let currentStep = $state(0);
-	let answers = $state<Record<string, AnswerValue>>({});
+let currentStep = $state(0);
+let answers = $state<Record<string, AnswerValue>>({});
 
-	const isLastStep = $derived(currentStep === totalSteps - 1);
-	const currentFields = $derived(isSteps ? (steps[currentStep] ?? []) : orderedFields);
+const isLastStep = $derived(currentStep === totalSteps - 1);
+const currentFields = $derived(
+	isSteps ? (steps[currentStep] ?? []) : orderedFields,
+);
 
-	function fieldTranslation(fieldId: string) {
-		return translation?.fields[fieldId] ?? { label: fieldId };
-	}
+function fieldTranslation(fieldId: string) {
+	return translation?.fields[fieldId] ?? { label: fieldId };
+}
 
-	function setAnswer(fieldId: string, v: AnswerValue) {
-		answers = { ...answers, [fieldId]: v };
-	}
+function setAnswer(fieldId: string, v: AnswerValue) {
+	answers = { ...answers, [fieldId]: v };
+}
 </script>
 
 <div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">

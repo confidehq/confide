@@ -1,198 +1,259 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
-	import type { createBuilderStore } from '$lib/stores/builder.svelte';
-	import type { CustomDomainInfo } from '$lib/workspaces';
-	import { getWorkspaceSettings } from '$lib/workspaces';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { access } from '$lib/stores/access.svelte';
-	import { publishForm, rotateRenderKey, deriveShareUrl } from '$lib/forms';
-	import { Link, Check, X, QrCode, Download, Languages, ChevronDown } from '@lucide/svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import QRCode from 'qrcode';
+import {
+	Check,
+	ChevronDown,
+	Download,
+	Languages,
+	Link,
+	QrCode,
+	X,
+} from "@lucide/svelte";
+import QRCode from "qrcode";
+import { untrack } from "svelte";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import { deriveShareUrl, publishForm, rotateRenderKey } from "$lib/forms";
+import { access } from "$lib/stores/access.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import type { createBuilderStore } from "$lib/stores/builder.svelte";
+import type { CustomDomainInfo } from "$lib/workspaces";
+import { getWorkspaceSettings } from "$lib/workspaces";
 
-	const LANGUAGES: { code: string; name: string }[] = [
-		{ code: 'en', name: 'English' },
-		{ code: 'es', name: 'Spanish' },
-		{ code: 'fr', name: 'French' },
-		{ code: 'pt', name: 'Portuguese' }
-	];
+const LANGUAGES: { code: string; name: string }[] = [
+	{ code: "en", name: "English" },
+	{ code: "es", name: "Spanish" },
+	{ code: "fr", name: "French" },
+	{ code: "pt", name: "Portuguese" },
+];
 
-	function languageName(code: string): string {
-		return LANGUAGES.find((l) => l.code === code)?.name ?? code;
+function languageName(code: string): string {
+	return LANGUAGES.find((l) => l.code === code)?.name ?? code;
+}
+
+interface Props {
+	store: ReturnType<typeof createBuilderStore>;
+	formId: string;
+	workspaceId?: string;
+	workspaceDomain: CustomDomainInfo | null;
+	customDomainBase: () => string | undefined;
+}
+
+const { store, formId, workspaceId, workspaceDomain, customDomainBase }: Props =
+	$props();
+
+let closeOnDatePending = $state(false);
+let limitResponsesPending = $state(false);
+let autoDeletePending = $state(false);
+let completionMessagePending = $state(false);
+const closeOnDateOpen = $derived(!!store.expiresAt || closeOnDatePending);
+const limitResponsesOpen = $derived(
+	!!store.responseLimit || limitResponsesPending,
+);
+const completionMessageOpen = $derived(
+	!!store.activeTranslation?.convoCompletionMessage || completionMessagePending,
+);
+
+let shareUrl = $state("");
+let shareUrlLoading = $state(false);
+let publishing = $state(false);
+let publishError = $state("");
+let copied = $state(false);
+let copiedTimer: ReturnType<typeof setTimeout> | null = null;
+let confirmRotate = $state(false);
+let confirmRemoveLocale = $state<string | null>(null);
+
+const isConvo = $derived(store.schema.layout === "convo");
+
+let expirationSaving = $state(false);
+let expirationError = $state<string | null>(null);
+
+let legalTextPending = $state(false);
+let workspaceLegalDefault = $state("");
+const legalTextOpen = $derived(!!store.schema.legalText || legalTextPending);
+
+$effect(() => {
+	if (workspaceId) {
+		getWorkspaceSettings(workspaceId)
+			.then((s) => {
+				untrack(() => {
+					workspaceLegalDefault = s.legalText;
+				});
+			})
+			.catch(() => {});
 	}
+});
 
-	interface Props {
-		store: ReturnType<typeof createBuilderStore>;
-		formId: string;
-		workspaceId?: string;
-		workspaceDomain: CustomDomainInfo | null;
-		customDomainBase: () => string | undefined;
+// Re-derive share URL whenever the custom domain becomes available or changes.
+// Using $effect instead of onMount so it re-runs after the parent's async
+// getCustomDomain() fetch resolves and updates customDomainBase().
+$effect(() => {
+	const base = customDomainBase();
+	const { formStatus, renderKeySalt, formKey } = store;
+	if (formStatus === "draft" || !renderKeySalt || !formKey) return;
+	const saltBase64 = btoa(String.fromCharCode(...renderKeySalt));
+	shareUrlLoading = true;
+	deriveShareUrl(formId, saltBase64, formKey, base)
+		.then((url) => {
+			untrack(() => {
+				shareUrl = url;
+				shareUrlLoading = false;
+			});
+		})
+		.catch(() => {
+			untrack(() => {
+				shareUrlLoading = false;
+			});
+		});
+});
+
+const isFirstPublish = $derived(store.formStatus === "draft");
+const publishButtonLabel = $derived(
+	publishing
+		? "Publishing…"
+		: isFirstPublish
+			? "Publish"
+			: store.hasUnpublishedChanges
+				? "Update"
+				: "Up to date",
+);
+const publishButtonDisabled = $derived(
+	store.saving ||
+		publishing ||
+		(!isFirstPublish && !store.hasUnpublishedChanges),
+);
+
+async function handlePublish() {
+	if (!auth.masterKey) return;
+	publishing = true;
+	publishError = "";
+	try {
+		await store.flushSave();
+		const result = await publishForm(
+			auth.masterKey,
+			formId,
+			store.schema,
+			store.renderKeySalt,
+			store.formKey ?? undefined,
+			customDomainBase(),
+		);
+		store.setRenderKeySalt(result.renderKeySalt);
+		store.markPublished();
+		shareUrl = result.shareUrl;
+	} catch (err) {
+		publishError = err instanceof Error ? err.message : "Publish failed";
+	} finally {
+		publishing = false;
 	}
+}
 
-	const { store, formId, workspaceId, workspaceDomain, customDomainBase }: Props = $props();
+async function handleRotateKey() {
+	if (!auth.masterKey) return;
+	publishing = true;
+	publishError = "";
+	try {
+		const result = await rotateRenderKey(
+			auth.masterKey,
+			formId,
+			store.schema,
+			store.formKey ?? undefined,
+			customDomainBase(),
+		);
+		store.setRenderKeySalt(result.renderKeySalt);
+		store.markPublished();
+		shareUrl = result.shareUrl;
+	} catch (err) {
+		publishError = err instanceof Error ? err.message : "Key rotation failed";
+	} finally {
+		publishing = false;
+	}
+}
 
-	let closeOnDatePending = $state(false);
-	let limitResponsesPending = $state(false);
-	let autoDeletePending = $state(false);
-	let completionMessagePending = $state(false);
-	const closeOnDateOpen = $derived(!!store.expiresAt || closeOnDatePending);
-	const limitResponsesOpen = $derived(!!store.responseLimit || limitResponsesPending);
-	const completionMessageOpen = $derived(!!store.activeTranslation?.convoCompletionMessage || completionMessagePending);
+function copyShareUrl() {
+	navigator.clipboard.writeText(shareUrl);
+	copied = true;
+	if (copiedTimer) clearTimeout(copiedTimer);
+	copiedTimer = setTimeout(() => {
+		copied = false;
+	}, 2000);
+}
 
-	let shareUrl = $state('');
-	let shareUrlLoading = $state(false);
-	let publishing = $state(false);
-	let publishError = $state('');
-	let copied = $state(false);
-	let copiedTimer: ReturnType<typeof setTimeout> | null = null;
-	let confirmRotate = $state(false);
-	let confirmRemoveLocale = $state<string | null>(null);
+async function applyExpiration(
+	newExpiresAt: string | null,
+	newResponseLimit: number | null,
+	newTtlDays: number | null,
+	newBurnAfterReading: boolean,
+) {
+	expirationSaving = true;
+	expirationError = null;
+	try {
+		await store.setExpiration(
+			newExpiresAt,
+			newResponseLimit,
+			newTtlDays,
+			newBurnAfterReading,
+		);
+	} catch {
+		expirationError = "Failed to save — please try again.";
+	} finally {
+		expirationSaving = false;
+	}
+}
 
-	const isConvo = $derived(store.schema.layout === 'convo');
+type ResponseLifetimePolicy = "none" | "burn" | "ttl";
 
-	let expirationSaving = $state(false);
-	let expirationError = $state<string | null>(null);
+const responseLifetimePolicy = $derived<ResponseLifetimePolicy>(
+	store.burnAfterReading ? "burn" : store.responseTtlDays ? "ttl" : "none",
+);
 
-	let legalTextPending = $state(false);
-	let workspaceLegalDefault = $state('');
-	const legalTextOpen = $derived(!!store.schema.legalText || legalTextPending);
+const autoDeleteOpen = $derived(
+	responseLifetimePolicy !== "none" || autoDeletePending,
+);
 
-	$effect(() => {
-		if (workspaceId) {
-			getWorkspaceSettings(workspaceId).then(s => {
-				untrack(() => { workspaceLegalDefault = s.legalText; });
-			}).catch(() => {});
+function applyResponseLifetime(
+	policy: ResponseLifetimePolicy,
+	ttlDays: number | null,
+) {
+	const burn = policy === "burn";
+	const days = policy === "ttl" ? ttlDays : null;
+	applyExpiration(store.expiresAt, store.responseLimit, days, burn);
+}
+
+function handleAddLanguage(e: Event) {
+	const code = (e.target as HTMLSelectElement).value;
+	if (!code) return;
+	store.addLocale(code);
+	(e.target as HTMLSelectElement).value = "";
+}
+
+const availableLanguages = $derived(
+	LANGUAGES.filter((l) => !store.schema.locales.includes(l.code)),
+);
+
+let qrCanvas = $state<HTMLCanvasElement | null>(null);
+let qrVisible = $state(false);
+let qrError = $state("");
+
+async function showQRCode() {
+	if (!shareUrl) return;
+	qrVisible = true;
+	qrError = "";
+	// Render after DOM update
+	await new Promise((r) => setTimeout(r, 0));
+	try {
+		if (qrCanvas) {
+			await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
 		}
-	});
-
-	// Re-derive share URL whenever the custom domain becomes available or changes.
-	// Using $effect instead of onMount so it re-runs after the parent's async
-	// getCustomDomain() fetch resolves and updates customDomainBase().
-	$effect(() => {
-		const base = customDomainBase();
-		const { formStatus, renderKeySalt, formKey } = store;
-		if (formStatus === 'draft' || !renderKeySalt || !formKey) return;
-		const saltBase64 = btoa(String.fromCharCode(...renderKeySalt));
-		shareUrlLoading = true;
-		deriveShareUrl(formId, saltBase64, formKey, base).then(url => {
-			untrack(() => { shareUrl = url; shareUrlLoading = false; });
-		}).catch(() => { untrack(() => { shareUrlLoading = false; }); });
-	});
-
-	const isFirstPublish = $derived(store.formStatus === 'draft');
-	const publishButtonLabel = $derived(
-		publishing ? 'Publishing…'
-		: isFirstPublish ? 'Publish'
-		: store.hasUnpublishedChanges ? 'Update'
-		: 'Up to date'
-	);
-	const publishButtonDisabled = $derived(
-		store.saving || publishing || (!isFirstPublish && !store.hasUnpublishedChanges)
-	);
-
-	async function handlePublish() {
-		if (!auth.masterKey) return;
-		publishing = true;
-		publishError = '';
-		try {
-			await store.flushSave();
-			const result = await publishForm(auth.masterKey, formId, store.schema, store.renderKeySalt, store.formKey ?? undefined, customDomainBase());
-			store.setRenderKeySalt(result.renderKeySalt);
-			store.markPublished();
-			shareUrl = result.shareUrl;
-		} catch (err) {
-			publishError = err instanceof Error ? err.message : 'Publish failed';
-		} finally {
-			publishing = false;
-		}
+	} catch {
+		qrError = "Failed to generate QR code";
 	}
+}
 
-	async function handleRotateKey() {
-		if (!auth.masterKey) return;
-		publishing = true;
-		publishError = '';
-		try {
-			const result = await rotateRenderKey(auth.masterKey, formId, store.schema, store.formKey ?? undefined, customDomainBase());
-			store.setRenderKeySalt(result.renderKeySalt);
-			store.markPublished();
-			shareUrl = result.shareUrl;
-		} catch (err) {
-			publishError = err instanceof Error ? err.message : 'Key rotation failed';
-		} finally {
-			publishing = false;
-		}
-	}
-
-	function copyShareUrl() {
-		navigator.clipboard.writeText(shareUrl);
-		copied = true;
-		if (copiedTimer) clearTimeout(copiedTimer);
-		copiedTimer = setTimeout(() => { copied = false; }, 2000);
-	}
-
-	async function applyExpiration(newExpiresAt: string | null, newResponseLimit: number | null, newTtlDays: number | null, newBurnAfterReading: boolean) {
-		expirationSaving = true;
-		expirationError = null;
-		try {
-			await store.setExpiration(newExpiresAt, newResponseLimit, newTtlDays, newBurnAfterReading);
-		} catch {
-			expirationError = 'Failed to save — please try again.';
-		} finally {
-			expirationSaving = false;
-		}
-	}
-
-	type ResponseLifetimePolicy = 'none' | 'burn' | 'ttl';
-
-	const responseLifetimePolicy = $derived<ResponseLifetimePolicy>(
-		store.burnAfterReading ? 'burn' : store.responseTtlDays ? 'ttl' : 'none'
-	);
-
-	const autoDeleteOpen = $derived(responseLifetimePolicy !== 'none' || autoDeletePending);
-
-	function applyResponseLifetime(policy: ResponseLifetimePolicy, ttlDays: number | null) {
-		const burn = policy === 'burn';
-		const days = policy === 'ttl' ? ttlDays : null;
-		applyExpiration(store.expiresAt, store.responseLimit, days, burn);
-	}
-
-	function handleAddLanguage(e: Event) {
-		const code = (e.target as HTMLSelectElement).value;
-		if (!code) return;
-		store.addLocale(code);
-		(e.target as HTMLSelectElement).value = '';
-	}
-
-	const availableLanguages = $derived(
-		LANGUAGES.filter((l) => !store.schema.locales.includes(l.code))
-	);
-
-	let qrCanvas = $state<HTMLCanvasElement | null>(null);
-	let qrVisible = $state(false);
-	let qrError = $state('');
-
-	async function showQRCode() {
-		if (!shareUrl) return;
-		qrVisible = true;
-		qrError = '';
-		// Render after DOM update
-		await new Promise((r) => setTimeout(r, 0));
-		try {
-			if (qrCanvas) {
-				await QRCode.toCanvas(qrCanvas, shareUrl, { width: 240, margin: 2 });
-			}
-		} catch {
-			qrError = 'Failed to generate QR code';
-		}
-	}
-
-	function downloadQR() {
-		if (!qrCanvas) return;
-		const a = document.createElement('a');
-		a.href = qrCanvas.toDataURL('image/png');
-		a.download = `form-qr-${formId}.png`;
-		a.click();
-	}
+function downloadQR() {
+	if (!qrCanvas) return;
+	const a = document.createElement("a");
+	a.href = qrCanvas.toDataURL("image/png");
+	a.download = `form-qr-${formId}.png`;
+	a.click();
+}
 </script>
 
 <aside

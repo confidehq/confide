@@ -1,213 +1,216 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { goto } from "$app/navigation";
-	import { page } from "$app/state";
-	import { detectPRFSupport } from "$lib/prf-detection";
-	import { register } from "$lib/auth";
-	import { auth } from "$lib/stores/auth.svelte";
-	import { getAppConfig } from "$lib/config";
-	import {
-		acceptInvitation,
-		ensureIdentityKey,
-		setupPersonalWorkspaceKey,
-		listWorkspaces,
-		renameWorkspace,
-	} from "$lib/workspaces";
-	import { workspacesStore } from "$lib/stores/workspaces.svelte";
-	import { AtSign, X } from "@lucide/svelte";
-	import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { AtSign, X } from "@lucide/svelte";
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { register } from "$lib/auth";
+import { getAppConfig } from "$lib/config";
+import { detectPRFSupport } from "$lib/prf-detection";
+import { auth } from "$lib/stores/auth.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import {
+	acceptInvitation,
+	ensureIdentityKey,
+	listWorkspaces,
+	renameWorkspace,
+	setupPersonalWorkspaceKey,
+} from "$lib/workspaces";
 
-	type Step =
-		| "checking"
-		| "closed"
-		| "username"
-		| "passkey"
-		| "recovery"
-		| "workspace"
-		| "success";
+type Step =
+	| "checking"
+	| "closed"
+	| "username"
+	| "passkey"
+	| "recovery"
+	| "workspace"
+	| "success";
 
-	let step = $state<Step>("checking");
-	let prfError = $state<string | null>(null);
-	let registerError = $state<string | null>(null);
-	let workspaceError = $state<string | null>(null);
-	let loading = $state(false);
+let step = $state<Step>("checking");
+let prfError = $state<string | null>(null);
+let registerError = $state<string | null>(null);
+let workspaceError = $state<string | null>(null);
+let loading = $state(false);
 
-	// Recovery code state
-	let recoveryCode = $state("");
-	let verifyInput = $state("");
-	let verifyError = $state(false);
-	let verifyPassed = $state(false);
-	let codeCopied = $state(false);
+// Recovery code state
+let recoveryCode = $state("");
+let verifyInput = $state("");
+let verifyError = $state(false);
+let verifyPassed = $state(false);
+let codeCopied = $state(false);
 
-	// Pending registration result (held until workspace step completes)
-	let pendingMasterKey = $state<CryptoKey | null>(null);
-	let pendingAccountId = $state<string | null>(null);
-	let pendingCredentialId = $state<string | null>(null);
+// Pending registration result (held until workspace step completes)
+let pendingMasterKey = $state<CryptoKey | null>(null);
+let pendingAccountId = $state<string | null>(null);
+let pendingCredentialId = $state<string | null>(null);
 
-	// Form inputs
-	let username = $state("");
-	let workspaceName = $state("");
-	let agreedToTerms = $state(false);
+// Form inputs
+let username = $state("");
+let workspaceName = $state("");
+let agreedToTerms = $state(false);
 
-	// Username availability check
-	type UsernameStatus = "idle" | "checking" | "available" | "taken";
-	let usernameStatus = $state<UsernameStatus>("idle");
+// Username availability check
+type UsernameStatus = "idle" | "checking" | "available" | "taken";
+let usernameStatus = $state<UsernameStatus>("idle");
 
-	$effect(() => {
-		const value = username.trim();
-		if (!value) {
-			usernameStatus = "idle";
-			return;
-		}
-		usernameStatus = "checking";
-		const timer = setTimeout(async () => {
-			try {
-				const res = await fetch(
-					`/api/auth/check-username?username=${encodeURIComponent(value)}`,
-				);
-				const data = (await res.json()) as { available: boolean };
-				if (username.trim() === value) {
-					usernameStatus = data.available ? "available" : "taken";
-				}
-			} catch {
-				if (username.trim() === value) usernameStatus = "idle";
+$effect(() => {
+	const value = username.trim();
+	if (!value) {
+		usernameStatus = "idle";
+		return;
+	}
+	usernameStatus = "checking";
+	const timer = setTimeout(async () => {
+		try {
+			const res = await fetch(
+				`/api/auth/check-username?username=${encodeURIComponent(value)}`,
+			);
+			const data = (await res.json()) as { available: boolean };
+			if (username.trim() === value) {
+				usernameStatus = data.available ? "available" : "taken";
 			}
-		}, 400);
-		return () => clearTimeout(timer);
-	});
+		} catch {
+			if (username.trim() === value) usernameStatus = "idle";
+		}
+	}, 400);
+	return () => clearTimeout(timer);
+});
 
-	// Visible step labels and their index mapping
-	const stepLabels = ["Username", "Security", "Recovery", "Workspace"];
-	const stepIndex: Record<Step, number> = {
-		checking: -1,
-		username: 0,
-		passkey: 1,
-		recovery: 2,
-		workspace: 3,
-		success: 4,
-	};
+// Visible step labels and their index mapping
+const stepLabels = ["Username", "Security", "Recovery", "Workspace"];
+const stepIndex: Record<Step, number> = {
+	checking: -1,
+	username: 0,
+	passkey: 1,
+	recovery: 2,
+	workspace: 3,
+	success: 4,
+};
 
-	onMount(async () => {
-		const config = await getAppConfig().catch(() => ({ registrationOpen: true }));
-		if (!config.registrationOpen) {
-			step = "closed";
-			return;
-		}
-		const result = await detectPRFSupport();
-		if (!result.supported) {
-			prfError = result.reason;
-		} else {
-			step = "username";
-		}
-	});
+onMount(async () => {
+	const config = await getAppConfig().catch(() => ({ registrationOpen: true }));
+	if (!config.registrationOpen) {
+		step = "closed";
+		return;
+	}
+	const result = await detectPRFSupport();
+	if (!result.supported) {
+		prfError = result.reason;
+	} else {
+		step = "username";
+	}
+});
 
-	function continueToPasskey() {
-		if (!username.trim()) {
-			registerError = "Please enter a username.";
-			return;
-		}
-		if (usernameStatus === "taken") {
-			registerError = null;
-			return;
-		}
-		if (!agreedToTerms) {
-			registerError = "Please agree to the Terms of Service and Privacy Policy.";
-			return;
-		}
+function continueToPasskey() {
+	if (!username.trim()) {
+		registerError = "Please enter a username.";
+		return;
+	}
+	if (usernameStatus === "taken") {
 		registerError = null;
-		step = "passkey";
+		return;
 	}
+	if (!agreedToTerms) {
+		registerError = "Please agree to the Terms of Service and Privacy Policy.";
+		return;
+	}
+	registerError = null;
+	step = "passkey";
+}
 
-	async function startRegistration() {
-		loading = true;
-		registerError = null;
+async function startRegistration() {
+	loading = true;
+	registerError = null;
+	try {
+		const result = await register(username.trim());
+		recoveryCode = result.recoveryCode;
+		pendingMasterKey = result.masterKey;
+		pendingAccountId = result.accountId;
+		pendingCredentialId = result.credentialId;
+		step = "recovery";
+	} catch (err) {
+		registerError = err instanceof Error ? err.message : "Registration failed.";
+	} finally {
+		loading = false;
+	}
+}
+
+function checkVerification() {
+	const normalize = (s: string) => s.toUpperCase().replace(/\s/g, "");
+	verifyError = normalize(verifyInput) !== normalize(recoveryCode);
+	if (!verifyError && verifyInput.trim() !== "") {
+		verifyPassed = true;
+	}
+}
+
+function continueToWorkspace() {
+	if (!verifyPassed) return;
+	step = "workspace";
+}
+
+async function finishOnboarding() {
+	if (!workspaceName.trim()) {
+		workspaceError = "Please enter a workspace name.";
+		return;
+	}
+	if (!pendingMasterKey || !pendingAccountId || !pendingCredentialId) return;
+
+	loading = true;
+	workspaceError = null;
+
+	try {
+		// Non-fatal: crypto key provisioning (can be healed on next login)
 		try {
-			const result = await register(username.trim());
-			recoveryCode = result.recoveryCode;
-			pendingMasterKey = result.masterKey;
-			pendingAccountId = result.accountId;
-			pendingCredentialId = result.credentialId;
-			step = "recovery";
-		} catch (err) {
-			registerError =
-				err instanceof Error ? err.message : "Registration failed.";
-		} finally {
-			loading = false;
+			await ensureIdentityKey(pendingMasterKey);
+			await setupPersonalWorkspaceKey(pendingMasterKey, pendingAccountId);
+		} catch {
+			/* non-fatal */
 		}
-	}
 
-	function checkVerification() {
-		const normalize = (s: string) => s.toUpperCase().replace(/\s/g, "");
-		verifyError = normalize(verifyInput) !== normalize(recoveryCode);
-		if (!verifyError && verifyInput.trim() !== "") {
-			verifyPassed = true;
+		// Required: rename the auto-created personal workspace
+		const workspaces = await listWorkspaces();
+		const personal = workspaces.find((w) => w.role === "owner");
+		if (personal) {
+			await renameWorkspace(personal.id, workspaceName.trim());
+			workspacesStore.update(personal.id, { name: workspaceName.trim() });
 		}
-	}
 
-	function continueToWorkspace() {
-		if (!verifyPassed) return;
-		step = "workspace";
-	}
+		// Pre-populate the store with the renamed workspace now. The store's
+		// _loaded guard prevents the app layout from re-fetching on mount, so
+		// the dashboard always reads the already-correct name.
+		await workspacesStore.load();
 
-	async function finishOnboarding() {
-		if (!workspaceName.trim()) {
-			workspaceError = "Please enter a workspace name.";
-			return;
-		}
-		if (!pendingMasterKey || !pendingAccountId || !pendingCredentialId) return;
-
-		loading = true;
-		workspaceError = null;
-
-		try {
-			// Non-fatal: crypto key provisioning (can be healed on next login)
+		const inviteToken = page.url.searchParams.get("invite");
+		if (inviteToken) {
 			try {
-				await ensureIdentityKey(pendingMasterKey);
-				await setupPersonalWorkspaceKey(pendingMasterKey, pendingAccountId);
+				await acceptInvitation(inviteToken);
 			} catch {
 				/* non-fatal */
 			}
-
-			// Required: rename the auto-created personal workspace
-			const workspaces = await listWorkspaces();
-			const personal = workspaces.find((w) => w.role === "owner");
-			if (personal) {
-				await renameWorkspace(personal.id, workspaceName.trim());
-				workspacesStore.update(personal.id, { name: workspaceName.trim() });
-			}
-
-			// Pre-populate the store with the renamed workspace now. The store's
-			// _loaded guard prevents the app layout from re-fetching on mount, so
-			// the dashboard always reads the already-correct name.
-			await workspacesStore.load();
-
-			const inviteToken = page.url.searchParams.get("invite");
-			if (inviteToken) {
-				try {
-					await acceptInvitation(inviteToken);
-				} catch {
-					/* non-fatal */
-				}
-			}
-
-			step = "success";
-			// Set session last — triggers the layout $effect which redirects to /dashboard
-			setTimeout(() => {
-				auth.setSession(pendingMasterKey!, pendingAccountId!, pendingCredentialId!);
-			}, 1500);
-		} catch (err) {
-			workspaceError =
-				err instanceof Error ? err.message : "Failed to set up workspace.";
-		} finally {
-			loading = false;
 		}
-	}
 
-	function copyCode() {
-		navigator.clipboard.writeText(recoveryCode);
-		codeCopied = true;
-		setTimeout(() => (codeCopied = false), 2000);
+		step = "success";
+		// Set session last — triggers the layout $effect which redirects to /dashboard
+		setTimeout(() => {
+			auth.setSession(
+				pendingMasterKey!,
+				pendingAccountId!,
+				pendingCredentialId!,
+			);
+		}, 1500);
+	} catch (err) {
+		workspaceError =
+			err instanceof Error ? err.message : "Failed to set up workspace.";
+	} finally {
+		loading = false;
 	}
+}
+
+function copyCode() {
+	navigator.clipboard.writeText(recoveryCode);
+	codeCopied = true;
+	setTimeout(() => (codeCopied = false), 2000);
+}
 </script>
 
 <svelte:head>

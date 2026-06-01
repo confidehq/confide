@@ -1,21 +1,21 @@
 <script lang="ts">
-	let {
-		label,
-		id,
-		value = $bindable(''),
-		type = 'text',
-		placeholder = '',
-		help,
-		readonly = false,
-	}: {
-		label: string;
-		id: string;
-		value?: string;
-		type?: string;
-		placeholder?: string;
-		help?: string;
-		readonly?: boolean;
-	} = $props();
+let {
+	label,
+	id,
+	value = $bindable(""),
+	type = "text",
+	placeholder = "",
+	help,
+	readonly = false,
+}: {
+	label: string;
+	id: string;
+	value?: string;
+	type?: string;
+	placeholder?: string;
+	help?: string;
+	readonly?: boolean;
+} = $props();
 </script>
 
 <div class="flex flex-col gap-1.5">

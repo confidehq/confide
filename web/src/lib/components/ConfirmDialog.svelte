@@ -1,37 +1,37 @@
 <script lang="ts">
-	import { X, TriangleAlert } from '@lucide/svelte';
+import { TriangleAlert, X } from "@lucide/svelte";
 
-	interface Props {
-		open: boolean;
-		title: string;
-		description?: string;
-		confirmLabel?: string;
-		loadingLabel?: string;
-		loading?: boolean;
-		error?: string;
-		onconfirm: () => void;
-		oncancel: () => void;
-	}
+interface Props {
+	open: boolean;
+	title: string;
+	description?: string;
+	confirmLabel?: string;
+	loadingLabel?: string;
+	loading?: boolean;
+	error?: string;
+	onconfirm: () => void;
+	oncancel: () => void;
+}
 
-	let {
-		open,
-		title,
-		description,
-		confirmLabel = 'Delete',
-		loadingLabel,
-		loading = false,
-		error = '',
-		onconfirm,
-		oncancel
-	}: Props = $props();
+let {
+	open,
+	title,
+	description,
+	confirmLabel = "Delete",
+	loadingLabel,
+	loading = false,
+	error = "",
+	onconfirm,
+	oncancel,
+}: Props = $props();
 
-	function handleBackdrop(e: MouseEvent) {
-		if (e.target === e.currentTarget && !loading) oncancel();
-	}
+function handleBackdrop(e: MouseEvent) {
+	if (e.target === e.currentTarget && !loading) oncancel();
+}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && !loading) oncancel();
-	}
+function handleKeydown(e: KeyboardEvent) {
+	if (e.key === "Escape" && !loading) oncancel();
+}
 </script>
 
 {#if open}

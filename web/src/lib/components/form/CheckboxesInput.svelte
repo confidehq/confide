@@ -1,34 +1,36 @@
 <script lang="ts">
-	import FieldShell from './FieldShell.svelte';
-	import type { BuilderField, CheckboxesConfig } from '$lib/types/builder';
-	import type { AnswerValue } from '$lib/validation';
+import type { BuilderField, CheckboxesConfig } from "$lib/types/builder";
+import type { AnswerValue } from "$lib/validation";
+import FieldShell from "./FieldShell.svelte";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string; options?: string[] };
-		value: AnswerValue;
-		error?: string | null;
-		onchange: (v: AnswerValue) => void;
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string; options?: string[] };
+	value: AnswerValue;
+	error?: string | null;
+	onchange: (v: AnswerValue) => void;
+}
+
+const { field, translation, value, error, onchange }: Props = $props();
+const cfg = field.config as CheckboxesConfig;
+const checked = $derived<string[]>(
+	Array.isArray(value) ? (value as string[]) : [],
+);
+
+function getLabel(idx: number): string {
+	return translation.options?.[idx] ?? `Option ${idx + 1}`;
+}
+
+function toggle(optId: string) {
+	const current = [...checked];
+	const idx = current.indexOf(optId);
+	if (idx >= 0) {
+		current.splice(idx, 1);
+	} else {
+		current.push(optId);
 	}
-
-	const { field, translation, value, error, onchange }: Props = $props();
-	const cfg = field.config as CheckboxesConfig;
-	const checked = $derived<string[]>(Array.isArray(value) ? (value as string[]) : []);
-
-	function getLabel(idx: number): string {
-		return translation.options?.[idx] ?? `Option ${idx + 1}`;
-	}
-
-	function toggle(optId: string) {
-		const current = [...checked];
-		const idx = current.indexOf(optId);
-		if (idx >= 0) {
-			current.splice(idx, 1);
-		} else {
-			current.push(optId);
-		}
-		onchange(current);
-	}
+	onchange(current);
+}
 </script>
 
 <FieldShell label={translation.label} required={field.required} helpText={translation.helpText} {error}>

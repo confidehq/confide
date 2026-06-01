@@ -1,68 +1,94 @@
 <script lang="ts">
-	import type { createBuilderStore } from '$lib/stores/builder.svelte';
-	import type {
-		ShortTextConfig,
-		LongTextConfig,
-		MultipleChoiceConfig,
-		CheckboxesConfig,
-		DropdownConfig,
-		DateTimeConfig,
-		RatingConfig,
-		HeadingConfig,
-		AccentConfig,
-		AccentIcon,
-		ChoiceOption
-	} from '$lib/types/builder';
-	import { Shield, Lock, CircleCheck, Info, TriangleAlert, Star, Bell, Zap, Ban } from '@lucide/svelte';
+import {
+	Ban,
+	Bell,
+	CircleCheck,
+	Info,
+	Lock,
+	Shield,
+	Star,
+	TriangleAlert,
+	Zap,
+} from "@lucide/svelte";
+import type { createBuilderStore } from "$lib/stores/builder.svelte";
+import type {
+	AccentConfig,
+	AccentIcon,
+	CheckboxesConfig,
+	ChoiceOption,
+	DateTimeConfig,
+	DropdownConfig,
+	HeadingConfig,
+	LongTextConfig,
+	MultipleChoiceConfig,
+	RatingConfig,
+	ShortTextConfig,
+} from "$lib/types/builder";
 
-	interface Props {
-		store: ReturnType<typeof createBuilderStore>;
-	}
+interface Props {
+	store: ReturnType<typeof createBuilderStore>;
+}
 
-	const { store }: Props = $props();
+const { store }: Props = $props();
 
-	const field = $derived(store.selectedField);
+const field = $derived(store.selectedField);
 
-	let panelEl = $state<HTMLElement | null>(null);
-	let panelTop = $state(8);
+let panelEl = $state<HTMLElement | null>(null);
+let panelTop = $state(8);
 
-	function updatePosition() {
-		if (!panelEl) return;
-		const anchorId = store.selectedFieldId ?? (store.submitButtonSelected ? '__submit__' : null);
-		if (!anchorId) return;
-		const fieldEl = document.querySelector<HTMLElement>(`[data-field-id="${anchorId}"]`);
-		const container = panelEl.parentElement;
-		if (!fieldEl || !container) return;
-		const fieldRect = fieldEl.getBoundingClientRect();
-		const containerRect = container.getBoundingClientRect();
-		panelTop = Math.max(8, fieldRect.top - containerRect.top);
-	}
+function updatePosition() {
+	if (!panelEl) return;
+	const anchorId =
+		store.selectedFieldId ?? (store.submitButtonSelected ? "__submit__" : null);
+	if (!anchorId) return;
+	const fieldEl = document.querySelector<HTMLElement>(
+		`[data-field-id="${anchorId}"]`,
+	);
+	const container = panelEl.parentElement;
+	if (!fieldEl || !container) return;
+	const fieldRect = fieldEl.getBoundingClientRect();
+	const containerRect = container.getBoundingClientRect();
+	panelTop = Math.max(8, fieldRect.top - containerRect.top);
+}
 
-	$effect(() => {
-		store.selectedFieldId; // reactive dependency
-		store.submitButtonSelected;
-		updatePosition();
-		const canvas = document.querySelector<HTMLElement>('main[role="presentation"]');
-		canvas?.addEventListener('scroll', updatePosition);
-		return () => canvas?.removeEventListener('scroll', updatePosition);
-	});
+$effect(() => {
+	store.selectedFieldId; // reactive dependency
+	store.submitButtonSelected;
+	updatePosition();
+	const canvas = document.querySelector<HTMLElement>(
+		'main[role="presentation"]',
+	);
+	canvas?.addEventListener("scroll", updatePosition);
+	return () => canvas?.removeEventListener("scroll", updatePosition);
+});
 
-	function addOption() {
-		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const options = cfg.options ?? [];
-		const newOpt: ChoiceOption = { id: crypto.randomUUID(), order: options.length };
-		store.updateFieldConfig(field.id, { options: [...options, newOpt] } as Partial<typeof cfg>);
-	}
+function addOption() {
+	if (!field) return;
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const options = cfg.options ?? [];
+	const newOpt: ChoiceOption = {
+		id: crypto.randomUUID(),
+		order: options.length,
+	};
+	store.updateFieldConfig(field.id, {
+		options: [...options, newOpt],
+	} as Partial<typeof cfg>);
+}
 
-	function removeOption(optId: string) {
-		if (!field) return;
-		const cfg = field.config as MultipleChoiceConfig | CheckboxesConfig | DropdownConfig;
-		const options = (cfg.options ?? [])
-			.filter((o) => o.id !== optId)
-			.map((o, i) => ({ ...o, order: i }));
-		store.updateFieldConfig(field.id, { options } as Partial<typeof cfg>);
-	}
+function removeOption(optId: string) {
+	if (!field) return;
+	const cfg = field.config as
+		| MultipleChoiceConfig
+		| CheckboxesConfig
+		| DropdownConfig;
+	const options = (cfg.options ?? [])
+		.filter((o) => o.id !== optId)
+		.map((o, i) => ({ ...o, order: i }));
+	store.updateFieldConfig(field.id, { options } as Partial<typeof cfg>);
+}
 </script>
 
 <aside

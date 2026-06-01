@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import { auth } from '$lib/stores/auth.svelte';
-	import faviconSvg from '$lib/assets/favicon.svg?raw';
+import { page } from "$app/state";
+import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { auth } from "$lib/stores/auth.svelte";
 
-	const is404 = $derived(page.status === 404);
-	const isLoggedIn = $derived(auth.masterKey !== null);
+const is404 = $derived(page.status === 404);
+const isLoggedIn = $derived(auth.masterKey !== null);
 </script>
 
 <svelte:head>

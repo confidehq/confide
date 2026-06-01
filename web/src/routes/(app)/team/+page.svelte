@@ -1,239 +1,275 @@
 <script lang="ts">
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { access } from '$lib/stores/access.svelte';
-	import { teamStore } from '$lib/stores/team.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import {
-		updateMemberRole, removeMember,
-		createInvitation, revokeInvitation,
-		grantKey,
-		WorkspaceError,
-		type WorkspaceMember, type WorkspaceInvitation
-	} from '$lib/workspaces';
-	import { MoreHorizontal, ShieldCheck, UserMinus, RefreshCw, UserPlus, X, Mail, KeyRound, Copy, Check, Link } from '@lucide/svelte';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import WorkspaceHeader from '$lib/components/WorkspaceHeader.svelte';
+import {
+	Check,
+	Copy,
+	KeyRound,
+	Link,
+	Mail,
+	MoreHorizontal,
+	RefreshCw,
+	ShieldCheck,
+	UserMinus,
+	UserPlus,
+	X,
+} from "@lucide/svelte";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import WorkspaceHeader from "$lib/components/WorkspaceHeader.svelte";
+import { access } from "$lib/stores/access.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { teamStore } from "$lib/stores/team.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import {
+	createInvitation,
+	grantKey,
+	removeMember,
+	revokeInvitation,
+	updateMemberRole,
+	WorkspaceError,
+	type WorkspaceInvitation,
+	type WorkspaceMember,
+} from "$lib/workspaces";
 
-	// ─── Invite form state ───────────────────────────────────────────────────────
+// ─── Invite form state ───────────────────────────────────────────────────────
 
-	let showInviteForm = $state(false);
-	let inviteEmail = $state('');
-	let inviteRole = $state<'admin' | 'member' | 'viewer'>('member');
-	let inviting = $state(false);
-	let inviteError = $state('');
-	let invitePlanLimit = $state(false);
-	let inviteSuccess = $state('');
-	let inviteLink = $state('');
-	let linkCopied = $state(false);
+let showInviteForm = $state(false);
+let inviteEmail = $state("");
+let inviteRole = $state<"admin" | "member" | "viewer">("member");
+let inviting = $state(false);
+let inviteError = $state("");
+let invitePlanLimit = $state(false);
+let inviteSuccess = $state("");
+let inviteLink = $state("");
+let linkCopied = $state(false);
 
-	// ─── Revoke / actions state ──────────────────────────────────────────────────
+// ─── Revoke / actions state ──────────────────────────────────────────────────
 
-	let revokingId = $state<string | null>(null);
-	let openMenuId = $state<string | null>(null);
-	let roleLoading = $state(false);
-	let roleError = $state('');
-	let removeTarget = $state<WorkspaceMember | null>(null);
-	let removing = $state(false);
-	let removeError = $state('');
-	let grantingId = $state<string | null>(null);
-	let grantError = $state('');
+let revokingId = $state<string | null>(null);
+let openMenuId = $state<string | null>(null);
+let roleLoading = $state(false);
+let roleError = $state("");
+let removeTarget = $state<WorkspaceMember | null>(null);
+let removing = $state(false);
+let removeError = $state("");
+let grantingId = $state<string | null>(null);
+let grantError = $state("");
 
-	// ─── Load on workspace change (cached — no re-fetch on back-navigation) ─────
+// ─── Load on workspace change (cached — no re-fetch on back-navigation) ─────
 
-	$effect(() => {
-		const ws = workspacesStore.active;
-		if (ws) {
-			teamStore.load(ws.id, access.isAdmin);
-		}
-	});
-
-	async function refresh() {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		teamStore.invalidate();
+$effect(() => {
+	const ws = workspacesStore.active;
+	if (ws) {
 		teamStore.load(ws.id, access.isAdmin);
 	}
+});
 
-	// ─── Invite ─────────────────────────────────────────────────────────────────
+async function refresh() {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	teamStore.invalidate();
+	teamStore.load(ws.id, access.isAdmin);
+}
 
-	function openInviteForm() {
-		inviteEmail = '';
-		inviteRole = 'member';
-		inviteError = '';
-		invitePlanLimit = false;
-		inviteSuccess = '';
-		inviteLink = '';
-		linkCopied = false;
-		showInviteForm = true;
-	}
+// ─── Invite ─────────────────────────────────────────────────────────────────
 
-	function closeInviteForm() {
-		showInviteForm = false;
-		inviteEmail = '';
-		inviteError = '';
-		invitePlanLimit = false;
-		inviteSuccess = '';
-		inviteLink = '';
-		linkCopied = false;
-	}
+function openInviteForm() {
+	inviteEmail = "";
+	inviteRole = "member";
+	inviteError = "";
+	invitePlanLimit = false;
+	inviteSuccess = "";
+	inviteLink = "";
+	linkCopied = false;
+	showInviteForm = true;
+}
 
-	async function copyLink() {
-		await navigator.clipboard.writeText(inviteLink);
-		linkCopied = true;
-		setTimeout(() => (linkCopied = false), 2000);
-	}
+function closeInviteForm() {
+	showInviteForm = false;
+	inviteEmail = "";
+	inviteError = "";
+	invitePlanLimit = false;
+	inviteSuccess = "";
+	inviteLink = "";
+	linkCopied = false;
+}
 
-	async function handleInvite() {
-		const email = inviteEmail.trim() || null;
-		const ws = workspacesStore.active;
-		if (!ws) return;
+async function copyLink() {
+	await navigator.clipboard.writeText(inviteLink);
+	linkCopied = true;
+	setTimeout(() => (linkCopied = false), 2000);
+}
 
-		inviting = true;
-		inviteError = '';
-		invitePlanLimit = false;
-		inviteSuccess = '';
-		inviteLink = '';
-		linkCopied = false;
+async function handleInvite() {
+	const email = inviteEmail.trim() || null;
+	const ws = workspacesStore.active;
+	if (!ws) return;
 
-		try {
-			const inv = await createInvitation(ws.id, email, inviteRole);
-			teamStore.addInvitation(inv);
-			if (inv.link) {
-				inviteLink = inv.link;
-			} else {
-				inviteSuccess = `Invitation sent to ${email}`;
-			}
-			inviteEmail = '';
-		} catch (e) {
-			if (e instanceof WorkspaceError && e.code === 'plan_limit') {
-				invitePlanLimit = true;
-			} else {
-				inviteError = e instanceof WorkspaceError ? e.message : e instanceof Error ? e.message : 'Failed to send invitation.';
-			}
-		} finally {
-			inviting = false;
+	inviting = true;
+	inviteError = "";
+	invitePlanLimit = false;
+	inviteSuccess = "";
+	inviteLink = "";
+	linkCopied = false;
+
+	try {
+		const inv = await createInvitation(ws.id, email, inviteRole);
+		teamStore.addInvitation(inv);
+		if (inv.link) {
+			inviteLink = inv.link;
+		} else {
+			inviteSuccess = `Invitation sent to ${email}`;
 		}
-	}
-
-	async function handleRevoke(inv: WorkspaceInvitation) {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		revokingId = inv.id;
-		try {
-			await revokeInvitation(ws.id, inv.id);
-			teamStore.removeInvitation(inv.id);
-		} catch { /* non-fatal */ } finally {
-			revokingId = null;
+		inviteEmail = "";
+	} catch (e) {
+		if (e instanceof WorkspaceError && e.code === "plan_limit") {
+			invitePlanLimit = true;
+		} else {
+			inviteError =
+				e instanceof WorkspaceError
+					? e.message
+					: e instanceof Error
+						? e.message
+						: "Failed to send invitation.";
 		}
+	} finally {
+		inviting = false;
 	}
+}
 
-	// ─── Key grant ──────────────────────────────────────────────────────────────
-
-	async function handleGrant(member: WorkspaceMember) {
-		const ws = workspacesStore.active;
-		const masterKey = auth.masterKey;
-		if (!ws || !masterKey) return;
-
-		const targetPubKey = teamStore.identityKeys.get(member.accountId);
-		if (!targetPubKey) return;
-
-		grantingId = member.accountId;
-		grantError = '';
-		try {
-			await grantKey(ws.id, member.accountId, targetPubKey, masterKey);
-			teamStore.updateMember(member.accountId, { status: 'active' });
-		} catch (e) {
-			grantError = e instanceof Error ? e.message : 'Failed to grant access.';
-		} finally {
-			grantingId = null;
-		}
+async function handleRevoke(inv: WorkspaceInvitation) {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	revokingId = inv.id;
+	try {
+		await revokeInvitation(ws.id, inv.id);
+		teamStore.removeInvitation(inv.id);
+	} catch {
+		/* non-fatal */
+	} finally {
+		revokingId = null;
 	}
+}
 
-	// ─── Role update ────────────────────────────────────────────────────────────
+// ─── Key grant ──────────────────────────────────────────────────────────────
 
-	async function handleRoleChange(member: WorkspaceMember, newRole: string) {
-		const ws = workspacesStore.active;
-		if (!ws) return;
-		roleLoading = true;
-		roleError = '';
-		openMenuId = null;
-		try {
-			await updateMemberRole(ws.id, member.accountId, newRole);
-			teamStore.updateMember(member.accountId, { role: newRole as WorkspaceMember['role'] });
-		} catch (e) {
-			roleError =
-				e instanceof WorkspaceError && e.code === 'last_owner'
-					? 'Cannot demote the sole owner.'
-					: e instanceof Error ? e.message : 'Failed to update role.';
-		} finally {
-			roleLoading = false;
-		}
+async function handleGrant(member: WorkspaceMember) {
+	const ws = workspacesStore.active;
+	const masterKey = auth.masterKey;
+	if (!ws || !masterKey) return;
+
+	const targetPubKey = teamStore.identityKeys.get(member.accountId);
+	if (!targetPubKey) return;
+
+	grantingId = member.accountId;
+	grantError = "";
+	try {
+		await grantKey(ws.id, member.accountId, targetPubKey, masterKey);
+		teamStore.updateMember(member.accountId, { status: "active" });
+	} catch (e) {
+		grantError = e instanceof Error ? e.message : "Failed to grant access.";
+	} finally {
+		grantingId = null;
 	}
+}
 
-	// ─── Remove member ──────────────────────────────────────────────────────────
+// ─── Role update ────────────────────────────────────────────────────────────
 
-	async function handleRemove() {
-		const ws = workspacesStore.active;
-		if (!ws || !removeTarget) return;
-		removing = true;
-		removeError = '';
-		try {
-			await removeMember(ws.id, removeTarget.accountId);
-			teamStore.removeMember(removeTarget.accountId);
-			removeTarget = null;
-		} catch (e) {
-			removeError =
-				e instanceof WorkspaceError && e.code === 'last_owner'
-					? 'Cannot remove the sole owner.'
-					: e instanceof Error ? e.message : 'Failed to remove member.';
-		} finally {
-			removing = false;
-		}
+async function handleRoleChange(member: WorkspaceMember, newRole: string) {
+	const ws = workspacesStore.active;
+	if (!ws) return;
+	roleLoading = true;
+	roleError = "";
+	openMenuId = null;
+	try {
+		await updateMemberRole(ws.id, member.accountId, newRole);
+		teamStore.updateMember(member.accountId, {
+			role: newRole as WorkspaceMember["role"],
+		});
+	} catch (e) {
+		roleError =
+			e instanceof WorkspaceError && e.code === "last_owner"
+				? "Cannot demote the sole owner."
+				: e instanceof Error
+					? e.message
+					: "Failed to update role.";
+	} finally {
+		roleLoading = false;
 	}
+}
 
-	// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Remove member ──────────────────────────────────────────────────────────
 
-	const myRole = $derived(workspacesStore.active?.role ?? 'viewer');
-	const canManage = $derived(access.isAdmin);
-
-	// Alias store references for template conciseness
-	const members = $derived(teamStore.members);
-	const invitations = $derived(teamStore.invitations);
-	const identityKeys = $derived(teamStore.identityKeys);
-	const loading = $derived(teamStore.loading);
-	const error = $derived(teamStore.error);
-
-	function roleRank(role: string): number {
-		return { owner: 4, admin: 3, member: 2, viewer: 1 }[role] ?? 0;
+async function handleRemove() {
+	const ws = workspacesStore.active;
+	if (!ws || !removeTarget) return;
+	removing = true;
+	removeError = "";
+	try {
+		await removeMember(ws.id, removeTarget.accountId);
+		teamStore.removeMember(removeTarget.accountId);
+		removeTarget = null;
+	} catch (e) {
+		removeError =
+			e instanceof WorkspaceError && e.code === "last_owner"
+				? "Cannot remove the sole owner."
+				: e instanceof Error
+					? e.message
+					: "Failed to remove member.";
+	} finally {
+		removing = false;
 	}
+}
 
-	const allRoles = ['owner', 'admin', 'member', 'viewer'] as const;
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
-	// Roles available to assign when inviting (never offer 'owner')
-	const inviteRoleOptions = $derived(
-		(['admin', 'member', 'viewer'] as const).filter(r => roleRank(r) <= roleRank(myRole))
+const myRole = $derived(workspacesStore.active?.role ?? "viewer");
+const canManage = $derived(access.isAdmin);
+
+// Alias store references for template conciseness
+const members = $derived(teamStore.members);
+const invitations = $derived(teamStore.invitations);
+const identityKeys = $derived(teamStore.identityKeys);
+const loading = $derived(teamStore.loading);
+const error = $derived(teamStore.error);
+
+function roleRank(role: string): number {
+	return { owner: 4, admin: 3, member: 2, viewer: 1 }[role] ?? 0;
+}
+
+const allRoles = ["owner", "admin", "member", "viewer"] as const;
+
+// Roles available to assign when inviting (never offer 'owner')
+const inviteRoleOptions = $derived(
+	(["admin", "member", "viewer"] as const).filter(
+		(r) => roleRank(r) <= roleRank(myRole),
+	),
+);
+
+function availableRoles(target: WorkspaceMember): readonly string[] {
+	return allRoles.filter(
+		(r) => roleRank(r) <= roleRank(myRole) && r !== target.role,
 	);
+}
 
-	function availableRoles(target: WorkspaceMember): readonly string[] {
-		return allRoles.filter(r => roleRank(r) <= roleRank(myRole) && r !== target.role);
-	}
+function formatDate(s: string): string {
+	if (!s) return "—";
+	const d = new Date(s);
+	if (isNaN(d.getTime())) return "—";
+	return d.toLocaleDateString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+}
 
-	function formatDate(s: string): string {
-		if (!s) return '—';
-		const d = new Date(s);
-		if (isNaN(d.getTime())) return '—';
-		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-	}
-
-	function formatExpiry(iso: string): string {
-		if (!iso) return '';
-		const d = new Date(iso);
-		if (isNaN(d.getTime())) return '';
-		const diff = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-		if (diff <= 0) return 'Expired';
-		if (diff === 1) return 'Expires tomorrow';
-		return `Expires in ${diff}d`;
-	}
+function formatExpiry(iso: string): string {
+	if (!iso) return "";
+	const d = new Date(iso);
+	if (isNaN(d.getTime())) return "";
+	const diff = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+	if (diff <= 0) return "Expired";
+	if (diff === 1) return "Expires tomorrow";
+	return `Expires in ${diff}d`;
+}
 </script>
 
 <svelte:head>

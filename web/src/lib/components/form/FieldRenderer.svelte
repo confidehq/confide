@@ -1,27 +1,32 @@
 <script lang="ts">
-	import type { BuilderField } from '$lib/types/builder';
-	import type { AnswerValue } from '$lib/validation';
-	import ShortTextInput from './ShortTextInput.svelte';
-	import LongTextInput from './LongTextInput.svelte';
-	import MultipleChoiceInput from './MultipleChoiceInput.svelte';
-	import CheckboxesInput from './CheckboxesInput.svelte';
-	import DropdownInput from './DropdownInput.svelte';
-	import DateTimeInput from './DateTimeInput.svelte';
-	import RatingInput from './RatingInput.svelte';
-	import SectionBreakInput from './SectionBreakInput.svelte';
-	import HeadingField from './HeadingField.svelte';
-	import AccordionField from './AccordionField.svelte';
-	import AccentField from './AccentField.svelte';
+import type { BuilderField } from "$lib/types/builder";
+import type { AnswerValue } from "$lib/validation";
+import AccentField from "./AccentField.svelte";
+import AccordionField from "./AccordionField.svelte";
+import CheckboxesInput from "./CheckboxesInput.svelte";
+import DateTimeInput from "./DateTimeInput.svelte";
+import DropdownInput from "./DropdownInput.svelte";
+import HeadingField from "./HeadingField.svelte";
+import LongTextInput from "./LongTextInput.svelte";
+import MultipleChoiceInput from "./MultipleChoiceInput.svelte";
+import RatingInput from "./RatingInput.svelte";
+import SectionBreakInput from "./SectionBreakInput.svelte";
+import ShortTextInput from "./ShortTextInput.svelte";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string; placeholder?: string; options?: string[] };
-		value: AnswerValue;
-		error?: string | null;
-		onchange: (v: AnswerValue) => void;
-	}
+interface Props {
+	field: BuilderField;
+	translation: {
+		label: string;
+		helpText?: string;
+		placeholder?: string;
+		options?: string[];
+	};
+	value: AnswerValue;
+	error?: string | null;
+	onchange: (v: AnswerValue) => void;
+}
 
-	const { field, translation, value, error, onchange }: Props = $props();
+const { field, translation, value, error, onchange }: Props = $props();
 </script>
 
 <div id="field-{field.id}">

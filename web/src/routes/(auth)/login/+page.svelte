@@ -1,43 +1,47 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page } from '$app/state';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { login, isPasskeyCancelled } from '$lib/auth';
-	import { ensureIdentityKey, setupPersonalWorkspaceKey } from '$lib/workspaces';
-	import { getAppConfig } from '$lib/config';
-	import faviconSvg from '$lib/assets/favicon.svg?raw';
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import faviconSvg from "$lib/assets/favicon.svg?raw";
+import { isPasskeyCancelled, login } from "$lib/auth";
+import { getAppConfig } from "$lib/config";
+import { auth } from "$lib/stores/auth.svelte";
+import { ensureIdentityKey, setupPersonalWorkspaceKey } from "$lib/workspaces";
 
-	let error = $state<string | null>(null);
-	let loading = $state(false);
-	let username = $state('');
-	let registrationOpen = $state(true);
+let error = $state<string | null>(null);
+let loading = $state(false);
+let username = $state("");
+let registrationOpen = $state(true);
 
-	$effect(() => {
-		getAppConfig().then(c => { registrationOpen = c.registrationOpen; }).catch(() => {});
-	});
+$effect(() => {
+	getAppConfig()
+		.then((c) => {
+			registrationOpen = c.registrationOpen;
+		})
+		.catch(() => {});
+});
 
-	const next = $derived(page.url.searchParams.get('next') ?? '/dashboard');
+const next = $derived(page.url.searchParams.get("next") ?? "/dashboard");
 
-	async function handleLogin() {
-		error = null;
-		loading = true;
-		try {
-			const result = await login(auth.credentialId, username.trim() || undefined);
-			auth.setSession(result.masterKey, result.accountId, result.credentialId);
-			// Heal any account that never got a personal workspace key (e.g. signup
-			// interrupted before key provisioning completed). No-op if already set up.
-			ensureIdentityKey(result.masterKey)
-				.then(() => setupPersonalWorkspaceKey(result.masterKey, result.accountId))
-				.catch(() => {});
-			goto(next);
-		} catch (err) {
-			if (!isPasskeyCancelled(err)) {
-				error = err instanceof Error ? err.message : 'Login failed.';
-			}
-		} finally {
-			loading = false;
+async function handleLogin() {
+	error = null;
+	loading = true;
+	try {
+		const result = await login(auth.credentialId, username.trim() || undefined);
+		auth.setSession(result.masterKey, result.accountId, result.credentialId);
+		// Heal any account that never got a personal workspace key (e.g. signup
+		// interrupted before key provisioning completed). No-op if already set up.
+		ensureIdentityKey(result.masterKey)
+			.then(() => setupPersonalWorkspaceKey(result.masterKey, result.accountId))
+			.catch(() => {});
+		goto(next);
+	} catch (err) {
+		if (!isPasskeyCancelled(err)) {
+			error = err instanceof Error ? err.message : "Login failed.";
 		}
+	} finally {
+		loading = false;
 	}
+}
 </script>
 
 <svelte:head>

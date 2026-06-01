@@ -1,151 +1,176 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { listForms, getForm, setWorkspaceFormKey, updateFormStatus, deleteForm, type FormSummary } from '$lib/forms';
-	import { listWorkspaces, loadWorkspaceKey, getWorkspaceSettings, updateWorkspaceSettings, type Workspace } from '$lib/workspaces';
-	import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
-	import StatusBadge from '$lib/components/StatusBadge.svelte';
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
+import StatusBadge from "$lib/components/StatusBadge.svelte";
+import {
+	deleteForm,
+	type FormSummary,
+	getForm,
+	listForms,
+	setWorkspaceFormKey,
+	updateFormStatus,
+} from "$lib/forms";
+import { auth } from "$lib/stores/auth.svelte";
+import {
+	getWorkspaceSettings,
+	listWorkspaces,
+	loadWorkspaceKey,
+	updateWorkspaceSettings,
+	type Workspace,
+} from "$lib/workspaces";
 
-	const workspaceId = $derived($page.params.id);
+const workspaceId = $derived($page.params.id);
 
-	let workspace = $state<Workspace | null>(null);
-	let forms = $state<FormSummary[]>([]);
-	let formNames = $state<Map<string, string>>(new Map());
-	let loading = $state(true);
-	let error = $state('');
+let workspace = $state<Workspace | null>(null);
+let forms = $state<FormSummary[]>([]);
+let formNames = $state<Map<string, string>>(new Map());
+let loading = $state(true);
+let error = $state("");
 
-	let pendingDelete = $state<FormSummary | null>(null);
-	let deleteLoading = $state(false);
-	let deleteError = $state('');
+let pendingDelete = $state<FormSummary | null>(null);
+let deleteLoading = $state(false);
+let deleteError = $state("");
 
-	let legalText = $state('');
-	let legalTextSaving = $state(false);
-	let legalTextError = $state('');
-	let legalTextSaved = $state(false);
-	let legalTextTimer: ReturnType<typeof setTimeout> | null = null;
-
+let legalText = $state("");
+let legalTextSaving = $state(false);
+let legalTextError = $state("");
+let legalTextSaved = $state(false);
+let legalTextTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function load() {
-		loading = true;
-		error = '';
-		try {
-			const [allWorkspaces, rawForms, settings] = await Promise.all([
-				listWorkspaces(),
-				listForms(workspaceId),
-				getWorkspaceSettings(workspaceId).catch(() => ({ legalText: '' }))
-			]);
-			workspace = allWorkspaces.find(w => w.id === workspaceId) ?? null;
-			legalText = settings.legalText;
-			forms = rawForms;
+	loading = true;
+	error = "";
+	try {
+		const [allWorkspaces, rawForms, settings] = await Promise.all([
+			listWorkspaces(),
+			listForms(workspaceId),
+			getWorkspaceSettings(workspaceId).catch(() => ({ legalText: "" })),
+		]);
+		workspace = allWorkspaces.find((w) => w.id === workspaceId) ?? null;
+		legalText = settings.legalText;
+		forms = rawForms;
 
-			// Decrypt names in background (best-effort)
-			if (auth.masterKey && rawForms.length > 0) {
-				// Try to load the workspace key (non-owners may have it via key grant)
-				let wsKey: CryptoKey | undefined;
-				try { wsKey = await loadWorkspaceKey(workspaceId as string, auth.masterKey); } catch { /* not granted yet */ }
+		// Decrypt names in background (best-effort)
+		if (auth.masterKey && rawForms.length > 0) {
+			// Try to load the workspace key (non-owners may have it via key grant)
+			let wsKey: CryptoKey | undefined;
+			try {
+				wsKey = await loadWorkspaceKey(workspaceId as string, auth.masterKey);
+			} catch {
+				/* not granted yet */
+			}
 
-				const results = await Promise.allSettled(
-					rawForms.map(f => getForm(auth.masterKey!, f.formId, wsKey))
-				);
-				const names = new Map<string, string>();
-				results.forEach((r, i) => {
-					if (r.status === 'fulfilled') {
-						const { schema } = r.value;
-						const name = schema.translations[schema.defaultLocale]?.formTitle;
-						if (name) names.set(rawForms[i].formId, name);
-					}
-				});
-				formNames = names;
+			const results = await Promise.allSettled(
+				rawForms.map((f) => getForm(auth.masterKey!, f.formId, wsKey)),
+			);
+			const names = new Map<string, string>();
+			results.forEach((r, i) => {
+				if (r.status === "fulfilled") {
+					const { schema } = r.value;
+					const name = schema.translations[schema.defaultLocale]?.formTitle;
+					if (name) names.set(rawForms[i].formId, name);
+				}
+			});
+			formNames = names;
 
-				// Lazy migration: set workspaceWrappedFormKey for forms that don't have it yet
-				// Only the form creator can do this (deriveFormKey only works with creator's masterKey)
-				if (wsKey) {
-					for (let i = 0; i < rawForms.length; i++) {
-						const result = results[i];
-						const rawForm = rawForms[i];
-						if (result.status === 'fulfilled' && !result.value.record.workspaceWrappedFormKey) {
-							setWorkspaceFormKey(auth.masterKey!, rawForm.formId, wsKey).catch(() => {});
-						}
+			// Lazy migration: set workspaceWrappedFormKey for forms that don't have it yet
+			// Only the form creator can do this (deriveFormKey only works with creator's masterKey)
+			if (wsKey) {
+				for (let i = 0; i < rawForms.length; i++) {
+					const result = results[i];
+					const rawForm = rawForms[i];
+					if (
+						result.status === "fulfilled" &&
+						!result.value.record.workspaceWrappedFormKey
+					) {
+						setWorkspaceFormKey(auth.masterKey!, rawForm.formId, wsKey).catch(
+							() => {},
+						);
 					}
 				}
 			}
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load workspace';
-		} finally {
-			loading = false;
 		}
+	} catch (e) {
+		error = e instanceof Error ? e.message : "Failed to load workspace";
+	} finally {
+		loading = false;
 	}
+}
 
-	async function toggleStatus(form: FormSummary) {
-		const next = form.status === 'open' ? 'closed' : 'open';
-		try {
-			await updateFormStatus(form.formId, next);
-			forms = forms.map(f => f.formId === form.formId ? { ...f, status: next } : f);
-		} catch {
-			alert('Failed to update status');
-		}
+async function toggleStatus(form: FormSummary) {
+	const next = form.status === "open" ? "closed" : "open";
+	try {
+		await updateFormStatus(form.formId, next);
+		forms = forms.map((f) =>
+			f.formId === form.formId ? { ...f, status: next } : f,
+		);
+	} catch {
+		alert("Failed to update status");
 	}
+}
 
-	function handleDelete(form: FormSummary) {
-		pendingDelete = form;
-		deleteError = '';
+function handleDelete(form: FormSummary) {
+	pendingDelete = form;
+	deleteError = "";
+}
+
+async function confirmDelete() {
+	if (!pendingDelete) return;
+	deleteLoading = true;
+	deleteError = "";
+	try {
+		await deleteForm(pendingDelete.formId);
+		forms = forms.filter((f) => f.formId !== pendingDelete!.formId);
+		const names = new Map(formNames);
+		names.delete(pendingDelete.formId);
+		formNames = names;
+		pendingDelete = null;
+	} catch {
+		deleteError = "Failed to delete form. Please try again.";
+	} finally {
+		deleteLoading = false;
 	}
+}
 
-	async function confirmDelete() {
-		if (!pendingDelete) return;
-		deleteLoading = true;
-		deleteError = '';
-		try {
-			await deleteForm(pendingDelete.formId);
-			forms = forms.filter(f => f.formId !== pendingDelete!.formId);
-			const names = new Map(formNames);
-			names.delete(pendingDelete.formId);
-			formNames = names;
-			pendingDelete = null;
-		} catch {
-			deleteError = 'Failed to delete form. Please try again.';
-		} finally {
-			deleteLoading = false;
-		}
+function formName(formId: string): string {
+	return formNames.get(formId) ?? "—";
+}
+
+async function saveLegalText() {
+	legalTextSaving = true;
+	legalTextError = "";
+	try {
+		await updateWorkspaceSettings(workspaceId, { legalText });
+		legalTextSaved = true;
+		if (legalTextTimer) clearTimeout(legalTextTimer);
+		legalTextTimer = setTimeout(() => {
+			legalTextSaved = false;
+		}, 2000);
+	} catch {
+		legalTextError = "Failed to save — please try again.";
+	} finally {
+		legalTextSaving = false;
 	}
+}
 
-	function formName(formId: string): string {
-		return formNames.get(formId) ?? '—';
+function planLabel(ws: Workspace): string {
+	if (ws.plan === "pro") {
+		if (ws.planStatus === "past_due") return "Pro · past due";
+		if (ws.planStatus === "canceled") return "Pro · canceled";
+		if (ws.planStatus === "canceling") return "Pro · cancels at period end";
+		return "Pro";
 	}
+	return "Free";
+}
 
-	async function saveLegalText() {
-		legalTextSaving = true;
-		legalTextError = '';
-		try {
-			await updateWorkspaceSettings(workspaceId, { legalText });
-			legalTextSaved = true;
-			if (legalTextTimer) clearTimeout(legalTextTimer);
-			legalTextTimer = setTimeout(() => { legalTextSaved = false; }, 2000);
-		} catch {
-			legalTextError = 'Failed to save — please try again.';
-		} finally {
-			legalTextSaving = false;
-		}
+$effect(() => {
+	if (auth.masterKey) {
+		workspaceId;
+		load();
 	}
-
-	function planLabel(ws: Workspace): string {
-		if (ws.plan === 'pro') {
-			if (ws.planStatus === 'past_due') return 'Pro · past due';
-			if (ws.planStatus === 'canceled') return 'Pro · canceled';
-			if (ws.planStatus === 'canceling') return 'Pro · cancels at period end';
-			return 'Pro';
-		}
-		return 'Free';
-	}
-
-	$effect(() => {
-		if (auth.masterKey) {
-			workspaceId;
-			load();
-		}
-	});
+});
 </script>
 
 <svelte:head>

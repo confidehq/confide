@@ -1,83 +1,98 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { sidebar } from '$lib/stores/sidebar.svelte';
-	import { ChevronLeft, ChevronRight, MessageSquare, LogOut, LayoutGrid, FileText, Users, UserRound, Settings, Sun, Moon } from '@lucide/svelte';
-	import { logout } from '$lib/auth';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { goto } from '$app/navigation';
-	import { theme } from '$lib/stores/theme.svelte';
-	import WorkspaceSwitcher from '$lib/components/WorkspaceSwitcher.svelte';
+import {
+	ChevronLeft,
+	ChevronRight,
+	FileText,
+	LayoutGrid,
+	LogOut,
+	MessageSquare,
+	Moon,
+	Settings,
+	Sun,
+	UserRound,
+	Users,
+} from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import { logout } from "$lib/auth";
+import WorkspaceSwitcher from "$lib/components/WorkspaceSwitcher.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { sidebar } from "$lib/stores/sidebar.svelte";
+import { theme } from "$lib/stores/theme.svelte";
 
-	let version = $state('dev');
-	let commit = $state('');
-	let accountMenuOpen = $state(false);
-	let accountButtonEl = $state<HTMLButtonElement | null>(null);
-	let popoverStyle = $state('');
+let version = $state("dev");
+let commit = $state("");
+let accountMenuOpen = $state(false);
+let accountButtonEl = $state<HTMLButtonElement | null>(null);
+let popoverStyle = $state("");
 
-	async function handleLogout() {
-		accountMenuOpen = false;
-		await logout();
-		auth.clearAll();
-		goto('/login');
+async function handleLogout() {
+	accountMenuOpen = false;
+	await logout();
+	auth.clearAll();
+	goto("/login");
+}
+
+function isActive(href: string): boolean {
+	const path = $page.url.pathname;
+	return path === href || path.startsWith(href + "/");
+}
+
+function linkClass(active: boolean): string {
+	return [
+		"flex items-center h-10 no-underline overflow-hidden pl-[14px]",
+		"box-border w-full transition-[color,background] duration-100 border-l-2",
+		active
+			? "text-text bg-canvas border-primary-hover"
+			: "text-muted bg-transparent border-transparent hover:text-subtle",
+	].join(" ");
+}
+
+const textStyle = $derived(
+	sidebar.collapsed
+		? "max-width:0px;opacity:0;margin-left:0px"
+		: "max-width:200px;opacity:1;margin-left:10px",
+);
+const textClass =
+	"overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-200 ease-linear";
+
+function accountInitials(): string {
+	const name = auth.username ?? auth.accountId ?? "";
+	return name.slice(0, 2).toUpperCase() || "??";
+}
+
+function accountLabel(): string {
+	if (auth.username) return auth.username;
+	const id = auth.accountId ?? "";
+	return id ? id.slice(0, 12) + "…" : "Account";
+}
+
+import { onMount } from "svelte";
+import { tooltip } from "$lib/actions/tooltip";
+
+$effect(() => {
+	if (accountMenuOpen && accountButtonEl) {
+		const rect = accountButtonEl.getBoundingClientRect();
+		popoverStyle = [
+			`bottom: ${window.innerHeight - rect.top + 6}px`,
+			`left: ${rect.left + 8}px`,
+			`width: ${Math.max(rect.width - 16, 160)}px`,
+		].join("; ");
 	}
+});
 
-	function isActive(href: string): boolean {
-		const path = $page.url.pathname;
-		return path === href || path.startsWith(href + '/');
-	}
-
-	function linkClass(active: boolean): string {
-		return [
-			'flex items-center h-10 no-underline overflow-hidden pl-[14px]',
-			'box-border w-full transition-[color,background] duration-100 border-l-2',
-			active
-				? 'text-text bg-canvas border-primary-hover'
-				: 'text-muted bg-transparent border-transparent hover:text-subtle'
-		].join(' ');
-	}
-
-	const textStyle = $derived(
-		sidebar.collapsed
-			? 'max-width:0px;opacity:0;margin-left:0px'
-			: 'max-width:200px;opacity:1;margin-left:10px'
-	);
-	const textClass = 'overflow-hidden whitespace-nowrap transition-[max-width,opacity,margin-left] duration-200 ease-linear';
-
-	function accountInitials(): string {
-		const name = auth.username ?? auth.accountId ?? '';
-		return name.slice(0, 2).toUpperCase() || '??';
-	}
-
-	function accountLabel(): string {
-		if (auth.username) return auth.username;
-		const id = auth.accountId ?? '';
-		return id ? id.slice(0, 12) + '…' : 'Account';
-	}
-
-	import { onMount } from 'svelte';
-	import { tooltip } from '$lib/actions/tooltip';
-
-	$effect(() => {
-		if (accountMenuOpen && accountButtonEl) {
-			const rect = accountButtonEl.getBoundingClientRect();
-			popoverStyle = [
-				`bottom: ${window.innerHeight - rect.top + 6}px`,
-				`left: ${rect.left + 8}px`,
-				`width: ${Math.max(rect.width - 16, 160)}px`,
-			].join('; ');
+onMount(async () => {
+	try {
+		const res = await fetch("/api/health");
+		if (res.ok) {
+			const data = await res.json();
+			version = data.version ?? "dev";
+			commit = data.commit ?? "";
 		}
-	});
-
-	onMount(async () => {
-		try {
-			const res = await fetch('/api/health');
-			if (res.ok) {
-				const data = await res.json();
-				version = data.version ?? 'dev';
-				commit = data.commit ?? '';
-			}
-		} catch { /* leave defaults */ }
-	});
+	} catch {
+		/* leave defaults */
+	}
+});
 </script>
 
 <!-- Account popover + click-outside (rendered outside nav to escape overflow-hidden) -->

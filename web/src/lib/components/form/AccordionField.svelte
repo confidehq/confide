@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { BuilderField } from '$lib/types/builder';
+import type { BuilderField } from "$lib/types/builder";
 
-	interface Props {
-		field: BuilderField;
-		translation: { label: string; helpText?: string };
-	}
+interface Props {
+	field: BuilderField;
+	translation: { label: string; helpText?: string };
+}
 
-	// field kept for prop consistency
-	const { translation }: Props = $props();
+// field kept for prop consistency
+const { translation }: Props = $props();
 </script>
 
 <details class="border border-form-border-light rounded-md overflow-hidden">

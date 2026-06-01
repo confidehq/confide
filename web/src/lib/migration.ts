@@ -16,14 +16,14 @@
  */
 
 import {
-	deriveFormKey,
 	decryptSchema,
+	deriveFormKey,
 	encryptSchema,
 	unwrapFormKey,
-	wrapFormKey
-} from '$lib/crypto';
-import { loadWorkspaceKey } from '$lib/workspaces';
-import type { FormRecord } from '$lib/forms';
+	wrapFormKey,
+} from "$lib/crypto";
+import type { FormRecord } from "$lib/forms";
+import { loadWorkspaceKey } from "$lib/workspaces";
 
 const enc = new TextEncoder();
 const aad = (id: string) => enc.encode(id);
@@ -41,7 +41,7 @@ export interface MigrationResult {
 async function tryDecryptSchema(
 	blob: ArrayBuffer,
 	key: CryptoKey,
-	contextId: string
+	contextId: string,
 ): Promise<{ schema: object; wasLegacy: boolean }> {
 	try {
 		const schema = await decryptSchema(blob, key, aad(contextId));
@@ -56,7 +56,7 @@ async function tryDecryptSchema(
 async function tryUnwrapFormKey(
 	blob: ArrayBuffer,
 	workspaceKey: CryptoKey,
-	formId: string
+	formId: string,
 ): Promise<{ key: CryptoKey; wasLegacy: boolean }> {
 	try {
 		const key = await unwrapFormKey(blob, workspaceKey, aad(formId));
@@ -68,29 +68,32 @@ async function tryUnwrapFormKey(
 }
 
 async function apiGet<T>(path: string): Promise<T> {
-	const res = await fetch(path, { credentials: 'include' });
+	const res = await fetch(path, { credentials: "include" });
 	if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
 	return res.json() as Promise<T>;
 }
 
-async function apiPut(path: string, body: Record<string, string>): Promise<void> {
+async function apiPut(
+	path: string,
+	body: Record<string, string>,
+): Promise<void> {
 	const res = await fetch(path, {
-		method: 'PUT',
-		headers: { 'Content-Type': 'application/json' },
-		credentials: 'include',
-		body: JSON.stringify(body)
+		method: "PUT",
+		headers: { "Content-Type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(body),
 	});
 	if (!res.ok) throw new Error(`PUT ${path} → ${res.status}`);
 }
 
-const MIGRATION_DONE_KEY = 'confide:aad-migration-v1:done';
+const MIGRATION_DONE_KEY = "confide:aad-migration-v1:done";
 
 /**
  * Returns true if this account has already completed the AAD migration.
  * Keyed by accountId so multi-account scenarios work correctly.
  */
 export function isAadMigrationDone(accountId: string): boolean {
-	return localStorage.getItem(`${MIGRATION_DONE_KEY}:${accountId}`) === '1';
+	return localStorage.getItem(`${MIGRATION_DONE_KEY}:${accountId}`) === "1";
 }
 
 /**
@@ -100,14 +103,23 @@ export function isAadMigrationDone(accountId: string): boolean {
  * this account, returns immediately with zero API calls. Once all blobs are
  * current, marks the migration as done so future logins skip it entirely.
  */
-export async function migrateFormBlobsToAAD(masterKey: CryptoKey, accountId: string): Promise<MigrationResult> {
+export async function migrateFormBlobsToAAD(
+	masterKey: CryptoKey,
+	accountId: string,
+): Promise<MigrationResult> {
 	if (isAadMigrationDone(accountId)) {
 		return { migrated: 0, alreadyCurrent: 0, failed: [] };
 	}
 
-	const result: MigrationResult = { migrated: 0, alreadyCurrent: 0, failed: [] };
+	const result: MigrationResult = {
+		migrated: 0,
+		alreadyCurrent: 0,
+		failed: [],
+	};
 
-	const { forms } = await apiGet<{ forms: Array<{ formId: string }> }>('/api/forms');
+	const { forms } = await apiGet<{ forms: Array<{ formId: string }> }>(
+		"/api/forms",
+	);
 
 	await Promise.allSettled(
 		forms.map(async ({ formId }) => {
@@ -116,13 +128,13 @@ export async function migrateFormBlobsToAAD(masterKey: CryptoKey, accountId: str
 			} catch (err) {
 				result.failed.push({ formId, error: String(err) });
 			}
-		})
+		}),
 	);
 
 	// Mark done only when every blob is current and nothing failed.
 	// On partial failure, the next login will retry the remaining forms.
 	if (result.migrated === 0 && result.failed.length === 0) {
-		localStorage.setItem(`${MIGRATION_DONE_KEY}:${accountId}`, '1');
+		localStorage.setItem(`${MIGRATION_DONE_KEY}:${accountId}`, "1");
 	}
 
 	return result;
@@ -131,7 +143,7 @@ export async function migrateFormBlobsToAAD(masterKey: CryptoKey, accountId: str
 async function migrateForm(
 	formId: string,
 	masterKey: CryptoKey,
-	result: MigrationResult
+	result: MigrationResult,
 ): Promise<void> {
 	const record = await apiGet<FormRecord>(`/api/forms/${formId}`);
 	let needsPersist = false;
@@ -145,7 +157,11 @@ async function migrateForm(
 	try {
 		formKey = await deriveFormKey(masterKey, formId);
 		// Probe: try to decrypt with AAD to confirm key is correct
-		await decryptSchema(base64ToBuffer(record.encryptedSchema), formKey, aad(formId));
+		await decryptSchema(
+			base64ToBuffer(record.encryptedSchema),
+			formKey,
+			aad(formId),
+		);
 		// Decryption with AAD succeeded — schema already migrated
 	} catch {
 		// Either not the creator or schema lacks AAD — try workspace path first,
@@ -155,7 +171,13 @@ async function migrateForm(
 		}
 
 		if (wsKey) {
-			formKey = (await tryUnwrapFormKey(base64ToBuffer(record.workspaceWrappedFormKey!), wsKey, formId)).key;
+			formKey = (
+				await tryUnwrapFormKey(
+					base64ToBuffer(record.workspaceWrappedFormKey!),
+					wsKey,
+					formId,
+				)
+			).key;
 		} else {
 			formKey = await deriveFormKey(masterKey, formId);
 		}
@@ -166,11 +188,13 @@ async function migrateForm(
 	const { schema, wasLegacy: schemaLegacy } = await tryDecryptSchema(
 		base64ToBuffer(record.encryptedSchema),
 		formKey,
-		formId
+		formId,
 	);
 
 	if (schemaLegacy) {
-		updates.encryptedSchema = bufferToBase64(await encryptSchema(schema as never, formKey, aad(formId)));
+		updates.encryptedSchema = bufferToBase64(
+			await encryptSchema(schema as never, formKey, aad(formId)),
+		);
 		needsPersist = true;
 	}
 
@@ -180,7 +204,7 @@ async function migrateForm(
 		const { wasLegacy: wfkLegacy } = await tryUnwrapFormKey(
 			base64ToBuffer(record.workspaceWrappedFormKey),
 			wsKey,
-			formId
+			formId,
 		);
 		if (wfkLegacy) {
 			const rewrapped = await wrapFormKey(formKey, wsKey, aad(formId));
@@ -197,11 +221,13 @@ async function migrateForm(
 	// ── Persist ───────────────────────────────────────────────────────────────
 
 	if (updates.encryptedSchema) {
-		await apiPut(`/api/forms/${formId}`, { encryptedSchema: updates.encryptedSchema });
+		await apiPut(`/api/forms/${formId}`, {
+			encryptedSchema: updates.encryptedSchema,
+		});
 	}
 	if (updates.workspaceWrappedFormKey) {
 		await apiPut(`/api/forms/${formId}/workspace-form-key`, {
-			workspaceWrappedFormKey: updates.workspaceWrappedFormKey
+			workspaceWrappedFormKey: updates.workspaceWrappedFormKey,
 		});
 	}
 
@@ -219,7 +245,7 @@ function base64ToBuffer(b64: string): ArrayBuffer {
 
 function bufferToBase64(buf: ArrayBuffer): string {
 	const bytes = new Uint8Array(buf);
-	let binary = '';
+	let binary = "";
 	for (const b of bytes) binary += String.fromCharCode(b);
 	return btoa(binary);
 }

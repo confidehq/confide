@@ -1,124 +1,131 @@
 <script lang="ts">
-	import { Bold, Italic, List, Link2, Check, X } from '@lucide/svelte';
+import { Bold, Check, Italic, Link2, List, X } from "@lucide/svelte";
 
-	interface Props {
-		value?: string;
-		placeholder?: string;
-		class?: string;
-		style?: string;
-		onfocus?: (e: FocusEvent) => void;
-		onclick?: (e: MouseEvent) => void;
-		onkeydown?: (e: KeyboardEvent) => void;
-		onchange: (html: string) => void;
+interface Props {
+	value?: string;
+	placeholder?: string;
+	class?: string;
+	style?: string;
+	onfocus?: (e: FocusEvent) => void;
+	onclick?: (e: MouseEvent) => void;
+	onkeydown?: (e: KeyboardEvent) => void;
+	onchange: (html: string) => void;
+}
+
+let {
+	value = "",
+	placeholder = "",
+	class: cls = "",
+	style = "",
+	onfocus,
+	onclick,
+	onkeydown,
+	onchange,
+}: Props = $props();
+
+let editorEl = $state<HTMLDivElement | undefined>();
+let toolbar = $state<{ x: number; y: number } | null>(null);
+let showLinkInput = $state(false);
+let linkUrl = $state("");
+let savedRange: Range | null = null;
+let linkInputEl = $state<HTMLInputElement | undefined>();
+
+// Update innerHTML when value changes externally (e.g. locale switch).
+// After user input, onchange keeps value in sync with innerHTML so this is a no-op.
+$effect(() => {
+	if (!editorEl) return;
+	const next = value ?? "";
+	if (editorEl.innerHTML !== next) {
+		editorEl.innerHTML = next;
 	}
+});
 
-	let {
-		value = '',
-		placeholder = '',
-		class: cls = '',
-		style = '',
-		onfocus,
-		onclick,
-		onkeydown,
-		onchange
-	}: Props = $props();
+$effect(() => {
+	if (showLinkInput && linkInputEl) linkInputEl.focus();
+});
 
-	let editorEl = $state<HTMLDivElement | undefined>();
-	let toolbar = $state<{ x: number; y: number } | null>(null);
-	let showLinkInput = $state(false);
-	let linkUrl = $state('');
-	let savedRange: Range | null = null;
-	let linkInputEl = $state<HTMLInputElement | undefined>();
-
-	// Update innerHTML when value changes externally (e.g. locale switch).
-	// After user input, onchange keeps value in sync with innerHTML so this is a no-op.
-	$effect(() => {
-		if (!editorEl) return;
-		const next = value ?? '';
-		if (editorEl.innerHTML !== next) {
-			editorEl.innerHTML = next;
-		}
-	});
-
-	$effect(() => {
-		if (showLinkInput && linkInputEl) linkInputEl.focus();
-	});
-
-	function handleSelectionChange() {
-		if (showLinkInput) return;
-		const sel = window.getSelection();
-		if (!sel || sel.isCollapsed || !editorEl) {
-			toolbar = null;
-			return;
-		}
-		const range = sel.getRangeAt(0);
-		if (!editorEl.contains(range.commonAncestorContainer)) {
-			toolbar = null;
-			return;
-		}
-		const rect = range.getBoundingClientRect();
-		toolbar = { x: rect.left + rect.width / 2, y: rect.top };
-	}
-
-	$effect(() => {
-		document.addEventListener('selectionchange', handleSelectionChange);
-		return () => document.removeEventListener('selectionchange', handleSelectionChange);
-	});
-
-	function exec(cmd: string, arg?: string) {
-		document.execCommand(cmd, false, arg);
-		editorEl?.focus();
-	}
-
-	function handlePaste(e: ClipboardEvent) {
-		e.preventDefault();
-		const text = e.clipboardData?.getData('text/plain') ?? '';
-		document.execCommand('insertText', false, text);
-	}
-
-	function handleInput() {
-		const el = editorEl;
-		if (!el) return;
-		onchange(el.textContent?.trim() === '' ? '' : el.innerHTML);
-	}
-
-	function stopToolbarBlur(e: MouseEvent) {
-		e.preventDefault(); // keep focus in editor
-	}
-
-	function openLink() {
-		const sel = window.getSelection();
-		if (sel && sel.rangeCount > 0) savedRange = sel.getRangeAt(0).cloneRange();
-		showLinkInput = true;
-		linkUrl = '';
-	}
-
-	function confirmLink() {
-		if (!linkUrl.trim()) { cancelLink(); return; }
-		const url = /^https?:\/\//i.test(linkUrl) ? linkUrl : `https://${linkUrl}`;
-		if (savedRange) {
-			const sel = window.getSelection();
-			sel?.removeAllRanges();
-			sel?.addRange(savedRange);
-		}
-		exec('createLink', url);
-		showLinkInput = false;
-		savedRange = null;
-		linkUrl = '';
+function handleSelectionChange() {
+	if (showLinkInput) return;
+	const sel = window.getSelection();
+	if (!sel || sel.isCollapsed || !editorEl) {
 		toolbar = null;
+		return;
 	}
+	const range = sel.getRangeAt(0);
+	if (!editorEl.contains(range.commonAncestorContainer)) {
+		toolbar = null;
+		return;
+	}
+	const rect = range.getBoundingClientRect();
+	toolbar = { x: rect.left + rect.width / 2, y: rect.top };
+}
 
-	function cancelLink() {
-		showLinkInput = false;
-		savedRange = null;
-		linkUrl = '';
-		editorEl?.focus();
-	}
+$effect(() => {
+	document.addEventListener("selectionchange", handleSelectionChange);
+	return () =>
+		document.removeEventListener("selectionchange", handleSelectionChange);
+});
 
-	function handleLinkKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') { e.preventDefault(); confirmLink(); }
-		if (e.key === 'Escape') cancelLink();
+function exec(cmd: string, arg?: string) {
+	document.execCommand(cmd, false, arg);
+	editorEl?.focus();
+}
+
+function handlePaste(e: ClipboardEvent) {
+	e.preventDefault();
+	const text = e.clipboardData?.getData("text/plain") ?? "";
+	document.execCommand("insertText", false, text);
+}
+
+function handleInput() {
+	const el = editorEl;
+	if (!el) return;
+	onchange(el.textContent?.trim() === "" ? "" : el.innerHTML);
+}
+
+function stopToolbarBlur(e: MouseEvent) {
+	e.preventDefault(); // keep focus in editor
+}
+
+function openLink() {
+	const sel = window.getSelection();
+	if (sel && sel.rangeCount > 0) savedRange = sel.getRangeAt(0).cloneRange();
+	showLinkInput = true;
+	linkUrl = "";
+}
+
+function confirmLink() {
+	if (!linkUrl.trim()) {
+		cancelLink();
+		return;
 	}
+	const url = /^https?:\/\//i.test(linkUrl) ? linkUrl : `https://${linkUrl}`;
+	if (savedRange) {
+		const sel = window.getSelection();
+		sel?.removeAllRanges();
+		sel?.addRange(savedRange);
+	}
+	exec("createLink", url);
+	showLinkInput = false;
+	savedRange = null;
+	linkUrl = "";
+	toolbar = null;
+}
+
+function cancelLink() {
+	showLinkInput = false;
+	savedRange = null;
+	linkUrl = "";
+	editorEl?.focus();
+}
+
+function handleLinkKeydown(e: KeyboardEvent) {
+	if (e.key === "Enter") {
+		e.preventDefault();
+		confirmLink();
+	}
+	if (e.key === "Escape") cancelLink();
+}
 </script>
 
 {#if toolbar}

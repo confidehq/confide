@@ -1,98 +1,112 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { LayoutGrid, FileText, Users, Menu, Settings, UserRound, Sun, Moon, X, Check, Plus, LogOut } from '@lucide/svelte';
-	import { theme } from '$lib/stores/theme.svelte';
-	import { workspacesStore } from '$lib/stores/workspaces.svelte';
-	import { access } from '$lib/stores/access.svelte';
-	import { auth } from '$lib/stores/auth.svelte';
-	import { logout } from '$lib/auth';
-	import { goto } from '$app/navigation';
-	import { createWorkspace, createProWorkspace } from '$lib/workspaces';
+import {
+	Check,
+	FileText,
+	LayoutGrid,
+	LogOut,
+	Menu,
+	Moon,
+	Plus,
+	Settings,
+	Sun,
+	UserRound,
+	Users,
+	X,
+} from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import { logout } from "$lib/auth";
+import { access } from "$lib/stores/access.svelte";
+import { auth } from "$lib/stores/auth.svelte";
+import { theme } from "$lib/stores/theme.svelte";
+import { workspacesStore } from "$lib/stores/workspaces.svelte";
+import { createProWorkspace, createWorkspace } from "$lib/workspaces";
 
-	let moreOpen = $state(false);
-	let showWorkspacePicker = $state(false);
-	let showCreateWorkspace = $state(false);
-	let newWorkspaceName = $state('');
-	let creating = $state(false);
-	let createError = $state('');
+let moreOpen = $state(false);
+let showWorkspacePicker = $state(false);
+let showCreateWorkspace = $state(false);
+let newWorkspaceName = $state("");
+let creating = $state(false);
+let createError = $state("");
 
-	function isActive(href: string): boolean {
-		const path = $page.url.pathname;
-		return path === href || path.startsWith(href + '/');
-	}
+function isActive(href: string): boolean {
+	const path = $page.url.pathname;
+	return path === href || path.startsWith(href + "/");
+}
 
-	let moreActive = $derived(isActive('/settings') || isActive('/me'));
+let moreActive = $derived(isActive("/settings") || isActive("/me"));
 
-	function openMore() {
-		moreOpen = true;
-		showWorkspacePicker = false;
-		showCreateWorkspace = false;
-	}
+function openMore() {
+	moreOpen = true;
+	showWorkspacePicker = false;
+	showCreateWorkspace = false;
+}
 
-	function closeMore() {
-		moreOpen = false;
-		showWorkspacePicker = false;
-		showCreateWorkspace = false;
-		newWorkspaceName = '';
-		createError = '';
-	}
+function closeMore() {
+	moreOpen = false;
+	showWorkspacePicker = false;
+	showCreateWorkspace = false;
+	newWorkspaceName = "";
+	createError = "";
+}
 
-	function initials(name: string): string {
-		const words = name.trim().split(/\s+/);
-		if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-		return (words[0][0] + words[1][0]).toUpperCase();
-	}
+function initials(name: string): string {
+	const words = name.trim().split(/\s+/);
+	if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+	return (words[0][0] + words[1][0]).toUpperCase();
+}
 
-	function selectWorkspace(id: string) {
-		workspacesStore.switchTo(id);
-		closeMore();
-	}
+function selectWorkspace(id: string) {
+	workspacesStore.switchTo(id);
+	closeMore();
+}
 
-	async function handleCreate() {
-		const name = newWorkspaceName.trim();
-		if (!name || !auth.masterKey) return;
-		creating = true;
-		createError = '';
-		try {
-			if (access.atWorkspaceLimit) {
-				const { workspace, checkoutUrl } = await createProWorkspace(
-					name,
-					auth.masterKey,
-					`${window.location.origin}/settings?tab=billing&upgraded=true`,
-					`${window.location.origin}/forms`
-				);
-				workspacesStore.add(workspace);
-				if (checkoutUrl) {
-					window.location.href = checkoutUrl;
-				} else {
-					closeMore();
-				}
+async function handleCreate() {
+	const name = newWorkspaceName.trim();
+	if (!name || !auth.masterKey) return;
+	creating = true;
+	createError = "";
+	try {
+		if (access.atWorkspaceLimit) {
+			const { workspace, checkoutUrl } = await createProWorkspace(
+				name,
+				auth.masterKey,
+				`${window.location.origin}/settings?tab=billing&upgraded=true`,
+				`${window.location.origin}/forms`,
+			);
+			workspacesStore.add(workspace);
+			if (checkoutUrl) {
+				window.location.href = checkoutUrl;
 			} else {
-				const ws = await createWorkspace(name, auth.masterKey);
-				workspacesStore.add(ws);
-				showCreateWorkspace = false;
-				showWorkspacePicker = false;
-				newWorkspaceName = '';
+				closeMore();
 			}
-		} catch (e) {
-			createError = e instanceof Error ? e.message : 'Failed to create workspace.';
-		} finally {
-			creating = false;
+		} else {
+			const ws = await createWorkspace(name, auth.masterKey);
+			workspacesStore.add(ws);
+			showCreateWorkspace = false;
+			showWorkspacePicker = false;
+			newWorkspaceName = "";
 		}
+	} catch (e) {
+		createError =
+			e instanceof Error ? e.message : "Failed to create workspace.";
+	} finally {
+		creating = false;
 	}
+}
 
-	async function handleLogout() {
-		closeMore();
-		await logout();
-		auth.clearAll();
-		goto('/login');
-	}
+async function handleLogout() {
+	closeMore();
+	await logout();
+	auth.clearAll();
+	goto("/login");
+}
 
-	const primaryItems = [
-		{ href: '/dashboard', label: 'Dashboard', icon: LayoutGrid },
-		{ href: '/forms',     label: 'Forms',     icon: FileText },
-		{ href: '/team',      label: 'Team',       icon: Users },
-	];
+const primaryItems = [
+	{ href: "/dashboard", label: "Dashboard", icon: LayoutGrid },
+	{ href: "/forms", label: "Forms", icon: FileText },
+	{ href: "/team", label: "Team", icon: Users },
+];
 </script>
 
 <!-- More sheet backdrop -->

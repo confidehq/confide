@@ -1,14 +1,19 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+import type { Snippet } from "svelte";
 
-	interface Props {
-		onclick?: () => void;
-		variant?: 'default' | 'destructive';
-		disabled?: boolean;
-		children: Snippet;
-	}
+interface Props {
+	onclick?: () => void;
+	variant?: "default" | "destructive";
+	disabled?: boolean;
+	children: Snippet;
+}
 
-	let { onclick, variant = 'default', disabled = false, children }: Props = $props();
+let {
+	onclick,
+	variant = "default",
+	disabled = false,
+	children,
+}: Props = $props();
 </script>
 
 <button
