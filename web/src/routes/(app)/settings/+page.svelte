@@ -513,6 +513,7 @@ const freeFeatures: { label: string; enabled: boolean }[] = [
 			{@const active = activeTab === tab.id}
 			{@const hidden = (tab.ownerOnly && !access.isOwner) || (tab.managedOnly && !access.managed)}
 			{#if !hidden}
+				{@const TabIcon = tab.icon}
 				<button
 					onclick={() => !tab.disabled && (activeTab = tab.id)}
 					disabled={tab.disabled}
@@ -524,7 +525,7 @@ const freeFeatures: { label: string; enabled: boolean }[] = [
 								? 'border-text-blue text-text cursor-pointer'
 								: 'border-transparent text-subtle hover:text-subtle hover:border-muted cursor-pointer'}"
 				>
-					<svelte:component this={tab.icon} size={14} strokeWidth={1.75} />
+					<TabIcon size={14} strokeWidth={1.75} />
 					{tab.label}
 				</button>
 			{/if}

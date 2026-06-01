@@ -359,7 +359,8 @@ function removeOption(optId: string) {
 										class:active={cfg.icon === icon.key || (!cfg.icon && icon.key === null)}
 									>
 										{#if icon.component}
-											<svelte:component this={icon.component} size={14} />
+											{@const IconComp = icon.component}
+											<IconComp size={14} />
 										{:else}
 											<Ban size={14} class="opacity-40" />
 										{/if}
@@ -412,7 +413,8 @@ function removeOption(optId: string) {
 							class:active={store.schema.submitButtonIcon === icon.key || (!store.schema.submitButtonIcon && icon.key === undefined)}
 						>
 							{#if icon.component}
-								<svelte:component this={icon.component} size={14} />
+								{@const IconComp = icon.component}
+								<IconComp size={14} />
 							{:else}
 								<Ban size={14} class="opacity-40" />
 							{/if}

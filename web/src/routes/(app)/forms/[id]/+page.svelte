@@ -971,8 +971,8 @@ function responseIndexInFull(id: string): number {
 												{statusSaving
 													? 'bg-transparent text-muted border-border-canvas cursor-not-allowed'
 													: record.status === 'open'
-														? 'bg-transparent text-danger border-danger-dark hover:bg-danger-light hover:border-danger-dark'
-														: 'bg-transparent text-success border-success-dark hover:bg-success-light hover:border-success-dark'}"
+														? 'bg-transparent text-danger border-danger-light hover:bg-danger-light hover:border-danger-dark'
+														: 'bg-transparent text-success border-success-light hover:bg-success-light hover:border-success-dark'}"
 										>{statusSaving ? '…' : record.status === 'open' ? 'Close form' : 'Reopen form'}</button>
 									{/if}
 								</div>

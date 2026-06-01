@@ -47,7 +47,8 @@ const fieldTypes: Array<{ type: FieldType; label: string; icon: Component }> = [
 				class="flex items-center gap-2.5 px-3 py-2 bg-transparent text-text border border-border rounded-md cursor-pointer font-mono text-sm text-left transition-[background] duration-100 hover:bg-border"
 			>
 				<span class="w-5 flex justify-center shrink-0 text-subtle">
-					<svelte:component this={icon} size={15} strokeWidth={1.75} />
+					{@const Icon = icon}
+					<Icon size={15} strokeWidth={1.75} />
 				</span>
 				<span>{label}</span>
 			</button>

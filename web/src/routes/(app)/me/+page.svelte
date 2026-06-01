@@ -618,7 +618,7 @@ const planBadge: Record<string, { label: string; color: string }> = {
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
 									? 'text-subtle border-border-canvas cursor-not-allowed'
-									: 'text-danger border-danger-light hover:bg-danger-dark'}"
+									: 'text-danger border-danger-light hover:bg-danger-light'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
 						</button>

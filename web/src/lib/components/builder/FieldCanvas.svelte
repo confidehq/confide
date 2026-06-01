@@ -819,7 +819,7 @@ function removeOption(fieldId: string, optId: string) {
 			>
 				{#if store.schema.submitButtonIcon}
 					{@const BtnIcon = submitIconMap[store.schema.submitButtonIcon]}
-					<svelte:component this={BtnIcon} size={14} class="opacity-80 text-white shrink-0" />
+					<BtnIcon size={14} class="opacity-80 text-white shrink-0" />
 				{/if}
 				<input
 					type="text"
@@ -845,7 +845,8 @@ function removeOption(fieldId: string, optId: string) {
 					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-subtle cursor-pointer font-mono text-sm text-left transition-[background,color] duration-100 hover:bg-surface hover:text-text"
 				>
 					<span class="shrink-0 text-subtle">
-						<svelte:component this={item.icon} size={14} strokeWidth={1.75} />
+						{@const ItemIcon = item.icon}
+						<ItemIcon size={14} strokeWidth={1.75} />
 					</span>
 					{item.label}
 				</button>

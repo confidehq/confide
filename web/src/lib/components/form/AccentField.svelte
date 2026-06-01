@@ -65,7 +65,7 @@ const IconComponent = $derived(cfg.icon ? iconMap[cfg.icon] : null);
 >
 	<div class="flex items-center gap-2">
 		{#if IconComponent}
-			<svelte:component this={IconComponent} size={16} class="shrink-0 opacity-80" />
+			<IconComponent size={16} class="shrink-0 opacity-80" />
 		{/if}
 		<div class="m-0 font-semibold rich-html">{@html translation.label}</div>
 	</div>

@@ -136,7 +136,7 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 			>
 				{#if schema.submitButtonIcon}
 					{@const BtnIcon = iconMap[schema.submitButtonIcon]}
-					<svelte:component this={BtnIcon} size={13} strokeWidth={2} class="opacity-70" />
+					<BtnIcon size={13} strokeWidth={2} class="opacity-70" />
 				{/if}
 				{translation?.submitButtonText || 'Submit'}
 			</button>

@@ -206,7 +206,8 @@ async function handlePublish() {
 					>
 						{#each layoutModes as mode}
 							{#if mode.value === store.schema.layout}
-								<svelte:component this={mode.icon} size={13} strokeWidth={1.75} />
+								{@const ModeIcon = mode.icon}
+								<ModeIcon size={13} strokeWidth={1.75} />
 								<span>{mode.label}</span>
 							{/if}
 						{/each}
@@ -223,7 +224,8 @@ async function handlePublish() {
 										{active ? 'bg-canvas text-text' : 'bg-transparent text-subtle hover:bg-surface hover:text-text'}"
 								>
 									<span class="mt-0.5 shrink-0 {active ? 'text-text' : 'text-subtle'}">
-										<svelte:component this={mode.icon} size={15} strokeWidth={1.75} />
+										{@const ModeIcon = mode.icon}
+										<ModeIcon size={15} strokeWidth={1.75} />
 									</span>
 									<span>
 										<span class="block text-sm">{mode.label}</span>
