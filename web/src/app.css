@@ -1,5 +1,45 @@
 @import "tailwindcss";
 
+:root {
+  --success-100: #a0d19a;
+  --success-200: #70b06a;
+  --success-250: #304f2c;
+  --success-300: #b7dbb2;
+  --success-400: #66a160;
+  --success-500: #487344;
+  --danger-100: #feb2a8;
+  --danger-200: #e5867b;
+  --danger-250: #693b35;
+  --danger-300: #fec3bc;
+  --danger-400: #d37b71;
+  --danger-500: #985750;
+  --warn-100: #eebb85;
+  --warn-200: #d39449;
+  --warn-250: #60411d;
+  --warn-300: #f1cba2;
+  --warn-400: #c38742;
+  --warn-500: #8c602e;
+  --info-100: #9bc8fe;
+  --info-200: #68a4e8;
+  --info-250: #2c4a6b;
+  --info-300: #b2d4fe;
+  --info-400: #5f96d6;
+  --info-500: #436b9a;
+  --flamingo-100: #76d4cb;
+  --flamingo-200: #0bb3a9;
+  --flamingo-250: #00504b;
+  --flamingo-300: #9aded7;
+  --flamingo-400: #03a49b;
+  --flamingo-500: #04756f;
+  --mulberry-100: #ccbbfc;
+  --mulberry-200: #aa94e5;
+  --mulberry-250: #4d416a;
+  --mulberry-300: #d6cbfc;
+  --mulberry-400: #9d88d4;
+  --mulberry-500: #706198;
+}
+
+
 @theme {
   --color-base:    #111827;
   --color-canvas:  #172136;
@@ -11,12 +51,12 @@
   --color-info-dark:    #1D2739;
   --color-info-dim:     #7191CA;
   --color-info:         #91B7FB;
-  --color-success-dark: #1D391E;
-  --color-success-dim:  #58AE5B;
-  --color-success:      #46DF4B;
-  --color-warn-dark:    #39341D;
-  --color-warn-dim:     #B7A449;
-  --color-warn:         #ECD155;
+  --color-success-dark: #0e2318;
+  --color-success-dim:  #166534;
+  --color-success:      #4ade80;
+  --color-warn-dark:    #451a03;
+  --color-warn-dim:     #f59e0b;
+  --color-warn:         #fbbf24;
 
   --color-purple:        #A78BFA;
   --color-purple-dim:    #4C2D95;
@@ -37,8 +77,8 @@
   --color-border-canvas:       var(--color-highlight-mid);
 
   /* ── Actions ── */
-  --color-primary:       var(--color-blue-500);
-  --color-primary-hover: var(--color-blue-600);
+  --color-primary:       #2563EA;
+  --color-primary-hover: #1C4ED9;
 
   /* ── Overlays ── */
   --color-overlay:       rgba(0, 0, 0, 0.65);
@@ -59,9 +99,9 @@
   --color-open-bg:       var(--color-success-dark);
   --color-open-text:     var(--color-success);
   --color-open-border:   var(--color-success-dim);
-  --color-closed-bg:     var(--color-highlight-low);
-  --color-closed-text:   var(--color-info-dim);
-  --color-closed-border: var(--color-info-dim);
+  --color-closed-bg:     transparent;
+  --color-closed-text:   var(--color-highlight-high);
+  --color-closed-border: var(--color-highlight-high);
   --color-danger-badge-bg:     var(--color-danger-dark);
   --color-danger-badge-text:   var(--color-danger);
   --color-danger-badge-border: var(--color-danger-dim);
@@ -99,22 +139,22 @@
 
 /* Light theme — blue-navy vibe, inverted from dark */
 [data-theme="light"] {
-  --color-base:    #DEE7F5;
-  --color-canvas:  #EEF3FB;
-  --color-surface: #F8FAFC;
+  --color-base:    #F0F3F5;
+  --color-canvas:  #FFFEFF;
+  --color-surface: #EDF0F4;
 
-  --color-danger-dark:  #FEE2E2;
+  --color-danger-dark:  #dc2626;
   --color-danger-dim:   #DC2626;
   --color-danger:       #B91C1C;
   --color-info-dark:    #DBEAFE;
   --color-info-dim:     #2563EB;
   --color-info:         #1D4ED8;
-  --color-success-dark: #DCFCE7;
-  --color-success-dim:  #16A34A;
-  --color-success:      #15803D;
-  --color-warn-dark:    #FEF9C3;
-  --color-warn-dim:     #CA8A04;
-  --color-warn:         #854D0E;
+  --color-success-dark: #15803D;
+  --color-success-dim:  #DCFCE7;
+  --color-success:      #16A34A;
+  --color-warn-dark:    #fef3c7;
+  --color-warn-dim:     #f59e0b;
+  --color-warn:         #b45309;
 
   --color-purple:        #7C3AED;
   --color-purple-dim:    #EDE9FE;
@@ -219,7 +259,7 @@ body {
 /* divide-y children use surface color for the divider border */
 .divide-y {
   :where(& > :not(:last-child)) {
-    border-bottom-color: var(--color-surface);
+    border-bottom-color: var(--color-highlight-high);
   }
 }
 

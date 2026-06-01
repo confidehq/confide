@@ -724,7 +724,7 @@ function getOptionLabels(fieldId: string): string[] {
 					placeholder="Submit"
 					oninput={(e) => store.updateTranslation(null, 'submitButtonText', (e.target as HTMLInputElement).value)}
 					style="width: {Math.max((store.activeTranslation?.submitButtonText || 'Submit').length, 6)}ch"
-					class="bg-transparent border-none outline-none text-white text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
+					class="bg-transparent border-none outline-none text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
 				/>
 			</div>
 		</div>

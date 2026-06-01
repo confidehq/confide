@@ -1,12 +1,12 @@
 const STORAGE_KEY = 'theme';
 
 function getInitialTheme(): 'dark' | 'light' {
-	if (typeof localStorage === 'undefined') return 'dark';
+	if (typeof localStorage === 'undefined') return 'light';
 	const stored = localStorage.getItem(STORAGE_KEY);
 	if (stored === 'light' || stored === 'dark') return stored;
-	return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches
-		? 'light'
-		: 'dark';
+	return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
+		? 'dark'
+		: 'light';
 }
 
 function applyTheme(value: 'dark' | 'light') {

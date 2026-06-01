@@ -149,7 +149,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/dashboard'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-text' : 'text-muted'}">
+				<span class="shrink-0 flex items-center {isActive('/dashboard') ? 'text-primary' : 'text-muted'}">
 					<LayoutGrid size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Dashboard</span>
@@ -162,7 +162,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/forms'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-text' : 'text-muted'}">
+				<span class="shrink-0 flex items-center {isActive('/forms') ? 'text-primary' : 'text-muted'}">
 					<FileText size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Forms</span>
@@ -175,7 +175,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/team'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-text' : 'text-muted'}">
+				<span class="shrink-0 flex items-center {isActive('/team') ? 'text-primary' : 'text-muted'}">
 					<Users size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Team</span>
@@ -188,7 +188,7 @@
 				onclick={() => sidebar.closeMobile()}
 				class={linkClass(isActive('/settings'))}
 			>
-				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-text' : 'text-muted'}">
+				<span class="shrink-0 flex items-center {isActive('/settings') ? 'text-primary' : 'text-muted'}">
 					<Settings size={18} strokeWidth={1.75} />
 				</span>
 				<span class={textClass} style={textStyle}>Settings</span>

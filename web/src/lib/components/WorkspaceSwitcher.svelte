@@ -120,7 +120,7 @@
 			onclick={openDropdown}
 			class="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-surface transition-colors duration-100 group text-left"
 		>
-			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-canvas border border-border text-text text-sm font-semibold select-none">
+			<span class="shrink-0 w-7 h-7 rounded-md flex items-center justify-center bg-canvas border border-border text-primary text-sm font-semibold select-none">
 				{#if workspacesStore.loading && !workspacesStore.loaded}
 					…
 				{:else}
@@ -213,7 +213,7 @@
 							<span class="flex-1 min-w-0 text-text truncate">{ws.name}</span>
 							<span class="shrink-0 text-sm text-subtle capitalize">{ws.plan}</span>
 							{#if isActive}
-								<Check size={12} strokeWidth={2.5} class="shrink-0 text-text" />
+								<Check size={12} strokeWidth={2.5} class="shrink-0 text-primary" />
 							{:else}
 								<span class="shrink-0 w-3"></span>
 							{/if}

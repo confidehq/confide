@@ -915,10 +915,10 @@
 											</div>
 											<button
 												onclick={copyShareUrl}
-												class="shrink-0 px-2.5 py-1.5 rounded font-semibold font-mono transition-all duration-150 border
+												class="shrink-0 px-2.5 py-1.5 rounded font-mono transition-all duration-150 border
 													{copied
 														? 'border-success-dim/40 text-success-dim bg-success-dark cursor-default'
-														: 'border-border-canvas text-text bg-primary hover:border-border hover:text-text cursor-pointer'}"
+														: 'border-border-canvas text-white bg-primary hover:border-border hover:text-text cursor-pointer'}"
 											>
 												{#if copied}
 													<span class="flex items-center gap-1"><Check size={10} strokeWidth={2.5} />Copied</span>
@@ -934,7 +934,7 @@
 												{#if record.status === 'closed'}
 													<p class="m-0 text-sm text-info-dim">Form is closed — link is active but not accepting responses.</p>
 												{:else if record.hasUnpublishedChanges}
-													<p class="m-0 text-sm text-warn-dim">Showing last published version. <a href="/forms/{formId}/edit" class="text-text underline">Edit</a> to publish latest changes.</p>
+													<p class="m-0 text-sm text-warn">Showing last published version. <a href="/forms/{formId}/edit" class="text-text underline">Edit</a> to publish latest changes.</p>
 												{/if}
 												{#if customDomainInfo?.enabled && customDomainInfo.domain}
 													<p class="m-0 text-sm text-muted">Served on <span class="text-subtle">{customDomainInfo.domain}</span></p>
