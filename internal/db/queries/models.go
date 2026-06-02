@@ -61,7 +61,7 @@ type Form struct {
 	RenderEncryptedSchema   []byte
 	PublicFormKey           []byte
 	RenderKeySalt           []byte
-	ExpiresAt               pgtype.Date
+	ExpiresAt               pgtype.Timestamptz
 	ResponseLimit           pgtype.Int4
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool

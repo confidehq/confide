@@ -1,0 +1,2 @@
+ALTER TABLE forms
+    ALTER COLUMN expires_at TYPE TIMESTAMPTZ USING expires_at::TIMESTAMPTZ;

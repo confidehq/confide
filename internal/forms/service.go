@@ -62,7 +62,7 @@ type FormRecord struct {
 	RenderEncryptedSchema   []byte
 	PublicFormKey           []byte
 	RenderKeySalt           []byte
-	ExpiresAt               pgtype.Date
+	ExpiresAt               pgtype.Timestamptz
 	ResponseLimit           pgtype.Int4
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool
@@ -82,7 +82,7 @@ type FormSummary struct {
 	ResponseCount         int32
 	CreatedAt             pgtype.Timestamptz
 	UpdatedAt             pgtype.Timestamptz
-	ExpiresAt             pgtype.Date
+	ExpiresAt             pgtype.Timestamptz
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
 	BurnAfterReading      bool
@@ -97,7 +97,7 @@ type PublicFormRecord struct {
 	ResponseCount         int32
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
-	ExpiresAt             pgtype.Date
+	ExpiresAt             pgtype.Timestamptz
 	ResponseLimit         pgtype.Int4
 	WorkspaceID           string
 	PGPPublicKey          string // ASCII-armored PGP public key; empty if not configured
@@ -106,7 +106,7 @@ type PublicFormRecord struct {
 // CreateForm stores a new form and returns its ID.
 // If clientID is non-empty it is used as the form ID; otherwise a random ID is generated.
 // Both the form row and version 1 snapshot are inserted in a single transaction.
-func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt, workspaceWrappedFormKey []byte, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
+func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountID, clientID string, encryptedSchema, renderEncryptedSchema, publicFormKey, renderKeySalt, workspaceWrappedFormKey []byte, expiresAt pgtype.Timestamptz, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) (string, error) {
 	id := clientID
 	if id == "" {
 		var err error
@@ -157,7 +157,7 @@ func (s *Service) CreateForm(ctx context.Context, workspaceID, createdByAccountI
 }
 
 // UpdateExpiration sets the sunset date, response cap, and/or response TTL policy for a form.
-func (s *Service) UpdateExpiration(ctx context.Context, workspaceID, formID string, expiresAt pgtype.Date, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) error {
+func (s *Service) UpdateExpiration(ctx context.Context, workspaceID, formID string, expiresAt pgtype.Timestamptz, responseLimit pgtype.Int4, responseTtlDays pgtype.Int4, burnAfterReading bool) error {
 	return s.db.UpdateFormExpiration(ctx, queries.UpdateFormExpirationParams{
 		ID:               formID,
 		WorkspaceID:      workspaceID,

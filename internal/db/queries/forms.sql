@@ -46,7 +46,10 @@ SET workspace_wrapped_form_key = $3
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: UpdateFormStatus :exec
-UPDATE forms SET status = $3, updated_at = NOW()
+UPDATE forms
+SET status     = $3,
+    expires_at = CASE WHEN $3 = 'open' THEN NULL ELSE expires_at END,
+    updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2;
 
 -- name: DeleteForm :exec
@@ -78,7 +81,7 @@ UPDATE forms
 SET response_count = response_count + 1
 WHERE id = $1
   AND (response_limit IS NULL OR response_count < response_limit)
-  AND (expires_at IS NULL OR expires_at >= CURRENT_DATE)
+  AND (expires_at IS NULL OR expires_at > NOW())
   AND status = 'open'
 RETURNING response_count;
 

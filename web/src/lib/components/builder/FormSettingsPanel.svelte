@@ -165,6 +165,10 @@ async function applyExpiration(
 	newTtlDays: number | null,
 	newBurnAfterReading: boolean,
 ) {
+	if (newExpiresAt && newExpiresAt < nowLocal()) {
+		expirationError = "Close date must be in the future.";
+		return;
+	}
 	expirationSaving = true;
 	expirationError = null;
 	try {
@@ -198,6 +202,16 @@ function applyResponseLifetime(
 	const burn = policy === "burn";
 	const days = policy === "ttl" ? ttlDays : null;
 	applyExpiration(store.expiresAt, store.responseLimit, days, burn);
+}
+
+function toDatetimeLocal(value: string | null): string {
+	if (!value) return '';
+	return value.slice(0, 16);
+}
+
+function nowLocal(): string {
+	const now = new Date();
+	return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 }
 
 function handleAddLanguage(e: Event) {
@@ -476,8 +490,9 @@ function downloadQR() {
 				{#if closeOnDateOpen}
 					<div class="mt-2.5">
 						<input
-							type="date"
-							value={store.expiresAt ?? ''}
+							type="datetime-local"
+							min={nowLocal()}
+							value={toDatetimeLocal(store.expiresAt)}
 							onchange={(e) => {
 								const v = (e.target as HTMLInputElement).value;
 								applyExpiration(v || null, store.responseLimit, store.responseTtlDays, store.burnAfterReading);

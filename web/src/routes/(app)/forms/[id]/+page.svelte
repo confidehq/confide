@@ -108,6 +108,12 @@ async function handlePGPKeyInput(value: string) {
 	}
 }
 
+const effectiveStatus = $derived<"draft" | "open" | "closed">(
+	record?.status === "open" && record.expiresAt && new Date(record.expiresAt) <= new Date()
+		? "closed"
+		: (record?.status ?? "draft")
+);
+
 let closeOnDatePending = $state(false);
 let limitResponsesPending = $state(false);
 let autoDeletePending = $state(false);
@@ -224,7 +230,7 @@ async function loadForm() {
 				}
 			}
 		}
-		expiresAt = r.expiresAt ?? "";
+		expiresAt = r.expiresAt ? toDatetimeLocal(r.expiresAt) : "";
 		responseLimit = r.responseLimit != null ? String(r.responseLimit) : "";
 		responseTtlDays =
 			r.responseTtlDays != null ? String(r.responseTtlDays) : "";
@@ -253,16 +259,26 @@ async function loadForm() {
 async function toggleStatus() {
 	if (!record) return;
 	statusSaving = true;
-	const next = record.status === "open" ? "closed" : "open";
+	const next = effectiveStatus === "open" ? "closed" : "open";
 	try {
 		await updateFormStatus(formId, next);
-		record = { ...record, status: next };
+		if (next === "open") {
+			expiresAt = "";
+			record = { ...record, status: next, expiresAt: null };
+		} else {
+			record = { ...record, status: next };
+		}
+		formsStore.updateStatus(formId, next);
 	} finally {
 		statusSaving = false;
 	}
 }
 
 async function saveSettings() {
+	if (expiresAt && expiresAt < nowLocal()) {
+		settingsError = "Close date must be in the future.";
+		return;
+	}
 	if (pgpOpen && !notificationEmail.trim()) {
 		settingsError =
 			"A recipient email address is required for email forwarding.";
@@ -280,10 +296,11 @@ async function saveSettings() {
 	settingsError = "";
 	settingsSaved = false;
 	try {
+		const utcExpires = expiresAt ? new Date(expiresAt).toISOString() : null;
 		await Promise.all([
 			updateFormExpiration(
 				formId,
-				expiresAt || null,
+				utcExpires,
 				responseLimit ? parseInt(responseLimit) : null,
 				responseTtlDays ? parseInt(responseTtlDays) : null,
 				burnAfterReading,
@@ -299,7 +316,7 @@ async function saveSettings() {
 		if (record) {
 			record = {
 				...record,
-				expiresAt: expiresAt || null,
+				expiresAt: utcExpires,
 				responseLimit: responseLimit ? parseInt(responseLimit) : null,
 				responseTtlDays: responseTtlDays ? parseInt(responseTtlDays) : null,
 				burnAfterReading,
@@ -535,6 +552,19 @@ async function handleDeleteResponse(responseId: string) {
 	}
 }
 
+function toDatetimeLocal(value: string): string {
+	if (!value) return '';
+	const d = new Date(value);
+	if (isNaN(d.getTime())) return '';
+	const offset = d.getTimezoneOffset() * 60000;
+	return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function nowLocal(): string {
+	const now = new Date();
+	return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 function renderAnswer(field: BuilderField, d: DecryptedResponse): string {
 	const value = d.answers[field.id];
@@ -622,9 +652,9 @@ function formatDateLong(iso: string): string {
 
 // ── Derived ───────────────────────────────────────────────────────────────
 const statusColor = $derived(
-	record?.status === "open"
+	effectiveStatus === "open"
 		? "bg-success"
-		: record?.status === "draft"
+		: effectiveStatus === "draft"
 			? "bg-warn-light"
 			: "bg-muted",
 );
@@ -730,7 +760,7 @@ function responseIndexInFull(id: string): number {
 	@keyframes spin { to { transform: rotate(360deg); } }
 	.spinner { animation: spin 0.7s linear infinite; }
 
-	input[type="date"]::-webkit-calendar-picker-indicator {
+	input[type="datetime-local"]::-webkit-calendar-picker-indicator {
 		filter: invert(0.4);
 		cursor: pointer;
 	}
@@ -929,15 +959,15 @@ function responseIndexInFull(id: string): number {
 									</div>
 									<!-- Status pill -->
 									<div class="flex items-center gap-1.5 px-3 py-1 rounded-full shrink-0 border
-										{record.status === 'open'
+										{effectiveStatus === 'open'
 											? 'bg-success-dark border-success-light/30'
-											: record.status === 'closed'
+											: effectiveStatus === 'closed'
 												? 'bg-info-dark border-info-light/30'
 												: 'bg-highlight-low border-border-canvas'}">
 										<span class="w-1.5 h-1.5 rounded-full shrink-0
-											{record.status === 'open' ? 'bg-success-light animate-pulse' : record.status === 'closed' ? 'bg-info-light' : record.status === 'draft' ? 'bg-warn-light' : 'bg-muted'}"></span>
+											{effectiveStatus === 'open' ? 'bg-success-light animate-pulse' : effectiveStatus === 'closed' ? 'bg-info-light' : effectiveStatus === 'draft' ? 'bg-warn-light' : 'bg-muted'}"></span>
 										<span class="text-sm font-bold uppercase tracking-wider
-											{record.status === 'open' ? 'text-success-light' : record.status === 'closed' ? 'text-info-light' : 'text-muted'}">{record.status}</span>
+											{effectiveStatus === 'open' ? 'text-success-light' : effectiveStatus === 'closed' ? 'text-info-light' : 'text-muted'}">{effectiveStatus}</span>
 									</div>
 								</div>
 
@@ -957,7 +987,7 @@ function responseIndexInFull(id: string): number {
 
 								<!-- Status actions -->
 								<div class="flex items-center gap-2 mt-5">
-									{#if record.status === 'draft'}
+									{#if effectiveStatus === 'draft'}
 										<a
 											href="/forms/{formId}/edit"
 											class="px-3 py-1.5 text-sm font-mono border rounded no-underline transition-colors duration-100
@@ -970,10 +1000,10 @@ function responseIndexInFull(id: string): number {
 											class="px-3 py-1.5 text-sm font-mono border rounded cursor-pointer transition-colors duration-100
 												{statusSaving
 													? 'bg-transparent text-muted border-border-canvas cursor-not-allowed'
-													: record.status === 'open'
+													: effectiveStatus === 'open'
 														? 'bg-transparent text-danger border-danger-light hover:bg-danger-light hover:border-danger-dark hover:text-white'
 														: 'bg-transparent text-success border-success-light hover:bg-success-light hover:border-success-dark'}"
-										>{statusSaving ? '…' : record.status === 'open' ? 'Close form' : 'Reopen form'}</button>
+										>{statusSaving ? '…' : effectiveStatus === 'open' ? 'Close form' : 'Reopen form'}</button>
 									{/if}
 								</div>
 							</div>
@@ -1044,7 +1074,7 @@ function responseIndexInFull(id: string): number {
 							<!-- Share section -->
 							<section class="flex flex-col gap-3">
 								<h2 class="m-0 font-bold tracking-[0.12em] uppercase text-muted mb-1">Share</h2>
-								{#if record.status === 'draft'}
+								{#if effectiveStatus === 'draft'}
 									<div class="rounded-lg border border-border-canvas bg-canvas px-5 py-5 flex flex-col gap-3">
 										<div>
 											<p class="m-0 text-text font-medium">This form is unpublished</p>
@@ -1099,9 +1129,9 @@ function responseIndexInFull(id: string): number {
 										</div>
 
 										<!-- Status notice -->
-										{#if record.status === 'closed' || record.hasUnpublishedChanges || (customDomainInfo?.enabled && customDomainInfo.domain)}
+										{#if effectiveStatus === 'closed' || record.hasUnpublishedChanges || (customDomainInfo?.enabled && customDomainInfo.domain)}
 											<div class="px-4 py-2.5 border-t border-border-canvas bg-surface/50">
-												{#if record.status === 'closed'}
+												{#if effectiveStatus === 'closed'}
 													<p class="m-0 text-sm text-info-light">Form is closed — link is active but not accepting responses.</p>
 												{:else if record.hasUnpublishedChanges}
 													<p class="m-0 text-sm text-warn">Showing last published version. <a href="/forms/{formId}/edit" class="text-text underline">Edit</a> to publish latest changes.</p>
@@ -1184,7 +1214,13 @@ function responseIndexInFull(id: string): number {
 										</div>
 										{#if closeOnDateOpen}
 											<div class="mt-3">
-												<input type="date" bind:value={expiresAt} class="input-base" />
+												<input
+													type="datetime-local"
+													min={nowLocal()}
+													value={expiresAt}
+													oninput={(e) => { expiresAt = (e.target as HTMLInputElement).value; }}
+													class="input-base"
+												/>
 											</div>
 										{/if}
 									</div>
@@ -1373,7 +1409,7 @@ function responseIndexInFull(id: string): number {
 										{settingsSaving ? 'Saving…' : 'Save settings'}
 									</button>
 									{#if settingsSaved}
-										<span class="text-success-light flex items-center gap-1.5">
+										<span class="text-success flex items-center gap-1.5">
 											<Check size={11} strokeWidth={2.5} />
 											Saved
 										</span>

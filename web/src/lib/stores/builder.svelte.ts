@@ -571,9 +571,10 @@ export function createBuilderStore(
 		newResponseTtlDays: number | null,
 		newBurnAfterReading: boolean,
 	): Promise<void> {
+		const utcExpires = newExpiresAt ? new Date(newExpiresAt).toISOString() : null;
 		await updateFormExpiration(
 			formId,
-			newExpiresAt,
+			utcExpires,
 			newResponseLimit,
 			newResponseTtlDays,
 			newBurnAfterReading,
@@ -594,7 +595,12 @@ export function createBuilderStore(
 		const s = loaded as BuilderSchema;
 		schema = s;
 		activeLocale = schema.defaultLocale;
-		expiresAt = record.expiresAt ?? null;
+		if (record.expiresAt) {
+			const d = new Date(record.expiresAt);
+			expiresAt = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+		} else {
+			expiresAt = null;
+		}
 		responseLimit = record.responseLimit ?? null;
 		responseTtlDays = record.responseTtlDays ?? null;
 		burnAfterReading = record.burnAfterReading ?? false;

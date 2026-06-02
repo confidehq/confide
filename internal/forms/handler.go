@@ -592,7 +592,7 @@ func updateFormPGPNotification(svc *Service, wsSvc workspaceSvc) http.HandlerFun
 // effectiveStatus computes the observable status of a form.
 // Draft forms have never been published and are not visible to respondents.
 // A form is closed if manually set to "closed", past its sunset date, or at its response cap.
-func effectiveStatus(status string, responseCount int32, expiresAt pgtype.Date, responseLimit pgtype.Int4) string {
+func effectiveStatus(status string, responseCount int32, expiresAt pgtype.Timestamptz, responseLimit pgtype.Int4) string {
 	if status == "draft" {
 		return "draft"
 	}
@@ -609,20 +609,22 @@ func effectiveStatus(status string, responseCount int32, expiresAt pgtype.Date, 
 }
 
 // parseExpirationFields converts optional JSON expiration inputs to pgtype values.
-func parseExpirationFields(expiresAtStr *string, responseLimit *int32, responseTtlDaysRaw *int32, burnAfterReading bool) (pgtype.Date, pgtype.Int4, pgtype.Int4, bool, error) {
-	var expiresAt pgtype.Date
+// expiresAtStr must be an RFC3339 timestamp (e.g. "2024-12-25T19:30:00Z"); the caller is
+// responsible for converting the user's local time to UTC before sending.
+func parseExpirationFields(expiresAtStr *string, responseLimit *int32, responseTtlDaysRaw *int32, burnAfterReading bool) (pgtype.Timestamptz, pgtype.Int4, pgtype.Int4, bool, error) {
+	var expiresAt pgtype.Timestamptz
 	if expiresAtStr != nil {
-		t, err := time.Parse("2006-01-02", *expiresAtStr)
+		t, err := time.Parse(time.RFC3339, *expiresAtStr)
 		if err != nil {
-			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("expiresAt must be a date in YYYY-MM-DD format")
+			return pgtype.Timestamptz{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("expiresAt must be an RFC3339 timestamp")
 		}
-		expiresAt = pgtype.Date{Time: t, Valid: true}
+		expiresAt = pgtype.Timestamptz{Time: t, Valid: true}
 	}
 
 	var limit pgtype.Int4
 	if responseLimit != nil {
 		if *responseLimit < 1 {
-			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseLimit must be a positive integer")
+			return pgtype.Timestamptz{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseLimit must be a positive integer")
 		}
 		limit = pgtype.Int4{Int32: *responseLimit, Valid: true}
 	}
@@ -630,7 +632,7 @@ func parseExpirationFields(expiresAtStr *string, responseLimit *int32, responseT
 	var ttlDays pgtype.Int4
 	if responseTtlDaysRaw != nil {
 		if *responseTtlDaysRaw < 1 {
-			return pgtype.Date{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseTtlDays must be a positive integer")
+			return pgtype.Timestamptz{}, pgtype.Int4{}, pgtype.Int4{}, false, errors.New("responseTtlDays must be a positive integer")
 		}
 		ttlDays = pgtype.Int4{Int32: *responseTtlDaysRaw, Valid: true}
 	}
@@ -638,11 +640,11 @@ func parseExpirationFields(expiresAtStr *string, responseLimit *int32, responseT
 	return expiresAt, limit, ttlDays, burnAfterReading, nil
 }
 
-func nullableDateString(d pgtype.Date) *string {
+func nullableDateString(d pgtype.Timestamptz) *string {
 	if !d.Valid {
 		return nil
 	}
-	s := d.Time.Format("2006-01-02")
+	s := d.Time.UTC().Format(time.RFC3339)
 	return &s
 }
 

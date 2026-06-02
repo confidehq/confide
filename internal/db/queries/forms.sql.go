@@ -30,7 +30,7 @@ type CreateFormParams struct {
 	RenderEncryptedSchema   []byte
 	PublicFormKey           []byte
 	RenderKeySalt           []byte
-	ExpiresAt               pgtype.Date
+	ExpiresAt               pgtype.Timestamptz
 	ResponseLimit           pgtype.Int4
 	ResponseTtlDays         pgtype.Int4
 	BurnAfterReading        bool
@@ -162,7 +162,7 @@ type GetFormPublicRow struct {
 	ResponseCount         int32
 	RenderEncryptedSchema []byte
 	PublicFormKey         []byte
-	ExpiresAt             pgtype.Date
+	ExpiresAt             pgtype.Timestamptz
 	ResponseLimit         pgtype.Int4
 	WorkspaceID           string
 	PgpPublicKey          pgtype.Text
@@ -219,7 +219,7 @@ UPDATE forms
 SET response_count = response_count + 1
 WHERE id = $1
   AND (response_limit IS NULL OR response_count < response_limit)
-  AND (expires_at IS NULL OR expires_at >= CURRENT_DATE)
+  AND (expires_at IS NULL OR expires_at > NOW())
   AND status = 'open'
 RETURNING response_count
 `
@@ -259,7 +259,7 @@ type ListFormsByWorkspaceRow struct {
 	ResponseCount         int32
 	CreatedAt             pgtype.Timestamptz
 	UpdatedAt             pgtype.Timestamptz
-	ExpiresAt             pgtype.Date
+	ExpiresAt             pgtype.Timestamptz
 	ResponseLimit         pgtype.Int4
 	ResponseTtlDays       pgtype.Int4
 	BurnAfterReading      bool
@@ -385,7 +385,7 @@ WHERE id = $1 AND workspace_id = $2
 type UpdateFormExpirationParams struct {
 	ID               string
 	WorkspaceID      string
-	ExpiresAt        pgtype.Date
+	ExpiresAt        pgtype.Timestamptz
 	ResponseLimit    pgtype.Int4
 	ResponseTtlDays  pgtype.Int4
 	BurnAfterReading bool
@@ -458,7 +458,10 @@ func (q *Queries) UpdateFormSchema(ctx context.Context, arg UpdateFormSchemaPara
 }
 
 const updateFormStatus = `-- name: UpdateFormStatus :exec
-UPDATE forms SET status = $3, updated_at = NOW()
+UPDATE forms
+SET status     = $3,
+    expires_at = CASE WHEN $3 = 'open' THEN NULL ELSE expires_at END,
+    updated_at = NOW()
 WHERE id = $1 AND workspace_id = $2
 `
 

@@ -60,6 +60,18 @@ $effect(() => {
 	if (masterKey && workspace) formsStore.load(masterKey, workspace.id);
 });
 
+$effect(() => {
+	const workspace = workspacesStore.active;
+	const masterKey = auth.masterKey;
+	function handleVisibility() {
+		if (!document.hidden && masterKey && workspace) {
+			formsStore.load(masterKey, workspace.id);
+		}
+	}
+	document.addEventListener("visibilitychange", handleVisibility);
+	return () => document.removeEventListener("visibilitychange", handleVisibility);
+});
+
 let pendingDelete = $state<FormSummary | null>(null);
 let deleteLoading = $state(false);
 let deleteError = $state("");
