@@ -193,6 +193,11 @@ async function loadForm() {
 		resolvedFormKey = formKey;
 		const title = schema.translations[schema.defaultLocale]?.formTitle;
 		if (title) formsStore.updateName(formId, title);
+		const computedStatus =
+			r.status === "open" && r.expiresAt && new Date(r.expiresAt) <= new Date()
+				? "closed"
+				: r.status;
+		formsStore.updateStatus(formId, computedStatus);
 		const desc = schema.translations[schema.defaultLocale]?.formDescription;
 		if (desc) formDescription = desc;
 		if (r.renderKeySalt && r.status !== "draft") {
@@ -297,6 +302,13 @@ async function saveSettings() {
 	settingsSaved = false;
 	try {
 		const utcExpires = expiresAt ? new Date(expiresAt).toISOString() : null;
+		// Reopening: form is closed and user is setting a future expiry date
+		const reopening =
+			record !== null &&
+			(record.status === "closed" ||
+				(record.status === "open" && record.expiresAt && new Date(record.expiresAt) <= new Date())) &&
+			!!utcExpires &&
+			new Date(utcExpires) > new Date();
 		await Promise.all([
 			updateFormExpiration(
 				formId,
@@ -312,15 +324,19 @@ async function saveSettings() {
 				notificationFrom,
 				notificationSubject,
 			),
+			reopening ? updateFormStatus(formId, "open") : Promise.resolve(),
 		]);
 		if (record) {
+			const newStatus = reopening ? "open" : record.status;
 			record = {
 				...record,
+				status: newStatus,
 				expiresAt: utcExpires,
 				responseLimit: responseLimit ? parseInt(responseLimit) : null,
 				responseTtlDays: responseTtlDays ? parseInt(responseTtlDays) : null,
 				burnAfterReading,
 			};
+			formsStore.updateStatus(formId, newStatus);
 		}
 		settingsSaved = true;
 		setTimeout(() => {
