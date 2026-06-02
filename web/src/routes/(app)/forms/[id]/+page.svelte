@@ -71,11 +71,17 @@ $effect(() => {
 
 // ── Form ──────────────────────────────────────────────────────────────────
 let record = $state<FormRecord | null>(null);
+let formSchema = $state<BuilderSchema | null>(null);
 let resolvedFormKey = $state<CryptoKey | null>(null);
 const formName = $derived(formsStore.formNames.get(formId) ?? "");
 let formDescription = $state(formsStore.formDescriptions.get(formId) ?? "");
 let loading = $state(true);
 let loadError = $state("");
+
+const NON_QUESTION_TYPES = new Set(["section_break", "heading", "accordion", "accent"]);
+const questionCount = $derived(
+	formSchema?.fields.filter((f) => !NON_QUESTION_TYPES.has(f.type)).length ?? 0,
+);
 
 let statusSaving = $state(false);
 
@@ -243,6 +249,7 @@ async function loadForm() {
 			formKey,
 		} = await getForm(auth.masterKey, formId);
 		record = r;
+		formSchema = schema;
 		resolvedFormKey = formKey;
 		const title = schema.translations[schema.defaultLocale]?.formTitle;
 		if (title) formsStore.updateName(formId, title);
@@ -1085,6 +1092,10 @@ function responseIndexInFull(id: string): number {
 									<div class="flex flex-col gap-0.5 px-6 border-l border-border-canvas">
 										<span class="text-2xl font-semibold tabular-nums text-info-light">{unreadCount}</span>
 										<span class="text-sm font-bold uppercase tracking-wider text-muted">Unread</span>
+									</div>
+									<div class="flex flex-col gap-0.5 px-6 border-l border-border-canvas">
+										<span class="text-2xl font-semibold tabular-nums text-text">{questionCount}</span>
+										<span class="text-sm font-bold uppercase tracking-wider text-muted">Questions</span>
 									</div>
 								</div>
 
