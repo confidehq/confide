@@ -35,6 +35,7 @@ type DB interface {
 	DeleteExpiredResponses(ctx context.Context) error
 	IncrementResponseCount(ctx context.Context, id string) (int32, error)
 	IncrementMonthlyResponseUsage(ctx context.Context, workspaceID string) error
+	IncrementMonthlyEmailUsage(ctx context.Context, workspaceID string) error
 }
 
 // Notifier sends PGP-encrypted response notifications by email.
@@ -330,8 +331,14 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	}
 
 	// Fire notifications asynchronously after the transaction commits.
+	// Increment the monthly email turnstile once per notification sent.
 	for _, n := range notifications {
 		info := notifCache[n.formID]
+		if wsID, ok := workspaceIDCache[n.formID]; ok {
+			if err := s.db.IncrementMonthlyEmailUsage(ctx, wsID); err != nil {
+				s.log.Error().Err(err).Str("workspace_id", wsID).Msg("failed to increment monthly email usage")
+			}
+		}
 		go s.notifier.SendPGPResponse(info.email, n.formID, n.payload, info.from, info.subject)
 	}
 

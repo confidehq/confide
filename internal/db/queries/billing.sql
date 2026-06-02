@@ -17,6 +17,18 @@ VALUES ($1, to_char(NOW(), 'YYYY-MM'), 1)
 ON CONFLICT (workspace_id, period) DO UPDATE
     SET count = workspace_response_usage.count + 1;
 
+-- name: CountMonthlyEmails :one
+SELECT COALESCE(SUM(count), 0)::BIGINT
+FROM workspace_email_usage
+WHERE workspace_id = $1
+  AND period = to_char(NOW(), 'YYYY-MM');
+
+-- name: IncrementMonthlyEmailUsage :exec
+INSERT INTO workspace_email_usage (workspace_id, period, count)
+VALUES ($1, to_char(NOW(), 'YYYY-MM'), 1)
+ON CONFLICT (workspace_id, period) DO UPDATE
+    SET count = workspace_email_usage.count + 1;
+
 -- name: CountTotalResponses :one
 SELECT COUNT(*)
 FROM responses r

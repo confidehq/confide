@@ -129,6 +129,12 @@ type Workspace struct {
 	LegalText            string
 }
 
+type WorkspaceEmailUsage struct {
+	WorkspaceID string
+	Period      string
+	Count       int64
+}
+
 type WorkspaceInvitation struct {
 	ID                 string
 	WorkspaceID        string

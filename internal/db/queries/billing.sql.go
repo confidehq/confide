@@ -22,6 +22,20 @@ func (q *Queries) CountFormsByWorkspace(ctx context.Context, workspaceID string)
 	return count, err
 }
 
+const countMonthlyEmails = `-- name: CountMonthlyEmails :one
+SELECT COALESCE(SUM(count), 0)::BIGINT
+FROM workspace_email_usage
+WHERE workspace_id = $1
+  AND period = to_char(NOW(), 'YYYY-MM')
+`
+
+func (q *Queries) CountMonthlyEmails(ctx context.Context, workspaceID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countMonthlyEmails, workspaceID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const countMonthlyResponses = `-- name: CountMonthlyResponses :one
 SELECT COALESCE(SUM(count), 0)::BIGINT
 FROM workspace_response_usage
@@ -102,6 +116,18 @@ func (q *Queries) GetWorkspaceForBilling(ctx context.Context, id string) (GetWor
 		&i.StripeSubscriptionID,
 	)
 	return i, err
+}
+
+const incrementMonthlyEmailUsage = `-- name: IncrementMonthlyEmailUsage :exec
+INSERT INTO workspace_email_usage (workspace_id, period, count)
+VALUES ($1, to_char(NOW(), 'YYYY-MM'), 1)
+ON CONFLICT (workspace_id, period) DO UPDATE
+    SET count = workspace_email_usage.count + 1
+`
+
+func (q *Queries) IncrementMonthlyEmailUsage(ctx context.Context, workspaceID string) error {
+	_, err := q.db.Exec(ctx, incrementMonthlyEmailUsage, workspaceID)
+	return err
 }
 
 const incrementMonthlyResponseUsage = `-- name: IncrementMonthlyResponseUsage :exec

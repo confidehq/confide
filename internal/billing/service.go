@@ -43,6 +43,7 @@ type DB interface {
 	SetStripeSubscriptionID(ctx context.Context, arg queries.SetStripeSubscriptionIDParams) error
 	UpdateWorkspacePlan(ctx context.Context, arg queries.UpdateWorkspacePlanParams) error
 	GetWorkspaceByStripeCustomerID(ctx context.Context, stripeCustomerID pgtype.Text) (queries.GetWorkspaceByStripeCustomerIDRow, error)
+	CountMonthlyEmails(ctx context.Context, workspaceID string) (int64, error)
 }
 
 // Service handles workspace billing operations.
@@ -585,9 +586,20 @@ func (s *Service) CheckStoredResponseLimit(ctx context.Context, workspaceID stri
 }
 
 // CheckMonthlyEmailLimit returns ErrEmailLimitReached when the workspace has
-// exhausted its monthly outbound email quota. Returns nil when the
-// email_notifications table is not yet present (no rows = no enforcement).
+// exhausted its monthly outbound email quota.
 func (s *Service) CheckMonthlyEmailLimit(ctx context.Context, workspaceID string) error {
+	ws, err := s.db.GetWorkspaceForBilling(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	count, err := s.db.CountMonthlyEmails(ctx, workspaceID)
+	if err != nil {
+		return err
+	}
+	hard := hardResponseLimit(s.limits.MonthlyEmailLimit(ws.Plan))
+	if hard != -1 && count >= hard {
+		return ErrEmailLimitReached
+	}
 	return nil
 }
 
@@ -630,15 +642,17 @@ func (s *Service) GetUsage(ctx context.Context, workspaceID string) (*WorkspaceU
 		forms            int64
 		monthlyResponses int64
 		totalResponses   int64
+		monthlyEmails    int64
 	}
 	var res result
-	var errs [4]error
+	var errs [5]error
 
 	var wg errGroupWait
 	wg.Go(func() { res.members, errs[0] = s.db.CountWorkspaceMembers(ctx, workspaceID) })
 	wg.Go(func() { res.forms, errs[1] = s.db.CountFormsByWorkspace(ctx, workspaceID) })
 	wg.Go(func() { res.monthlyResponses, errs[2] = s.db.CountMonthlyResponses(ctx, workspaceID) })
 	wg.Go(func() { res.totalResponses, errs[3] = s.db.CountTotalResponses(ctx, workspaceID) })
+	wg.Go(func() { res.monthlyEmails, errs[4] = s.db.CountMonthlyEmails(ctx, workspaceID) })
 	wg.Wait()
 
 	for _, e := range errs {
@@ -652,7 +666,7 @@ func (s *Service) GetUsage(ctx context.Context, workspaceID string) (*WorkspaceU
 		Forms:            UsageInfo{Current: res.forms, Limit: -1},
 		MonthlyResponses: UsageInfo{Current: res.monthlyResponses, Limit: s.limits.MonthlyResponseLimit(plan)},
 		StoredResponses:  UsageInfo{Current: res.totalResponses, Limit: s.limits.StoredResponseLimit(plan)},
-		MonthlyEmails:    UsageInfo{Current: 0, Limit: s.limits.MonthlyEmailLimit(plan)},
+		MonthlyEmails:    UsageInfo{Current: res.monthlyEmails, Limit: s.limits.MonthlyEmailLimit(plan)},
 		FileStorageBytes: UsageInfo{Current: 0, Limit: s.limits.FileStorageLimit(plan)},
 	}, nil
 }
