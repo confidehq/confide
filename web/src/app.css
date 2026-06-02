@@ -169,6 +169,9 @@
 	--color-success-bg-subtle:   #f0fdf4;
 	--color-success-bg-deep:     var(--color-success-light);
 	--color-success-text:        var(--color-success-dark);
+	--color-open-bg: var(--color-success-dark);
+	--color-open-text: var(--color-success-light);
+	--color-open-border: var(--color-success);
 }
 
 html,

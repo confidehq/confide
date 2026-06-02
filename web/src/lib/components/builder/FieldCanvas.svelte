@@ -516,7 +516,7 @@ function removeOption(fieldId: string, optId: string) {
 							><GripVertical size={15} strokeWidth={1.75} /></button>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="px-1.5 py-px bg-canvas text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface transition-colors duration-100"
+								class="px-1.5 py-px bg-surface text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-border transition-colors duration-100"
 								aria-label="Open field settings"
 							>{headingBadge}</button>
 							<span class="flex-1"></span>
@@ -628,7 +628,7 @@ function removeOption(fieldId: string, optId: string) {
 
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-								class="px-2 py-0.5 bg-border text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-surface transition-colors duration-100"
+								class="px-2 py-0.5 bg-surface text-subtle rounded-full text-xs shrink-0 border-none font-mono cursor-pointer hover:bg-border transition-colors duration-100"
 								aria-label="Open field settings"
 							>
 								{FIELD_TYPE_LABELS[field.type] ?? field.type}
@@ -876,7 +876,7 @@ function removeOption(fieldId: string, optId: string) {
 					placeholder="Submit"
 					oninput={(e) => store.updateTranslation(null, 'submitButtonText', (e.target as HTMLInputElement).value)}
 					style="width: {Math.max((store.activeTranslation?.submitButtonText || 'Submit').length, 6)}ch"
-					class="bg-transparent border-none outline-none text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
+					class="bg-transparent border-none outline-none text-base font-[inherit] text-white text-center cursor-text placeholder:text-white min-w-[6ch]"
 				/>
 			</div>
 		</div>
