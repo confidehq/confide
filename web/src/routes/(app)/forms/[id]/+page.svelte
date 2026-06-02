@@ -154,8 +154,14 @@ let responsesError = $state("");
 // null means "details view"; a string means a response ID is selected
 let selectedId = $state<string | null>(null);
 let decrypted = $state<Map<string, DecryptedResponse>>(new Map());
+let viewedIds = $state<Set<string>>(new Set());
+const viewedStorageKey = `confide_viewed_${formId}`;
 const unreadCount = $derived(
-	record ? Math.max(0, record.responseCount - decrypted.size) : 0,
+	Math.max(
+		0,
+		responses.filter((r) => !viewedIds.has(r.id)).length +
+			(hasMore ? (record?.responseCount ?? 0) - responses.length : 0),
+	),
 );
 let decrypting = $state<Set<string>>(new Set());
 let decryptErrors = $state<Map<string, string>>(new Map());
@@ -175,6 +181,10 @@ onMount(async () => {
 		goto("/login");
 		return;
 	}
+	try {
+		const stored = localStorage.getItem(viewedStorageKey);
+		if (stored) viewedIds = new Set(JSON.parse(stored));
+	} catch {}
 	getAppConfig()
 		.then((c) => {
 			emailEnabled = c.emailEnabled;
@@ -592,6 +602,11 @@ async function handleDecrypt(rec: EncryptedResponseRecord) {
 		]);
 		if (burnAfterReading) {
 			markResponseRead(formId, rec.id).catch(() => {});
+		} else {
+			viewedIds = new Set([...viewedIds, rec.id]);
+			try {
+				localStorage.setItem(viewedStorageKey, JSON.stringify([...viewedIds]));
+			} catch {}
 		}
 	} catch (err) {
 		decryptErrors = new Map([
@@ -755,7 +770,7 @@ let activeTab = $state<"All" | "Unread">("All");
 
 const filteredResponses = $derived(
 	responses.filter((resp) => {
-		if (activeTab === "Unread" && decrypted.has(resp.id)) return false;
+		if (activeTab === "Unread" && viewedIds.has(resp.id)) return false;
 		const q = searchQuery.trim().toLowerCase();
 		if (!q) return true;
 		if (resp.id.toLowerCase().includes(q)) return true;
@@ -926,7 +941,7 @@ function responseIndexInFull(id: string): number {
 					<button
 						title="Refresh"
 						disabled={responsesLoading || loadingMore}
-						onclick={() => loadResponses()}
+						onclick={() => { loadForm(); loadResponses(); }}
 						class="flex items-center justify-center w-6 h-6 bg-transparent border-none rounded cursor-pointer text-muted transition-[color,background] duration-100 hover:text-subtle hover:bg-surface disabled:opacity-30 disabled:cursor-not-allowed"
 					>
 						<RefreshCw size={12} strokeWidth={2} />
@@ -990,7 +1005,7 @@ function responseIndexInFull(id: string): number {
 								<div class="flex-1 min-w-0">
 									<div class="flex items-center justify-between gap-1.5">
 										<span class="text-xs font-semibold truncate {selectedId === resp.id ? 'text-text' : 'text-subtle'}">
-											{#if !isDecrypted}<span class="inline-block w-1.5 h-1.5 rounded-full bg-info-light align-middle mr-1 -mt-px"></span>{/if}{displayName}
+											{#if !viewedIds.has(resp.id)}<span class="inline-block w-1.5 h-1.5 rounded-full bg-info-light align-middle mr-1 -mt-px"></span>{/if}{displayName}
 										</span>
 										<span class="text-sm text-muted shrink-0">{formatDateShort(resp.receivedAt)}</span>
 									</div>
@@ -1067,12 +1082,10 @@ function responseIndexInFull(id: string): number {
 										<span class="text-2xl font-semibold tabular-nums text-text">{record.responseCount}</span>
 										<span class="text-sm font-bold uppercase tracking-wider text-muted">Total</span>
 									</div>
-									{#if unreadCount > 0}
-										<div class="flex flex-col gap-0.5 px-6 border-l border-border-canvas">
-											<span class="text-2xl font-semibold tabular-nums text-info-light">{unreadCount}</span>
-											<span class="text-sm font-bold uppercase tracking-wider text-muted">Unread</span>
-										</div>
-									{/if}
+									<div class="flex flex-col gap-0.5 px-6 border-l border-border-canvas">
+										<span class="text-2xl font-semibold tabular-nums text-info-light">{unreadCount}</span>
+										<span class="text-sm font-bold uppercase tracking-wider text-muted">Unread</span>
+									</div>
 								</div>
 
 								<!-- Status actions -->
@@ -1133,7 +1146,7 @@ function responseIndexInFull(id: string): number {
 												</div>
 												<div class="flex-1 min-w-0">
 													<div class="flex items-center justify-between gap-2">
-														<span class="text-sm font-semibold text-subtle truncate">{displayName}</span>
+														<span class="text-sm font-semibold text-subtle truncate">{#if !viewedIds.has(resp.id)}<span class="inline-block w-1.5 h-1.5 rounded-full bg-info-light align-middle mr-1 -mt-px"></span>{/if}{displayName}</span>
 														<span class="text-xs text-muted shrink-0">{formatDateShort(resp.receivedAt)}</span>
 													</div>
 													{#if preview}
