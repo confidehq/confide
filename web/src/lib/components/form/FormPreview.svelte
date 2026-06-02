@@ -145,7 +145,7 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 
 	{#if schema.legalText}
 		<div class="mt-10 pt-4 border-t border-form-border">
-			<p class="m-0 text-xs text-form-muted leading-relaxed">{schema.legalText}</p>
+			<div class="m-0 text-xs text-form-muted leading-relaxed rich-html text-center">{@html schema.legalText}</div>
 		</div>
 	{/if}
 </div>

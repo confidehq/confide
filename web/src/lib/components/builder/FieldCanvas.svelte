@@ -25,6 +25,7 @@ import {
 	Zap,
 } from "@lucide/svelte";
 import type { Component } from "svelte";
+import { tick } from "svelte";
 import { dndzone } from "svelte-dnd-action";
 import FormPreview from "$lib/components/form/FormPreview.svelte";
 import type { createBuilderStore } from "$lib/stores/builder.svelte";
@@ -71,6 +72,7 @@ const fieldPalette: Array<{ type: FieldType; label: string; icon: Component }> =
 let insertSlot = $state<number | null>(null);
 let popoverAnchor = $state<{ top: number; left: number } | null>(null);
 let ratingHover = $state<{ fieldId: string; value: number } | null>(null);
+let legalTextActive = $state(false);
 
 function openSlot(
 	e: MouseEvent,
@@ -156,6 +158,21 @@ $effect(() => {
 	function reset() { dragEnabled = false; }
 	window.addEventListener('pointerup', reset);
 	return () => window.removeEventListener('pointerup', reset);
+});
+
+// Scroll newly added fields into view.
+let prevFieldIds = new Set<string>();
+$effect(() => {
+	const currentIds = new Set(fields.map((f) => f.id));
+	const addedId = [...currentIds].find((id) => !prevFieldIds.has(id));
+	if (addedId && prevFieldIds.size > 0) {
+		tick().then(() => {
+			document
+				.querySelector(`[data-field-id="${addedId}"]`)
+				?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+		});
+	}
+	prevFieldIds = currentIds;
 });
 
 function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
@@ -307,7 +324,7 @@ function removeOption(fieldId: string, optId: string) {
 
 <main
 	style="background: {store.mode === 'preview' ? 'var(--color-form-canvas)' : 'var(--color-canvas)'};"
-	class="flex-1 overflow-y-auto px-4 pt-6 pb-12 sm:px-6 min-w-0"
+	class="flex-1 overflow-y-auto px-4 pt-6 pb-48 sm:px-6 min-w-0"
 	onclick={() => { store.setSelectedField(null); store.setSubmitButtonSelected(false); closeSlot(); }}
 	role="presentation"
 >
@@ -424,20 +441,18 @@ function removeOption(fieldId: string, optId: string) {
 				<!-- Insert before zone: only on first card, sits in space above -->
 				{#if fieldIndex === 0}
 					<div
-						class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert-top"
+						class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert-top cursor-pointer"
 						style="bottom: 100%;"
-						onclick={(e) => e.stopPropagation()}
+						onclick={(e) => { e.stopPropagation(); openSlot(e, -1, 'above'); }}
 						role="none"
 					>
 						<div class="flex-1 h-px opacity-0 group-hover/insert-top:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
-						<button
-							onclick={(e) => { e.stopPropagation(); openSlot(e, -1, 'above'); }}
-							class="opacity-0 group-hover/insert-top:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full border-none cursor-pointer transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm"
+						<div
+							class="opacity-0 group-hover/insert-top:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm pointer-events-none"
 							style="background: var(--color-primary); color: white;"
-							aria-label="Insert field at top"
 						>
 							<Plus size={10} strokeWidth={2.5} />
-						</button>
+						</div>
 						<div class="flex-1 h-px opacity-0 group-hover/insert-top:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
 					</div>
 				{/if}
@@ -814,20 +829,18 @@ function removeOption(fieldId: string, optId: string) {
 
 				<!-- Insert after zone: sits in the gap below this card -->
 				<div
-					class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert"
+					class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert cursor-pointer"
 					style="top: 100%;"
-					onclick={(e) => e.stopPropagation()}
+					onclick={(e) => { e.stopPropagation(); openSlot(e, fieldIndex, 'above'); }}
 					role="none"
 				>
 					<div class="flex-1 h-px opacity-0 group-hover/insert:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
-					<button
-						onclick={(e) => { e.stopPropagation(); openSlot(e, fieldIndex, 'above'); }}
-						class="opacity-0 group-hover/insert:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full border-none cursor-pointer transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm"
+					<div
+						class="opacity-0 group-hover/insert:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm pointer-events-none"
 						style="background: var(--color-primary); color: white;"
-						aria-label="Insert field here"
 					>
 						<Plus size={10} strokeWidth={2.5} />
-					</button>
+					</div>
 					<div class="flex-1 h-px opacity-0 group-hover/insert:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
 				</div>
 
@@ -866,6 +879,41 @@ function removeOption(fieldId: string, optId: string) {
 					class="bg-transparent border-none outline-none text-base font-[inherit] text-center cursor-text placeholder:text-white/60 min-w-[6ch]"
 				/>
 			</div>
+		</div>
+	{/if}
+
+	<!-- Legal / Impressum inline editor -->
+	{#if store.mode !== 'preview'}
+		<div class="max-w-4xl mx-auto w-full mt-4">
+			{#if store.schema.legalText || legalTextActive}
+				<div class="group/legal relative">
+					<RichEditable
+						value={store.schema.legalText ?? ''}
+						placeholder="Legal / Impressum…"
+						onclick={(e) => e.stopPropagation()}
+						onfocus={() => { legalTextActive = true; store.setSelectedField(null); }}
+						style="color: {store.schema.legalText ? 'var(--color-subtle)' : 'var(--color-border)'}; text-align: center;"
+						class="block w-full box-border text-xs font-[inherit] px-1 py-0.5"
+						onchange={(html) => store.setLegalText(html || undefined)}
+					/>
+					{#if store.schema.legalText}
+						<button
+							onclick={(e) => { e.stopPropagation(); store.setLegalText(undefined); legalTextActive = false; }}
+							class="absolute top-0 right-0 p-1 opacity-0 group-hover/legal:opacity-100 transition-opacity text-[var(--color-border)] hover:text-[var(--color-subtle)] cursor-pointer bg-transparent border-none"
+							title="Remove legal text"
+						>
+							<Trash2 size={14} strokeWidth={1.75} />
+						</button>
+					{/if}
+				</div>
+			{:else}
+				<button
+					onclick={(e) => { e.stopPropagation(); legalTextActive = true; }}
+					class="w-full bg-transparent border-none text-[var(--color-border)] text-xs cursor-pointer font-[inherit] py-1 text-center hover:text-[var(--color-subtle)] transition-colors duration-150"
+				>
+					+ Legal / Impressum
+				</button>
+			{/if}
 		</div>
 	{/if}
 

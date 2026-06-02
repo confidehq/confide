@@ -271,7 +271,7 @@ async function handleSubmit() {
 	{#if schema.legalText || schema.showWatermark !== false}
 		<div class="mt-10 pt-4 border-t border-form-border flex flex-col gap-3">
 			{#if schema.legalText}
-				<p class="m-0 text-xs text-form-muted leading-relaxed">{schema.legalText}</p>
+				<div class="m-0 text-xs text-form-muted leading-relaxed rich-html text-center">{@html schema.legalText}</div>
 			{/if}
 			{#if schema.showWatermark !== false}
 				<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer" class="sm:hidden flex justify-center items-center gap-1.5 text-xs text-form-muted no-underline hover:text-form-text-mid transition-colors duration-100">

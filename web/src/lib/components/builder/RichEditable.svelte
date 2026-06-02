@@ -30,13 +30,13 @@ let linkUrl = $state("");
 let savedRange: Range | null = null;
 let linkInputEl = $state<HTMLInputElement | undefined>();
 
-// Update innerHTML when value changes externally (e.g. locale switch).
-// Skip while focused — the browser may have inserted a <br> placeholder and resetting
-// innerHTML here would wipe the cursor on the first click into an empty field.
+// Update innerHTML when value changes externally (e.g. locale switch or explicit clear).
+// Skip while focused unless value is empty — the browser may have inserted a <br> placeholder
+// and resetting innerHTML would wipe the cursor on the first click into an empty field.
 $effect(() => {
 	if (!editorEl) return;
-	if (document.activeElement === editorEl) return;
 	const next = value ?? "";
+	if (next !== "" && document.activeElement === editorEl) return;
 	if (editorEl.innerHTML !== next) {
 		editorEl.innerHTML = next;
 	}
