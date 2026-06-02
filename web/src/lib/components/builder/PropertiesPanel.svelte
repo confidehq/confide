@@ -35,6 +35,7 @@ const field = $derived(store.selectedField);
 
 let panelEl = $state<HTMLElement | null>(null);
 let panelTop = $state(8);
+let panelRight = $state(8);
 
 function updatePosition() {
 	if (!panelEl) return;
@@ -49,6 +50,11 @@ function updatePosition() {
 	const fieldRect = fieldEl.getBoundingClientRect();
 	const containerRect = container.getBoundingClientRect();
 	panelTop = Math.max(8, fieldRect.top - containerRect.top);
+	// On desktop: snap the panel to just right of the field card
+	if (window.innerWidth >= 640) {
+		const rawRight = containerRect.right - fieldRect.right - 8 - 256;
+		panelRight = Math.max(8, rawRight);
+	}
 }
 
 $effect(() => {
@@ -93,10 +99,10 @@ function removeOption(optId: string) {
 
 <aside
 	bind:this={panelEl}
-	style="top: {panelTop}px;"
+	style="top: {panelTop}px; right: {panelRight}px;"
 	class="properties-panel {store.selectedField || store.submitButtonSelected ? 'is-open' : ''}
 		fixed bottom-0 left-0 right-0 max-h-[65vh] rounded-t-xl
-		sm:absolute sm:bottom-auto sm:left-auto sm:right-2 sm:w-64 sm:max-h-none sm:rounded-xl
+		sm:absolute sm:bottom-auto sm:left-auto sm:w-64 sm:max-h-none sm:rounded-xl
 		bg-base border border-border-canvas overflow-y-auto z-20"
 >
 	<!-- Mobile drag handle — hidden on desktop -->
@@ -435,9 +441,11 @@ function removeOption(optId: string) {
 		transform: translateY(0);
 	}
 	@media (max-width: 639px) {
-		/* Neutralise the inline top:{panelTop}px on mobile so bottom-0 anchors the panel */
+		/* Neutralise inline top/right on mobile so bottom-0/left-0/right-0 anchors the panel */
 		.properties-panel {
 			top: auto !important;
+			right: 0 !important;
+			left: 0 !important;
 		}
 	}
 	@media (min-width: 640px) {

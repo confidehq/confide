@@ -72,6 +72,29 @@
 	--color-info-badge-text: var(--color-info);
 	--color-info-badge-border: var(--color-info-light);
 
+	/* ── Accent block semantic tokens ── */
+	--color-info-border:         var(--color-info-light);
+	--color-info-border-subtle:  var(--color-border-canvas);
+	--color-info-bg:             var(--color-info-dark);
+	--color-info-bg-subtle:      #1e3050;
+	--color-info-bg-dark:        var(--color-info-dark);
+	--color-info-text:           var(--color-info);
+	--color-warning-border:      var(--color-warn-light);
+	--color-warning-bg:          var(--color-warn-dark);
+	--color-warning-bg-subtle:   #2a1800;
+	--color-warning-bg-dark:     var(--color-warn-dark);
+	--color-warning-text:        var(--color-warn);
+	--color-danger-border:       var(--color-danger-light);
+	--color-danger-bg:           var(--color-danger-dark);
+	--color-danger-bg-subtle:    #251515;
+	--color-danger-bg-deep:      var(--color-danger-dark);
+	--color-danger-text:         var(--color-danger);
+	--color-success-border:      var(--color-success);
+	--color-success-bg:          var(--color-success-dark);
+	--color-success-bg-subtle:   #0e2015;
+	--color-success-bg-deep:     var(--color-success-dark);
+	--color-success-text:        var(--color-success);
+
 	/* ── Form renderer (public) ── */
 	--color-form-bg: #ffffff;
 	--color-form-canvas: #f9fafb;
@@ -136,6 +159,16 @@
 	--color-brand-text-mid: #3d5480;
 	--color-brand-accent: #2563eb;
 	--color-brand-accent-hover: #1d4ed8;
+
+	/* Accent block overrides — subtle bg shades and success roles flip in light */
+	--color-info-bg-subtle:      #eff6ff;
+	--color-warning-bg-subtle:   #fffbeb;
+	--color-danger-bg-subtle:    #fff5f5;
+	--color-success-border:      var(--color-success);
+	--color-success-bg:          var(--color-success-light);
+	--color-success-bg-subtle:   #f0fdf4;
+	--color-success-bg-deep:     var(--color-success-light);
+	--color-success-text:        var(--color-success-dark);
 }
 
 html,

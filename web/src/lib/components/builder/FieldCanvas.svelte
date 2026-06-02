@@ -144,9 +144,18 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
 // Local state for dnd — holds shadow items during drag without touching the store.
 // Synced from the store via $effect; committed back only on finalize.
 let fields = $state<BuilderField[]>([]);
+// Drag is only allowed when the pointer went down on a field's top toolbar.
+let dragEnabled = $state(false);
 
 $effect(() => {
 	fields = getOrderedFields(store.schema, store.activeLocale);
+});
+
+// Reset drag permission on any pointer release anywhere on the page.
+$effect(() => {
+	function reset() { dragEnabled = false; }
+	window.addEventListener('pointerup', reset);
+	return () => window.removeEventListener('pointerup', reset);
 });
 
 function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
@@ -154,6 +163,7 @@ function handleDndConsider(e: CustomEvent<{ items: BuilderField[] }>) {
 }
 
 function handleDndFinalize(e: CustomEvent<{ items: BuilderField[] }>) {
+	dragEnabled = false;
 	store.reorderFields(e.detail.items);
 }
 
@@ -297,7 +307,7 @@ function removeOption(fieldId: string, optId: string) {
 
 <main
 	style="background: {store.mode === 'preview' ? 'var(--color-form-canvas)' : 'var(--color-canvas)'};"
-	class="flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-6 min-w-0"
+	class="flex-1 overflow-y-auto px-4 pt-6 pb-12 sm:px-6 min-w-0"
 	onclick={() => { store.setSelectedField(null); store.setSubmitButtonSelected(false); closeSlot(); }}
 	role="presentation"
 >
@@ -386,10 +396,10 @@ function removeOption(fieldId: string, optId: string) {
 		</div>
 	{:else}
 		<div
-			use:dndzone={{ items: fields, flipDurationMs: 150 }}
+			use:dndzone={{ items: fields, flipDurationMs: 150, dragDisabled: !dragEnabled }}
 			onconsider={handleDndConsider}
 			onfinalize={handleDndFinalize}
-			class="flex flex-col gap-3 min-h-24"
+			class="flex flex-col gap-5 min-h-24"
 		>
 			{#each fields as field, fieldIndex (field.id)}
 				{@const isSelected = store.selectedFieldId === field.id}
@@ -408,44 +418,67 @@ function removeOption(fieldId: string, optId: string) {
 				{@const defaultPlaceholder = getDefaultPlaceholder(field.id)}
 				<div
 					data-field-id={field.id}
-					class="relative"
+					class="relative group/card"
 					role="none"
 				>
+				<!-- Insert before zone: only on first card, sits in space above -->
+				{#if fieldIndex === 0}
+					<div
+						class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert-top"
+						style="bottom: 100%;"
+						onclick={(e) => e.stopPropagation()}
+						role="none"
+					>
+						<div class="flex-1 h-px opacity-0 group-hover/insert-top:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
+						<button
+							onclick={(e) => { e.stopPropagation(); openSlot(e, -1, 'above'); }}
+							class="opacity-0 group-hover/insert-top:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full border-none cursor-pointer transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm"
+							style="background: var(--color-primary); color: white;"
+							aria-label="Insert field at top"
+						>
+							<Plus size={10} strokeWidth={2.5} />
+						</button>
+						<div class="flex-1 h-px opacity-0 group-hover/insert-top:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
+					</div>
+				{/if}
 				{#if isSectionBreak}
-					<!-- Section break: horizontal rule with inline-editable label -->
+					<!-- Section break -->
 					<div
 						role="none"
 						onclick={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-canvas)' : 'transparent'}; cursor: default;"
-						class="flex items-center gap-3 px-3 py-2 border rounded-md"
+						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; cursor: default;"
+						class="px-3 pt-2 pb-3 border rounded-md"
 					>
-						<button
-							onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
-							class="bg-transparent border-none text-subtle cursor-grab flex p-0"
-							aria-label="Field settings"
-						><GripVertical size={15} strokeWidth={1.75} /></button>
-						<div class="flex-1 h-px bg-border relative flex items-center justify-center">
-							<RichEditable
-								value={label}
-								placeholder={defaultLabel || 'Section label…'}
-								onclick={(e) => e.stopPropagation()}
-								onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
-								onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-								style="color: {label ? 'var(--color-subtle)' : undefined};"
-								class="relative z-[1] text-subtle text-sm font-mono text-center px-2 py-0 min-w-20 max-w-48"
-								onchange={(html) => store.updateTranslation(field.id, 'label', html)}
-							/>
+						<div class="flex items-center gap-2 mb-2 cursor-grab" onpointerdown={() => { dragEnabled = true; }}>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
+								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
+								aria-label="Field settings"
+							><GripVertical size={15} strokeWidth={1.75} /></button>
+							<span class="px-1.5 py-px bg-border text-subtle rounded-full text-xs font-mono shrink-0 select-none">section</span>
+							<span class="flex-1"></span>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
+								aria-label="Duplicate field" title="Duplicate field"
+							><Copy size={15} strokeWidth={1.75} /></button>
+							<button
+								onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
+								class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 shrink-0 hover:text-subtle transition-colors duration-100"
+								aria-label="Delete field" title="Delete field"
+							><Trash2 size={15} strokeWidth={1.75} /></button>
 						</div>
-						<button
-							onclick={(e) => { e.stopPropagation(); store.duplicateField(field.id); }}
-							class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 hover:text-subtle transition-colors duration-100"
-							aria-label="Duplicate field" title="Duplicate field"
-						><Copy size={15} strokeWidth={1.75} /></button>
-						<button
-							onclick={(e) => { e.stopPropagation(); store.removeField(field.id); }}
-							class="bg-transparent border-none text-subtle cursor-pointer flex items-center px-1.5 py-0.5 hover:text-subtle transition-colors duration-100"
-							aria-label="Delete field" title="Delete field"
-						><Trash2 size={15} strokeWidth={1.75} /></button>
+						<RichEditable
+							value={label}
+							placeholder={defaultLabel || 'Section label…'}
+							onclick={(e) => e.stopPropagation()}
+							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
+							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
+							style="color: {label ? 'var(--color-subtle)' : undefined};"
+							class="block w-full box-border text-sm font-mono font-[inherit] px-1 py-0.5 mb-2.5 cursor-text"
+							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
+						/>
+						<div class="border-t border-dashed" style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; opacity: 0.6;"></div>
 					</div>
 				{:else if isHeading}
 					{@const headingCfg = field.config as import('$lib/types/builder').HeadingConfig}
@@ -460,7 +493,7 @@ function removeOption(fieldId: string, optId: string) {
 						style="border-color: {isSelected ? 'var(--color-primary)' : 'var(--color-border)'}; background: {isSelected ? 'var(--color-canvas)' : 'var(--color-canvas)'}; cursor: default;"
 						class="px-3 py-2 border rounded-md"
 					>
-						<div class="flex items-center gap-2 mb-1.5">
+						<div class="flex items-center gap-2 mb-1.5 cursor-grab" onpointerdown={() => { dragEnabled = true; }}>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
 								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
@@ -517,7 +550,7 @@ function removeOption(fieldId: string, optId: string) {
 						"
 						class="px-3 py-2.5 rounded-r-md"
 					>
-						<div class="flex items-center gap-2 mb-1.5">
+						<div class="flex items-center gap-2 mb-1.5 cursor-grab" onpointerdown={() => { dragEnabled = true; }}>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
 								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
@@ -571,7 +604,7 @@ function removeOption(fieldId: string, optId: string) {
 						class="px-4 py-3.5 border rounded-md"
 					>
 						<!-- Top row: drag handle, type badge, required badge, warning, delete -->
-						<div class="flex items-center gap-2 mb-3">
+						<div class="flex items-center gap-2 mb-3 cursor-grab" onpointerdown={() => { dragEnabled = true; }}>
 							<button
 								onclick={(e) => { e.stopPropagation(); store.setSelectedField(store.selectedFieldId === field.id ? null : field.id); }}
 								class="bg-transparent border-none text-subtle cursor-grab shrink-0 flex p-0"
@@ -597,7 +630,7 @@ function removeOption(fieldId: string, optId: string) {
 							<button
 								onclick={(e) => { e.stopPropagation(); store.updateField(field.id, { required: !field.required }); }}
 								title={field.required ? 'Mark as optional' : 'Mark as required'}
-								style={field.required ? 'background: var(--color-info-bg-dark); color: var(--color-text);' : 'background: transparent; color: var(--color-subtle);'}
+								style={field.required ? 'background: var(--color-info-dark); color: var(--color-info);' : 'background: transparent; color: var(--color-subtle);'}
 								class="px-1.5 py-0.5 border-none rounded-full text-xs shrink-0 cursor-pointer font-mono transition-colors duration-100 hover:opacity-80"
 							>{field.required ? 'required' : 'optional'}</button>
 
@@ -639,7 +672,7 @@ function removeOption(fieldId: string, optId: string) {
 						<!-- Placeholder inline editor (text fields only) -->
 						{#if hasPlaceholder}
 							<div class="mt-3">
-								<div class="bg-canvas border border-border rounded px-1.5 pt-0.5 pb-0.5">
+								<div class="bg-surface border border-border rounded px-1.5 pt-0.5 pb-0.5">
 									<textarea
 										rows={1}
 										value={placeholder}
@@ -651,7 +684,7 @@ function removeOption(fieldId: string, optId: string) {
 											autoGrow(el);
 											store.updateTranslation(field.id, 'placeholder', el.value);
 										}}
-										style="color: {placeholder ? 'var(--color-subtle)' : 'var(--color-border)'};"
+										style="color: {placeholder ? 'var(--color-subtle)' : 'var(--color-muted)'};"
 										class="block w-full box-border bg-transparent border-none outline-none resize-none overflow-hidden text-sm font-[inherit] py-1 cursor-text italic"
 									></textarea>
 								</div>
@@ -755,22 +788,22 @@ function removeOption(fieldId: string, optId: string) {
 							<div class="mt-3 border-t border-border pt-3">
 								<div class="flex gap-2">
 									{#if mode === 'date' || mode === 'datetime'}
-										<div class="flex-1 flex items-center gap-2 bg-canvas border border-border rounded px-2.5 py-1.5">
-											<span class="text-border flex shrink-0">
+										<div class="flex-1 flex items-center gap-2 bg-surface border border-border rounded px-2.5 py-1.5">
+											<span class="text-muted flex shrink-0">
 												<Calendar size={14} strokeWidth={1.75} />
 											</span>
-											<span class="text-border text-sm font-mono tracking-[0.04em]">MM / DD / YYYY</span>
+											<span class="text-muted text-sm font-mono tracking-[0.04em]">MM / DD / YYYY</span>
 										</div>
 									{/if}
 									{#if mode === 'time' || mode === 'datetime'}
 										<div
 											style="flex: {mode === 'datetime' ? '0 0 auto' : '1'};"
-											class="flex items-center gap-2 bg-canvas border border-border rounded px-2.5 py-1.5"
+											class="flex items-center gap-2 bg-surface border border-border rounded px-2.5 py-1.5"
 										>
-											<span class="text-border flex shrink-0">
+											<span class="text-muted flex shrink-0">
 												<Clock size={14} strokeWidth={1.75} />
 											</span>
-											<span class="text-border text-sm font-mono tracking-[0.04em]">HH : MM</span>
+											<span class="text-muted text-sm font-mono tracking-[0.04em]">HH : MM</span>
 										</div>
 									{/if}
 								</div>
@@ -778,6 +811,25 @@ function removeOption(fieldId: string, optId: string) {
 						{/if}
 					</div>
 				{/if}
+
+				<!-- Insert after zone: sits in the gap below this card -->
+				<div
+					class="absolute left-6 right-6 h-5 flex items-center z-20 group/insert"
+					style="top: 100%;"
+					onclick={(e) => e.stopPropagation()}
+					role="none"
+				>
+					<div class="flex-1 h-px opacity-0 group-hover/insert:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
+					<button
+						onclick={(e) => { e.stopPropagation(); openSlot(e, fieldIndex, 'above'); }}
+						class="opacity-0 group-hover/insert:opacity-100 shrink-0 mx-2 w-5 h-5 rounded-full border-none cursor-pointer transition-opacity duration-150 flex items-center justify-center p-0 shadow-sm"
+						style="background: var(--color-primary); color: white;"
+						aria-label="Insert field here"
+					>
+						<Plus size={10} strokeWidth={2.5} />
+					</button>
+					<div class="flex-1 h-px opacity-0 group-hover/insert:opacity-30 transition-opacity duration-150" style="background: var(--color-primary);"></div>
+				</div>
 
 			</div>
 			{/each}
@@ -787,27 +839,11 @@ function removeOption(fieldId: string, optId: string) {
 	</div>
 	{/if}
 
-	<!-- Add field button -->
-	{#if store.mode !== 'preview' && fields.length > 0}
-	<div
-		class="fixed sm:sticky bottom-[76px] sm:bottom-0 left-3 right-3 sm:left-auto sm:right-auto sm:w-full max-w-4xl sm:mx-auto pt-3 pb-3 z-10"
-		style="background: linear-gradient(to bottom, transparent, var(--color-canvas) 40%);"
-	>
-		<button
-			onclick={(e) => openSlot(e, fields.length > 0 ? fields.length - 1 : -1, 'above')}
-			class="flex items-center justify-center gap-2 w-full px-4 py-3 bg-transparent border border-dashed border-border rounded-md text-subtle cursor-pointer font-mono text-sm transition-[color,border-color] duration-100 hover:text-subtle hover:border-text-subtle"
-		>
-			<Plus size={14} strokeWidth={2} />
-			Add field
-		</button>
-	</div>
-	{/if}
-
 	<!-- Submit button inline editor -->
 	{#if store.mode !== 'preview' && fields.length > 0}
 		<div
 			data-field-id="__submit__"
-			class="max-w-4xl mx-auto w-full mt-2 mb-6"
+			class="max-w-4xl mx-auto w-full mt-14 mb-6"
 			onclick={(e) => { e.stopPropagation(); store.setSubmitButtonSelected(true); }}
 			role="none"
 		>

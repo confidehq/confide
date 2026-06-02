@@ -31,9 +31,11 @@ let savedRange: Range | null = null;
 let linkInputEl = $state<HTMLInputElement | undefined>();
 
 // Update innerHTML when value changes externally (e.g. locale switch).
-// After user input, onchange keeps value in sync with innerHTML so this is a no-op.
+// Skip while focused — the browser may have inserted a <br> placeholder and resetting
+// innerHTML here would wipe the cursor on the first click into an empty field.
 $effect(() => {
 	if (!editorEl) return;
+	if (document.activeElement === editorEl) return;
 	const next = value ?? "";
 	if (editorEl.innerHTML !== next) {
 		editorEl.innerHTML = next;
