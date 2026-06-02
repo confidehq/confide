@@ -35,6 +35,7 @@ import {
 	rotateRenderKey,
 	updateFormExpiration,
 	updateFormPGPNotification,
+	updateFormSchema,
 	updateFormStatus,
 	validatePGPKey,
 } from "$lib/forms";
@@ -69,12 +70,21 @@ $effect(() => {
 	if (id !== undefined && id !== mountedWorkspaceId) goto("/forms");
 });
 
+$effect(() => {
+	if (editingName && nameInputEl) nameInputEl.focus();
+});
+
 // ── Form ──────────────────────────────────────────────────────────────────
 let record = $state<FormRecord | null>(null);
 let formSchema = $state<BuilderSchema | null>(null);
 let resolvedFormKey = $state<CryptoKey | null>(null);
 const formName = $derived(formsStore.formNames.get(formId) ?? "");
 let formDescription = $state(formsStore.formDescriptions.get(formId) ?? "");
+let editingName = $state(false);
+let nameInputValue = $state("");
+let nameSaving = $state(false);
+let nameError = $state("");
+let nameInputEl = $state<HTMLInputElement | null>(null);
 let loading = $state(true);
 let loadError = $state("");
 
@@ -318,6 +328,34 @@ async function loadForm() {
 		loadError = e instanceof Error ? e.message : "Failed to load form";
 	} finally {
 		loading = false;
+	}
+}
+
+async function saveFormName() {
+	if (!auth.masterKey || !formSchema) return;
+	const trimmed = nameInputValue.trim();
+	if (!trimmed) return;
+	nameSaving = true;
+	nameError = "";
+	try {
+		const updated = {
+			...formSchema,
+			translations: {
+				...formSchema.translations,
+				[formSchema.defaultLocale]: {
+					...formSchema.translations[formSchema.defaultLocale],
+					formTitle: trimmed,
+				},
+			},
+		};
+		await updateFormSchema(auth.masterKey, formId, updated, resolvedFormKey ?? undefined);
+		formSchema = updated;
+		formsStore.updateName(formId, trimmed);
+		editingName = false;
+	} catch (e) {
+		nameError = e instanceof Error ? e.message : "Failed to save";
+	} finally {
+		nameSaving = false;
 	}
 }
 
@@ -1064,9 +1102,34 @@ function responseIndexInFull(id: string): number {
 							<div class="max-w-4xl">
 								<div class="flex items-start justify-between gap-4 mb-5">
 									<div class="min-w-0">
-										<h1 class="m-0 text-2xl text-text font-semibold leading-tight truncate">{formName || formId.slice(0, 12) + '…'}</h1>
+										{#if editingName}
+											<div class="max-w-lg">
+												<input
+													bind:this={nameInputEl}
+													type="text"
+													bind:value={nameInputValue}
+													onkeydown={(e) => { if (e.key === 'Enter') saveFormName(); if (e.key === 'Escape') { editingName = false; nameError = ''; } }}
+													disabled={nameSaving}
+													class="w-full m-0 text-2xl text-text font-semibold leading-tight bg-transparent border-b border-border outline-none disabled:opacity-60"
+												/>
+												{#if nameError}
+													<p class="m-0 mt-1 text-xs text-danger">{nameError}</p>
+												{/if}
+											</div>
+										{:else}
+											<div class="flex items-center gap-2 group">
+												<h1 class="m-0 text-2xl text-text font-semibold leading-tight truncate">{formName || formId.slice(0, 12) + '…'}</h1>
+												<button
+													onclick={() => { nameInputValue = formName; editingName = true; }}
+													title="Rename form"
+													class="opacity-0 group-hover:opacity-100 shrink-0 flex items-center justify-center w-6 h-6 bg-transparent border-none rounded cursor-pointer text-muted transition-[color,opacity] duration-100 hover:text-subtle hover:bg-surface"
+												>
+													<Pencil size={12} strokeWidth={2} />
+												</button>
+											</div>
+										{/if}
 										{#if formDescription}
-											<p class="m-0 mt-2 text-sm text-muted leading-relaxed max-w-lg">{formDescription}</p>
+											<div class="m-0 mt-2 text-sm text-muted leading-relaxed max-w-lg [&_b]:font-bold [&_i]:italic [&_strong]:font-bold [&_em]:italic [&_a]:underline">{@html formDescription}</div>
 										{/if}
 									</div>
 									<!-- Status pill -->

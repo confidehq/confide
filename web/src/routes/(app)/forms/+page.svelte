@@ -7,6 +7,7 @@ import {
 	deleteForm,
 	type FormSummary,
 	getForm,
+	updateFormSchema,
 	updateFormStatus,
 } from "$lib/forms";
 import { auth } from "$lib/stores/auth.svelte";
@@ -77,6 +78,15 @@ let deleteLoading = $state(false);
 let deleteError = $state("");
 let copiedId = $state<string | null>(null);
 let duplicatingId = $state<string | null>(null);
+let renamingId = $state<string | null>(null);
+let renameValue = $state("");
+let renameSaving = $state(false);
+let renameError = $state("");
+let renameInputEl = $state<HTMLInputElement | null>(null);
+
+$effect(() => {
+	if (renamingId && renameInputEl) renameInputEl.focus();
+});
 
 async function copyLink(e: MouseEvent, formId: string) {
 	e.stopPropagation();
@@ -114,6 +124,43 @@ async function handleDuplicate(form: FormSummary) {
 		alert("Failed to duplicate form. Please try again.");
 	} finally {
 		duplicatingId = null;
+	}
+}
+
+function handleRename(form: FormSummary) {
+	renameValue = formsStore.formNames.get(form.formId) ?? "";
+	renameError = "";
+	renamingId = form.formId;
+}
+
+async function saveRename() {
+	const masterKey = auth.masterKey;
+	const ws = workspacesStore.active;
+	if (!masterKey || !ws || !renamingId) return;
+	const trimmed = renameValue.trim();
+	if (!trimmed) return;
+	renameSaving = true;
+	renameError = "";
+	try {
+		const wsKey = await loadWorkspaceKey(ws.id, masterKey);
+		const { schema, formKey } = await getForm(masterKey, renamingId, wsKey);
+		const updated = {
+			...schema,
+			translations: {
+				...schema.translations,
+				[schema.defaultLocale]: {
+					...schema.translations[schema.defaultLocale],
+					formTitle: trimmed,
+				},
+			},
+		};
+		await updateFormSchema(masterKey, renamingId, updated, formKey);
+		formsStore.updateName(renamingId, trimmed);
+		renamingId = null;
+	} catch (e) {
+		renameError = e instanceof Error ? e.message : "Failed to rename";
+	} finally {
+		renameSaving = false;
 	}
 }
 
@@ -208,16 +255,36 @@ async function confirmDelete() {
 				>
 					<!-- Name + description + status badge -->
 					<div class="flex-1 min-w-0 flex flex-col">
-						<div class="flex items-center gap-2 min-w-0">
-							<span class="text-base text-text truncate">
-								{formsStore.formNames.get(form.formId) ?? '—'}
-							</span>
-							<StatusBadge status={form.status} />
-						</div>
-						{#if formsStore.formDescriptions.get(form.formId)}
-							<span class="text-sm text-muted truncate">
-								{formsStore.formDescriptions.get(form.formId)?.replace(/<[^>]*>/g, '') ?? ''}
-							</span>
+						{#if renamingId === form.formId}
+							<div onclick={e => e.stopPropagation()} role="none">
+								<input
+									bind:this={renameInputEl}
+									type="text"
+									bind:value={renameValue}
+									onkeydown={(e) => {
+										e.stopPropagation();
+										if (e.key === 'Enter') saveRename();
+										if (e.key === 'Escape') { renamingId = null; }
+									}}
+									disabled={renameSaving}
+									class="w-full bg-transparent border-b border-border outline-none text-base text-text font-mono disabled:opacity-60"
+								/>
+								{#if renameError}
+									<span class="text-xs text-danger">{renameError}</span>
+								{/if}
+							</div>
+						{:else}
+							<div class="flex items-center gap-2 min-w-0">
+								<span class="text-base text-text truncate">
+									{formsStore.formNames.get(form.formId) ?? '—'}
+								</span>
+								<StatusBadge status={form.status} />
+							</div>
+							{#if formsStore.formDescriptions.get(form.formId)}
+								<span class="text-sm text-muted truncate">
+									{formsStore.formDescriptions.get(form.formId)?.replace(/<[^>]*>/g, '') ?? ''}
+								</span>
+							{/if}
 						{/if}
 					</div>
 
@@ -272,6 +339,7 @@ async function confirmDelete() {
 							{/snippet}
 							{#snippet children({ close })}
 								<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Edit</DropdownMenuItem>
+								<DropdownMenuItem onclick={() => { close(); handleRename(form); }}>Rename</DropdownMenuItem>
 								<DropdownMenuItem onclick={() => { close(); handleDuplicate(form); }} disabled={duplicatingId === form.formId}>{duplicatingId === form.formId ? 'Duplicating…' : 'Duplicate'}</DropdownMenuItem>
 								{#if form.status === 'draft'}
 									<DropdownMenuItem onclick={() => { close(); goto(`/forms/${form.formId}/edit`); }}>Publish</DropdownMenuItem>
