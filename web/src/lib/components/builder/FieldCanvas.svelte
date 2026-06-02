@@ -653,8 +653,8 @@ function removeOption(fieldId: string, optId: string) {
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							onkeydown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
-							style="color: {label ? 'var(--color-text)' : undefined};"
-							class="block w-full box-border text-base font-[inherit] px-1 py-0.5 mb-2 cursor-text"
+							style="color: var(--color-text);"
+							class="block w-full box-border text-base font-[inherit] px-1 py-0.5 mb-2 cursor-text rounded transition-colors duration-100"
 							onchange={(html) => store.updateTranslation(field.id, 'label', html)}
 						/>
 
@@ -665,7 +665,7 @@ function removeOption(fieldId: string, optId: string) {
 							onclick={(e) => e.stopPropagation()}
 							onfocus={(e) => { e.stopPropagation(); store.setSelectedField(field.id); }}
 							style="color: {helpText ? 'var(--color-subtle)' : 'var(--color-text)'};"
-							class="block w-full box-border text-sm font-[inherit] px-1 py-0.5 cursor-text"
+							class="block w-full box-border text-sm font-[inherit] px-1 py-0.5 cursor-text rounded transition-colors duration-100"
 							onchange={(html) => store.updateTranslation(field.id, 'helpText', html)}
 						/>
 

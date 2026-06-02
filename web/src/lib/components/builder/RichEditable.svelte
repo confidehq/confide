@@ -289,6 +289,7 @@ function handleLinkKeydown(e: KeyboardEvent) {
 	.rich-editable {
 		outline: none;
 		cursor: text;
+		caret-color: var(--color-text);
 	}
 
 	.rich-editable:empty::before {

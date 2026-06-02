@@ -286,7 +286,7 @@ function removeOption(optId: string) {
 						<div>
 							<label class="block text-sm text-subtle mb-1">Scale</label>
 							<select
-								value={cfg.scale}
+								value={String(cfg.scale ?? 5)}
 								onchange={(e) => store.updateFieldConfig(field.id, { scale: parseInt((e.target as HTMLSelectElement).value) as 5 | 10 })}
 								class="input-base"
 							>
@@ -297,7 +297,7 @@ function removeOption(optId: string) {
 						<div>
 							<label class="block text-sm text-subtle mb-1">Shape</label>
 							<select
-								value={cfg.shape}
+								value={cfg.shape ?? 'star'}
 								onchange={(e) => store.updateFieldConfig(field.id, { shape: (e.target as HTMLSelectElement).value as 'star' | 'number' })}
 								class="input-base"
 							>
