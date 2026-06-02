@@ -34,6 +34,7 @@ type DB interface {
 	MarkResponsesRead(ctx context.Context, arg queries.MarkResponsesReadParams) error
 	DeleteExpiredResponses(ctx context.Context) error
 	IncrementResponseCount(ctx context.Context, id string) (int32, error)
+	IncrementMonthlyResponseUsage(ctx context.Context, workspaceID string) error
 }
 
 // Notifier sends PGP-encrypted response notifications by email.
@@ -240,6 +241,10 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 	}
 	notifCache := map[string]notifInfo{}
 
+	// workspaceIncrements tracks how many accepted responses belong to each workspace.
+	workspaceIncrements := map[string]int{}
+	workspaceIDCache := map[string]string{} // formID -> workspaceID
+
 	for i, item := range items {
 		id, err := randomID()
 		if err != nil {
@@ -282,6 +287,14 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 			return err
 		}
 
+		// Resolve workspace ID for the monthly usage counter (cached per form).
+		if wsID, ok := workspaceIDCache[item.FormID]; ok {
+			workspaceIncrements[wsID]++
+		} else if wsID, lookupErr := s.db.GetFormWorkspaceID(ctx, item.FormID); lookupErr == nil {
+			workspaceIDCache[item.FormID] = wsID
+			workspaceIncrements[wsID]++
+		}
+
 		// Queue a PGP notification if the submission included encrypted data.
 		if item.PGPEncryptedData != "" {
 			info, seen := notifCache[item.FormID]
@@ -304,6 +317,16 @@ func (s *Service) CreateBatch(ctx context.Context, items []relay.SubmissionItem)
 
 	if err := tx.Commit(ctx); err != nil {
 		return err
+	}
+
+	// Increment the monthly turnstile counter once per accepted response.
+	// Runs after commit so it is never rolled back alongside the insert.
+	for wsID, n := range workspaceIncrements {
+		for range n {
+			if err := s.db.IncrementMonthlyResponseUsage(ctx, wsID); err != nil {
+				s.log.Error().Err(err).Str("workspace_id", wsID).Msg("failed to increment monthly response usage")
+			}
+		}
 	}
 
 	// Fire notifications asynchronously after the transaction commits.

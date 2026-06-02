@@ -11,6 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countFreeOwnerWorkspaces = `-- name: CountFreeOwnerWorkspaces :one
+SELECT COUNT(*) FROM workspace_members wm
+JOIN workspaces w ON w.id = wm.workspace_id
+WHERE wm.account_id = $1 AND wm.role = 'owner' AND w.plan = 'free'
+`
+
+func (q *Queries) CountFreeOwnerWorkspaces(ctx context.Context, accountID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countFreeOwnerWorkspaces, accountID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countNonOwnerMembers = `-- name: CountNonOwnerMembers :one
 SELECT COUNT(*) FROM workspace_members WHERE workspace_id = $1 AND role != 'owner'
 `
@@ -29,19 +42,6 @@ WHERE account_id = $1 AND role = 'owner'
 
 func (q *Queries) CountOwnerWorkspaces(ctx context.Context, accountID string) (int64, error) {
 	row := q.db.QueryRow(ctx, countOwnerWorkspaces, accountID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countFreeOwnerWorkspaces = `-- name: CountFreeOwnerWorkspaces :one
-SELECT COUNT(*) FROM workspace_members wm
-JOIN workspaces w ON w.id = wm.workspace_id
-WHERE wm.account_id = $1 AND wm.role = 'owner' AND w.plan = 'free'
-`
-
-func (q *Queries) CountFreeOwnerWorkspaces(ctx context.Context, accountID string) (int64, error) {
-	row := q.db.QueryRow(ctx, countFreeOwnerWorkspaces, accountID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -72,7 +72,7 @@ func (q *Queries) CountWorkspaceOwners(ctx context.Context, workspaceID string) 
 const createWorkspace = `-- name: CreateWorkspace :one
 INSERT INTO workspaces (id, name, slug, plan, plan_status, created_at)
 VALUES ($1, $2, $3, 'free', 'active', NOW())
-RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at
+RETURNING id, name, slug, stripe_customer_id, stripe_subscription_id, plan, plan_status, plan_period_end, created_at, updated_at, legal_text
 `
 
 type CreateWorkspaceParams struct {
@@ -95,6 +95,7 @@ func (q *Queries) CreateWorkspace(ctx context.Context, arg CreateWorkspaceParams
 		&i.PlanPeriodEnd,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.LegalText,
 	)
 	return i, err
 }
@@ -345,6 +346,17 @@ func (q *Queries) GetWorkspaceByID(ctx context.Context, id string) (GetWorkspace
 		&i.CreatedAt,
 	)
 	return i, err
+}
+
+const getWorkspaceLegalText = `-- name: GetWorkspaceLegalText :one
+SELECT legal_text FROM workspaces WHERE id = $1
+`
+
+func (q *Queries) GetWorkspaceLegalText(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getWorkspaceLegalText, id)
+	var legal_text string
+	err := row.Scan(&legal_text)
+	return legal_text, err
 }
 
 const getWorkspaceMember = `-- name: GetWorkspaceMember :one
@@ -681,6 +693,20 @@ type UpdateDNSStatusParams struct {
 
 func (q *Queries) UpdateDNSStatus(ctx context.Context, arg UpdateDNSStatusParams) error {
 	_, err := q.db.Exec(ctx, updateDNSStatus, arg.ID, arg.CnameOk, arg.TxtOk)
+	return err
+}
+
+const updateWorkspaceLegalText = `-- name: UpdateWorkspaceLegalText :exec
+UPDATE workspaces SET legal_text = $2, updated_at = NOW() WHERE id = $1
+`
+
+type UpdateWorkspaceLegalTextParams struct {
+	ID        string
+	LegalText string
+}
+
+func (q *Queries) UpdateWorkspaceLegalText(ctx context.Context, arg UpdateWorkspaceLegalTextParams) error {
+	_, err := q.db.Exec(ctx, updateWorkspaceLegalText, arg.ID, arg.LegalText)
 	return err
 }
 

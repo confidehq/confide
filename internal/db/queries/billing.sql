@@ -6,11 +6,16 @@ FROM workspaces WHERE id = $1;
 SELECT COUNT(*) FROM forms WHERE workspace_id = $1;
 
 -- name: CountMonthlyResponses :one
-SELECT COUNT(*)
-FROM responses r
-JOIN forms f ON f.id = r.form_id
-WHERE f.workspace_id = $1
-  AND r.received_at >= date_trunc('month', NOW());
+SELECT COALESCE(SUM(count), 0)::BIGINT
+FROM workspace_response_usage
+WHERE workspace_id = $1
+  AND period = to_char(NOW(), 'YYYY-MM');
+
+-- name: IncrementMonthlyResponseUsage :exec
+INSERT INTO workspace_response_usage (workspace_id, period, count)
+VALUES ($1, to_char(NOW(), 'YYYY-MM'), 1)
+ON CONFLICT (workspace_id, period) DO UPDATE
+    SET count = workspace_response_usage.count + 1;
 
 -- name: CountTotalResponses :one
 SELECT COUNT(*)

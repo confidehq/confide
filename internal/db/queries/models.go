@@ -126,6 +126,7 @@ type Workspace struct {
 	PlanPeriodEnd        pgtype.Timestamptz
 	CreatedAt            pgtype.Timestamptz
 	UpdatedAt            pgtype.Timestamptz
+	LegalText            string
 }
 
 type WorkspaceInvitation struct {
@@ -157,4 +158,10 @@ type WorkspaceMemberKey struct {
 	GrantedByAccountID  pgtype.Text
 	CreatedAt           pgtype.Timestamptz
 	UpdatedAt           pgtype.Timestamptz
+}
+
+type WorkspaceResponseUsage struct {
+	WorkspaceID string
+	Period      string
+	Count       int64
 }

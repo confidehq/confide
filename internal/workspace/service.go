@@ -61,7 +61,7 @@ type DB interface {
 	GetWorkspaceForBilling(ctx context.Context, id string) (queries.GetWorkspaceForBillingRow, error)
 
 	GetWorkspaceLegalText(ctx context.Context, id string) (string, error)
-	UpdateWorkspaceLegalText(ctx context.Context, id, legalText string) error
+	UpdateWorkspaceLegalText(ctx context.Context, arg queries.UpdateWorkspaceLegalTextParams) error
 
 	InsertCustomDomain(ctx context.Context, arg queries.InsertCustomDomainParams) (queries.CustomDomain, error)
 	GetCustomDomainByWorkspace(ctx context.Context, workspaceID string) (queries.CustomDomain, error)
@@ -622,7 +622,7 @@ func (s *Service) GetSettings(ctx context.Context, workspaceID string) (Workspac
 
 // UpdateSettings saves editable settings for a workspace.
 func (s *Service) UpdateSettings(ctx context.Context, workspaceID, legalText string) error {
-	return s.db.UpdateWorkspaceLegalText(ctx, workspaceID, legalText)
+	return s.db.UpdateWorkspaceLegalText(ctx, queries.UpdateWorkspaceLegalTextParams{ID: workspaceID, LegalText: legalText})
 }
 
 // ─── Custom Domains ───────────────────────────────────────────────────────────

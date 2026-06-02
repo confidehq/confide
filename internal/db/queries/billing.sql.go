@@ -23,18 +23,17 @@ func (q *Queries) CountFormsByWorkspace(ctx context.Context, workspaceID string)
 }
 
 const countMonthlyResponses = `-- name: CountMonthlyResponses :one
-SELECT COUNT(*)
-FROM responses r
-JOIN forms f ON f.id = r.form_id
-WHERE f.workspace_id = $1
-  AND r.received_at >= date_trunc('month', NOW())
+SELECT COALESCE(SUM(count), 0)::BIGINT
+FROM workspace_response_usage
+WHERE workspace_id = $1
+  AND period = to_char(NOW(), 'YYYY-MM')
 `
 
 func (q *Queries) CountMonthlyResponses(ctx context.Context, workspaceID string) (int64, error) {
 	row := q.db.QueryRow(ctx, countMonthlyResponses, workspaceID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const countTotalResponses = `-- name: CountTotalResponses :one
@@ -103,6 +102,18 @@ func (q *Queries) GetWorkspaceForBilling(ctx context.Context, id string) (GetWor
 		&i.StripeSubscriptionID,
 	)
 	return i, err
+}
+
+const incrementMonthlyResponseUsage = `-- name: IncrementMonthlyResponseUsage :exec
+INSERT INTO workspace_response_usage (workspace_id, period, count)
+VALUES ($1, to_char(NOW(), 'YYYY-MM'), 1)
+ON CONFLICT (workspace_id, period) DO UPDATE
+    SET count = workspace_response_usage.count + 1
+`
+
+func (q *Queries) IncrementMonthlyResponseUsage(ctx context.Context, workspaceID string) error {
+	_, err := q.db.Exec(ctx, incrementMonthlyResponseUsage, workspaceID)
+	return err
 }
 
 const setStripeCustomerID = `-- name: SetStripeCustomerID :exec
