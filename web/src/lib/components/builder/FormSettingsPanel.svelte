@@ -42,13 +42,24 @@ const { store, formId, workspaceId, workspaceDomain, customDomainBase }: Props =
 let closeOnDatePending = $state(false);
 let limitResponsesPending = $state(false);
 let autoDeletePending = $state(false);
-let completionMessagePending = $state(false);
 const closeOnDateOpen = $derived(!!store.expiresAt || closeOnDatePending);
 const limitResponsesOpen = $derived(
 	!!store.responseLimit || limitResponsesPending,
 );
-const completionMessageOpen = $derived(
-	!!store.activeTranslation?.convoCompletionMessage || completionMessagePending,
+
+// Per-locale draft text and enabled state. Undefined means "not yet overridden —
+// fall back to whatever is in the schema" so switching locales auto-reflects schema.
+let draftsByLocale = $state<Record<string, string>>({});
+let enabledByLocale = $state<Record<string, boolean>>({});
+
+const completionMessageDraft = $derived(
+	draftsByLocale[store.activeLocale]
+		?? store.activeTranslation?.convoCompletionMessage
+		?? ''
+);
+const completionMessageEnabled = $derived(
+	enabledByLocale[store.activeLocale]
+		?? !!store.activeTranslation?.convoCompletionMessage
 );
 
 let shareUrl = $state("");
@@ -394,26 +405,35 @@ function downloadQR() {
 			</div>
 			<button
 				role="switch"
-				aria-checked={completionMessageOpen}
+				aria-checked={completionMessageEnabled}
 				onclick={() => {
-					if (completionMessageOpen) {
-						completionMessagePending = false;
-						store.updateTranslation(null, 'convoCompletionMessage', '');
+					const locale = store.activeLocale;
+					if (completionMessageEnabled) {
+						draftsByLocale[locale] = completionMessageDraft;
+						enabledByLocale[locale] = false;
+						store.updateTranslation(null, 'convoCompletionMessage', undefined);
 					} else {
-						completionMessagePending = true;
+						enabledByLocale[locale] = true;
+						if (completionMessageDraft) {
+							store.updateTranslation(null, 'convoCompletionMessage', completionMessageDraft);
+						}
 					}
 				}}
 				class="relative shrink-0 w-8 h-[18px] rounded-full transition-colors duration-150 border-none cursor-pointer
-					{completionMessageOpen ? 'bg-primary' : 'bg-border-deep'}"
+					{completionMessageEnabled ? 'bg-primary' : 'bg-border-deep'}"
 			>
 				<span class="absolute top-0.5 left-0.5 w-3.5 h-3.5 bg-white rounded-full transition-transform duration-150
-					{completionMessageOpen ? 'translate-x-3.5' : 'translate-x-0'}"></span>
+					{completionMessageEnabled ? 'translate-x-3.5' : 'translate-x-0'}"></span>
 			</button>
 		</div>
-		{#if completionMessageOpen}
+		{#if completionMessageEnabled}
 			<textarea
-				value={store.activeTranslation?.convoCompletionMessage ?? ''}
-				oninput={(e) => store.updateTranslation(null, 'convoCompletionMessage', (e.target as HTMLTextAreaElement).value)}
+				value={completionMessageDraft}
+				oninput={(e) => {
+					const value = (e.target as HTMLTextAreaElement).value;
+					draftsByLocale[store.activeLocale] = value;
+					store.updateTranslation(null, 'convoCompletionMessage', value || undefined);
+				}}
 				placeholder="Your response has been submitted."
 				rows={2}
 				class="input-base"

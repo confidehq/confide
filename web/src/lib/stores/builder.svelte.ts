@@ -54,7 +54,7 @@ export interface BuilderStore {
 	reorderFields(newOrder: BuilderField[]): void;
 	updateField(id: string, patch: Partial<BuilderField>): void;
 	updateFieldConfig(id: string, patch: Partial<FieldConfig>): void;
-	updateTranslation(fieldId: string | null, key: string, value: string): void;
+	updateTranslation(fieldId: string | null, key: string, value: string | undefined): void;
 	addLocale(locale: string): void;
 	removeLocale(locale: string): void;
 	setLayout(layout: BuilderSchema["layout"]): void;
@@ -422,23 +422,28 @@ export function createBuilderStore(
 	function updateTranslation(
 		fieldId: string | null,
 		key: string,
-		value: string,
+		value: string | undefined,
 	): void {
 		const locale = activeLocale;
 		ensureLocaleTranslation(locale);
 		const t = schema.translations[locale];
 
 		if (fieldId === null) {
-			schema = {
-				...schema,
-				translations: {
-					...schema.translations,
-					[locale]: {
-						...t,
-						[key]: value,
+			if (value === undefined) {
+				const { [key]: _, ...rest } = t as unknown as Record<string, unknown>;
+				schema = {
+					...schema,
+					translations: { ...schema.translations, [locale]: rest as unknown as typeof t },
+				};
+			} else {
+				schema = {
+					...schema,
+					translations: {
+						...schema.translations,
+						[locale]: { ...t, [key]: value },
 					},
-				},
-			};
+				};
+			}
 		} else {
 			// Field-level translation
 			ensureFieldTranslation(locale, fieldId);
