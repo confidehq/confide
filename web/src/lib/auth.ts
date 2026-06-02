@@ -130,18 +130,24 @@ function prfOutputToBuffer(
 	) as ArrayBuffer;
 }
 
+export class PrfNotSupportedError extends Error {
+	constructor() {
+		super(
+			"PRF output absent. Your browser or authenticator does not support WebAuthn PRF. " +
+				"Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator, " +
+				"or sign in from a device where you originally registered.",
+		);
+		this.name = "PrfNotSupportedError";
+	}
+}
+
 /** Extract PRF output from a registration response and import as AES-KW KEK. */
 async function extractRegistrationKek(
 	credential: RegistrationResponseJSON,
 ): Promise<CryptoKey> {
 	const exts = credential.clientExtensionResults as PRFExtensionResults;
 	const first = exts?.prf?.results?.first;
-	if (first == null) {
-		throw new Error(
-			"PRF output absent. Your browser or authenticator does not support WebAuthn PRF. " +
-				"Please use Chrome/Edge 116+, Safari 17+, or Firefox 119+ with a compatible authenticator.",
-		);
-	}
+	if (first == null) throw new PrfNotSupportedError();
 	return prfToKek(prfOutputToBuffer(first));
 }
 
@@ -151,11 +157,7 @@ async function extractAuthenticationKek(
 ): Promise<CryptoKey> {
 	const exts = credential.clientExtensionResults as PRFExtensionResults;
 	const first = exts?.prf?.results?.first;
-	if (first == null) {
-		throw new Error(
-			"PRF output absent. Your browser or authenticator does not support WebAuthn PRF.",
-		);
-	}
+	if (first == null) throw new PrfNotSupportedError();
 	return prfToKek(prfOutputToBuffer(first));
 }
 
@@ -260,7 +262,8 @@ function deviceName(): string {
 	if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
 	else if (ua.includes("Android")) os = "Android";
 	else if (ua.includes("Win")) os = "Windows";
-	else if (ua.includes("Mac")) os = "macOS";
+	// iPadOS 13+ in desktop mode reports a macOS UA; distinguish by touch support.
+	else if (ua.includes("Mac")) os = navigator.maxTouchPoints > 1 ? "iOS" : "macOS";
 	else if (ua.includes("Linux")) os = "Linux";
 
 	return `${browser} on ${os}`;
