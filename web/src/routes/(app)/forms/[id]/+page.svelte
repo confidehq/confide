@@ -39,6 +39,7 @@ import {
 	updateFormStatus,
 	validatePGPKey,
 } from "$lib/forms";
+import { access } from "$lib/stores/access.svelte";
 import { auth } from "$lib/stores/auth.svelte";
 import { formsStore } from "$lib/stores/forms.svelte";
 import { workspacesStore } from "$lib/stores/workspaces.svelte";
@@ -103,6 +104,7 @@ let settingsSaving = $state(false);
 let settingsSaved = $state(false);
 let settingsError = $state("");
 
+let showWatermark = $state(true);
 let notificationEmail = $state("");
 let pgpPublicKey = $state("");
 let notificationFrom = $state("");
@@ -305,6 +307,7 @@ async function loadForm() {
 				}
 			}
 		}
+		showWatermark = schema.showWatermark !== false;
 		expiresAt = r.expiresAt ? toDatetimeLocal(r.expiresAt) : "";
 		responseLimit = r.responseLimit != null ? String(r.responseLimit) : "";
 		responseTtlDays =
@@ -414,6 +417,9 @@ async function saveSettings() {
 			isEffectivelyClosed &&
 			((!!utcExpires && new Date(utcExpires) > new Date()) ||
 				(notTimedOut && limitWouldUnblock));
+		const updatedSchema = formSchema
+			? { ...formSchema, showWatermark }
+			: null;
 		await Promise.all([
 			updateFormExpiration(
 				formId,
@@ -430,7 +436,11 @@ async function saveSettings() {
 				notificationSubject,
 			),
 			reopening ? updateFormStatus(formId, "open") : Promise.resolve(),
+			updatedSchema && auth.masterKey
+				? updateFormSchema(auth.masterKey, formId, updatedSchema, resolvedFormKey ?? undefined)
+				: Promise.resolve(),
 		]);
+		if (updatedSchema) formSchema = updatedSchema;
 		if (record) {
 			const newStatus = reopening ? "open" : record.status;
 			record = {
@@ -1572,7 +1582,36 @@ function responseIndexInFull(id: string): number {
 										{/if}
 									</div>
 
-								</div>
+										<!-- Watermark -->
+										<div class="px-4 py-3.5 border-t border-border-canvas">
+											<div class="flex items-center justify-between gap-4">
+												<div class="min-w-0">
+													<p class="m-0 text-text font-medium">Show Confide watermark</p>
+													<p class="m-0 text-sm text-muted mt-0.5">
+														{#if access.can('whitelabel')}
+															Display the Confide logo at the bottom of the form.
+														{:else}
+															Upgrade to Pro to hide the Confide watermark.
+														{/if}
+													</p>
+												</div>
+												<button
+													role="switch"
+													aria-label="Show Confide watermark"
+													aria-checked={showWatermark}
+													disabled={!access.can('whitelabel')}
+													onclick={() => { if (access.can('whitelabel')) showWatermark = !showWatermark; }}
+													class="relative shrink-0 w-11 h-6 rounded-full transition-colors duration-150 border-none
+														{access.can('whitelabel') ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}
+														{showWatermark ? 'bg-primary' : 'bg-surface'}"
+												>
+													<span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-150 shadow-sm
+														{showWatermark ? 'translate-x-5' : 'translate-x-0'}"></span>
+												</button>
+											</div>
+										</div>
+
+									</div>
 
 								<!-- Save button -->
 								<div class="flex items-center gap-3 mt-1">

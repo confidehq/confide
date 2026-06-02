@@ -75,7 +75,7 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 }
 </script>
 
-<div class="w-full max-w-3xl mt-10 mx-auto pb-20 font-[system-ui,sans-serif] text-form-text">
+<div class="w-full max-w-3xl mt-8 mx-auto pb-20 px-6 sm:px-0 font-[system-ui,sans-serif] text-form-text">
 	<!-- Preview banner -->
 	<div class="mb-6 px-3.5 py-2 bg-form-preview-bg border border-form-preview-border rounded-md text-sm text-form-preview-text">
 		Preview mode — responses will not be submitted
@@ -86,13 +86,15 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 	{/if}
 
 	{#if !isSteps || currentStep === 0}
-		{#if translation?.formHeadline}
-			<p class="m-0 mb-1 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
-		{/if}
-		<h1 class="text-3xl font-bold m-0 mb-2 whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
-		{#if translation?.formDescription}
-			<div class="m-0 mb-8 text-form-text-dim rich-html">{@html translation.formDescription}</div>
-		{/if}
+		<div class="mb-8 sm:mb-10">
+			{#if translation?.formHeadline}
+				<p class="m-0 mb-2 sm:mb-3 text-sm font-semibold uppercase tracking-widest text-form-muted">{translation.formHeadline}</p>
+			{/if}
+			<h1 class="text-3xl sm:text-4xl font-bold m-0 mb-3 sm:mb-4 leading-tight whitespace-pre-wrap">{translation?.formTitle ?? ''}</h1>
+			{#if translation?.formDescription}
+				<div class="m-0 text-base leading-relaxed text-form-text-dim rich-html">{@html translation.formDescription}</div>
+			{/if}
+		</div>
 	{/if}
 
 	<div class="flex flex-col gap-6">
@@ -107,24 +109,23 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 		{/each}
 	</div>
 
-	<div class="flex justify-between items-center mt-8">
+	<div class="flex items-center mt-8
+		{isSteps && !isLastStep ? 'justify-between' : 'justify-start gap-3'}">
 		{#if isSteps && currentStep > 0}
 			<button
 				type="button"
 				onclick={() => { currentStep = Math.max(currentStep - 1, 0); }}
-				class="px-6 py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-canvas transition-colors duration-100"
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-bg text-form-text-mid border-[1.5px] border-form-border rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-canvas transition-colors duration-100"
 			>
 				← Back
 			</button>
-		{:else}
-			<span></span>
 		{/if}
 
 		{#if isSteps && !isLastStep}
 			<button
 				type="button"
 				onclick={() => { currentStep = Math.min(currentStep + 1, totalSteps - 1); }}
-				class="px-6 py-2.5 bg-form-primary text-white border-none rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
+				class="flex-1 sm:flex-none px-6 py-3 sm:py-2.5 bg-form-primary text-white border-none rounded-md text-base font-[inherit] cursor-pointer hover:bg-form-primary-hover transition-colors duration-100"
 			>
 				Next →
 			</button>
@@ -132,7 +133,7 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 			<button
 				type="button"
 				disabled
-				class="px-6 py-2.5 bg-form-muted-light text-white border-none rounded-md text-base font-[inherit] cursor-not-allowed inline-flex items-center gap-2"
+				class="w-full sm:w-auto px-8 py-3.5 sm:py-3 bg-form-muted-light text-white border-none rounded-md text-base font-[inherit] cursor-not-allowed inline-flex items-center justify-center gap-2"
 			>
 				{#if schema.submitButtonIcon}
 					{@const BtnIcon = iconMap[schema.submitButtonIcon]}
@@ -143,9 +144,23 @@ function setAnswer(fieldId: string, v: AnswerValue) {
 		{/if}
 	</div>
 
-	{#if schema.legalText}
-		<div class="mt-10 pt-4 border-t border-form-border">
-			<div class="m-0 text-xs text-form-muted leading-relaxed rich-html text-center">{@html schema.legalText}</div>
+	{#if schema.legalText || schema.showWatermark !== false}
+		<div class="mt-10 pt-4 border-t border-form-border flex flex-col gap-3">
+			{#if schema.legalText}
+				<div class="m-0 text-xs text-form-muted leading-relaxed rich-html text-center">{@html schema.legalText}</div>
+			{/if}
+			{#if schema.showWatermark !== false}
+				<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer" class="sm:hidden flex justify-center items-center gap-1.5 text-xs text-form-muted no-underline hover:text-form-text-mid transition-colors duration-100">
+					Made with
+					<img src="/favicon.svg" alt="" class="w-4 h-4" />
+					<span class="font-medium text-form-text-mid">Confide</span>
+				</a>
+				<div class="hidden sm:flex justify-end">
+					<a href="https://useconfide.app" target="_blank" rel="noopener noreferrer">
+						<img src="/watermark.svg" alt="Powered by Confide" class="w-[100px] opacity-70 hover:opacity-100 transition-opacity duration-100" />
+					</a>
+				</div>
+			{/if}
 		</div>
 	{/if}
 </div>
