@@ -410,17 +410,30 @@ export async function reauthenticate(): Promise<LoginResult> {
 		{},
 	);
 
-	// Step 2: WebAuthn ceremony — convert PRF salt string → ArrayBuffer
+	// Step 2: WebAuthn ceremony — convert PRF salt strings → ArrayBuffer
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startAuthentication>[0]["optionsJSON"]
 	>(begin.options);
 	const prf = (
-		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+		optionsJSON.extensions as {
+			prf?: {
+				eval?: { first?: unknown };
+				evalByCredential?: Record<string, { first?: unknown }>;
+			};
+		}
 	)?.prf;
 	if (prf?.eval?.first && typeof prf.eval.first === "string") {
 		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
 			prf.eval.first,
 		).buffer as ArrayBuffer;
+	} else if (prf?.evalByCredential) {
+		for (const entry of Object.values(prf.evalByCredential)) {
+			if (entry?.first && typeof entry.first === "string") {
+				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
+					entry.first as string,
+				).buffer as ArrayBuffer;
+			}
+		}
 	}
 	const credential = await startAuthentication({ optionsJSON });
 
@@ -583,7 +596,13 @@ export async function revokeOtherSessions(): Promise<void> {
 
 export async function logout(): Promise<void> {
 	clearWorkspaceKeyCache();
-	await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+	const res = await fetch("/api/auth/logout", {
+		method: "POST",
+		credentials: "include",
+	});
+	if (!res.ok) {
+		throw new Error(`Logout failed: HTTP ${res.status}`);
+	}
 }
 
 export async function getMe(): Promise<{
@@ -611,12 +630,25 @@ export async function reauthenticateForAddCredential(): Promise<string> {
 		Parameters<typeof startAuthentication>[0]["optionsJSON"]
 	>(begin.options);
 	const prf = (
-		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
+		optionsJSON.extensions as {
+			prf?: {
+				eval?: { first?: unknown };
+				evalByCredential?: Record<string, { first?: unknown }>;
+			};
+		}
 	)?.prf;
 	if (prf?.eval?.first && typeof prf.eval.first === "string") {
 		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
 			prf.eval.first,
 		).buffer as ArrayBuffer;
+	} else if (prf?.evalByCredential) {
+		for (const entry of Object.values(prf.evalByCredential)) {
+			if (entry?.first && typeof entry.first === "string") {
+				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
+					entry.first as string,
+				).buffer as ArrayBuffer;
+			}
+		}
 	}
 	const credential = await startAuthentication({ optionsJSON });
 
@@ -884,10 +916,11 @@ export async function completePairing(
 		{
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
+			credentials: "include",
 			body: JSON.stringify({
 				prfSalt: pairingRequest.prfSalt,
 				wrappedMasterKey: bufToBase64(wrappedMasterKeyForPasskey),
-				name: "",
+				name: deviceName(),
 				credential,
 			}),
 		},
