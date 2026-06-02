@@ -362,8 +362,8 @@ function formatExpiry(iso: string): string {
 								onclick={() => (inviteRole = role)}
 								class="flex-1 sm:flex-none px-3 py-2.5 text-sm font-mono capitalize border-r border-border-canvas last:border-r-0 transition-colors duration-100 cursor-pointer
 									{inviteRole === role
-										? 'bg-info-light text-text border-b-2 border-b-info-border'
-										: 'bg-transparent text-subtle hover:text-subtle hover:bg-info'}"
+										? 'bg-info-light text-white border-b-2 border-b-info-border'
+										: 'bg-transparent text-subtle hover:text-white hover:bg-info'}"
 							>{role}</button>
 						{/each}
 					</div>
@@ -396,7 +396,7 @@ function formatExpiry(iso: string): string {
 							onclick={copyLink}
 							class="shrink-0 flex items-center gap-1.5 px-3 py-2 border rounded cursor-pointer font-mono text-xs transition-colors duration-100
 								{linkCopied
-									? 'bg-success-dark text-success border-success-light'
+									? 'bg-success-dark text-success-light border-success'
 									: 'bg-transparent text-subtle border-border-canvas hover:text-text hover:border-border-canvas'}"
 						>
 							{#if linkCopied}
@@ -547,7 +547,7 @@ function formatExpiry(iso: string): string {
 							<button
 								onclick={() => handleGrant(member)}
 								disabled={grantingId === member.accountId}
-								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success text-success border border-success-light rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-success text-success-light border border-success rounded cursor-pointer font-mono text-xs hover:bg-success-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 							>
 								<KeyRound size={11} strokeWidth={1.75} />
 								{grantingId === member.accountId ? 'Granting…' : 'Grant access'}
