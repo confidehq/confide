@@ -618,7 +618,7 @@ const planBadge: Record<string, { label: string; color: string }> = {
 							class="shrink-0 px-3 py-1 bg-transparent border rounded cursor-pointer font-mono text-sm transition-[color,border-color] duration-100
 								{revokingAll
 									? 'text-subtle border-border-canvas cursor-not-allowed'
-									: 'text-danger border-danger-light hover:bg-danger-light'}"
+									: 'text-danger border-danger-light hover:bg-danger-light hover:text-white'}"
 						>
 							{revokingAll ? 'Revoking…' : 'Revoke all others'}
 						</button>
@@ -890,7 +890,7 @@ const planBadge: Record<string, { label: string; color: string }> = {
 											<button
 												onclick={() => confirmDelete(cred.id)}
 												disabled={deletingId === cred.id}
-												class="px-2 py-1 border border-border-canvas-danger-dark rounded text-sm text-danger hover:bg-danger-hover transition-colors cursor-pointer bg-transparent font-mono"
+												class="px-2 py-1 border border-danger-light rounded text-sm text-danger hover:bg-danger-dark transition-colors cursor-pointer bg-transparent font-mono"
 											>
 												{deletingId === cred.id ? '…' : 'Yes'}
 											</button>

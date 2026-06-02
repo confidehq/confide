@@ -952,7 +952,7 @@ const freeFeatures: { label: string; enabled: boolean }[] = [
 						<button
 							onclick={removeDomain}
 							disabled={domainRemoving}
-							class="px-3 py-1 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-50"
+							class="px-3 py-1 bg-transparent text-danger border border-danger-light rounded cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100 disabled:opacity-50"
 						>{domainRemoving ? 'Removing…' : 'Remove'}</button>
 					</div>
 

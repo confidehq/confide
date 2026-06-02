@@ -262,7 +262,7 @@ $effect(() => {
 							>{form.status === 'open' ? 'Close' : 'Open'}</button>
 							<button
 								onclick={() => handleDelete(form)}
-								class="px-3 py-1.5 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
+								class="px-3 py-1.5 bg-transparent text-danger border border-danger-light rounded cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 							>Delete</button>
 						</div>
 					</div>
@@ -307,7 +307,7 @@ $effect(() => {
 									>{form.status === 'open' ? 'Close' : 'Open'}</button>
 									<button
 										onclick={() => handleDelete(form)}
-										class="px-3 py-1.5 bg-transparent text-danger border border-border-canvas rounded cursor-pointer font-mono text-base hover:border-border-canvas-danger-dark transition-colors duration-100"
+										class="px-3 py-1.5 bg-transparent text-danger border border-danger-light rounded cursor-pointer font-mono text-base hover:bg-danger-dark transition-colors duration-100"
 									>Delete</button>
 								</div>
 							</td>

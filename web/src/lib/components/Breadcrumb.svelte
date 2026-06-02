@@ -17,7 +17,7 @@ let { items }: Props = $props();
 		{@const isLast = i === items.length - 1}
 
 		{#if i > 0}
-			<span class="shrink-0 mx-1.5 text-border-mid select-none" aria-hidden="true">/</span>
+			<span class="shrink-0 mx-1.5 text-sm text-subtle text-border-mid select-none" aria-hidden="true">/</span>
 		{/if}
 
 		{#if item.onclick && !isLast}

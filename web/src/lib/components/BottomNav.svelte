@@ -268,7 +268,7 @@ const primaryItems = [
 
 				<button
 					onclick={handleLogout}
-					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-danger hover:bg-danger-hover transition-colors duration-100"
+					class="flex items-center gap-3 px-4 py-3 w-full bg-transparent border-none cursor-pointer font-mono text-danger hover:bg-danger-dark transition-colors duration-100"
 				>
 					<LogOut size={18} strokeWidth={1.75} class="shrink-0" />
 					<span class="text-sm">Sign out</span>

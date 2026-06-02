@@ -840,12 +840,12 @@ function removeOption(fieldId: string, optId: string) {
 			class="fixed bg-canvas border border-border rounded-lg p-1.5 z-50 shadow-[0_8px_32px_var(--color-overlay)] grid grid-cols-2 gap-0.5 w-72"
 		>
 			{#each fieldPalette as item}
+				{@const ItemIcon = item.icon}
 				<button
 					onclick={() => pickField(item.type)}
 					class="flex items-center gap-2 px-2.5 py-1.5 bg-transparent border-none rounded-md text-subtle cursor-pointer font-mono text-sm text-left transition-[background,color] duration-100 hover:bg-surface hover:text-text"
 				>
 					<span class="shrink-0 text-subtle">
-						{@const ItemIcon = item.icon}
 						<ItemIcon size={14} strokeWidth={1.75} />
 					</span>
 					{item.label}

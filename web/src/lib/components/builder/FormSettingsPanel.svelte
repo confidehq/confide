@@ -297,8 +297,8 @@ function downloadQR() {
 						/>
 						<button
 							onclick={copyShareUrl}
-							class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background] duration-150 grid items-center
-								{copied ? 'bg-success-muted text-success cursor-default' : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
+							class="shrink-0 px-3 py-2 border-none rounded-md font-mono text-sm transition-[background,color] duration-150 grid items-center
+								{copied ? 'bg-success-light text-success cursor-default' : 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
 						>
 							<!-- Both labels share the same grid cell so the button width never changes -->
 							<span class="col-start-1 row-start-1 flex items-center justify-center gap-1.5 {copied ? '' : 'invisible'}">
@@ -673,7 +673,7 @@ function downloadQR() {
 							<button
 								onclick={() => { confirmRemoveLocale = locale; }}
 								class="flex items-center justify-center w-5 h-5 rounded bg-transparent border-none cursor-pointer
-									text-subtle hover:text-danger hover:bg-danger-bg-dark transition-colors duration-100"
+									text-subtle hover:text-danger hover:bg-danger-dark transition-colors duration-100"
 								aria-label="Remove {languageName(locale)}"
 							>
 								<X size={12} strokeWidth={2} />

@@ -57,11 +57,11 @@
 
 	/* ── Status badges ── */
 	--color-open-bg: var(--color-success-dark);
-	--color-open-text: var(--color-success-light);
+	--color-open-text: var(--color-success);
 	--color-open-border: var(--color-success-light);
 	--color-closed-bg: transparent;
-	--color-closed-text: var(--color-highlight-high);
-	--color-closed-border: var(--color-highlight-high);
+	--color-closed-text: var(--color-slate-600);
+	--color-closed-border: var(--color-slate-600);
 	--color-danger-badge-bg: var(--color-danger-dark);
 	--color-danger-badge-text: var(--color-danger);
 	--color-danger-badge-border: var(--color-danger-light);
@@ -102,9 +102,9 @@
 	--color-base: #f0f3f5;
 	--color-canvas: #fffeff;
 	--color-surface: #edf0f4;
-	--color-danger-dark: #b91c1c;
-	--color-danger-light: #dc2626;
-	--color-danger: #ef4444;
+	--color-danger-dark: #fef2f2;
+	--color-danger-light: #ef4444;
+	--color-danger: #b91c1c;
 	--color-info-dark: #dbeafe;
 	--color-info-light: #2563eb;
 	--color-info: #1d4ed8;

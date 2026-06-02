@@ -315,7 +315,7 @@ onMount(async () => {
 										{#if ws.role === 'owner'}
 											<button
 												onclick={() => { openMenuId = null; deleteTarget = ws; deleteError = ''; }}
-												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-dark"
 											>
 												<Trash2 size={13} strokeWidth={1.75} />
 												Delete workspace…
@@ -323,7 +323,7 @@ onMount(async () => {
 										{:else}
 											<button
 												onclick={() => { openMenuId = null; leaveTarget = ws; leaveError = ''; }}
-												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+												class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-dark"
 											>
 												<LogOut size={13} strokeWidth={1.75} />
 												Leave workspace…

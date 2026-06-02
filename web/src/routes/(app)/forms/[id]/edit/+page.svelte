@@ -218,13 +218,13 @@ async function handlePublish() {
 						<div class="absolute top-[calc(100%+4px)] left-0 bg-canvas border border-border-canvas rounded-lg p-1 min-w-52 z-20 shadow-[0_8px_24px_var(--color-overlay-light)]">
 							{#each layoutModes as mode}
 								{@const active = mode.value === store.schema.layout}
+								{@const ModeIcon = mode.icon}
 								<button
 									onclick={() => { store!.setLayout(mode.value); layoutOpen = false; }}
 									class="flex items-start gap-2.5 w-full px-2.5 py-2 border-none rounded-md cursor-pointer font-mono text-left transition-[background,color] duration-100
 										{active ? 'bg-canvas text-text' : 'bg-transparent text-subtle hover:bg-surface hover:text-text'}"
 								>
 									<span class="mt-0.5 shrink-0 {active ? 'text-text' : 'text-subtle'}">
-										{@const ModeIcon = mode.icon}
 										<ModeIcon size={15} strokeWidth={1.75} />
 									</span>
 									<span>

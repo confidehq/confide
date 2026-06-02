@@ -447,13 +447,13 @@ function formatExpiry(iso: string): string {
 	{/if}
 
 	{#if roleError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-light bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-danger-light/30 rounded-lg text-sm text-danger bg-danger-dark">
 			{roleError}
 		</div>
 	{/if}
 
 	{#if grantError}
-		<div class="mb-4 px-4 py-3 border border-border-canvas-danger-dark rounded-lg text-sm text-danger-light bg-danger-hover">
+		<div class="mb-4 px-4 py-3 border border-danger-light/30 rounded-lg text-sm text-danger bg-danger-dark">
 			{grantError}
 		</div>
 	{/if}
@@ -518,7 +518,7 @@ function formatExpiry(iso: string): string {
 										{/if}
 										<button
 											onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
-											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+											class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-dark"
 										>
 											<UserMinus size={13} strokeWidth={1.75} class="shrink-0" />
 											Remove member
@@ -671,7 +671,7 @@ function formatExpiry(iso: string): string {
 												{/if}
 												<button
 													onclick={() => { openMenuId = null; removeTarget = member; removeError = ''; }}
-													class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-bg-dark"
+													class="flex items-center gap-2.5 w-full px-3.5 py-2.5 bg-transparent border-none cursor-pointer font-mono text-sm text-danger text-left transition-colors duration-100 hover:bg-danger-dark"
 												>
 													<UserMinus size={13} strokeWidth={1.75} class="shrink-0" />
 													Remove member
@@ -711,7 +711,7 @@ function formatExpiry(iso: string): string {
 						<button
 							onclick={() => handleRevoke(inv)}
 							disabled={revokingId === inv.id}
-							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							class="shrink-0 px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:border-danger-light transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 						>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 					</div>
 				{/each}
@@ -748,7 +748,7 @@ function formatExpiry(iso: string): string {
 									<button
 										onclick={() => handleRevoke(inv)}
 										disabled={revokingId === inv.id}
-										class="px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:text-danger hover:border-border-canvas-danger-dark transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
+										class="px-3 py-1.5 bg-transparent border text-danger border-danger-light hover:bg-danger-dark rounded cursor-pointer font-mono text-xs hover:border-danger-light transition-colors duration-100 disabled:opacity-40 disabled:cursor-not-allowed"
 									>{revokingId === inv.id ? 'Revoking…' : 'Revoke'}</button>
 								</td>
 							</tr>

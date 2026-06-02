@@ -971,7 +971,7 @@ function responseIndexInFull(id: string): number {
 												{statusSaving
 													? 'bg-transparent text-muted border-border-canvas cursor-not-allowed'
 													: record.status === 'open'
-														? 'bg-transparent text-danger border-danger-light hover:bg-danger-light hover:border-danger-dark'
+														? 'bg-transparent text-danger border-danger-light hover:bg-danger-light hover:border-danger-dark hover:text-white'
 														: 'bg-transparent text-success border-success-light hover:bg-success-light hover:border-success-dark'}"
 										>{statusSaving ? '…' : record.status === 'open' ? 'Close form' : 'Reopen form'}</button>
 									{/if}
@@ -1083,16 +1083,18 @@ function responseIndexInFull(id: string): number {
 											</div>
 											<button
 												onclick={copyShareUrl}
-												class="shrink-0 px-2.5 py-1.5 rounded font-mono transition-all duration-150 border
+												class="shrink-0 px-2.5 py-1.5 rounded font-mono transition-[background,color] duration-150 grid items-center
 													{copied
-														? 'border-success-light/40 text-success-light bg-success-dark cursor-default'
-														: 'border-border-canvas text-white bg-primary hover:border-border hover:text-text cursor-pointer'}"
+														? 'bg-success-light text-success cursor-default'
+														: 'bg-primary text-white hover:bg-primary-hover cursor-pointer'}"
 											>
-												{#if copied}
-													<span class="flex items-center gap-1"><Check size={10} strokeWidth={2.5} />Copied</span>
-												{:else}
+												<!-- Both labels in same grid cell — width stays fixed -->
+												<span class="col-start-1 row-start-1 flex items-center justify-center gap-1 {copied ? '' : 'invisible'}">
+													<Check size={10} strokeWidth={2.5} />Copied
+												</span>
+												<span class="col-start-1 row-start-1 flex items-center justify-center {copied ? 'invisible' : ''}">
 													Copy secure link
-												{/if}
+												</span>
 											</button>
 										</div>
 
