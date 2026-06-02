@@ -45,6 +45,10 @@ export function isPasskeyCancelled(err: unknown): boolean {
 	return (
 		err.name === "NotAllowedError" ||
 		err.name === "AbortError" ||
+		// Android Chrome / Samsung Internet: thrown when biometric is dismissed or
+		// the device doesn't support the requested authenticator attachment.
+		err.name === "NotSupportedError" ||
+		err.name === "UnknownError" ||
 		(err.name === "TypeError" && err.message.includes("CredentialsContainer"))
 	);
 }
@@ -164,6 +168,38 @@ function unwrapPublicKey<T>(options: unknown): T {
 	return (options as { publicKey: T }).publicKey;
 }
 
+/**
+ * Convert PRF salt strings in WebAuthn options from base64url → ArrayBuffer in-place.
+ * Handles both targeted mode (prf.eval.first) and discoverable mode (prf.evalByCredential).
+ * Must be called before passing optionsJSON to startRegistration / startAuthentication.
+ */
+function convertPrfSalts(optionsJSON: unknown): void {
+	const prf = (
+		optionsJSON as {
+			extensions?: {
+				prf?: {
+					eval?: { first?: unknown };
+					evalByCredential?: Record<string, { first?: unknown }>;
+				};
+			};
+		}
+	)?.extensions?.prf;
+	if (!prf) return;
+	if (prf.eval?.first && typeof prf.eval.first === "string") {
+		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
+			prf.eval.first,
+		).buffer as ArrayBuffer;
+	} else if (prf.evalByCredential) {
+		for (const entry of Object.values(prf.evalByCredential)) {
+			if (entry?.first && typeof entry.first === "string") {
+				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
+					entry.first as string,
+				).buffer as ArrayBuffer;
+			}
+		}
+	}
+}
+
 // ─── API Helpers ──────────────────────────────────────────────────────────────
 
 async function apiPost<T>(path: string, body: unknown): Promise<T> {
@@ -251,14 +287,7 @@ export async function register(username: string): Promise<RegisterResult> {
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startRegistration>[0]["optionsJSON"]
 	>(begin.options);
-	const prf = (
-		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startRegistration({ optionsJSON });
 
 	// Step 3: PRF → KEK → wrap new master key
@@ -351,29 +380,7 @@ export async function login(
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startAuthentication>[0]["optionsJSON"]
 	>(begin.options);
-	const prf = (
-		optionsJSON.extensions as {
-			prf?: {
-				eval?: { first?: unknown };
-				evalByCredential?: Record<string, { first?: unknown }>;
-			};
-		}
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		// Targeted mode: convert eval.first
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	} else if (prf?.evalByCredential) {
-		// Discoverable mode: convert each entry in evalByCredential
-		for (const entry of Object.values(prf.evalByCredential)) {
-			if (entry?.first && typeof entry.first === "string") {
-				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
-					entry.first as string,
-				).buffer as ArrayBuffer;
-			}
-		}
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startAuthentication({ optionsJSON });
 
 	// Step 3: finish — challengeKey replaces credentialIdBase64
@@ -414,27 +421,7 @@ export async function reauthenticate(): Promise<LoginResult> {
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startAuthentication>[0]["optionsJSON"]
 	>(begin.options);
-	const prf = (
-		optionsJSON.extensions as {
-			prf?: {
-				eval?: { first?: unknown };
-				evalByCredential?: Record<string, { first?: unknown }>;
-			};
-		}
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	} else if (prf?.evalByCredential) {
-		for (const entry of Object.values(prf.evalByCredential)) {
-			if (entry?.first && typeof entry.first === "string") {
-				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
-					entry.first as string,
-				).buffer as ArrayBuffer;
-			}
-		}
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startAuthentication({ optionsJSON });
 
 	// Step 3: finish — verify assertion server-side, return wrappedMasterKey
@@ -529,14 +516,7 @@ export async function rekey(
 	const rekeyOptionsJSON = unwrapPublicKey<
 		Parameters<typeof startRegistration>[0]["optionsJSON"]
 	>(begin.options);
-	const rekeyPrf = (
-		rekeyOptionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
-	)?.prf;
-	if (rekeyPrf?.eval?.first && typeof rekeyPrf.eval.first === "string") {
-		(rekeyPrf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			rekeyPrf.eval.first,
-		).buffer as ArrayBuffer;
-	}
+	convertPrfSalts(rekeyOptionsJSON);
 	const credential = await startRegistration({ optionsJSON: rekeyOptionsJSON });
 
 	// Step 3: PRF → KEK; wrap master key with new credential's PRF
@@ -629,27 +609,7 @@ export async function reauthenticateForAddCredential(): Promise<string> {
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startAuthentication>[0]["optionsJSON"]
 	>(begin.options);
-	const prf = (
-		optionsJSON.extensions as {
-			prf?: {
-				eval?: { first?: unknown };
-				evalByCredential?: Record<string, { first?: unknown }>;
-			};
-		}
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	} else if (prf?.evalByCredential) {
-		for (const entry of Object.values(prf.evalByCredential)) {
-			if (entry?.first && typeof entry.first === "string") {
-				(entry as { first: ArrayBuffer }).first = base64urlToBytes(
-					entry.first as string,
-				).buffer as ArrayBuffer;
-			}
-		}
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startAuthentication({ optionsJSON });
 
 	const finish = await apiPost<ReauthFinishResponse>(
@@ -693,14 +653,7 @@ export async function addCredential(
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startRegistration>[0]["optionsJSON"]
 	>(begin.options);
-	const prf = (
-		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startRegistration({ optionsJSON });
 
 	// Step 3: PRF → KEK; wrap the existing master key under the new credential
@@ -897,14 +850,7 @@ export async function completePairing(
 	const optionsJSON = unwrapPublicKey<
 		Parameters<typeof startRegistration>[0]["optionsJSON"]
 	>(pairingRequest.options);
-	const prf = (
-		optionsJSON.extensions as { prf?: { eval?: { first?: unknown } } }
-	)?.prf;
-	if (prf?.eval?.first && typeof prf.eval.first === "string") {
-		(prf.eval as { first: ArrayBuffer }).first = base64urlToBytes(
-			prf.eval.first,
-		).buffer as ArrayBuffer;
-	}
+	convertPrfSalts(optionsJSON);
 	const credential = await startRegistration({ optionsJSON });
 
 	// PRF → KEK; wrap master key for the new passkey
