@@ -51,6 +51,7 @@ func Handler(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.Handler {
 	r := chi.NewRouter()
 	r.Get("/", listResponses(svc, fSvc, wsSvc))
 	r.Get("/{rid}", getResponse(svc, fSvc, wsSvc))
+	r.Patch("/{rid}/read", markResponseRead(svc, fSvc, wsSvc))
 	r.Delete("/{rid}", deleteResponse(svc, fSvc, wsSvc))
 	return r
 }
@@ -138,6 +139,29 @@ func getResponse(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFu
 			"encryptedData":      base64.StdEncoding.EncodeToString(resp.EncryptedData),
 			"ephemeralPublicKey": base64.StdEncoding.EncodeToString(resp.EphemeralPublicKey),
 		})
+	}
+}
+
+func markResponseRead(svc *Service, fSvc formsSvc, wsSvc workspaceSvc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accountID := mw.AccountID(r.Context())
+		formID := chi.URLParam(r, "formId")
+		responseID := chi.URLParam(r, "rid")
+		workspaceID, ok := resolveFormWorkspace(w, r, fSvc, wsSvc, accountID, formID)
+		if !ok {
+			return
+		}
+
+		if err := svc.MarkResponseRead(r.Context(), workspaceID, formID, responseID); err != nil {
+			if errors.Is(err, ErrNotFound) {
+				writeError(w, http.StatusNotFound, "not_found", "response not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "internal", "failed to mark response as read")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

@@ -128,20 +128,8 @@ func (s *Service) ListResponses(ctx context.Context, workspaceID, formID string,
 	}
 
 	out := make([]ResponseRecord, len(rows))
-	ids := make([]string, len(rows))
 	for i, r := range rows {
 		out[i] = responseRecordFromDB(r)
-		ids[i] = r.ID
-	}
-
-	// Mark responses as read for burn-after-reading forms. The reaper will delete
-	// them on the next pass. Failure here is non-fatal — responses remain visible
-	// until the next list call or the reaper runs.
-	if len(ids) > 0 {
-		_ = s.db.MarkResponsesRead(ctx, queries.MarkResponsesReadParams{
-			FormID:  formID,
-			Column2: ids,
-		})
 	}
 
 	var nextCursor *string
@@ -181,6 +169,25 @@ func (s *Service) GetResponse(ctx context.Context, workspaceID, formID, response
 		return ResponseRecord{}, err
 	}
 	return responseRecordFromDB(row), nil
+}
+
+// MarkResponseRead marks a single response as read for burn-after-reading forms.
+// The response will remain visible in the current session but will be excluded
+// from future list calls and eventually deleted by the reaper.
+func (s *Service) MarkResponseRead(ctx context.Context, workspaceID, formID, responseID string) error {
+	if _, err := s.db.GetFormByWorkspace(ctx, queries.GetFormByWorkspaceParams{
+		ID:          formID,
+		WorkspaceID: workspaceID,
+	}); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFound
+		}
+		return err
+	}
+	return s.db.MarkResponsesRead(ctx, queries.MarkResponsesReadParams{
+		FormID:  formID,
+		Column2: []string{responseID},
+	})
 }
 
 // DeleteResponse hard-deletes a single response.

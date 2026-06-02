@@ -410,6 +410,20 @@ export async function setWorkspaceFormKey(
 }
 
 /**
+ * Mark a single response as read for burn-after-reading forms.
+ * The response stays visible for the current session but won't appear on next load.
+ */
+export async function markResponseRead(
+	formId: string,
+	responseId: string,
+): Promise<void> {
+	const res = await apiFetch(`/api/forms/${formId}/responses/${responseId}/read`, {
+		method: "PATCH",
+	});
+	if (!res.ok) throw new ApiError(res.status, await res.json());
+}
+
+/**
  * Hard-delete a single response.
  */
 export async function deleteResponse(

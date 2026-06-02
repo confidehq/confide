@@ -5,6 +5,7 @@ import {
 	Copy,
 	Download,
 	ExternalLink,
+	Flame,
 	Link,
 	Lock,
 	Pencil,
@@ -13,8 +14,8 @@ import {
 	Search,
 } from "@lucide/svelte";
 import QRCode from "qrcode";
-import { onMount } from "svelte";
-import { goto } from "$app/navigation";
+import { onDestroy, onMount } from "svelte";
+import { beforeNavigate, goto } from "$app/navigation";
 import { page } from "$app/stores";
 import Breadcrumb from "$lib/components/Breadcrumb.svelte";
 import ConfirmDialog from "$lib/components/ConfirmDialog.svelte";
@@ -29,6 +30,7 @@ import {
 	getForm,
 	getSchemaVersion,
 	listResponses,
+	markResponseRead,
 	publishForm,
 	rotateRenderKey,
 	updateFormExpiration,
@@ -162,6 +164,10 @@ let schemaCache = $state<Map<number, BuilderSchema>>(new Map());
 
 let confirmDeleteResponse = $state<string | null>(null);
 let deletingResponses = $state<Set<string>>(new Set());
+let pendingRevealId = $state<string | null>(null);
+let confirmLeave = $state(false);
+let pendingNavigationHref = $state<string | null>(null);
+let navigationConfirmed = false;
 
 // ── Init ─────────────────────────────────────────────────────────────────
 onMount(async () => {
@@ -176,7 +182,44 @@ onMount(async () => {
 		})
 		.catch(() => {});
 	await Promise.all([loadForm(), loadResponses()]);
+	window.addEventListener("beforeunload", handleBeforeUnload);
 });
+
+onDestroy(() => {
+	window.removeEventListener("beforeunload", handleBeforeUnload);
+});
+
+// ── Navigation guards (Burn After Reading) ────────────────────────────────
+function handleBeforeUnload(e: BeforeUnloadEvent) {
+	if (burnAfterReading && decrypted.size > 0) {
+		e.preventDefault();
+		e.returnValue = "";
+	}
+}
+
+beforeNavigate(({ cancel, to }) => {
+	if (burnAfterReading && decrypted.size > 0 && !navigationConfirmed) {
+		if (to?.url) {
+			cancel();
+			pendingNavigationHref = to.url.href;
+			confirmLeave = true;
+		}
+	}
+	navigationConfirmed = false;
+});
+
+function handleConfirmLeave() {
+	confirmLeave = false;
+	if (pendingNavigationHref) {
+		navigationConfirmed = true;
+		goto(pendingNavigationHref);
+	}
+}
+
+function handleCancelLeave() {
+	confirmLeave = false;
+	pendingNavigationHref = null;
+}
 
 // ── Form functions ────────────────────────────────────────────────────────
 async function loadForm() {
@@ -302,13 +345,20 @@ async function saveSettings() {
 	settingsSaved = false;
 	try {
 		const utcExpires = expiresAt ? new Date(expiresAt).toISOString() : null;
-		// Reopening: form is closed and user is setting a future expiry date
-		const reopening =
+		const newLimit = responseLimit ? parseInt(responseLimit) : null;
+		const isEffectivelyClosed =
 			record !== null &&
 			(record.status === "closed" ||
-				(record.status === "open" && record.expiresAt && new Date(record.expiresAt) <= new Date())) &&
-			!!utcExpires &&
-			new Date(utcExpires) > new Date();
+				(record.status === "open" && record.expiresAt && new Date(record.expiresAt) <= new Date()));
+		// Form is not blocked by a past expiry date
+		const notTimedOut = !record?.expiresAt || new Date(record.expiresAt) > new Date();
+		// New limit is removed or raised above the current response count
+		const limitWouldUnblock = newLimit === null || newLimit > (record?.responseCount ?? 0);
+		const reopening =
+			record !== null &&
+			isEffectivelyClosed &&
+			((!!utcExpires && new Date(utcExpires) > new Date()) ||
+				(notTimedOut && limitWouldUnblock));
 		await Promise.all([
 			updateFormExpiration(
 				formId,
@@ -487,11 +537,22 @@ async function loadResponses(cursor?: string) {
 }
 
 async function selectResponse(id: string) {
+	pendingRevealId = null;
 	selectedId = id;
 	const rec = responses.find((r) => r.id === id);
 	if (rec && !decrypted.has(id) && !decrypting.has(id)) {
-		await handleDecrypt(rec);
+		if (burnAfterReading) {
+			pendingRevealId = id;
+		} else {
+			await handleDecrypt(rec);
+		}
 	}
+}
+
+async function revealResponse(id: string) {
+	pendingRevealId = null;
+	const rec = responses.find((r) => r.id === id);
+	if (rec) await handleDecrypt(rec);
 }
 
 async function handleDecrypt(rec: EncryptedResponseRecord) {
@@ -529,6 +590,9 @@ async function handleDecrypt(rec: EncryptedResponseRecord) {
 				},
 			],
 		]);
+		if (burnAfterReading) {
+			markResponseRead(formId, rec.id).catch(() => {});
+		}
 	} catch (err) {
 		decryptErrors = new Map([
 			...decryptErrors,
@@ -781,6 +845,16 @@ function responseIndexInFull(id: string): number {
 		cursor: pointer;
 	}
 </style>
+
+<!-- Leave page confirm (Burn After Reading) -->
+<ConfirmDialog
+	open={confirmLeave}
+	title="Leave page?"
+	description="Responses you've viewed are already marked for deletion and won't be accessible after this session."
+	confirmLabel="Leave page"
+	onconfirm={handleConfirmLeave}
+	oncancel={handleCancelLeave}
+/>
 
 <!-- Rotate key confirm -->
 <ConfirmDialog
@@ -1288,6 +1362,7 @@ function responseIndexInFull(id: string): number {
 														responseTtlDays = '';
 													} else {
 														autoDeletePending = true;
+														burnAfterReading = true;
 													}
 												}}
 												class="relative shrink-0 w-11 h-6 rounded-full transition-colors duration-150 border-none cursor-pointer
@@ -1498,7 +1573,7 @@ function responseIndexInFull(id: string): number {
 								<Clock size={11} strokeWidth={2} />
 								{formatDateLong(selectedRecord.receivedAt)}
 							</div>
-							<div class="flex items-center gap-1.5 text-success-light">
+							<div class="flex items-center gap-1.5 text-success">
 								<Lock size={11} strokeWidth={2} />
 								End-to-end encrypted
 							</div>
@@ -1513,9 +1588,38 @@ function responseIndexInFull(id: string): number {
 						>← All responses</button>
 					</div>
 
+					<!-- Burn After Reading banner -->
+					{#if burnAfterReading && selectedDecrypted}
+						<div class="shrink-0 flex items-center gap-2.5 px-6 py-2 bg-danger-dark border-b border-danger-light/30">
+							<Flame size={12} strokeWidth={2} class="shrink-0 text-danger-light" />
+							<span class="text-xs font-mono text-danger-light leading-relaxed">This response will self-destruct — permanently deleted after this session</span>
+						</div>
+					{/if}
+
 					<!-- Detail content -->
 					<div class="flex-1 overflow-y-auto px-6 py-6">
-						{#if isDecryptingSelected}
+						{#if pendingRevealId === selectedId && !isDecryptingSelected && !selectedDecrypted}
+							<!-- Gatekeeper -->
+							<div class="flex flex-col items-center justify-center min-h-full py-16 text-center max-w-sm mx-auto gap-6">
+								<div class="w-14 h-14 rounded-full bg-danger-dark border border-danger-light/30 flex items-center justify-center">
+									<Flame size={24} strokeWidth={1.5} class="text-danger-light" />
+								</div>
+								<div class="flex flex-col gap-2">
+									<p class="m-0 text-base font-semibold text-text">Burn After Reading</p>
+									<p class="m-0 text-sm text-muted leading-relaxed">Once revealed, this response will be permanently scheduled for deletion. You will not be able to access it again after this session.</p>
+								</div>
+								<div class="flex flex-col gap-2.5 w-full">
+									<button
+										onclick={() => revealResponse(selectedId!)}
+										class="w-full px-4 py-2.5 bg-danger-dark text-danger-light border border-danger-light/50 rounded font-mono text-sm cursor-pointer transition-colors duration-100 hover:bg-danger hover:border-danger-light hover:text-white"
+									>I'm ready — Reveal</button>
+									<button
+										onclick={() => { pendingRevealId = null; selectedId = null; }}
+										class="w-full px-4 py-2 bg-transparent text-muted border border-border-canvas rounded font-mono text-sm cursor-pointer transition-colors duration-100 hover:text-subtle hover:border-border"
+									>Cancel</button>
+								</div>
+							</div>
+						{:else if isDecryptingSelected}
 							<div class="flex items-center gap-2 text-muted py-8">
 								<div class="spinner w-3 h-3 border-2 border-surface border-t-info-border rounded-full"></div>
 								Decrypting…
