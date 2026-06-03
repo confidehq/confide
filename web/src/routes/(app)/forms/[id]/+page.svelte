@@ -1529,27 +1529,27 @@ function responseIndexInFull(id: string): number {
 												<div>
 													<div class="border border-border-canvas rounded overflow-hidden">
 														<div class="flex items-center border-b border-border-canvas">
-															<span class="w-20 shrink-0 px-3 py-2 text-sm text-muted border-r border-border-canvas">To</span>
+															<span class="w-20 shrink-0 px-3 py-2.5 text-sm text-muted border-r border-border-canvas">To</span>
 															<input
 																type="email"
 																placeholder="recipient@example.com"
 																bind:value={notificationEmail}
-																class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-sm text-text placeholder:text-muted font-mono"
+																class="flex-1 min-w-0 px-3 py-2.5 bg-transparent border-none outline-none text-sm text-text placeholder:text-muted font-mono"
 															/>
 														</div>
 														<div class="flex items-center border-b border-border-canvas">
-															<span class="w-20 shrink-0 px-3 py-2 text-xs text-muted border-r border-border-canvas">From</span>
-															<span class="flex-1 min-w-0 px-3 py-2 text-xs text-muted font-mono truncate">
+															<span class="w-20 shrink-0 px-3 py-2.5 text-sm text-muted border-r border-border-canvas">From</span>
+															<span class="flex-1 min-w-0 px-3 py-2.5 text-sm text-muted font-mono truncate">
 																{smtpSender || 'Confide Forms <notifications@example.com>'}
 															</span>
 														</div>
 														<div class="flex items-center">
-															<span class="w-20 shrink-0 px-3 py-2 text-xs text-muted border-r border-border-canvas">Subject</span>
+															<span class="w-20 shrink-0 px-3 py-2.5 text-sm text-muted border-r border-border-canvas">Subject</span>
 															<input
 																type="text"
 																placeholder="New Confide Form submission"
 																bind:value={notificationSubject}
-																class="flex-1 min-w-0 px-3 py-2 bg-transparent border-none outline-none text-text placeholder:text-muted font-mono"
+																class="flex-1 min-w-0 px-3 py-2.5 bg-transparent border-none outline-none text-sm text-text placeholder:text-muted font-mono"
 															/>
 														</div>
 													</div>
@@ -1568,7 +1568,7 @@ function responseIndexInFull(id: string): number {
 															class="w-full px-3 py-2.5 bg-transparent border-none outline-none text-xs text-text placeholder:text-muted font-mono resize-y block"
 														></textarea>
 													</div>
-													<p class="m-0 mt-1.5 text-xs {pgpKeyError ? 'text-danger' : pgpKeyFingerprint ? 'text-success-light font-mono tracking-wide' : 'text-muted'}">
+													<p class="m-0 mt-1.5 text-xs {pgpKeyError ? 'text-danger' : pgpKeyFingerprint ? 'text-success font-mono tracking-wide' : 'text-muted'}">
 														{#if pgpKeyError}
 															{pgpKeyError}
 														{:else if pgpKeyFingerprint}
