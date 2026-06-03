@@ -535,30 +535,60 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 	} else {
 		// Discoverable login (loginBeginDiscoverable path): look up the credential by
 		// rawID — that is the one that actually signed.
-		var resolvedCredRow queries.GetCredentialByWebAuthnIDRow
-		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-			row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+		credIDFromBody, hasUserHandle := parseAssertionCredInfo(body)
+
+		if !hasUserHandle {
+			// Cross-device authenticators (phone via QR/hybrid transport) often omit
+			// userHandle. go-webauthn's FinishDiscoverableLogin hard-rejects that, so
+			// fall back to FinishLogin with a rawID lookup, which tolerates a blank handle.
+			if credIDFromBody == nil {
+				return nil, fmt.Errorf("FinishDiscoverableLogin: blank user handle and missing credential ID")
+			}
+			credRow, err := s.db.GetCredentialByWebAuthnID(ctx, credIDFromBody)
 			if err != nil {
 				return nil, ErrNotFound
 			}
 			if hasBE {
-				row.BackupEligible = assertionBE
+				credRow.BackupEligible = assertionBE
 			}
-			resolvedCredRow = row
-			accountID = row.AccountID
-			return credRowToWAUser(row), nil
-		}
-		cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
-		if err != nil {
-			return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
-		}
-		usedCredID = cred.ID
-
-		if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
-			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-				CredentialID:   cred.ID,
-				BackupEligible: cred.Flags.BackupEligible,
-			})
+			user := credRowToWAUser(credRow)
+			cred, err := s.wa.FinishLogin(user, *sd, r)
+			if err != nil {
+				return nil, fmt.Errorf("FinishLogin (cross-device): %w", err)
+			}
+			usedCredID = cred.ID
+			accountID = credRow.AccountID
+			if credRow.BackupEligible != cred.Flags.BackupEligible {
+				_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+					CredentialID:   cred.ID,
+					BackupEligible: cred.Flags.BackupEligible,
+				})
+			}
+		} else {
+			var resolvedCredRow queries.GetCredentialByWebAuthnIDRow
+			handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+				row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+				if err != nil {
+					return nil, ErrNotFound
+				}
+				if hasBE {
+					row.BackupEligible = assertionBE
+				}
+				resolvedCredRow = row
+				accountID = row.AccountID
+				return credRowToWAUser(row), nil
+			}
+			cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
+			if err != nil {
+				return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+			}
+			usedCredID = cred.ID
+			if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
+				_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+					CredentialID:   cred.ID,
+					BackupEligible: cred.Flags.BackupEligible,
+				})
+			}
 		}
 	}
 
@@ -669,33 +699,64 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 	var usedCredID []byte
 	var resolvedCredRow queries.GetCredentialByWebAuthnIDRow
 	expectedAccountID := accountID
-	handler := func(rawID, userHandle []byte) (webauthn.User, error) {
-		row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+
+	credIDFromBody, hasUserHandle := parseAssertionCredInfo(body)
+
+	if !hasUserHandle {
+		// Same cross-device fallback as LoginFinish: phone via QR omits userHandle.
+		if credIDFromBody == nil {
+			return nil, fmt.Errorf("FinishDiscoverableLogin: blank user handle and missing credential ID")
+		}
+		credRow, err := s.db.GetCredentialByWebAuthnID(ctx, credIDFromBody)
 		if err != nil {
 			return nil, ErrNotFound
 		}
+		storedBE := credRow.BackupEligible
 		if hasBE {
-			row.BackupEligible = assertionBE
+			credRow.BackupEligible = assertionBE
 		}
-		resolvedCredRow = row
-		accountID = row.AccountID
-		return credRowToWAUser(row), nil
+		resolvedCredRow = credRow
+		accountID = credRow.AccountID
+		user := credRowToWAUser(credRow)
+		cred, err := s.wa.FinishLogin(user, *sd, r)
+		if err != nil {
+			return nil, fmt.Errorf("FinishLogin (cross-device): %w", err)
+		}
+		usedCredID = cred.ID
+		if storedBE != cred.Flags.BackupEligible {
+			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+				CredentialID:   cred.ID,
+				BackupEligible: cred.Flags.BackupEligible,
+			})
+		}
+	} else {
+		handler := func(rawID, userHandle []byte) (webauthn.User, error) {
+			row, err := s.db.GetCredentialByWebAuthnID(ctx, rawID)
+			if err != nil {
+				return nil, ErrNotFound
+			}
+			if hasBE {
+				row.BackupEligible = assertionBE
+			}
+			resolvedCredRow = row
+			accountID = row.AccountID
+			return credRowToWAUser(row), nil
+		}
+		cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
+		if err != nil {
+			return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
+		}
+		usedCredID = cred.ID
+		if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
+			_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
+				CredentialID:   cred.ID,
+				BackupEligible: cred.Flags.BackupEligible,
+			})
+		}
 	}
 
-	cred, err := s.wa.FinishDiscoverableLogin(handler, *sd, r)
-	if err != nil {
-		return nil, fmt.Errorf("FinishDiscoverableLogin: %w", err)
-	}
 	if resolvedCredRow.AccountID != expectedAccountID {
 		return nil, fmt.Errorf("credential does not belong to the expected account")
-	}
-	usedCredID = cred.ID
-
-	if resolvedCredRow.BackupEligible != cred.Flags.BackupEligible {
-		_ = s.db.UpdateCredentialBackupEligible(ctx, queries.UpdateCredentialBackupEligibleParams{
-			CredentialID:   cred.ID,
-			BackupEligible: cred.Flags.BackupEligible,
-		})
 	}
 
 	credLogin, err := s.db.GetCredentialForLogin(ctx, usedCredID)
@@ -1255,6 +1316,30 @@ func parseAssertionBackupEligible(body []byte) (be bool, ok bool) {
 		return false, false
 	}
 	return authData[32]&0x08 != 0, true
+}
+
+// parseAssertionCredInfo extracts the credential rawId bytes and reports
+// whether the response.userHandle field is present and non-empty. Used to
+// detect cross-device (QR/hybrid) assertions where the authenticator omits
+// the user handle, which go-webauthn's FinishDiscoverableLogin rejects.
+func parseAssertionCredInfo(body []byte) (rawID []byte, hasUserHandle bool) {
+	var parsed struct {
+		RawID    string `json:"rawId"`
+		Response struct {
+			UserHandle string `json:"userHandle"`
+		} `json:"response"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return nil, false
+	}
+	hasUserHandle = parsed.Response.UserHandle != ""
+	if parsed.RawID != "" {
+		id, err := base64.RawURLEncoding.DecodeString(parsed.RawID)
+		if err == nil {
+			rawID = id
+		}
+	}
+	return rawID, hasUserHandle
 }
 
 // credRowToWAUser builds a waUser from a GetCredentialByWebAuthnID row.
