@@ -520,7 +520,7 @@ export async function recover(
 	const segments = parseRecoveryCode(recoveryCode);
 
 	const enc = new TextEncoder();
-	const segmentHash = await hashForVerification(enc.encode(segments[0]));
+	const segmentHash = await hashForVerification(enc.encode(segments.join("")));
 
 	const res = await apiPost<RecoverResponse>("/api/auth/recover", {
 		username,

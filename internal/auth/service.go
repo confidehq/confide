@@ -3,6 +3,7 @@ package auth
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -53,6 +54,7 @@ type DB interface {
 	CreateRecoveryCodes(ctx context.Context, arg []queries.CreateRecoveryCodesParams) (int64, error)
 	GetUnusedRecoveryCode(ctx context.Context, arg queries.GetUnusedRecoveryCodeParams) (queries.RecoveryCode, error)
 	BurnRecoveryCode(ctx context.Context, id string) error
+	BurnAllRecoveryCodesByAccount(ctx context.Context, accountID string) error
 	CountUnusedRecoveryCodes(ctx context.Context, accountID string) (int64, error)
 	DeleteRecoveryCodesByAccount(ctx context.Context, accountID string) error
 	CreateCredential(ctx context.Context, arg queries.CreateCredentialParams) (queries.Credential, error)
@@ -1059,16 +1061,17 @@ func (s *Service) Recover(ctx context.Context, username string, codeHash []byte)
 		return nil, ErrInvalidCode // don't leak whether the username exists
 	}
 
-	rc, err := s.db.GetUnusedRecoveryCode(ctx, queries.GetUnusedRecoveryCodeParams{
-		AccountID: account.ID,
-		CodeHash:  codeHash,
-	})
-	if err != nil {
+	if !hmac.Equal(codeHash, account.RecoveryVerifier) {
 		return nil, ErrInvalidCode
 	}
 
-	if err := s.db.BurnRecoveryCode(ctx, rc.ID); err != nil {
-		return nil, fmt.Errorf("BurnRecoveryCode: %w", err)
+	count, err := s.db.CountUnusedRecoveryCodes(ctx, account.ID)
+	if err != nil || count == 0 {
+		return nil, ErrInvalidCode
+	}
+
+	if err := s.db.BurnAllRecoveryCodesByAccount(ctx, account.ID); err != nil {
+		return nil, fmt.Errorf("BurnAllRecoveryCodesByAccount: %w", err)
 	}
 
 	rekeyToken, err := s.rekeys.issue(account.ID)

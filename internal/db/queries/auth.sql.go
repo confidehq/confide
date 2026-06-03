@@ -11,6 +11,15 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const burnAllRecoveryCodesByAccount = `-- name: BurnAllRecoveryCodesByAccount :exec
+UPDATE recovery_codes SET used = TRUE, updated_at = NOW() WHERE account_id = $1 AND used = FALSE
+`
+
+func (q *Queries) BurnAllRecoveryCodesByAccount(ctx context.Context, accountID string) error {
+	_, err := q.db.Exec(ctx, burnAllRecoveryCodesByAccount, accountID)
+	return err
+}
+
 const burnRecoveryCode = `-- name: BurnRecoveryCode :exec
 UPDATE recovery_codes SET used = TRUE, updated_at = NOW() WHERE id = $1
 `

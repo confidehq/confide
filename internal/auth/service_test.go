@@ -157,6 +157,16 @@ func (m *mockDB) BurnRecoveryCode(_ context.Context, id string) error {
 	return nil
 }
 
+func (m *mockDB) BurnAllRecoveryCodesByAccount(_ context.Context, accountID string) error {
+	for id, rc := range m.recoveryCodes {
+		if rc.AccountID == accountID {
+			rc.Used = true
+			m.recoveryCodes[id] = rc
+		}
+	}
+	return nil
+}
+
 func (m *mockDB) CountUnusedRecoveryCodes(_ context.Context, accountID string) (int64, error) {
 	var n int64
 	for _, rc := range m.recoveryCodes {
@@ -393,24 +403,24 @@ func TestRecover_InvalidCode_Returns401(t *testing.T) {
 
 func TestRecover_BurnsCode(t *testing.T) {
 	db := newMockDB()
+	verifier := sha256Sum([]byte("ALLSEGMENTSJOINED"))
 	db.accounts["acc1"] = queries.Account{
 		ID:                    "acc1",
 		Username:              pgtype.Text{String: "acc1", Valid: true},
 		RecoveryWrappedMaster: []byte("recoverykey"),
+		RecoveryVerifier:      verifier,
 	}
 
-	// Pre-insert a valid recovery code hash for "TESTCODE".
-	normalised := "TESTCODE"
-	hash := sha256Sum([]byte(normalised))
+	// Pre-insert unused recovery code rows so CountUnusedRecoveryCodes > 0.
 	db.recoveryCodes["rc1"] = queries.RecoveryCode{
 		ID:        "rc1",
 		AccountID: "acc1",
-		CodeHash:  hash,
+		CodeHash:  []byte("ignored"),
 		Used:      false,
 	}
 
 	svc := newServiceWithDB(db, newTestWA(t))
-	res, err := svc.Recover(context.Background(), "acc1", hash)
+	res, err := svc.Recover(context.Background(), "acc1", verifier)
 	if err != nil {
 		t.Fatalf("Recover: %v", err)
 	}
@@ -418,7 +428,7 @@ func TestRecover_BurnsCode(t *testing.T) {
 		t.Error("wrong recovery wrapped master key")
 	}
 
-	// Code should now be burned.
+	// All codes for the account should now be burned.
 	if !db.recoveryCodes["rc1"].Used {
 		t.Error("expected recovery code to be burned")
 	}

@@ -331,7 +331,7 @@ function copyCode() {
 							bind:value={username}
 							placeholder="Username"
 							onkeydown={(e) => e.key === "Enter" && continueToPasskey()}
-							class="input-base w-full mb-1 text-base py-2.5 pl-8 pr-3
+							class="input-base w-full mb-1 py-2.5 pl-8 pr-3
 							{usernameStatus === 'available' ? '!border-success-light' : ''}
 							{usernameStatus === 'taken' ? '!border-danger-text' : ''}"
 						/>
@@ -458,8 +458,8 @@ function copyCode() {
 						bind:value={verifyInput}
 						oninput={checkVerification}
 						placeholder="GHRK-XXXX-XXXX-…"
-						class="input-base w-full mb-1 text-base py-2.5 px-3
-							{verifyError ? '!border-danger-text' : ''}"
+						class="input-base w-full mb-1 py-2.5 px-3
+							{verifyError ? 'border-danger-text!' : ''}"
 					/>
 					{#if verifyError}
 						<span class="text-danger text-sm block mb-2"
@@ -496,7 +496,7 @@ function copyCode() {
 						placeholder="e.g. Acme Corp"
 						disabled={loading}
 						onkeydown={(e) => e.key === "Enter" && finishOnboarding()}
-						class="input-base w-full mb-4 text-base py-2.5 px-3"
+						class="input-base w-full mb-4 py-2.5 px-3"
 					/>
 
 					{#if workspaceError}

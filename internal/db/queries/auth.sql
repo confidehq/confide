@@ -56,6 +56,9 @@ UPDATE recovery_codes SET used = TRUE, updated_at = NOW() WHERE id = $1;
 -- name: CountUnusedRecoveryCodes :one
 SELECT COUNT(*) FROM recovery_codes WHERE account_id = $1 AND used = FALSE;
 
+-- name: BurnAllRecoveryCodesByAccount :exec
+UPDATE recovery_codes SET used = TRUE, updated_at = NOW() WHERE account_id = $1 AND used = FALSE;
+
 -- name: DeleteRecoveryCodesByAccount :exec
 DELETE FROM recovery_codes WHERE account_id=$1;
 
