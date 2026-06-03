@@ -552,7 +552,11 @@ func (s *Service) LoginFinish(ctx context.Context, challengeKey, userAgent strin
 				credRow.BackupEligible = assertionBE
 			}
 			user := credRowToWAUser(credRow)
-			cred, err := s.wa.FinishLogin(user, *sd, r)
+			// FinishLogin checks session.UserID == user.WebAuthnID(). Discoverable
+			// sessions have nil UserID, so populate it from the looked-up user.
+			sdCopy := *sd
+			sdCopy.UserID = user.WebAuthnID()
+			cred, err := s.wa.FinishLogin(user, sdCopy, r)
 			if err != nil {
 				return nil, fmt.Errorf("FinishLogin (cross-device): %w", err)
 			}
