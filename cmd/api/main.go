@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"os/signal"
 	"syscall"
 
@@ -17,6 +18,13 @@ var (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "--health-check" {
+		if err := app.HealthCheck(); err != nil {
+			log.Fatal().Err(err).Msg("health check failed")
+		}
+		os.Exit(0)
+	}
+
 	app.Version, app.Commit = buildinfo.Version(version, commit)
 
 	a, err := app.New()

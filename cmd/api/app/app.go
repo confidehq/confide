@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -113,6 +114,22 @@ func (a *App) Start(ctx context.Context) error {
 	}
 
 	a.pool.Close()
+	return nil
+}
+
+func HealthCheck() error {
+	port := os.Getenv("CONFIDE_PORT")
+	if port == "" {
+		port = "3000"
+	}
+	resp, err := http.Get("http://localhost:" + port + "/api/health")
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close() //nolint:errcheck
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unhealthy status: %d", resp.StatusCode)
+	}
 	return nil
 }
 
