@@ -6,7 +6,11 @@
  * with typed values.
  *
  * Encoding conventions:
- *   - The Go backend uses base64.StdEncoding (standard with padding) for binary fields.
+ *   - The Go backend uses base64.StdEncoding (standard with padding) for most binary fields
+ *     (wrappedMasterKey, prfSalt top-level field, etc.).
+ *   - Exception: PRF salts embedded inside the WebAuthn options JSON (prf.eval.first /
+ *     prf.evalByCredential) are encoded as base64url by go-webauthn's protocol.URLEncodedBase64
+ *     type — so convertPrfSalts correctly uses base64urlToBytes for those.
  *   - @simplewebauthn/browser uses Base64URLString (URL-safe, no padding) for credential IDs.
  *   - PRF outputs from simplewebauthn are Base64URLString.
  */
@@ -393,6 +397,45 @@ export async function login(
 	});
 
 	// Step 4: PRF → KEK; unwrap master key
+	const kek = await extractAuthenticationKek(credential);
+	const masterKey = await unwrapKey(
+		base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer,
+		kek,
+	);
+
+	return {
+		masterKey,
+		accountId: finish.accountId,
+		credentialId: credential.id,
+	};
+}
+
+/**
+ * Conditional UI login — starts a discoverable-credential ceremony with
+ * useBrowserAutofill:true so passkeys surface in the username field's autofill
+ * dropdown (iCloud Keychain bar on iOS/macOS, 1Password overlay, etc.).
+ *
+ * Call this on page mount. When the user instead clicks the explicit Sign-in
+ * button, starting a new startAuthentication call causes the browser to abort
+ * this one with an AbortError — catch that with isPasskeyCancelled() and ignore it.
+ */
+export async function loginWithAutofill(): Promise<LoginResult> {
+	const begin = await apiPost<LoginBeginResponse>("/api/auth/login/begin", {});
+
+	const optionsJSON = unwrapPublicKey<
+		Parameters<typeof startAuthentication>[0]["optionsJSON"]
+	>(begin.options);
+	convertPrfSalts(optionsJSON);
+	const credential = await startAuthentication({
+		optionsJSON,
+		useBrowserAutofill: true,
+	});
+
+	const finish = await apiPost<LoginFinishResponse>("/api/auth/login/finish", {
+		challengeKey: begin.challengeKey,
+		credential,
+	});
+
 	const kek = await extractAuthenticationKek(credential);
 	const masterKey = await unwrapKey(
 		base64ToBytes(finish.wrappedMasterKey).buffer as ArrayBuffer,
