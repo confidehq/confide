@@ -718,7 +718,11 @@ func (s *Service) ReauthFinish(ctx context.Context, challengeKey string, account
 		resolvedCredRow = credRow
 		accountID = credRow.AccountID
 		user := credRowToWAUser(credRow)
-		cred, err := s.wa.FinishLogin(user, *sd, r)
+		// FinishLogin checks session.UserID == user.WebAuthnID(). Discoverable
+		// sessions have a nil UserID, so we populate it from the looked-up user.
+		sdCopy := *sd
+		sdCopy.UserID = user.WebAuthnID()
+		cred, err := s.wa.FinishLogin(user, sdCopy, r)
 		if err != nil {
 			return nil, fmt.Errorf("FinishLogin (cross-device): %w", err)
 		}
