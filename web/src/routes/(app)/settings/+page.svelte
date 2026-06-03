@@ -901,8 +901,8 @@ const freeFeatures: { label: string; enabled: boolean }[] = [
 			/>
 
 			{#if workspacesStore.active}
-				<FormField id="ws-slug" label="Slug" value={workspacesStore.active.slug} readonly />
-				<FormField id="ws-id" label="Workspace ID" value={workspacesStore.active.id} readonly />
+				<FormField id="ws-slug" label="Slug" value={workspacesStore.active.slug} readonly dimmed />
+				<FormField id="ws-id" label="Workspace ID" value={workspacesStore.active.id} readonly dimmed />
 			{/if}
 
 			<div class="flex items-center gap-3">

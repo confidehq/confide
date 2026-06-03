@@ -7,6 +7,7 @@ let {
 	placeholder = "",
 	help,
 	readonly = false,
+	dimmed = false,
 }: {
 	label: string;
 	id: string;
@@ -15,10 +16,11 @@ let {
 	placeholder?: string;
 	help?: string;
 	readonly?: boolean;
+	dimmed?: boolean;
 } = $props();
 </script>
 
-<div class="flex flex-col gap-1.5">
+<div class="flex flex-col gap-1.5 {dimmed ? 'opacity-50' : ''}">
 	<label for={id} class="text-sm font-semibold tracking-[0.08em] uppercase text-subtle">
 		{label}
 	</label>
