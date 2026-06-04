@@ -8,7 +8,8 @@ import (
 // FormsDomainGate restricts requests arriving on the forms subdomain or an
 // enabled custom domain to the public form-serving paths only. Any other path
 // is redirected to the admin app domain. Requests from completely unknown hosts
-// receive 421 Misdirected Request.
+// are redirected to the forms subdomain when the path is a public form page
+// (/f/*); all other unknown-host requests receive 421 Misdirected Request.
 //
 // Allowed paths on forms/custom domains:
 //   - /f/*            public form page (SPA catch-all)
@@ -47,8 +48,14 @@ func FormsDomainGate(
 			}
 
 			if !isFormsDomain && !isCustom {
-				// Unknown host arriving on the catch-all router: reject explicitly.
+				// Unknown host (e.g. a custom domain whose CNAME check failed and
+				// was disabled). Redirect /f/* to the forms subdomain so the form
+				// remains reachable; reject everything else with 421.
 				if host != "" && host != appHost {
+					if formsDomain != "" && strings.HasPrefix(r.URL.Path, "/f/") {
+						http.Redirect(w, r, "https://"+formsHost+r.URL.RequestURI(), http.StatusFound)
+						return
+					}
 					http.Error(w, "421 Misdirected Request", http.StatusMisdirectedRequest)
 					return
 				}
