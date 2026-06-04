@@ -63,6 +63,14 @@ $effect(() => {
 				handleLoginError(err);
 				loading = false;
 			});
+	} else {
+		// No stored credential — auto-trigger a discoverable-credential prompt on page
+		// load. Safari allows this without a user gesture on navigation. If the user
+		// dismisses and clicks the button instead, handleLogin() starts a new ceremony;
+		// the browser aborts this one with AbortError, silently swallowed below.
+		login()
+			.then(handleLoginResult)
+			.catch(handleLoginError);
 	}
 
 	return () => {
