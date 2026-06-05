@@ -4,6 +4,7 @@ interface AppConfig {
 	emailEnabled: boolean;
 	smtpSender: string;
 	edition: string; // "community" = self-hosted, "" = managed
+	demo: boolean;
 }
 
 let cached: AppConfig | null = null;
@@ -27,5 +28,6 @@ export async function getAppConfig(): Promise<AppConfig> {
 		emailEnabled: false,
 		smtpSender: "",
 		edition: "",
+		demo: false,
 	};
 }

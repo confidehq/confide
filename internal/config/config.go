@@ -69,6 +69,10 @@ type Config struct {
 	// deployments: all Pro features are unlocked and Stripe billing is not required.
 	Edition string
 
+	// Demo enables the /demo interactive walkthrough. Off by default so
+	// self-hosted deployments don't expose demo routes.
+	Demo bool
+
 	// Limit overrides — used when Edition is "community" or when the IT admin wants
 	// to cap usage below the plan default. Zero means "use plan/edition default".
 	// Use -1 for explicit unlimited.
@@ -153,6 +157,7 @@ func Load() (*Config, error) {
 
 	cfg.TraefikConfigDir = os.Getenv("CONFIDE_TRAEFIK_DYNAMIC_DIR")
 	cfg.Edition = strings.ToLower(strings.TrimSpace(os.Getenv("CONFIDE_EDITION")))
+	cfg.Demo = parseBool(os.Getenv("CONFIDE_DEMO"), false)
 	cfg.MaxMembersPerWorkspace = parseInt64Env("CONFIDE_MAX_MEMBERS_PER_WORKSPACE")
 	cfg.MaxMonthlyResponses = parseInt64Env("CONFIDE_MAX_MONTHLY_RESPONSES")
 	cfg.MaxStoredResponses = parseInt64Env("CONFIDE_MAX_STORED_RESPONSES")

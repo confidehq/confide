@@ -144,6 +144,7 @@ func New(cfg *config.Config, svc *Services, uiFS fs.FS, version, commit string) 
 				"emailEnabled":     cfg.EmailEnabled,
 				"smtpSender":       cfg.Sender,
 				"edition":          cfg.Edition,
+				"demo":             cfg.Demo,
 			})
 		})
 
