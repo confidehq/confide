@@ -198,7 +198,8 @@ let bannerVisible = $state(true);
 	.demo-toggle--collapsed {
 		position: absolute;
 		top: 0.5rem;
-		right: 0.75rem;
+		left: 50%;
+		transform: translateX(-50%);
 		z-index: 50;
 	}
 

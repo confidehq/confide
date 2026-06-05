@@ -82,7 +82,7 @@ const stats = [
 					</a>
 				{:else}
 					<div
-						class="flex items-center gap-3 px-4 py-3.5 opacity-40 cursor-not-allowed select-none
+						class="flex items-center gap-3 px-4 py-3.5 select-none
 							{i < recentForms.length - 1 ? 'border-b border-border-canvas' : ''}"
 						title="Not available in this demo"
 					>

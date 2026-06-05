@@ -212,7 +212,7 @@ function renderAnswer(
 					</div>
 					<button
 						title="Refresh"
-						class="flex items-center justify-center w-6 h-6 bg-transparent border-none rounded cursor-not-allowed text-muted opacity-40"
+						class="flex items-center justify-center w-6 h-6 bg-transparent border-none rounded text-muted"
 					>
 						<RefreshCw size={12} strokeWidth={2} />
 					</button>
