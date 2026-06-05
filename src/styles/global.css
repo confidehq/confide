@@ -2,34 +2,34 @@
 	--font-sans: 'Magra', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 
 	/* Shared accents */
-	--accent-green: #2CA461;
-	--accent-red: #e46f6d;
-	--accent-amber: #de8f08;
-	--accent-blue: #4397e8;
+	--accent-green: #4ade80;
+	--accent-red: #fd9291;
+	--accent-amber: #fbbf24;
+	--accent-blue: #91b7fb;
 
 	/* Light theme */
-	--bg-color: #f8fafc;
-	--fg-color: #0f172a;
-	--muted-color: #475569;
-	--border-color: #e2e8f0;
-	--primary-color: #de8f08;
-	--primary-fg: #ffffff;
-	--secondary-bg: #f1f5f9;
-	--secondary-hover: #e2e8f0;
+	--bg-color: #f0f3f5;
+	--fg-color: #111c35;
+	--muted-color: #6b7a96;
+	--border-color: #b0bfd9;
+	--primary-color: #2563eb;
+	--primary-fg: #f0f3f5;
+	--secondary-bg: #edf0f4;
+	--secondary-hover: #d0dbee;
 	
 	--container-width: 1100px;
 	--transition-base: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 [data-theme="dark"] {
-	--bg-color: #1A253C;
-	--fg-color: #B3BBCC;
-	--muted-color: #939EB7;
-	--border-color: #1e293b;
-	--primary-color: #D25941;
-	--primary-fg: #DADEE7;
-	--secondary-bg: #253455;
-	--secondary-hover: #334155;
+	--bg-color: #111827;
+	--fg-color: #dee5f2;
+	--muted-color: #868e9e;
+	--border-color: #2b3d64;
+	--primary-color: #2563ea;
+	--primary-fg: #dee5f2;
+	--secondary-bg: #273554;
+	--secondary-hover: #212c45;
 }
 
 .theme-toggle {
