@@ -1,3 +1,3 @@
 ALTER TABLE sessions
-    ADD COLUMN credential_id BYTEA NOT NULL DEFAULT '', 
-    ADD COLUMN user_agent    TEXT  NOT NULL DEFAULT '';
+    ADD COLUMN IF NOT EXISTS credential_id BYTEA NOT NULL DEFAULT '',
+    ADD COLUMN IF NOT EXISTS user_agent    TEXT  NOT NULL DEFAULT '';

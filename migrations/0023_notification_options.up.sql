@@ -1,3 +1,3 @@
 ALTER TABLE forms
-  ADD COLUMN notification_from    TEXT,
-  ADD COLUMN notification_subject TEXT;
+  ADD COLUMN IF NOT EXISTS notification_from    TEXT,
+  ADD COLUMN IF NOT EXISTS notification_subject TEXT;

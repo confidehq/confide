@@ -1,1 +1,1 @@
-ALTER TABLE forms ADD COLUMN render_key_salt BYTEA;
+ALTER TABLE forms ADD COLUMN IF NOT EXISTS render_key_salt BYTEA;

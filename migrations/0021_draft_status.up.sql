@@ -6,7 +6,17 @@ ALTER TABLE forms DROP CONSTRAINT IF EXISTS forms_status_check;
 ALTER TABLE forms ADD CONSTRAINT forms_status_check CHECK (status IN ('draft', 'open', 'closed'));
 ALTER TABLE forms ALTER COLUMN status SET DEFAULT 'draft';
 
-ALTER TABLE forms ADD COLUMN has_unpublished_changes BOOLEAN NOT NULL DEFAULT TRUE;
--- Existing forms used a flow where every save updated both schemas in sync,
--- so none of them have genuine unpublished changes.
-UPDATE forms SET has_unpublished_changes = FALSE;
+-- The backfill below must run only on first application: re-running it would
+-- clear genuine unpublished-changes flags. Guard on the column's absence.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'forms' AND column_name = 'has_unpublished_changes'
+    ) THEN
+        ALTER TABLE forms ADD COLUMN has_unpublished_changes BOOLEAN NOT NULL DEFAULT TRUE;
+        -- Existing forms used a flow where every save updated both schemas in sync,
+        -- so none of them have genuine unpublished changes.
+        UPDATE forms SET has_unpublished_changes = FALSE;
+    END IF;
+END $$;
